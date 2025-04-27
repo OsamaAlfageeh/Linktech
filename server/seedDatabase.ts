@@ -68,7 +68,7 @@ async function seedDatabase() {
       website: "https://techsolutions.example.com",
       location: "الرياض، المملكة العربية السعودية",
       skills: ["تطبيقات الويب", "تطبيقات الجوال", "الذكاء الاصطناعي"],
-      rating: 4.7,
+      rating: 5,
       reviewCount: 48
     });
     
@@ -80,7 +80,7 @@ async function seedDatabase() {
       website: "https://digitalhub.example.com",
       location: "جدة، المملكة العربية السعودية",
       skills: ["التحول الرقمي", "تجارة إلكترونية", "برمجة خلفية"],
-      rating: 4.9,
+      rating: 5,
       reviewCount: 62
     });
     
@@ -92,7 +92,7 @@ async function seedDatabase() {
       website: "https://smartcode.example.com",
       location: "الدمام، المملكة العربية السعودية",
       skills: ["تصميم UI/UX", "تطوير واجهات", "مواقع تفاعلية"],
-      rating: 4.1,
+      rating: 4,
       reviewCount: 27
     });
     
@@ -153,7 +153,7 @@ async function seedDatabase() {
       role: "company",
       companyName: "شركة ديجيتال هب",
       userTitle: "مديرة تطوير الأعمال",
-      rating: 4.5,
+      rating: 5,
       avatar: "https://randomuser.me/api/portraits/women/5.jpg",
       createdAt: new Date(today.getTime() - 45 * 24 * 60 * 60 * 1000) // 45 days ago
     });

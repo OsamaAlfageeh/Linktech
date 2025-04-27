@@ -1,9 +1,10 @@
+import * as schema from "@shared/schema";
 import { 
-  users, User, InsertUser, 
-  companyProfiles, CompanyProfile, InsertCompanyProfile,
-  projects, Project, InsertProject,
-  messages, Message, InsertMessage,
-  testimonials, Testimonial, InsertTestimonial,
+  User, InsertUser, 
+  CompanyProfile, InsertCompanyProfile,
+  Project, InsertProject,
+  Message, InsertMessage,
+  Testimonial, InsertTestimonial,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
