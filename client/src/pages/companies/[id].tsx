@@ -275,16 +275,28 @@ const CompanyDetails = () => {
               
               <div className="pt-20 pb-8">
                 {/* Company name and rating */}
-                <div className="mb-6">
-                  <h1 className="text-3xl font-bold font-heading mb-2">{company.name}</h1>
-                  <div className="flex items-center">
-                    <div className="flex items-center text-amber-500 ml-2">
-                      {renderStars(company.rating)}
+                <div className="mb-6 relative">
+                  <div className={!hasPaid ? "blur-sm select-none" : ""}>
+                    <h1 className="text-3xl font-bold font-heading mb-2">{company.name}</h1>
+                    <div className="flex items-center">
+                      <div className="flex items-center text-amber-500 ml-2">
+                        {renderStars(company.rating)}
+                      </div>
+                      <span className="text-neutral-600">
+                        ({company.rating?.toFixed(1)}) - {company.reviewCount} مراجعة
+                      </span>
                     </div>
-                    <span className="text-neutral-600">
-                      ({company.rating?.toFixed(1)}) - {company.reviewCount} مراجعة
-                    </span>
                   </div>
+                  
+                  {/* قفل اسم الشركة */}
+                  {!hasPaid && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-white/80 rounded-lg p-2 shadow-sm border flex items-center">
+                        <Lock className="text-primary h-4 w-4 ml-1" />
+                        <span className="text-xs font-medium">اسم الشركة محمي</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Description */}
