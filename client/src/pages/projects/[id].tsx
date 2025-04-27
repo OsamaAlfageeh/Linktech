@@ -17,6 +17,8 @@ import {
   AlertCircle
 } from "lucide-react";
 
+import { UploadedFile } from "@/components/ui/dropzone-uploader";
+
 type Project = {
   id: number;
   title: string;
@@ -30,6 +32,7 @@ type Project = {
   createdAt: string;
   username?: string;
   name?: string;
+  attachments?: UploadedFile[];
 };
 
 const ProjectDetails = () => {
@@ -154,6 +157,61 @@ const ProjectDetails = () => {
                   ))}
                 </div>
               </div>
+              
+              {/* Project Attachments */}
+              {project.attachments && project.attachments.length > 0 && (
+                <div className="mb-8">
+                  <h2 className="text-xl font-semibold font-heading mb-3">مرفقات المشروع</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {project.attachments.map((attachment) => (
+                      <div 
+                        key={attachment.id}
+                        className="border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 flex flex-col"
+                      >
+                        {attachment.type.startsWith('image/') ? (
+                          <div className="h-40 overflow-hidden bg-white">
+                            <img 
+                              src={attachment.url} 
+                              alt={attachment.name} 
+                              className="w-full h-full object-contain"
+                            />
+                          </div>
+                        ) : (
+                          <div className="h-40 flex items-center justify-center bg-neutral-100">
+                            <div className="text-center p-4">
+                              <div className="w-16 h-16 mx-auto bg-white rounded-full flex items-center justify-center shadow-sm mb-2">
+                                {attachment.type.includes('pdf') ? (
+                                  <span className="text-red-500 text-xs font-semibold">PDF</span>
+                                ) : attachment.type.includes('word') || attachment.type.includes('doc') ? (
+                                  <span className="text-blue-500 text-xs font-semibold">DOC</span>
+                                ) : attachment.type.includes('sheet') || attachment.type.includes('xls') ? (
+                                  <span className="text-green-500 text-xs font-semibold">XLS</span>
+                                ) : (
+                                  <span className="text-neutral-500 text-xs font-semibold">FILE</span>
+                                )}
+                              </div>
+                              <span className="text-sm text-neutral-700 line-clamp-1">{attachment.name}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="p-3 bg-white flex justify-between items-center mt-auto">
+                          <span className="text-xs text-neutral-500">
+                            {(attachment.size / 1024).toFixed(0)} كيلوبايت
+                          </span>
+                          <a 
+                            href={attachment.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs text-primary hover:text-primary-dark font-medium hover:underline"
+                          >
+                            عرض الملف
+                          </a>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Info cards */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">

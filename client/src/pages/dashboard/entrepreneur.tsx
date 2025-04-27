@@ -102,6 +102,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [projectAttachments, setProjectAttachments] = useState<UploadedFile[]>([]);
 
   // Check if URL has a query parameter for creating a project
   useEffect(() => {
@@ -143,6 +144,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
       const projectData = {
         ...data,
         skills,
+        attachments: projectAttachments.length > 0 ? projectAttachments : undefined,
       };
       
       const response = await apiRequest("POST", "/api/projects", projectData);
@@ -155,6 +157,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
         description: "تم نشر مشروعك وأصبح متاحاً للشركات للاطلاع عليه.",
       });
       form.reset();
+      setProjectAttachments([]);
       setIsCreateDialogOpen(false);
     },
     onError: (error) => {
@@ -168,6 +171,10 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
 
   const onSubmit = (data: ProjectFormValues) => {
     createProjectMutation.mutate(data);
+  };
+  
+  const handleAttachmentsChange = (files: UploadedFile[]) => {
+    setProjectAttachments(files);
   };
 
   // If user is not authenticated or not an entrepreneur, redirect to home
@@ -426,6 +433,20 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                           </FormItem>
                         )}
                       />
+                      
+                      <div className="space-y-2">
+                        <FormLabel>المرفقات (اختياري)</FormLabel>
+                        <DropzoneUploader 
+                          value={projectAttachments}
+                          onChange={handleAttachmentsChange}
+                          maxFiles={5}
+                          acceptedFileTypes={['image/*', 'application/pdf', '.doc', '.docx', '.xls', '.xlsx']}
+                        />
+                        <p className="text-xs text-neutral-500">
+                          يمكنك إرفاق صور توضيحية أو مستندات لتوضيح متطلبات المشروع بشكل أفضل.
+                        </p>
+                      </div>
+                      
                       <div className="flex justify-end space-x-4 space-x-reverse">
                         <Button
                           type="button"
