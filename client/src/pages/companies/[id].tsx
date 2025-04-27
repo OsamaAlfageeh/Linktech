@@ -8,6 +8,14 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RecommendedProjects } from "@/components/recommendations";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { 
   ArrowLeft, 
   Star, 
@@ -36,12 +44,36 @@ type CompanyProfile = {
   username?: string;
 };
 
+interface CompanyPaymentStatus {
+  companyId: number;
+  hasPaid: boolean;
+  paymentDate?: string;
+}
+
 const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
   const companyId = parseInt(id);
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [hasPaid, setHasPaid] = useState(false);
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+
+  // فحص حالة الدفع للشركة عند تحميل الصفحة
+  useEffect(() => {
+    if (companyId) {
+      // التحقق من وجود سجل للدفع في التخزين المحلي
+      const savedPayments = localStorage.getItem('companyPayments');
+      if (savedPayments) {
+        const payments: CompanyPaymentStatus[] = JSON.parse(savedPayments);
+        const companyPayment = payments.find(p => p.companyId === companyId);
+        if (companyPayment) {
+          setHasPaid(companyPayment.hasPaid);
+        }
+      }
+    }
+  }, [companyId]);
 
   const {
     data: company,
@@ -102,6 +134,66 @@ const CompanyDetails = () => {
     ];
     
     return `bg-gradient-to-r ${colors[id % colors.length]}`;
+  };
+  
+  // وظيفة معالجة الدفع
+  const handlePayment = async () => {
+    setPaymentProcessing(true);
+    try {
+      // في البيئة الحقيقية، سنرسل طلب إلى الخادم وننتظر استجابة ميسر
+      // هنا نحاكي عملية دفع ناجحة لأغراض العرض التجريبي
+      
+      // محاكاة تأخير شبكة لمدة ثانية
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // تحديث حالة الدفع للشركة في التخزين المحلي
+      savePaymentStatus(companyId, true);
+      
+      setHasPaid(true);
+      setPaymentSuccess(true);
+      setPaymentProcessing(false);
+      
+      toast({
+        title: "تم الدفع بنجاح",
+        description: "يمكنك الآن الوصول إلى معلومات التواصل كاملة",
+      });
+      
+      // إغلاق نافذة الدفع بعد ثانيتين
+      setTimeout(() => {
+        setIsPaymentModalOpen(false);
+        setPaymentSuccess(false);
+      }, 2000);
+      
+    } catch (error) {
+      setPaymentProcessing(false);
+      toast({
+        title: "فشلت عملية الدفع",
+        description: "يرجى المحاولة مرة أخرى أو التواصل مع الدعم الفني",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  // وظيفة حفظ حالة الدفع في التخزين المحلي
+  const savePaymentStatus = (companyId: number, paid: boolean) => {
+    const now = new Date().toISOString();
+    const savedPayments = localStorage.getItem('companyPayments');
+    let payments: CompanyPaymentStatus[] = [];
+    
+    if (savedPayments) {
+      payments = JSON.parse(savedPayments);
+      // تحديث السجل الموجود أو إضافة سجل جديد
+      const existingIndex = payments.findIndex(p => p.companyId === companyId);
+      if (existingIndex >= 0) {
+        payments[existingIndex] = { ...payments[existingIndex], hasPaid: paid, paymentDate: now };
+      } else {
+        payments.push({ companyId, hasPaid: paid, paymentDate: now });
+      }
+    } else {
+      payments = [{ companyId, hasPaid: paid, paymentDate: now }];
+    }
+    
+    localStorage.setItem('companyPayments', JSON.stringify(payments));
   };
 
   return (
