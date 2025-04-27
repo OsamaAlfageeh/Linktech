@@ -363,12 +363,33 @@ const CompanyDetails = () => {
 
                 {/* Contact button */}
                 <div className="mt-6">
-                  <Link href={`/messages?userId=${company.userId}`}>
-                    <Button className="w-full md:w-auto">
-                      <MessageSquare className="ml-2 h-4 w-4" />
-                      تواصل مع الشركة
-                    </Button>
-                  </Link>
+                  <Button 
+                    onClick={() => {
+                      // التحقق من تسجيل الدخول قبل الانتقال إلى صفحة الدردشة
+                      fetch('/api/auth/user')
+                        .then(res => {
+                          if (res.status === 200) {
+                            // المستخدم مسجل الدخول، الانتقال إلى صفحة الدردشة
+                            navigate(`/messages?userId=${company.userId}`);
+                          } else {
+                            // المستخدم غير مسجل، توجيهه إلى صفحة تسجيل الدخول
+                            toast({
+                              title: "تسجيل الدخول مطلوب",
+                              description: "يجب تسجيل الدخول أولاً للتواصل مع الشركة",
+                            });
+                            navigate("/auth/login");
+                          }
+                        })
+                        .catch(() => {
+                          // في حالة حدوث خطأ، توجيهه إلى صفحة تسجيل الدخول
+                          navigate("/auth/login");
+                        });
+                    }} 
+                    className="w-full md:w-auto"
+                  >
+                    <MessageSquare className="ml-2 h-4 w-4" />
+                    تواصل مع الشركة
+                  </Button>
                 </div>
                 
                 {/* نافذة الدفع */}
