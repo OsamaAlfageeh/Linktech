@@ -61,19 +61,37 @@ const Login = ({ auth }: LoginProps) => {
       console.log("تسجيل دخول ناجح، البيانات المستلمة:", responseData);
       setData(responseData); // تخزين بيانات الاستجابة
       auth.login(responseData.user);
+      
+      // عرض رسالة نجاح
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً بعودتك، ${responseData.user.name}!`,
       });
+      
+      // التوجيه المباشر إلى لوحة المسؤول إذا كان حساب مسؤول 
+      if (responseData.user.role === "admin") {
+        // تأخير بسيط ثم نضع رابط مباشر للوحة المسؤول
+        setTimeout(() => {
+          const adminLink = document.createElement('a');
+          adminLink.setAttribute('id', 'admin-redirect-link');
+          adminLink.href = '/dashboard/admin';
+          adminLink.target = '_self';
+          adminLink.style.display = 'none';
+          document.body.appendChild(adminLink);
+          
+          // النقر التلقائي على الرابط
+          adminLink.click();
+        }, 600);
+      }
 
       // Redirect based on role - إضافة تأخير بسيط قبل التوجيه
       console.log("نوع المستخدم:", responseData.user.role);
       
-      // استخدام صفحة التوجيه الوسيطة
+      // استخدام صفحة التوجيه الوسيطة للأدوار غير المسؤول فقط
       setTimeout(() => {
         if (responseData.user.role === "admin") {
-          console.log("توجيه إلى لوحة المسؤول عبر صفحة التوجيه");
-          window.location.href = "/redirect?to=admin";
+          // خطة النقر المباشر ستتكفل بالتوجيه للمسؤول
+          console.log("تم تعيين خطة توجيه مباشر للمسؤول، تخطي التوجيه الوسيط");
         } else if (responseData.user.role === "entrepreneur") {
           console.log("توجيه إلى لوحة رائد الأعمال عبر صفحة التوجيه");
           window.location.href = "/redirect?to=entrepreneur";
