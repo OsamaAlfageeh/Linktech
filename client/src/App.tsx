@@ -20,7 +20,7 @@ import Login from "@/pages/auth/login";
 import EntrepreneurDashboard from "@/pages/dashboard/entrepreneur";
 import CompanyDashboard from "@/pages/dashboard/company";
 import AdminDashboard from "@/pages/dashboard/admin";
-import AdminLogin from "@/pages/admin-login";
+// Removed AdminLogin import as it's now integrated with the main login page
 import Messages from "@/pages/messages";
 import NotFound from "@/pages/not-found";
 
