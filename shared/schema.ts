@@ -3,6 +3,16 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
 
+// Type definitions
+export interface ProjectAttachment {
+  id: string;          // Unique identifier for the attachment
+  name: string;        // Original filename
+  url: string;         // URL to access the file
+  type: string;        // MIME type (e.g., "image/jpeg", "application/pdf")
+  size: number;        // File size in bytes
+  uploadedAt: string;  // ISO date string
+}
+
 // User roles enumeration
 export const UserRole = {
   ENTREPRENEUR: "entrepreneur",
@@ -46,6 +56,7 @@ export const projects = pgTable("projects", {
   status: text("status").notNull().default("open"),
   userId: integer("user_id").notNull().references(() => users.id),
   highlightStatus: text("highlight_status"), // For "high demand", "new", etc.
+  attachments: jsonb("attachments"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -87,6 +98,15 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
   status: true, 
   highlightStatus: true, 
   createdAt: true 
+}).extend({
+  attachments: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    url: z.string(),
+    type: z.string(),
+    size: z.number(),
+    uploadedAt: z.string()
+  })).optional()
 });
 
 export const insertMessageSchema = createInsertSchema(messages).omit({ 
