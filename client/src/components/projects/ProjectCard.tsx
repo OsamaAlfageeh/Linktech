@@ -42,7 +42,7 @@ const ProjectCard = ({ project }: ProjectProps) => {
         </div>
         <p className="text-neutral-600 mb-4">{truncateText(project.description, 120)}</p>
         <div className="flex flex-wrap gap-2 mb-4">
-          {project.skills.map((skill, index) => (
+          {(project.skills || []).map((skill, index) => (
             <Badge key={index} variant="outline" className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded">
               {skill}
             </Badge>
@@ -50,11 +50,11 @@ const ProjectCard = ({ project }: ProjectProps) => {
         </div>
         <div className="flex justify-between items-center text-sm border-t border-neutral-200 pt-4">
           <div className="text-neutral-600 flex items-center">
-            <Banknote className="text-[hsl(160,84%,39%)] h-4 w-4 ml-1" />
+            <Banknote className="text-[hsl(160,84%,39%)] h-4 w-4 ml-1.5" />
             <span>{project.budget}</span>
           </div>
           <div className="text-neutral-600 flex items-center">
-            <CalendarIcon className="h-4 w-4 ml-1" />
+            <CalendarIcon className="h-4 w-4 ml-1.5" />
             <span>{project.duration}</span>
           </div>
         </div>

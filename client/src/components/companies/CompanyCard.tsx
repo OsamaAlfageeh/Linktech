@@ -121,7 +121,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
           عرض الملف
         </Link>
         <Link href={`/messages?userId=${company.userId}`} className="text-neutral-600 hover:text-primary">
-          <MessageSquare className="h-5 w-5" />
+          <MessageSquare className="h-5 w-5 rtl-flip" />
         </Link>
       </div>
     </div>

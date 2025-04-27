@@ -92,26 +92,49 @@
     @apply border-border;
   }
 
+  html, body {
+    direction: rtl;
+    text-align: right;
+  }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-  }
-  
-  /* Arabic font settings */
-  body {
     font-family: "IBM Plex Sans Arabic", sans-serif;
   }
   
   h1, h2, h3, h4, h5, h6 {
     font-family: "Tajawal", sans-serif;
   }
+
+  /* RTL overrides for input elements */
+  input, textarea {
+    text-align: right;
+  }
 }
 
 /* RTL adjustments for ShadCN components */
-[dir="rtl"] .rtl-flip {
+.rtl-flip {
   transform: scaleX(-1);
 }
 
-[dir="rtl"] .space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+.space-x-reverse > :not([hidden]) ~ :not([hidden]) {
   --tw-space-x-reverse: 1;
+}
+
+/* Force RTL for some UI components */
+.right-to-left {
+  direction: rtl;
+  text-align: right;
+}
+
+.left-to-right {
+  direction: ltr;
+  text-align: left;
+}
+
+/* RTL support for shadcn components */
+:is(.flex, .inline-flex) > :not([hidden]) ~ :not([hidden]) {
+  margin-right: var(--tw-space-x-reverse);
+  margin-left: calc(var(--tw-space-x) * (1 - var(--tw-space-x-reverse)));
 }
