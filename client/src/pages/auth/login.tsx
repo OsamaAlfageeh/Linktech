@@ -73,7 +73,7 @@ const Login = ({ auth }: LoginProps) => {
         console.log("توجيه مباشر للمستخدم...");
         if (responseData.user.role === "admin") {
           console.log("توجيه مباشر إلى لوحة المسؤول");
-          window.location.replace("/dashboard/admin");
+          window.location.replace("/admin");
         } else if (responseData.user.role === "entrepreneur") {
           console.log("توجيه مباشر إلى لوحة رائد الأعمال");
           window.location.replace("/dashboard/entrepreneur");
@@ -130,7 +130,7 @@ const Login = ({ auth }: LoginProps) => {
               <div className="mt-2">
                 <p className="text-xs text-blue-700 mb-1">تم تسجيل دخولك كمسؤول، اضغط هنا للوصول إلى لوحة التحكم:</p>
                 <a 
-                  href="/dashboard/admin" 
+                  href="/admin" 
                   className="block w-full text-center bg-primary text-white text-xs py-2 px-3 rounded-lg hover:bg-primary-dark"
                 >
                   لوحة تحكم المسؤول

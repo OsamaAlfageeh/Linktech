@@ -115,6 +115,18 @@ function App() {
           </Route>
           {/* صفحة المسؤول بدون تحقق (مؤقتاً) */}
           <Route path="/dashboard/admin" component={() => <AdminDashboard auth={auth} />} />
+          {/* صفحة المسؤول المبسطة للوصول المباشر */}
+          <Route path="/admin">
+            <div className="container mx-auto p-4 sm:p-6">
+              <h1 className="text-3xl font-bold mb-6">لوحة المسؤول البسيطة</h1>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <p className="mb-4">تم تسجيل دخولك بنجاح كمسؤول.</p>
+                <a href="/dashboard/admin" className="inline-block bg-primary text-white px-4 py-2 rounded-md">
+                  الذهاب إلى لوحة المسؤول الكاملة
+                </a>
+              </div>
+            </div>
+          </Route>
           {/* نهاية التعديل المؤقت */}
           <Route path="/messages">
             {auth.isAuthenticated ? (
