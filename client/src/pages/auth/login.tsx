@@ -57,20 +57,29 @@ const Login = ({ auth }: LoginProps) => {
       return response.json();
     },
     onSuccess: (data) => {
+      console.log("تسجيل دخول ناجح، البيانات المستلمة:", data);
       auth.login(data.user);
       toast({
         title: "تم تسجيل الدخول بنجاح",
         description: `مرحباً بعودتك، ${data.user.name}!`,
       });
 
-      // Redirect based on role
-      if (data.user.role === "admin") {
-        navigate("/dashboard/admin");
-      } else if (data.user.role === "entrepreneur") {
-        navigate("/dashboard/entrepreneur");
-      } else {
-        navigate("/dashboard/company");
-      }
+      // Redirect based on role - إضافة تأخير بسيط قبل التوجيه
+      console.log("نوع المستخدم:", data.user.role);
+      
+      // استخدام setTimeout للتأكد من اكتمال تحديث الحالة قبل التوجيه
+      setTimeout(() => {
+        if (data.user.role === "admin") {
+          console.log("توجيه إلى لوحة المسؤول");
+          navigate("/dashboard/admin");
+        } else if (data.user.role === "entrepreneur") {
+          console.log("توجيه إلى لوحة رائد الأعمال");
+          navigate("/dashboard/entrepreneur");
+        } else {
+          console.log("توجيه إلى لوحة الشركة");
+          navigate("/dashboard/company");
+        }
+      }, 300);
     },
     onError: (error: any) => {
       setServerError("اسم المستخدم أو كلمة المرور غير صحيحة.");
