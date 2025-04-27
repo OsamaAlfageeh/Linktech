@@ -77,7 +77,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
         
         const matchesSkill = selectedSkill === "_all" || selectedSkill === ""
           ? true
-          : project.skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
+          : (project.skills || []).some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
         
         return matchesSearch && matchesSkill;
       })
@@ -108,7 +108,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
   // Extract unique skills from all projects
   const allSkills = projects
-    ? Array.from(new Set(projects.flatMap(project => project.skills)))
+    ? Array.from(new Set(projects.flatMap(project => project.skills || [])))
     : [];
 
   return (

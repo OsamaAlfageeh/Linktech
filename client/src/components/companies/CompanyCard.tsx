@@ -63,7 +63,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
       "from-indigo-400 to-indigo-600"
     ];
     
-    return `bg-gradient-to-r ${colors[id % colors.length]}`;
+    return `bg-gradient-to-r ${colors[(id || 1) % colors.length]}`;
   };
 
   return (
@@ -99,19 +99,19 @@ const CompanyCard = ({ company }: CompanyProps) => {
         <div className="flex items-center text-sm text-amber-500 mb-3">
           {renderStars(company.rating)}
           <span className="text-neutral-600 mr-2">
-            ({company.rating?.toFixed(1)}) - {company.reviewCount} مراجعة
+            ({company.rating || 0}) - {company.reviewCount || 0} مراجعة
           </span>
         </div>
         <p className="text-neutral-600 mb-4">{truncateText(company.description, 120)}</p>
         <div className="flex flex-wrap gap-2 mb-4">
-          {company.skills.slice(0, 3).map((skill, index) => (
+          {(company.skills || []).slice(0, 3).map((skill, index) => (
             <Badge key={index} variant="outline" className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded">
               {skill}
             </Badge>
           ))}
-          {company.skills.length > 3 && (
+          {(company.skills || []).length > 3 && (
             <Badge variant="outline" className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded">
-              +{company.skills.length - 3}
+              +{(company.skills || []).length - 3}
             </Badge>
           )}
         </div>

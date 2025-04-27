@@ -76,7 +76,7 @@ const Companies = () => {
         
         const matchesSkill = selectedSkill === "_all" || selectedSkill === ""
           ? true
-          : company.skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
+          : (company.skills || []).some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
         
         return matchesSearch && matchesSkill;
       })
@@ -96,7 +96,7 @@ const Companies = () => {
 
   // Extract unique skills from all companies
   const allSkills = companies
-    ? Array.from(new Set(companies.flatMap(company => company.skills)))
+    ? Array.from(new Set(companies.flatMap(company => company.skills || [])))
     : [];
 
   return (
