@@ -23,6 +23,21 @@ import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
+// Define interface for the registration payload
+interface RegisterPayload {
+  name: string;
+  username: string;
+  email: string;
+  password: string;
+  role: "entrepreneur" | "company";
+  companyProfile?: {
+    description: string;
+    skills: string[];
+    website?: string;
+    location?: string;
+  };
+}
+
 // Define our form schema
 const registerSchema = z.object({
   name: z.string().min(2, "الاسم مطلوب ويجب أن يكون أكثر من حرفين"),
@@ -79,7 +94,7 @@ const Register = ({ auth }: RegisterProps) => {
 
   const registerMutation = useMutation({
     mutationFn: async (data: RegisterFormValues) => {
-      const payload = {
+      const payload: RegisterPayload = {
         name: data.name,
         username: data.username,
         email: data.email,
