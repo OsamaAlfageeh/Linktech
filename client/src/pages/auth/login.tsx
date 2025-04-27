@@ -41,6 +41,7 @@ const Login = ({ auth }: LoginProps) => {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [serverError, setServerError] = useState("");
+  const [data, setData] = useState<any>(null);
   // واجهة تسجيل دخول موحدة
 
   const form = useForm<LoginFormValues>({
@@ -56,23 +57,24 @@ const Login = ({ auth }: LoginProps) => {
       const response = await apiRequest("POST", "/api/auth/login", data);
       return response.json();
     },
-    onSuccess: (data) => {
-      console.log("تسجيل دخول ناجح، البيانات المستلمة:", data);
-      auth.login(data.user);
+    onSuccess: (responseData) => {
+      console.log("تسجيل دخول ناجح، البيانات المستلمة:", responseData);
+      setData(responseData); // تخزين بيانات الاستجابة
+      auth.login(responseData.user);
       toast({
         title: "تم تسجيل الدخول بنجاح",
-        description: `مرحباً بعودتك، ${data.user.name}!`,
+        description: `مرحباً بعودتك، ${responseData.user.name}!`,
       });
 
       // Redirect based on role - إضافة تأخير بسيط قبل التوجيه
-      console.log("نوع المستخدم:", data.user.role);
+      console.log("نوع المستخدم:", responseData.user.role);
       
       // استخدام window.location.href بدلاً من wouter navigate
       setTimeout(() => {
-        if (data.user.role === "admin") {
+        if (responseData.user.role === "admin") {
           console.log("توجيه إلى لوحة المسؤول باستخدام window.location");
           window.location.href = "/dashboard/admin";
-        } else if (data.user.role === "entrepreneur") {
+        } else if (responseData.user.role === "entrepreneur") {
           console.log("توجيه إلى لوحة رائد الأعمال باستخدام window.location");
           window.location.href = "/dashboard/entrepreneur";
         } else {
@@ -123,7 +125,18 @@ const Login = ({ auth }: LoginProps) => {
           
           <div className="mt-2 mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
             <p className="text-sm text-blue-700 mb-1 font-medium">معلومات هامة:</p>
-            <p className="text-xs text-blue-600">سيتم توجيهك تلقائياً حسب نوع حسابك بعد تسجيل الدخول</p>
+            <p className="text-xs text-blue-600 mb-2">سيتم توجيهك تلقائياً حسب نوع حسابك بعد تسجيل الدخول</p>
+            {data?.user && data.user.role === "admin" && (
+              <div className="mt-2">
+                <p className="text-xs text-blue-700 mb-1">تم تسجيل دخولك كمسؤول، اضغط هنا للوصول إلى لوحة التحكم:</p>
+                <a 
+                  href="/dashboard/admin" 
+                  className="block w-full text-center bg-primary text-white text-xs py-2 px-3 rounded-lg hover:bg-primary-dark"
+                >
+                  لوحة تحكم المسؤول
+                </a>
+              </div>
+            )}
           </div>
 
           <Form {...form}>
