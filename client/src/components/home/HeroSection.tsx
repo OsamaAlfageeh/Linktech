@@ -39,7 +39,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
               <Link 
                 href={getEntrepreneurLink()} 
-                className="bg-white text-primary hover:bg-neutral-100 font-medium rounded-lg px-6 py-3 text-center transition-all duration-300 hover-button-scale hover:shadow-lg pulse-effect"
+                className="bg-white text-primary hover:bg-neutral-100 font-medium rounded-lg px-6 py-3 text-center transition-all duration-300"
               >
                 أنا رائد أعمال
               </Link>
