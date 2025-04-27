@@ -74,9 +74,9 @@ const Companies = () => {
           company.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (company.location?.toLowerCase().includes(searchQuery.toLowerCase()) || false);
         
-        const matchesSkill = selectedSkill 
-          ? company.skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase())
-          : true;
+        const matchesSkill = selectedSkill === "_all" || selectedSkill === ""
+          ? true
+          : company.skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
         
         return matchesSearch && matchesSkill;
       })
@@ -96,7 +96,7 @@ const Companies = () => {
 
   // Extract unique skills from all companies
   const allSkills = companies
-    ? [...new Set(companies.flatMap(company => company.skills))]
+    ? Array.from(new Set(companies.flatMap(company => company.skills)))
     : [];
 
   return (
@@ -133,7 +133,7 @@ const Companies = () => {
                   <SelectValue placeholder="التخصص" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع التخصصات</SelectItem>
+                  <SelectItem value="_all">جميع التخصصات</SelectItem>
                   {allSkills.map((skill, index) => (
                     <SelectItem key={index} value={skill}>{skill}</SelectItem>
                   ))}

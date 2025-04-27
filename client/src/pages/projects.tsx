@@ -26,6 +26,7 @@ type Project = {
   highlightStatus?: string;
   userId: number;
   name?: string;
+  createdAt?: string; // Make createdAt optional
 };
 
 type ProjectsProps = {
@@ -74,9 +75,9 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
         const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                              project.description.toLowerCase().includes(searchQuery.toLowerCase());
         
-        const matchesSkill = selectedSkill 
-          ? project.skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase())
-          : true;
+        const matchesSkill = selectedSkill === "_all" || selectedSkill === ""
+          ? true
+          : project.skills.some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
         
         return matchesSearch && matchesSkill;
       })
@@ -85,9 +86,14 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
   // Sort projects
   const sortedProjects = [...filteredProjects].sort((a, b) => {
     if (sortBy === "newest") {
-      return new Date(b.createdAt as any).getTime() - new Date(a.createdAt as any).getTime();
+      // Safely handle createdAt that might not exist in the type but exists in the data
+      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      return bDate - aDate;
     } else if (sortBy === "oldest") {
-      return new Date(a.createdAt as any).getTime() - new Date(b.createdAt as any).getTime();
+      const aDate = a.createdAt ? new Date(a.createdAt as string).getTime() : 0;
+      const bDate = b.createdAt ? new Date(b.createdAt as string).getTime() : 0;
+      return aDate - bDate;
     } else if (sortBy === "budget-high") {
       const aBudget = parseInt(a.budget.replace(/[^0-9]/g, ''));
       const bBudget = parseInt(b.budget.replace(/[^0-9]/g, ''));
@@ -102,7 +108,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
   // Extract unique skills from all projects
   const allSkills = projects
-    ? [...new Set(projects.flatMap(project => project.skills))]
+    ? Array.from(new Set(projects.flatMap(project => project.skills)))
     : [];
 
   return (
@@ -139,7 +145,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
                   <SelectValue placeholder="التصنيف" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">جميع التصنيفات</SelectItem>
+                  <SelectItem value="_all">جميع التصنيفات</SelectItem>
                   {allSkills.map((skill, index) => (
                     <SelectItem key={index} value={skill}>{skill}</SelectItem>
                   ))}
