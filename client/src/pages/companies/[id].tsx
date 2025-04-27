@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RecommendedProjects } from "@/components/recommendations";
 import { 
   ArrowLeft, 
   Star, 
@@ -245,6 +246,13 @@ const CompanyDetails = () => {
             <Link href="/companies">
               <Button>عرض جميع الشركات</Button>
             </Link>
+          </div>
+        )}
+
+        {/* Recommended Projects */}
+        {company && (
+          <div className="mt-10">
+            <RecommendedProjects companyId={company.id} limit={3} />
           </div>
         )}
       </div>
