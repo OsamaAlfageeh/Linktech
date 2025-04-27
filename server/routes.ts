@@ -9,6 +9,12 @@ import {
   insertTestimonialSchema 
 } from "@shared/schema";
 import { z } from "zod";
+import { 
+  getRecommendedProjectsForCompany, 
+  getRecommendedCompaniesForProject,
+  getSimilarProjects,
+  getTrendingProjects
+} from "./recommendation";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
