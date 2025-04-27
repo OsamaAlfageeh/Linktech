@@ -67,17 +67,17 @@ const Login = ({ auth }: LoginProps) => {
       // Redirect based on role - إضافة تأخير بسيط قبل التوجيه
       console.log("نوع المستخدم:", data.user.role);
       
-      // استخدام setTimeout للتأكد من اكتمال تحديث الحالة قبل التوجيه
+      // استخدام window.location.href بدلاً من wouter navigate
       setTimeout(() => {
         if (data.user.role === "admin") {
-          console.log("توجيه إلى لوحة المسؤول");
-          navigate("/dashboard/admin");
+          console.log("توجيه إلى لوحة المسؤول باستخدام window.location");
+          window.location.href = "/dashboard/admin";
         } else if (data.user.role === "entrepreneur") {
-          console.log("توجيه إلى لوحة رائد الأعمال");
-          navigate("/dashboard/entrepreneur");
+          console.log("توجيه إلى لوحة رائد الأعمال باستخدام window.location");
+          window.location.href = "/dashboard/entrepreneur";
         } else {
-          console.log("توجيه إلى لوحة الشركة");
-          navigate("/dashboard/company");
+          console.log("توجيه إلى لوحة الشركة باستخدام window.location");
+          window.location.href = "/dashboard/company";
         }
       }, 300);
     },
