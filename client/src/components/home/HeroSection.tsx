@@ -39,15 +39,16 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
               <Link 
                 href={getEntrepreneurLink()} 
-                className="bg-white text-primary hover:bg-neutral-100 font-medium rounded-lg px-6 py-3 text-center transition-colors"
+                className="bg-white text-primary hover:bg-neutral-100 font-medium rounded-lg px-6 py-3 text-center transition-all duration-300 hover-button-scale hover:shadow-lg pulse-effect"
               >
                 أنا رائد أعمال
               </Link>
               <Link 
                 href={getCompanyLink()} 
-                className="bg-accent hover:bg-accent-dark text-white font-medium rounded-lg px-6 py-3 text-center transition-colors"
+                className="bg-accent hover:bg-accent-dark text-white font-medium rounded-lg px-6 py-3 text-center transition-all duration-300 hover-button-scale hover:shadow-lg relative overflow-hidden group"
               >
-                أنا شركة برمجة
+                <span className="relative z-10">أنا شركة برمجة</span>
+                <span className="absolute inset-0 bg-gradient-to-r from-amber-500 to-amber-600 transform scale-x-0 origin-right transition-transform duration-300 group-hover:scale-x-100"></span>
               </Link>
             </div>
           </div>

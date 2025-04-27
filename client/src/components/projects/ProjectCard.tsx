@@ -30,12 +30,12 @@ const ProjectCard = ({ project }: ProjectProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover-card-lift fade-in">
       <div className="p-6">
         <div className="flex justify-between items-start mb-4">
-          <h3 className="font-heading font-semibold text-xl">{project.title}</h3>
+          <h3 className="font-heading font-semibold text-xl transition-colors duration-300 hover:text-primary">{project.title}</h3>
           {project.highlightStatus && (
-            <span className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${getHighlightBadgeColor(project.highlightStatus)}`}>
+            <span className={`text-sm font-medium px-2.5 py-0.5 rounded-full ${getHighlightBadgeColor(project.highlightStatus)} transition-all duration-300 hover:shadow-md hover:scale-105`}>
               {project.highlightStatus}
             </span>
           )}
@@ -43,24 +43,31 @@ const ProjectCard = ({ project }: ProjectProps) => {
         <p className="text-neutral-600 mb-4">{truncateText(project.description, 120)}</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {(project.skills || []).map((skill, index) => (
-            <Badge key={index} variant="outline" className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded">
+            <Badge 
+              key={index} 
+              variant="outline" 
+              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse"
+            >
               {skill}
             </Badge>
           ))}
         </div>
         <div className="flex justify-between items-center text-sm border-t border-neutral-200 pt-4">
-          <div className="text-neutral-600 flex items-center">
-            <Banknote className="text-[hsl(160,84%,39%)] h-4 w-4 ml-1.5" />
-            <span>{project.budget}</span>
+          <div className="text-neutral-600 flex items-center group">
+            <Banknote className="text-[hsl(160,84%,39%)] h-4 w-4 ml-1.5 transition-transform duration-300 group-hover:scale-125" />
+            <span className="transition-colors duration-300 group-hover:text-[hsl(160,84%,39%)]">{project.budget}</span>
           </div>
-          <div className="text-neutral-600 flex items-center">
-            <CalendarIcon className="h-4 w-4 ml-1.5" />
-            <span>{project.duration}</span>
+          <div className="text-neutral-600 flex items-center group">
+            <CalendarIcon className="h-4 w-4 ml-1.5 transition-transform duration-300 group-hover:scale-125" />
+            <span className="transition-colors duration-300 group-hover:text-primary">{project.duration}</span>
           </div>
         </div>
       </div>
       <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200">
-        <Link href={`/projects/${project.id}`} className="text-primary hover:text-primary-dark font-medium">
+        <Link 
+          href={`/projects/${project.id}`} 
+          className="text-primary hover:text-primary-dark font-medium link-underline inline-block"
+        >
           عرض التفاصيل
         </Link>
       </div>
