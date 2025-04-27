@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -135,6 +135,12 @@ function App() {
               <NotFound />
             )}
           </Route>
+          
+          {/* مسار صفحة المستخدم */}
+          <Route path="/users/:id" component={() => {
+            const UserPage = require('./pages/users/[id]').default;
+            return <UserPage />;
+          }} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
