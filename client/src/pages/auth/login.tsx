@@ -18,8 +18,10 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 // Define our form schema
 const loginSchema = z.object({
@@ -39,6 +41,7 @@ const Login = ({ auth }: LoginProps) => {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [serverError, setServerError] = useState("");
+  const [activeTab, setActiveTab] = useState("user"); // "user" أو "admin"
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -61,7 +64,9 @@ const Login = ({ auth }: LoginProps) => {
       });
 
       // Redirect based on role
-      if (data.user.role === "entrepreneur") {
+      if (data.user.role === "admin") {
+        navigate("/dashboard/admin");
+      } else if (data.user.role === "entrepreneur") {
         navigate("/dashboard/entrepreneur");
       } else {
         navigate("/dashboard/company");
@@ -98,6 +103,16 @@ const Login = ({ auth }: LoginProps) => {
               </Link>
             </p>
           </div>
+          
+          <Tabs defaultValue="user" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="user">مستخدم</TabsTrigger>
+              <TabsTrigger value="admin">
+                <ShieldCheck className="inline-block ml-1 h-4 w-4" />
+                مسؤول
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
 
           {serverError && (
             <Alert variant="destructive">
@@ -105,6 +120,14 @@ const Login = ({ auth }: LoginProps) => {
               <AlertTitle>خطأ</AlertTitle>
               <AlertDescription>{serverError}</AlertDescription>
             </Alert>
+          )}
+          
+          {activeTab === "admin" && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
+              <p className="text-sm text-blue-700 mb-2 font-medium">بيانات تسجيل دخول المسؤول:</p>
+              <p className="text-xs text-blue-600 mb-1">اسم المستخدم: admin</p>
+              <p className="text-xs text-blue-600">كلمة المرور: admin123</p>
+            </div>
           )}
 
           <Form {...form}>
