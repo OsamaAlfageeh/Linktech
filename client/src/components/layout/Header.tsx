@@ -38,6 +38,7 @@ const Header = ({ auth }: HeaderProps) => {
   const getDashboardLink = () => {
     if (auth.isCompany) return "/dashboard/company";
     if (auth.isEntrepreneur) return "/dashboard/entrepreneur";
+    if (auth.user?.role === "admin") return "/dashboard/admin";
     return "/";
   };
 

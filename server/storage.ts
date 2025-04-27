@@ -234,6 +234,19 @@ export class MemStorage implements IStorage {
   
   // Seed initial data
   private seedData() {
+    // إضافة مستخدم مسؤول (admin)
+    const adminUser: User = {
+      id: this.userIdCounter++,
+      username: "admin",
+      password: "admin123",
+      email: "admin@techlink.example",
+      role: "admin",
+      name: "مسؤول النظام",
+      avatar: "https://randomuser.me/api/portraits/men/33.jpg",
+      createdAt: new Date()
+    };
+    this.users.set(adminUser.id, adminUser);
+    
     // Create some sample users
     const user1: User = {
       id: this.userIdCounter++,
