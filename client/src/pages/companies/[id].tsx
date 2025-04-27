@@ -1,10 +1,12 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useLocation } from "wouter";
 import { Helmet } from "react-helmet";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RecommendedProjects } from "@/components/recommendations";
 import { 
   ArrowLeft, 
@@ -12,7 +14,10 @@ import {
   MapPin, 
   Globe, 
   MessageSquare, 
-  AlertCircle 
+  AlertCircle,
+  Lock,
+  CreditCard,
+  CheckCircle2
 } from "lucide-react";
 
 type CompanyProfile = {
@@ -35,6 +40,8 @@ const CompanyDetails = () => {
   const { id } = useParams<{ id: string }>();
   const companyId = parseInt(id);
   const [_, navigate] = useLocation();
+  const { toast } = useToast();
+  const [hasPaid, setHasPaid] = useState(false);
 
   const {
     data: company,
