@@ -68,38 +68,20 @@ const Login = ({ auth }: LoginProps) => {
         description: `مرحباً بعودتك، ${responseData.user.name}!`,
       });
       
-      // التوجيه المباشر إلى لوحة المسؤول إذا كان حساب مسؤول 
-      if (responseData.user.role === "admin") {
-        // تأخير بسيط ثم نضع رابط مباشر للوحة المسؤول
-        setTimeout(() => {
-          const adminLink = document.createElement('a');
-          adminLink.setAttribute('id', 'admin-redirect-link');
-          adminLink.href = '/dashboard/admin';
-          adminLink.target = '_self';
-          adminLink.style.display = 'none';
-          document.body.appendChild(adminLink);
-          
-          // النقر التلقائي على الرابط
-          adminLink.click();
-        }, 600);
-      }
-
-      // Redirect based on role - إضافة تأخير بسيط قبل التوجيه
-      console.log("نوع المستخدم:", responseData.user.role);
-      
-      // استخدام صفحة التوجيه الوسيطة للأدوار غير المسؤول فقط
+      // توجيه مباشر بسيط
       setTimeout(() => {
+        console.log("توجيه مباشر للمستخدم...");
         if (responseData.user.role === "admin") {
-          // خطة النقر المباشر ستتكفل بالتوجيه للمسؤول
-          console.log("تم تعيين خطة توجيه مباشر للمسؤول، تخطي التوجيه الوسيط");
+          console.log("توجيه مباشر إلى لوحة المسؤول");
+          window.location.replace("/dashboard/admin");
         } else if (responseData.user.role === "entrepreneur") {
-          console.log("توجيه إلى لوحة رائد الأعمال عبر صفحة التوجيه");
-          window.location.href = "/redirect?to=entrepreneur";
+          console.log("توجيه مباشر إلى لوحة رائد الأعمال");
+          window.location.replace("/dashboard/entrepreneur");
         } else {
-          console.log("توجيه إلى لوحة الشركة عبر صفحة التوجيه");
-          window.location.href = "/redirect?to=company";
+          console.log("توجيه مباشر إلى لوحة الشركة");
+          window.location.replace("/dashboard/company");
         }
-      }, 300);
+      }, 800);
     },
     onError: (error: any) => {
       setServerError("اسم المستخدم أو كلمة المرور غير صحيحة.");
@@ -148,7 +130,7 @@ const Login = ({ auth }: LoginProps) => {
               <div className="mt-2">
                 <p className="text-xs text-blue-700 mb-1">تم تسجيل دخولك كمسؤول، اضغط هنا للوصول إلى لوحة التحكم:</p>
                 <a 
-                  href="/redirect?to=admin" 
+                  href="/dashboard/admin" 
                   className="block w-full text-center bg-primary text-white text-xs py-2 px-3 rounded-lg hover:bg-primary-dark"
                 >
                   لوحة تحكم المسؤول
