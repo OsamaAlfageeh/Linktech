@@ -67,7 +67,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover-card-lift">
+    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover-card-lift transform transition-all duration-300 hover:shadow-md">
       <div className="relative">
         <div className={`h-32 ${company.coverPhoto ? '' : getCoverGradient(company.id)} overflow-hidden`}>
           {company.coverPhoto ? (
@@ -81,7 +81,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
           )}
         </div>
         <div className="absolute -bottom-12 right-6 z-10">
-          <div className="w-24 h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg">
+          <div className="w-24 h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg hover:scale-105">
             {company.logo ? (
               <img 
                 src={company.logo} 
@@ -89,7 +89,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
                 className="w-full h-full object-cover rounded hover:scale-105 transition-transform duration-300"
               />
             ) : (
-              <div className={`w-full h-full flex items-center justify-center rounded ${getCoverGradient(company.id)} text-white text-2xl font-bold`}>
+              <div className={`w-full h-full flex items-center justify-center rounded ${getCoverGradient(company.id)} text-white text-2xl font-bold transition-all duration-300 hover:opacity-90`}>
                 {company.name?.charAt(0) || ''}
               </div>
             )}
@@ -97,7 +97,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
         </div>
       </div>
       <div className="p-6 pt-16">
-        <h3 className="font-heading font-semibold text-xl mb-2 transition-colors duration-300 hover:text-primary">{company.name}</h3>
+        <h3 className="font-heading font-semibold text-xl mb-2 transition-colors duration-300 hover:text-primary bg-gradient-to-r from-primary to-primary bg-[length:0%_2px] bg-no-repeat bg-bottom group-hover:bg-[length:100%_2px]">{company.name}</h3>
         <div className="flex items-center text-sm text-amber-500 mb-3 group">
           <div className="flex transition-transform duration-300 group-hover:scale-110">
             {renderStars(company.rating)}
@@ -112,7 +112,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
             <Badge 
               key={index} 
               variant="outline" 
-              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse"
+              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse transition-all duration-300 hover:bg-neutral-200"
             >
               {skill}
             </Badge>
@@ -120,7 +120,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
           {(company.skills || []).length > 3 && (
             <Badge 
               variant="outline" 
-              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse"
+              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse transition-all duration-300 hover:bg-neutral-200"
             >
               +{(company.skills || []).length - 3}
             </Badge>
@@ -130,13 +130,13 @@ const CompanyCard = ({ company }: CompanyProps) => {
       <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200 flex justify-between items-center">
         <Link 
           href={`/companies/${company.id}`} 
-          className="text-primary hover:text-primary-dark font-medium link-underline"
+          className="text-primary hover:text-primary-dark font-medium link-underline relative overflow-hidden after:absolute after:bottom-0 after:right-0 after:h-[2px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-primary-dark after:transition-transform after:duration-300 hover:after:origin-bottom-left hover:after:scale-x-100"
         >
           عرض الملف
         </Link>
         <Link 
           href={`/messages?userId=${company.userId}`} 
-          className="text-neutral-600 hover:text-primary p-1 rounded-full transition-colors duration-200 hover:bg-neutral-200"
+          className="text-neutral-600 hover:text-primary p-2 rounded-full transition-all duration-200 hover:bg-neutral-200 hover:shadow-sm"
         >
           <MessageSquare className="h-5 w-5 rtl-flip transition-transform duration-200 hover:scale-110" />
         </Link>

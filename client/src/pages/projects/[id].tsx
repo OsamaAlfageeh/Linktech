@@ -109,7 +109,16 @@ const ProjectDetails = () => {
             <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">لا يمكن تحميل تفاصيل المشروع</h2>
             <p className="text-neutral-600 mb-6">حدث خطأ أثناء محاولة تحميل بيانات المشروع. يرجى المحاولة مرة أخرى لاحقًا.</p>
-            <Button onClick={() => window.location.reload()} variant="outline">إعادة المحاولة</Button>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline" 
+              className="hover-button-scale transition-all duration-300 pulse-effect"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="ml-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              إعادة المحاولة
+            </Button>
           </div>
         ) : project ? (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
@@ -132,9 +141,12 @@ const ProjectDetails = () => {
                 </div>
                 <div className="mt-4 md:mt-0">
                   <Link href={`/messages?userId=${project.userId}&projectId=${project.id}`}>
-                    <Button>
-                      <MessageSquare className="ml-2 h-4 w-4" />
-                      تواصل مع صاحب المشروع
+                    <Button className="hover-button-scale transition-all duration-300 hover:shadow-md">
+                      <MessageSquare className="ml-2 h-4 w-4 rtl-flip transition-transform group-hover:scale-110" />
+                      <span className="relative">
+                        تواصل مع صاحب المشروع
+                        <span className="absolute -bottom-1 right-0 w-full h-0.5 bg-white/70 transform scale-x-0 transition-transform duration-300 origin-right group-hover:scale-x-100"></span>
+                      </span>
                     </Button>
                   </Link>
                 </div>
@@ -151,7 +163,11 @@ const ProjectDetails = () => {
                 <h2 className="text-xl font-semibold font-heading mb-3">المهارات المطلوبة</h2>
                 <div className="flex flex-wrap gap-2">
                   {project.skills.map((skill, index) => (
-                    <Badge key={index} variant="outline" className="bg-neutral-100 text-neutral-700 px-3 py-1 rounded-lg">
+                    <Badge 
+                      key={index} 
+                      variant="outline" 
+                      className="bg-neutral-100 text-neutral-700 px-3 py-1 rounded-lg transition-all duration-300 hover:bg-neutral-200 hover:shadow-sm hover:translate-y-[-2px] badge-pulse"
+                    >
                       {skill}
                     </Badge>
                   ))}
@@ -166,7 +182,7 @@ const ProjectDetails = () => {
                     {project.attachments.map((attachment) => (
                       <div 
                         key={attachment.id}
-                        className="border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 flex flex-col"
+                        className="border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 flex flex-col transform transition-all duration-300 hover:shadow-md hover:translate-y-[-3px]"
                       >
                         {attachment.type.startsWith('image/') ? (
                           <div className="h-40 overflow-hidden bg-white">
