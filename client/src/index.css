@@ -70,20 +70,8 @@
   }
   
   /* تأثير العائم */
-  .float-animation {
+  .float-animation, .floating-button {
     animation: float 3s ease-in-out infinite;
-  }
-  
-  @keyframes float {
-    0% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-    100% {
-      transform: translateY(0px);
-    }
   }
   
   /* تأثير التلاشي عند الدخول */
@@ -112,16 +100,7 @@
     transition: opacity 0.4s ease-out, transform 0.4s ease-out;
   }
   
-  /* تأثير زر عائم */
-  .floating-button {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  @keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
-  }
+  /* تعريف keyframes للتأثير العائم يوجد في الأعلى */
   
   /* تأثير تغيير الألوان التدريجي */
   .shimmer {
