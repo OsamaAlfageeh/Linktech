@@ -8,6 +8,7 @@ import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
+import { DropzoneUploader, type UploadedFile } from "@/components/ui/dropzone-uploader";
 
 import {
   Tabs,
@@ -67,6 +68,7 @@ type Project = {
   highlightStatus?: string;
   userId: number;
   createdAt: string;
+  attachments?: UploadedFile[];
 };
 
 type User = {
