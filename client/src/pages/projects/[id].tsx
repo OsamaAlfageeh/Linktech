@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
+import { RecommendedCompanies, SimilarProjects } from "@/components/recommendations";
 import { 
   Calendar, 
   Clock, 
@@ -207,6 +208,21 @@ const ProjectDetails = () => {
             <Link href="/projects">
               <Button>عرض المشاريع المتاحة</Button>
             </Link>
+          </div>
+        )}
+
+        {/* Recommendations */}
+        {project && (
+          <div className="mt-10 space-y-12">
+            {/* Recommended Companies */}
+            <div className="mb-10">
+              <RecommendedCompanies projectId={project.id} limit={3} />
+            </div>
+            
+            {/* Similar Projects */}
+            <div className="mb-6">
+              <SimilarProjects projectId={project.id} limit={3} />
+            </div>
           </div>
         )}
       </div>
