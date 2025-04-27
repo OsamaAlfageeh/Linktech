@@ -305,22 +305,46 @@ const CompanyDetails = () => {
                 </div>
 
                 {/* Contact details */}
-                <div className="flex flex-col md:flex-row md:items-center gap-4 md:gap-6 mb-6">
-                  {company.location && (
-                    <div className="flex items-center text-neutral-700">
-                      <MapPin className="ml-1 h-5 w-5 text-neutral-500" />
-                      <span>{company.location}</span>
-                    </div>
-                  )}
-                  {company.website && (
-                    <div className="flex items-center text-neutral-700">
-                      <Globe className="ml-1 h-5 w-5 text-neutral-500" />
-                      <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
-                         target="_blank" 
-                         rel="noopener noreferrer"
-                         className="text-primary hover:underline">
-                        {company.website.replace(/^https?:\/\//, '')}
-                      </a>
+                <div className="relative mb-6">
+                  <div className={`flex flex-col md:flex-row md:items-center gap-4 md:gap-6 ${!hasPaid ? "blur-sm select-none" : ""}`}>
+                    {company.location && (
+                      <div className="flex items-center text-neutral-700">
+                        <MapPin className="ml-1 h-5 w-5 text-neutral-500" />
+                        <span>{company.location}</span>
+                      </div>
+                    )}
+                    {company.website && (
+                      <div className="flex items-center text-neutral-700">
+                        <Globe className="ml-1 h-5 w-5 text-neutral-500" />
+                        <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
+                           target="_blank" 
+                           rel="noopener noreferrer"
+                           className={`text-primary hover:underline ${!hasPaid ? "pointer-events-none" : ""}`}>
+                          {company.website.replace(/^https?:\/\//, '')}
+                        </a>
+                      </div>
+                    )}
+                    {company.email && (
+                      <div className="flex items-center text-neutral-700">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-1 h-5 w-5 text-neutral-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <span>{company.email}</span>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* قفل معلومات الاتصال */}
+                  {!hasPaid && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="bg-white/80 rounded-lg p-4 shadow-sm border flex flex-col items-center">
+                        <Lock className="text-primary h-6 w-6 mb-2" />
+                        <p className="text-sm font-medium mb-2">معلومات التواصل محمية</p>
+                        <Button onClick={() => setIsPaymentModalOpen(true)} size="sm" className="flex items-center">
+                          <CreditCard className="ml-1 h-4 w-4" />
+                          <span>ادفع للوصول</span>
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -334,6 +358,79 @@ const CompanyDetails = () => {
                     </Button>
                   </Link>
                 </div>
+                
+                {/* نافذة الدفع */}
+                <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+                  <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                      <DialogTitle>ادفع للوصول إلى معلومات الشركة</DialogTitle>
+                      <DialogDescription>
+                        بعد إتمام عملية الدفع، ستتمكن من الاطلاع على معلومات التواصل الخاصة بالشركة.
+                      </DialogDescription>
+                    </DialogHeader>
+                    
+                    <div className="py-6">
+                      {paymentSuccess ? (
+                        <div className="text-center">
+                          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-100 mb-4">
+                            <CheckCircle2 className="h-8 w-8 text-green-600" />
+                          </div>
+                          <h3 className="text-lg font-semibold text-neutral-900 mb-1">تم الدفع بنجاح</h3>
+                          <p className="text-neutral-600 mb-4">يمكنك الآن الوصول إلى كافة معلومات التواصل</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="font-medium">عمولة الوصول</span>
+                              <span className="font-bold">50 ريال</span>
+                            </div>
+                            <p className="text-sm text-neutral-600">تتيح لك هذه العمولة الوصول المباشر إلى معلومات التواصل الخاصة بالشركة والتواصل معها خارج المنصة.</p>
+                          </div>
+                          
+                          <div className="border rounded-lg p-4">
+                            <div className="text-center">
+                              <img src="https://moyasar.com/static/moyasar-sticker.png" alt="Moyasar logo" className="h-6 mx-auto mb-4" />
+                              
+                              <div className="bg-neutral-50 rounded-lg p-3 border flex items-center mb-4">
+                                <div className="w-12 h-8 bg-[#1A1F71] rounded flex items-center justify-center ml-2">
+                                  <span className="text-white font-bold text-xs">VISA</span>
+                                </div>
+                                <span className="text-neutral-600">**** **** **** 4242</span>
+                              </div>
+                              
+                              <Button 
+                                onClick={handlePayment} 
+                                disabled={paymentProcessing} 
+                                className="w-full"
+                              >
+                                {paymentProcessing ? (
+                                  <div className="flex items-center">
+                                    <svg className="animate-spin ml-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <span>جاري إتمام الدفع...</span>
+                                  </div>
+                                ) : (
+                                  <span>إتمام الدفع - 50 ريال</span>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <DialogFooter>
+                      {!paymentSuccess && (
+                        <Button variant="outline" disabled={paymentProcessing} onClick={() => setIsPaymentModalOpen(false)}>
+                          إلغاء
+                        </Button>
+                      )}
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
           </div>
