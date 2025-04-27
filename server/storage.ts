@@ -1,0 +1,410 @@
+import { 
+  users, User, InsertUser, 
+  companyProfiles, CompanyProfile, InsertCompanyProfile,
+  projects, Project, InsertProject,
+  messages, Message, InsertMessage,
+  testimonials, Testimonial, InsertTestimonial,
+} from "@shared/schema";
+
+export interface IStorage {
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+  getUsers(): Promise<User[]>;
+  
+  // Company profile operations
+  getCompanyProfile(id: number): Promise<CompanyProfile | undefined>;
+  getCompanyProfileByUserId(userId: number): Promise<CompanyProfile | undefined>;
+  createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
+  updateCompanyProfile(id: number, profile: Partial<CompanyProfile>): Promise<CompanyProfile | undefined>;
+  getCompanyProfiles(): Promise<CompanyProfile[]>;
+  
+  // Project operations
+  getProject(id: number): Promise<Project | undefined>;
+  getProjects(): Promise<Project[]>;
+  getProjectsByUserId(userId: number): Promise<Project[]>;
+  createProject(project: InsertProject): Promise<Project>;
+  updateProject(id: number, project: Partial<Project>): Promise<Project | undefined>;
+  
+  // Message operations
+  getMessage(id: number): Promise<Message | undefined>;
+  getMessages(userId: number): Promise<Message[]>;
+  getConversation(user1Id: number, user2Id: number, projectId?: number): Promise<Message[]>;
+  createMessage(message: InsertMessage): Promise<Message>;
+  markMessageAsRead(id: number): Promise<Message | undefined>;
+  
+  // Testimonial operations
+  getTestimonial(id: number): Promise<Testimonial | undefined>;
+  getTestimonials(): Promise<Testimonial[]>;
+  createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private companyProfiles: Map<number, CompanyProfile>;
+  private projects: Map<number, Project>;
+  private messages: Map<number, Message>;
+  private testimonials: Map<number, Testimonial>;
+  
+  private userIdCounter: number = 1;
+  private companyProfileIdCounter: number = 1;
+  private projectIdCounter: number = 1;
+  private messageIdCounter: number = 1;
+  private testimonialIdCounter: number = 1;
+  
+  constructor() {
+    this.users = new Map();
+    this.companyProfiles = new Map();
+    this.projects = new Map();
+    this.messages = new Map();
+    this.testimonials = new Map();
+    
+    this.seedData();
+  }
+  
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+  
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.username === username,
+    );
+  }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(
+      (user) => user.email === email,
+    );
+  }
+  
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.userIdCounter++;
+    const now = new Date();
+    const user: User = { ...insertUser, id, createdAt: now };
+    this.users.set(id, user);
+    return user;
+  }
+  
+  async getUsers(): Promise<User[]> {
+    return Array.from(this.users.values());
+  }
+  
+  // Company profile operations
+  async getCompanyProfile(id: number): Promise<CompanyProfile | undefined> {
+    return this.companyProfiles.get(id);
+  }
+  
+  async getCompanyProfileByUserId(userId: number): Promise<CompanyProfile | undefined> {
+    return Array.from(this.companyProfiles.values()).find(
+      (profile) => profile.userId === userId,
+    );
+  }
+  
+  async createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile> {
+    const id = this.companyProfileIdCounter++;
+    const companyProfile: CompanyProfile = { 
+      ...profile, 
+      id, 
+      rating: 0,
+      reviewCount: 0 
+    };
+    this.companyProfiles.set(id, companyProfile);
+    return companyProfile;
+  }
+  
+  async updateCompanyProfile(id: number, updates: Partial<CompanyProfile>): Promise<CompanyProfile | undefined> {
+    const profile = this.companyProfiles.get(id);
+    if (!profile) return undefined;
+    
+    const updatedProfile = { ...profile, ...updates };
+    this.companyProfiles.set(id, updatedProfile);
+    return updatedProfile;
+  }
+  
+  async getCompanyProfiles(): Promise<CompanyProfile[]> {
+    return Array.from(this.companyProfiles.values());
+  }
+  
+  // Project operations
+  async getProject(id: number): Promise<Project | undefined> {
+    return this.projects.get(id);
+  }
+  
+  async getProjects(): Promise<Project[]> {
+    return Array.from(this.projects.values());
+  }
+  
+  async getProjectsByUserId(userId: number): Promise<Project[]> {
+    return Array.from(this.projects.values()).filter(
+      (project) => project.userId === userId,
+    );
+  }
+  
+  async createProject(project: InsertProject): Promise<Project> {
+    const id = this.projectIdCounter++;
+    const now = new Date();
+    const newProject: Project = { 
+      ...project, 
+      id, 
+      status: "open", 
+      highlightStatus: undefined,
+      createdAt: now 
+    };
+    this.projects.set(id, newProject);
+    return newProject;
+  }
+  
+  async updateProject(id: number, updates: Partial<Project>): Promise<Project | undefined> {
+    const project = this.projects.get(id);
+    if (!project) return undefined;
+    
+    const updatedProject = { ...project, ...updates };
+    this.projects.set(id, updatedProject);
+    return updatedProject;
+  }
+  
+  // Message operations
+  async getMessage(id: number): Promise<Message | undefined> {
+    return this.messages.get(id);
+  }
+  
+  async getMessages(userId: number): Promise<Message[]> {
+    return Array.from(this.messages.values()).filter(
+      (message) => message.toUserId === userId || message.fromUserId === userId,
+    );
+  }
+  
+  async getConversation(user1Id: number, user2Id: number, projectId?: number): Promise<Message[]> {
+    return Array.from(this.messages.values())
+      .filter(message => {
+        const usersMatch = (
+          (message.fromUserId === user1Id && message.toUserId === user2Id) ||
+          (message.fromUserId === user2Id && message.toUserId === user1Id)
+        );
+        
+        if (projectId) {
+          return usersMatch && message.projectId === projectId;
+        }
+        
+        return usersMatch;
+      })
+      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  }
+  
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const id = this.messageIdCounter++;
+    const now = new Date();
+    const newMessage: Message = { ...message, id, read: false, createdAt: now };
+    this.messages.set(id, newMessage);
+    return newMessage;
+  }
+  
+  async markMessageAsRead(id: number): Promise<Message | undefined> {
+    const message = this.messages.get(id);
+    if (!message) return undefined;
+    
+    const updatedMessage = { ...message, read: true };
+    this.messages.set(id, updatedMessage);
+    return updatedMessage;
+  }
+  
+  // Testimonial operations
+  async getTestimonial(id: number): Promise<Testimonial | undefined> {
+    return this.testimonials.get(id);
+  }
+  
+  async getTestimonials(): Promise<Testimonial[]> {
+    return Array.from(this.testimonials.values());
+  }
+  
+  async createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial> {
+    const id = this.testimonialIdCounter++;
+    const now = new Date();
+    const newTestimonial: Testimonial = { ...testimonial, id, createdAt: now };
+    this.testimonials.set(id, newTestimonial);
+    return newTestimonial;
+  }
+  
+  // Seed initial data
+  private seedData() {
+    // Create some sample users
+    const user1: User = {
+      id: this.userIdCounter++,
+      username: "ahmed_entrepreneur",
+      password: "password123",
+      email: "ahmed@example.com",
+      role: "entrepreneur",
+      name: "أحمد السيد",
+      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+      createdAt: new Date()
+    };
+    this.users.set(user1.id, user1);
+    
+    const user2: User = {
+      id: this.userIdCounter++,
+      username: "tech_solutions",
+      password: "password123",
+      email: "tech@example.com",
+      role: "company",
+      name: "تك سوليوشنز",
+      avatar: "https://randomuser.me/api/portraits/men/2.jpg",
+      createdAt: new Date()
+    };
+    this.users.set(user2.id, user2);
+    
+    const user3: User = {
+      id: this.userIdCounter++,
+      username: "digital_hub",
+      password: "password123",
+      email: "digital@example.com",
+      role: "company",
+      name: "ديجيتال هب",
+      avatar: "https://randomuser.me/api/portraits/women/3.jpg",
+      createdAt: new Date()
+    };
+    this.users.set(user3.id, user3);
+    
+    const user4: User = {
+      id: this.userIdCounter++,
+      username: "smart_code",
+      password: "password123",
+      email: "smart@example.com",
+      role: "company",
+      name: "سمارت كود",
+      avatar: "https://randomuser.me/api/portraits/men/4.jpg",
+      createdAt: new Date()
+    };
+    this.users.set(user4.id, user4);
+    
+    const user5: User = {
+      id: this.userIdCounter++,
+      username: "sara_entrepreneur",
+      password: "password123",
+      email: "sara@example.com",
+      role: "entrepreneur",
+      name: "سارة العمري",
+      avatar: "https://randomuser.me/api/portraits/women/5.jpg",
+      createdAt: new Date()
+    };
+    this.users.set(user5.id, user5);
+    
+    // Create company profiles
+    const company1: CompanyProfile = {
+      id: this.companyProfileIdCounter++,
+      userId: user2.id,
+      description: "متخصصون في تطوير تطبيقات الجوال والويب للشركات والمؤسسات، مع خبرة تزيد عن 8 سنوات في مجال البرمجة.",
+      logo: "https://randomuser.me/api/portraits/men/2.jpg",
+      coverPhoto: "https://images.unsplash.com/photo-1560179707-f14e90ef3623",
+      website: "https://techsolutions.example.com",
+      location: "الرياض، المملكة العربية السعودية",
+      skills: ["تطبيقات الويب", "تطبيقات الجوال", "الذكاء الاصطناعي"],
+      rating: 4.7,
+      reviewCount: 48
+    };
+    this.companyProfiles.set(company1.id, company1);
+    
+    const company2: CompanyProfile = {
+      id: this.companyProfileIdCounter++,
+      userId: user3.id,
+      description: "شركة رائدة في مجال التحول الرقمي وتطوير الحلول المتكاملة للشركات الناشئة والمؤسسات الكبيرة.",
+      logo: "https://randomuser.me/api/portraits/women/3.jpg",
+      coverPhoto: "https://images.unsplash.com/photo-1522071820081-009f0129c71c",
+      website: "https://digitalhub.example.com",
+      location: "جدة، المملكة العربية السعودية",
+      skills: ["التحول الرقمي", "تجارة إلكترونية", "برمجة خلفية"],
+      rating: 4.9,
+      reviewCount: 62
+    };
+    this.companyProfiles.set(company2.id, company2);
+    
+    const company3: CompanyProfile = {
+      id: this.companyProfileIdCounter++,
+      userId: user4.id,
+      description: "متخصصون في تطوير واجهات المستخدم وتجربة المستخدم، مع تركيز على تصميم تطبيقات سهلة الاستخدام.",
+      logo: "https://randomuser.me/api/portraits/men/4.jpg",
+      coverPhoto: "https://images.unsplash.com/photo-1556761175-4b46a572b786",
+      website: "https://smartcode.example.com",
+      location: "الدمام، المملكة العربية السعودية",
+      skills: ["تصميم UI/UX", "تطوير واجهات", "مواقع تفاعلية"],
+      rating: 4.1,
+      reviewCount: 27
+    };
+    this.companyProfiles.set(company3.id, company3);
+    
+    // Create projects
+    const project1: Project = {
+      id: this.projectIdCounter++,
+      title: "تطبيق توصيل طلبات للمطاعم",
+      description: "نبحث عن شركة برمجة متخصصة لتطوير تطبيق جوّال لتوصيل الطعام من المطاعم المحلية، مع لوحة تحكم للمطاعم ونظام تتبع للسائقين.",
+      budget: "50,000 - 80,000 ريال",
+      duration: "3-6 أشهر",
+      skills: ["تطبيق جوال", "iOS", "Android", "لوحة تحكم"],
+      userId: user1.id,
+      status: "open",
+      highlightStatus: "عالي الطلب",
+      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000) // 5 days ago
+    };
+    this.projects.set(project1.id, project1);
+    
+    const project2: Project = {
+      id: this.projectIdCounter++,
+      title: "منصة تعليمية تفاعلية",
+      description: "تطوير منصة تعليمية على الويب تدعم الدورات التفاعلية، والاختبارات، ومنتدى للطلاب. يجب أن تكون متوافقة مع الأجهزة المختلفة.",
+      budget: "70,000 - 120,000 ريال",
+      duration: "4-8 أشهر",
+      skills: ["تطوير ويب", "تصميم UI/UX", "React", "Node.js"],
+      userId: user5.id,
+      status: "open",
+      highlightStatus: "جديد",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000) // 2 days ago
+    };
+    this.projects.set(project2.id, project2);
+    
+    const project3: Project = {
+      id: this.projectIdCounter++,
+      title: "نظام إدارة عقارات",
+      description: "نظام متكامل لإدارة العقارات يشمل إدارة الممتلكات، والإيجارات، والصيانة، والفواتير، مع تطبيق جوال للمستأجرين والملاك.",
+      budget: "100,000 - 150,000 ريال",
+      duration: "6-10 أشهر",
+      skills: ["نظام إدارة", "تطبيق ويب", "تطبيق جوال", "API"],
+      userId: user1.id,
+      status: "open",
+      highlightStatus: undefined,
+      createdAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000) // 10 days ago
+    };
+    this.projects.set(project3.id, project3);
+    
+    // Create testimonials
+    const testimonial1: Testimonial = {
+      id: this.testimonialIdCounter++,
+      userId: user1.id,
+      content: "وجدت الشريك المثالي لتنفيذ مشروعي من خلال المنصة. تواصلت مع عدة شركات مميزة واخترت الأنسب. التطبيق الآن يعمل بكفاءة عالية ولدينا أكثر من 10,000 مستخدم نشط.",
+      role: "entrepreneur",
+      companyName: undefined,
+      userTitle: "مؤسس تطبيق \"طلباتي\"",
+      rating: 5,
+      avatar: "https://randomuser.me/api/portraits/men/1.jpg",
+      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) // 30 days ago
+    };
+    this.testimonials.set(testimonial1.id, testimonial1);
+    
+    const testimonial2: Testimonial = {
+      id: this.testimonialIdCounter++,
+      userId: user5.id,
+      content: "المنصة ساعدتنا في الوصول لعملاء جدد وتنفيذ مشاريع متنوعة. نظام التواصل سهل وفعال، والدعم الفني ممتاز. حققنا نمواً بنسبة 40% في عدد المشاريع منذ انضمامنا للمنصة.",
+      role: "company",
+      companyName: "شركة ديجيتال هب",
+      userTitle: "مديرة تطوير الأعمال",
+      rating: 4.5,
+      avatar: "https://randomuser.me/api/portraits/women/5.jpg",
+      createdAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000) // 45 days ago
+    };
+    this.testimonials.set(testimonial2.id, testimonial2);
+  }
+}
+
+export const storage = new MemStorage();
