@@ -20,6 +20,7 @@ import Login from "@/pages/auth/login";
 import EntrepreneurDashboard from "@/pages/dashboard/entrepreneur";
 import CompanyDashboard from "@/pages/dashboard/company";
 import AdminDashboard from "@/pages/dashboard/admin";
+import AdminLogin from "@/pages/admin-login";
 import Messages from "@/pages/messages";
 import NotFound from "@/pages/not-found";
 
