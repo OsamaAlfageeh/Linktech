@@ -19,6 +19,7 @@ import Register from "@/pages/auth/register";
 import Login from "@/pages/auth/login";
 import EntrepreneurDashboard from "@/pages/dashboard/entrepreneur";
 import CompanyDashboard from "@/pages/dashboard/company";
+import AdminDashboard from "@/pages/dashboard/admin";
 import Messages from "@/pages/messages";
 import NotFound from "@/pages/not-found";
 
@@ -40,7 +41,9 @@ export const useAuth = () => {
   const { data } = useQuery({
     queryKey: ['/api/auth/user'],
     retry: false,
-    onError: () => setUser(null)
+    onError: () => {
+      setUser(null);
+    }
   });
   
   useEffect(() => {
@@ -102,6 +105,13 @@ function App() {
           <Route path="/dashboard/company">
             {auth.isAuthenticated && auth.isCompany ? (
               <CompanyDashboard auth={auth} />
+            ) : (
+              <NotFound />
+            )}
+          </Route>
+          <Route path="/dashboard/admin">
+            {auth.isAuthenticated && auth.user?.role === "admin" ? (
+              <AdminDashboard auth={auth} />
             ) : (
               <NotFound />
             )}
