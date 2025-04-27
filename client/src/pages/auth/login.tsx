@@ -69,17 +69,17 @@ const Login = ({ auth }: LoginProps) => {
       // Redirect based on role - إضافة تأخير بسيط قبل التوجيه
       console.log("نوع المستخدم:", responseData.user.role);
       
-      // استخدام window.location.href بدلاً من wouter navigate
+      // استخدام صفحة التوجيه الوسيطة
       setTimeout(() => {
         if (responseData.user.role === "admin") {
-          console.log("توجيه إلى لوحة المسؤول باستخدام window.location");
-          window.location.href = "/dashboard/admin";
+          console.log("توجيه إلى لوحة المسؤول عبر صفحة التوجيه");
+          window.location.href = "/redirect?to=admin";
         } else if (responseData.user.role === "entrepreneur") {
-          console.log("توجيه إلى لوحة رائد الأعمال باستخدام window.location");
-          window.location.href = "/dashboard/entrepreneur";
+          console.log("توجيه إلى لوحة رائد الأعمال عبر صفحة التوجيه");
+          window.location.href = "/redirect?to=entrepreneur";
         } else {
-          console.log("توجيه إلى لوحة الشركة باستخدام window.location");
-          window.location.href = "/dashboard/company";
+          console.log("توجيه إلى لوحة الشركة عبر صفحة التوجيه");
+          window.location.href = "/redirect?to=company";
         }
       }, 300);
     },
@@ -130,7 +130,7 @@ const Login = ({ auth }: LoginProps) => {
               <div className="mt-2">
                 <p className="text-xs text-blue-700 mb-1">تم تسجيل دخولك كمسؤول، اضغط هنا للوصول إلى لوحة التحكم:</p>
                 <a 
-                  href="/dashboard/admin" 
+                  href="/redirect?to=admin" 
                   className="block w-full text-center bg-primary text-white text-xs py-2 px-3 rounded-lg hover:bg-primary-dark"
                 >
                   لوحة تحكم المسؤول

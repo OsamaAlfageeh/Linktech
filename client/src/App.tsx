@@ -23,6 +23,7 @@ import AdminDashboard from "@/pages/dashboard/admin";
 // Removed AdminLogin import as it's now integrated with the main login page
 import Messages from "@/pages/messages";
 import NotFound from "@/pages/not-found";
+import Redirect from "@/pages/redirect";
 
 export type User = {
   id: number;
@@ -94,6 +95,7 @@ function App() {
           <Route path="/companies/:id" component={CompanyDetails} />
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
+          <Route path="/redirect" component={Redirect} />
           {/* Removed separate admin login route */}
           
           {/* Protected routes */}
