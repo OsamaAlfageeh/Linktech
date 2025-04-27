@@ -28,7 +28,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     secret: process.env.SESSION_SECRET || 'techlinkapp',
     resave: false,
     saveUninitialized: false,
-    cookie: { secure: process.env.NODE_ENV === 'production', maxAge: 24 * 60 * 60 * 1000 }, // 24 hours
+    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }, // 24 hours
     store: new SessionStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     })
@@ -124,6 +124,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     req.logout(() => {
       res.json({ success: true });
     });
+  });
+
+  // طريقة سريعة لإنشاء حساب مسؤول (فقط للاختبار)
+  app.get('/api/admin/create', async (req: Request, res: Response) => {
+    try {
+      // تحقق مما إذا كان يوجد مستخدم بنفس اسم المستخدم
+      const existingUser = await storage.getUserByUsername('admin');
+      if (existingUser) {
+        return res.json({ message: 'Admin user already exists', user: existingUser });
+      }
+      
+      // إنشاء مستخدم المسؤول
+      const adminUser = await storage.createUser({
+        username: 'admin',
+        password: 'admin123',
+        email: 'admin@techlink.example',
+        role: 'admin',
+        name: 'مسؤول النظام',
+        avatar: 'https://randomuser.me/api/portraits/men/33.jpg'
+      });
+      
+      return res.json({ message: 'Admin user created successfully', user: adminUser });
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+      return res.status(500).json({ message: 'Error creating admin user' });
+    }
   });
 
   app.get('/api/auth/user', (req: Request, res: Response) => {

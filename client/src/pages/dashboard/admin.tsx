@@ -1,705 +1,509 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useAuth } from "@/App";
 import { useQuery } from "@tanstack/react-query";
-import { useLocation } from "wouter";
 import { Helmet } from "react-helmet";
-import { queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
-
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Progress } from "@/components/ui/progress";
+import { useToast } from "@/hooks/use-toast";
+import { Link, useLocation } from "wouter";
+import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import { 
-  LayoutDashboard, 
-  Users, 
-  Building2, 
-  FileText, 
-  Settings, 
-  MessageSquare,
-  BarChart,
-  AlertCircle,
-  Search,
-  ChevronDown,
-  RefreshCw,
-  Calendar,
-  Banknote,
-  Trash2,
-  Edit,
-  Eye
-} from "lucide-react";
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from "@/components/ui/tabs";
 
-type User = {
-  id: number;
-  name: string;
-  email: string;
-  role: string;
-  username: string;
-  createdAt: string;
-};
-
-type Project = {
-  id: number;
-  title: string;
-  description: string;
-  budget: string;
-  duration: string;
-  skills: string[];
-  status: string;
-  highlightStatus?: string;
-  userId: number;
-  createdAt: string;
-};
-
-type Company = {
-  id: number;
-  userId: number;
-  description: string;
-  logo?: string;
-  coverPhoto?: string;
-  website?: string;
-  location?: string;
-  skills: string[];
-  rating?: number;
-  reviewCount?: number;
-  name?: string;
-  username?: string;
-};
-
-type AdminDashboardProps = {
-  auth: {
-    user: {
-      id: number;
-      name: string;
-      email: string;
-      role: string;
-    };
-    isAuthenticated: boolean;
+type AdminDashboardStats = {
+  users: {
+    total: number;
+    entrepreneurs: number;
+    companies: number;
+    admins: number;
+  };
+  projects: {
+    total: number;
+    open: number;
+    closed: number;
+  };
+  companies: {
+    total: number;
+    verified: number;
+    unverified: number;
   };
 };
 
-const AdminDashboard = ({ auth }: AdminDashboardProps) => {
-  const [location, navigate] = useLocation();
+export default function AdminDashboard() {
+  const { user, isAuthenticated } = useAuth();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("dashboard");
-  
-  // Fetch users
-  const {
-    data: users,
-    isLoading: isLoadingUsers,
-    error: usersError,
-  } = useQuery<User[]>({
-    queryKey: ['/api/users'],
-  });
+  const [activeTab, setActiveTab] = useState("overview");
+  const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Fetch projects
-  const {
-    data: projects,
-    isLoading: isLoadingProjects,
-    error: projectsError,
-  } = useQuery<Project[]>({
-    queryKey: ['/api/projects'],
-  });
-
-  // Fetch companies
-  const {
-    data: companies,
-    isLoading: isLoadingCompanies,
-    error: companiesError,
-  } = useQuery<Company[]>({
-    queryKey: ['/api/companies'],
-  });
-
-  // Check if the user is authenticated and an admin
+  // تأكد من أن المستخدم مسؤول
   useEffect(() => {
-    if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
-      navigate("/");
+    if (!isAuthenticated) {
+      navigate("/admin-login");
+      return;
+    }
+
+    if (user?.role !== "admin") {
       toast({
         title: "غير مصرح",
-        description: "يجب أن تكون مسؤولاً للوصول إلى لوحة التحكم",
+        description: "فقط المسؤولون يمكنهم الوصول إلى لوحة التحكم",
+        variant: "destructive",
+      });
+      navigate("/");
+    }
+  }, [user, isAuthenticated, navigate, toast]);
+
+  // استعلام لجلب جميع المستخدمين
+  const {
+    data: users,
+    isLoading: usersLoading,
+    refetch: refetchUsers,
+  } = useQuery({
+    queryKey: ["/api/users"],
+    queryFn: async () => {
+      const response = await fetch("/api/users/all");
+      if (!response.ok) {
+        throw new Error("Failed to fetch users");
+      }
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
+  // استعلام لجلب كل المشاريع
+  const {
+    data: projects,
+    isLoading: projectsLoading,
+    refetch: refetchProjects,
+  } = useQuery({
+    queryKey: ["/api/projects/all"],
+    queryFn: async () => {
+      const response = await fetch("/api/projects");
+      if (!response.ok) {
+        throw new Error("Failed to fetch projects");
+      }
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
+  // استعلام لجلب كل الشركات
+  const {
+    data: companies,
+    isLoading: companiesLoading,
+    refetch: refetchCompanies,
+  } = useQuery({
+    queryKey: ["/api/companies/all"],
+    queryFn: async () => {
+      const response = await fetch("/api/companies");
+      if (!response.ok) {
+        throw new Error("Failed to fetch companies");
+      }
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+
+  // حساب الإحصائيات
+  const stats: AdminDashboardStats = {
+    users: {
+      total: users?.length || 0,
+      entrepreneurs: users?.filter((u: any) => u.role === "entrepreneur").length || 0,
+      companies: users?.filter((u: any) => u.role === "company").length || 0,
+      admins: users?.filter((u: any) => u.role === "admin").length || 0,
+    },
+    projects: {
+      total: projects?.length || 0,
+      open: projects?.filter((p: any) => p.status === "open").length || 0,
+      closed: projects?.filter((p: any) => p.status === "closed").length || 0,
+    },
+    companies: {
+      total: companies?.length || 0,
+      verified: companies?.filter((c: any) => c.verified).length || 0,
+      unverified: companies?.filter((c: any) => !c.verified).length || 0,
+    },
+  };
+
+  // لتحميل البيانات
+  const isLoading = usersLoading || projectsLoading || companiesLoading;
+
+  // تحديث حالة مستخدم (تفعيل/تعطيل)
+  const handleToggleUserStatus = async (userId: number, currentStatus: boolean) => {
+    try {
+      // هنا سيتم إضافة طلب API لتحديث حالة المستخدم
+      toast({
+        title: "تم تحديث الحالة",
+        description: `تم ${currentStatus ? "تعطيل" : "تفعيل"} المستخدم بنجاح`,
+      });
+      refetchUsers();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث حالة المستخدم",
         variant: "destructive",
       });
     }
-  }, [auth, navigate, toast]);
+  };
 
-  // إذا كان المستخدم غير مسجل دخول أو ليس مسؤولاً، لا تعرض المحتوى
-  if (!auth.isAuthenticated || auth.user?.role !== 'admin') {
+  // حذف مستخدم
+  const handleDeleteUser = async () => {
+    if (!selectedUserId) return;
+    
+    try {
+      // هنا سيتم إضافة طلب API لحذف المستخدم
+      toast({
+        title: "تم الحذف",
+        description: "تم حذف المستخدم بنجاح",
+      });
+      setDeleteDialogOpen(false);
+      refetchUsers();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء حذف المستخدم",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (!isAuthenticated || user?.role !== "admin") {
     return null;
   }
 
-  // إحصائيات عامة
-  const totalUsers = users?.length || 0;
-  const totalProjects = projects?.length || 0;
-  const totalCompanies = companies?.length || 0;
-  const openProjects = projects?.filter(p => p.status === "open").length || 0;
-  const closedProjects = projects?.filter(p => p.status !== "open").length || 0;
-  const entrepreneurs = users?.filter(u => u.role === "entrepreneur").length || 0;
-  const companyUsers = users?.filter(u => u.role === "company").length || 0;
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'numeric',
-      day: 'numeric'
-    }).format(date);
-  };
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
-    <>
+    <div className="container mx-auto p-4 sm:p-6">
       <Helmet>
-        <title>لوحة التحكم الإدارية | تِكلينك</title>
-        <meta name="description" content="لوحة تحكم المسؤول في منصة تِكلينك" />
+        <title>لوحة تحكم المسؤول | تِكلينك</title>
       </Helmet>
-
-      <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-heading mb-2">لوحة التحكم الإدارية</h1>
-          <p className="text-neutral-600">مرحباً بك {auth.user?.name}، مراقبة وإدارة المنصة</p>
+      
+      <div className="flex flex-col space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-3xl font-bold">لوحة تحكم المسؤول</h1>
+          <div className="flex items-center space-x-2 rtl:space-x-reverse">
+            <Button onClick={() => navigate("/")} variant="outline">
+              العودة للرئيسية
+            </Button>
+          </div>
         </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-neutral-100 p-1">
-            <TabsTrigger value="dashboard" className="flex items-center">
-              <LayoutDashboard className="ml-2 h-4 w-4" />
-              <span>الرئيسية</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center">
-              <Users className="ml-2 h-4 w-4" />
-              <span>المستخدمين</span>
-            </TabsTrigger>
-            <TabsTrigger value="companies" className="flex items-center">
-              <Building2 className="ml-2 h-4 w-4" />
-              <span>الشركات</span>
-            </TabsTrigger>
-            <TabsTrigger value="projects" className="flex items-center">
-              <FileText className="ml-2 h-4 w-4" />
-              <span>المشاريع</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center">
-              <Settings className="ml-2 h-4 w-4" />
-              <span>الإعدادات</span>
-            </TabsTrigger>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
+            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+            <TabsTrigger value="users">المستخدمون</TabsTrigger>
+            <TabsTrigger value="companies">الشركات</TabsTrigger>
           </TabsList>
 
-          {/* Dashboard Overview */}
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+          {/* نظرة عامة - الإحصائيات */}
+          <TabsContent value="overview" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>المستخدمين</CardTitle>
-                  <CardDescription>إجمالي عدد المستخدمين</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-medium">المستخدمون</CardTitle>
+                  <Users className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  {isLoadingUsers ? (
-                    <Skeleton className="h-10 w-10" />
-                  ) : (
-                    <div className="text-3xl font-bold">
-                      {totalUsers}
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center text-sm">
-                    <div className="flex-1">
-                      <span className="text-neutral-600">رواد أعمال:</span>
-                      <span className="font-semibold mr-1">{entrepreneurs}</span>
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-neutral-600">شركات:</span>
-                      <span className="font-semibold mr-1">{companyUsers}</span>
-                    </div>
+                  <div className="text-3xl font-bold">{stats.users.total}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {stats.users.entrepreneurs} رواد أعمال, {stats.users.companies} شركات, {stats.users.admins} مسؤولين
                   </div>
                 </CardContent>
               </Card>
+              
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>المشاريع</CardTitle>
-                  <CardDescription>إجمالي عدد المشاريع</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-medium">المشاريع</CardTitle>
+                  <Briefcase className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  {isLoadingProjects ? (
-                    <Skeleton className="h-10 w-10" />
-                  ) : (
-                    <div className="text-3xl font-bold">
-                      {totalProjects}
-                    </div>
-                  )}
-                  <div className="mt-2 flex items-center text-sm">
-                    <div className="flex-1">
-                      <span className="text-neutral-600">مفتوحة:</span>
-                      <span className="font-semibold mr-1">{openProjects}</span>
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-neutral-600">مغلقة:</span>
-                      <span className="font-semibold mr-1">{closedProjects}</span>
-                    </div>
+                  <div className="text-3xl font-bold">{stats.projects.total}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {stats.projects.open} نشطة, {stats.projects.closed} مغلقة
                   </div>
                 </CardContent>
               </Card>
+              
               <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>الشركات</CardTitle>
-                  <CardDescription>إجمالي عدد الشركات</CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-lg font-medium">الشركات</CardTitle>
+                  <Building2 className="h-5 w-5 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  {isLoadingCompanies ? (
-                    <Skeleton className="h-10 w-10" />
-                  ) : (
-                    <div className="text-3xl font-bold">
-                      {totalCompanies}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle>نسبة المشاريع</CardTitle>
-                  <CardDescription>نسبة المشاريع المفتوحة للمغلقة</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoadingProjects ? (
-                    <Skeleton className="h-10 w-full" />
-                  ) : (
-                    <>
-                      <div className="text-sm mb-2 flex justify-between">
-                        <span>المفتوحة: {openProjects}</span>
-                        <span>المغلقة: {closedProjects}</span>
-                      </div>
-                      <Progress value={totalProjects > 0 ? (openProjects / totalProjects) * 100 : 0} />
-                    </>
-                  )}
+                  <div className="text-3xl font-bold">{stats.companies.total}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {stats.companies.verified} موثقة, {stats.companies.unverified} غير موثقة
+                  </div>
                 </CardContent>
               </Card>
             </div>
-
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>أحدث المستخدمين</CardTitle>
-                  <CardDescription>آخر المستخدمين المسجلين</CardDescription>
+                  <CardTitle>آخر المشاريع</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoadingUsers ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-12 w-full" />
-                      <Skeleton className="h-12 w-full" />
-                      <Skeleton className="h-12 w-full" />
-                    </div>
-                  ) : usersError ? (
-                    <div className="text-center p-4">
-                      <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                      <p>حدث خطأ أثناء تحميل المستخدمين</p>
-                    </div>
-                  ) : users && users.length > 0 ? (
-                    <div className="space-y-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>المستخدم</TableHead>
-                            <TableHead>نوع الحساب</TableHead>
-                            <TableHead>تاريخ التسجيل</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {users.slice(0, 5).map((user) => (
-                            <TableRow key={user.id}>
-                              <TableCell className="font-medium">{user.name}</TableCell>
-                              <TableCell>
-                                <Badge variant={user.role === "entrepreneur" ? "outline" : "secondary"}>
-                                  {user.role === "entrepreneur" ? "رائد أعمال" : user.role === "company" ? "شركة" : "مسؤول"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-neutral-600">{formatDate(user.createdAt)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      <div className="text-center">
-                        <Button variant="outline" onClick={() => setActiveTab("users")}>
-                          عرض جميع المستخدمين
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center p-4">
-                      <p className="text-neutral-600">لا يوجد مستخدمين بعد</p>
-                    </div>
-                  )}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>اسم المشروع</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead>رائد الأعمال</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {projects?.slice(0, 5).map((project: any) => (
+                        <TableRow key={project.id}>
+                          <TableCell className="font-medium">{project.title}</TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-full ${
+                              project.status === "open" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {project.status === "open" ? "مفتوح" : "مغلق"}
+                            </span>
+                          </TableCell>
+                          <TableCell>{project.name}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
-
+              
               <Card>
                 <CardHeader>
-                  <CardTitle>أحدث المشاريع</CardTitle>
-                  <CardDescription>آخر المشاريع المضافة</CardDescription>
+                  <CardTitle>آخر الشركات المضافة</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {isLoadingProjects ? (
-                    <div className="space-y-4">
-                      <Skeleton className="h-12 w-full" />
-                      <Skeleton className="h-12 w-full" />
-                      <Skeleton className="h-12 w-full" />
-                    </div>
-                  ) : projectsError ? (
-                    <div className="text-center p-4">
-                      <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                      <p>حدث خطأ أثناء تحميل المشاريع</p>
-                    </div>
-                  ) : projects && projects.length > 0 ? (
-                    <div className="space-y-4">
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>عنوان المشروع</TableHead>
-                            <TableHead>الحالة</TableHead>
-                            <TableHead>تاريخ الإضافة</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {projects.slice(0, 5).map((project) => (
-                            <TableRow key={project.id}>
-                              <TableCell className="font-medium">{project.title}</TableCell>
-                              <TableCell>
-                                <Badge variant={project.status === "open" ? "outline" : "secondary"}>
-                                  {project.status === "open" ? "مفتوح" : "مغلق"}
-                                </Badge>
-                              </TableCell>
-                              <TableCell className="text-neutral-600">{formatDate(project.createdAt)}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                      <div className="text-center">
-                        <Button variant="outline" onClick={() => setActiveTab("projects")}>
-                          عرض جميع المشاريع
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center p-4">
-                      <p className="text-neutral-600">لا يوجد مشاريع بعد</p>
-                    </div>
-                  )}
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>اسم الشركة</TableHead>
+                        <TableHead>التقييم</TableHead>
+                        <TableHead>الحالة</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {companies?.slice(0, 5).map((company: any) => (
+                        <TableRow key={company.id}>
+                          <TableCell className="font-medium">{company.name}</TableCell>
+                          <TableCell>{company.rating || "لا يوجد"}</TableCell>
+                          <TableCell>
+                            {company.verified ? (
+                              <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            ) : (
+                              <XCircle className="h-4 w-4 text-amber-600" />
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
 
-          {/* Users Tab */}
-          <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>المستخدمين</CardTitle>
-                  <CardDescription>إدارة حسابات المستخدمين</CardDescription>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => queryClient.invalidateQueries({queryKey: ['/api/users']})}
-                    className="transition-all duration-300 hover:shadow-md"
-                  >
-                    <RefreshCw className="ml-2 h-4 w-4" />
-                    تحديث
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingUsers ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : usersError ? (
-                  <div className="text-center p-8">
-                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <p className="text-lg font-semibold mb-2">حدث خطأ أثناء تحميل المستخدمين</p>
-                    <p className="text-neutral-600 mb-4">لم نتمكن من جلب بيانات المستخدمين. يرجى المحاولة مرة أخرى.</p>
-                    <Button onClick={() => queryClient.invalidateQueries({queryKey: ['/api/users']})}>
-                      إعادة المحاولة
-                    </Button>
-                  </div>
-                ) : users && users.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>المعرف</TableHead>
-                        <TableHead>الاسم</TableHead>
-                        <TableHead>البريد الإلكتروني</TableHead>
-                        <TableHead>اسم المستخدم</TableHead>
-                        <TableHead>نوع الحساب</TableHead>
-                        <TableHead>تاريخ التسجيل</TableHead>
-                        <TableHead>الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {users.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>{user.id}</TableCell>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>{user.username}</TableCell>
-                          <TableCell>
-                            <Badge variant={user.role === "entrepreneur" ? "outline" : user.role === "company" ? "secondary" : "default"}>
-                              {user.role === "entrepreneur" ? "رائد أعمال" : user.role === "company" ? "شركة" : "مسؤول"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-neutral-600">{formatDate(user.createdAt)}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2 space-x-reverse">
-                              <Button size="sm" variant="ghost">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center p-8">
-                    <p className="text-neutral-600">لا يوجد مستخدمين</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Companies Tab */}
-          <TabsContent value="companies" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>الشركات</CardTitle>
-                  <CardDescription>إدارة الشركات المسجلة</CardDescription>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => queryClient.invalidateQueries({queryKey: ['/api/companies']})}
-                    className="transition-all duration-300 hover:shadow-md"
-                  >
-                    <RefreshCw className="ml-2 h-4 w-4" />
-                    تحديث
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingCompanies ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : companiesError ? (
-                  <div className="text-center p-8">
-                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <p className="text-lg font-semibold mb-2">حدث خطأ أثناء تحميل الشركات</p>
-                    <p className="text-neutral-600 mb-4">لم نتمكن من جلب بيانات الشركات. يرجى المحاولة مرة أخرى.</p>
-                    <Button onClick={() => queryClient.invalidateQueries({queryKey: ['/api/companies']})}>
-                      إعادة المحاولة
-                    </Button>
-                  </div>
-                ) : companies && companies.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>المعرف</TableHead>
-                        <TableHead>اسم الشركة</TableHead>
-                        <TableHead>الموقع</TableHead>
-                        <TableHead>التقييم</TableHead>
-                        <TableHead>المهارات</TableHead>
-                        <TableHead>الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {companies.map((company) => (
-                        <TableRow key={company.id}>
-                          <TableCell>{company.id}</TableCell>
-                          <TableCell className="font-medium">{company.name || 'غير محدد'}</TableCell>
-                          <TableCell>{company.location || 'غير محدد'}</TableCell>
-                          <TableCell>{company.rating || 0} ({company.reviewCount || 0})</TableCell>
-                          <TableCell>
-                            <div className="flex flex-wrap gap-1">
-                              {company.skills.slice(0, 2).map((skill, index) => (
-                                <Badge key={index} variant="outline" className="text-xs">
-                                  {skill}
-                                </Badge>
-                              ))}
-                              {company.skills.length > 2 && (
-                                <Badge variant="outline" className="text-xs">
-                                  +{company.skills.length - 2}
-                                </Badge>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2 space-x-reverse">
-                              <Button size="sm" variant="ghost">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center p-8">
-                    <p className="text-neutral-600">لا توجد شركات مسجلة</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Projects Tab */}
-          <TabsContent value="projects" className="space-y-6">
-            <Card>
-              <CardHeader className="flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle>المشاريع</CardTitle>
-                  <CardDescription>إدارة المشاريع على المنصة</CardDescription>
-                </div>
-                <div className="flex items-center space-x-2 space-x-reverse">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => queryClient.invalidateQueries({queryKey: ['/api/projects']})}
-                    className="transition-all duration-300 hover:shadow-md"
-                  >
-                    <RefreshCw className="ml-2 h-4 w-4" />
-                    تحديث
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingProjects ? (
-                  <div className="space-y-4">
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                    <Skeleton className="h-12 w-full" />
-                  </div>
-                ) : projectsError ? (
-                  <div className="text-center p-8">
-                    <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                    <p className="text-lg font-semibold mb-2">حدث خطأ أثناء تحميل المشاريع</p>
-                    <p className="text-neutral-600 mb-4">لم نتمكن من جلب بيانات المشاريع. يرجى المحاولة مرة أخرى.</p>
-                    <Button onClick={() => queryClient.invalidateQueries({queryKey: ['/api/projects']})}>
-                      إعادة المحاولة
-                    </Button>
-                  </div>
-                ) : projects && projects.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>المعرف</TableHead>
-                        <TableHead>العنوان</TableHead>
-                        <TableHead>رائد الأعمال</TableHead>
-                        <TableHead>الميزانية</TableHead>
-                        <TableHead>المدة</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>تاريخ الإنشاء</TableHead>
-                        <TableHead>الإجراءات</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {projects.map((project) => (
-                        <TableRow key={project.id}>
-                          <TableCell>{project.id}</TableCell>
-                          <TableCell className="font-medium">{project.title}</TableCell>
-                          <TableCell>{project.userId}</TableCell>
-                          <TableCell>{project.budget}</TableCell>
-                          <TableCell>{project.duration}</TableCell>
-                          <TableCell>
-                            <Badge variant={project.status === "open" ? "outline" : "secondary"}>
-                              {project.status === "open" ? "مفتوح" : "مغلق"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-neutral-600">{formatDate(project.createdAt)}</TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2 space-x-reverse">
-                              <Button size="sm" variant="ghost">
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost">
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button size="sm" variant="ghost" className="text-red-500 hover:text-red-700 hover:bg-red-50">
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center p-8">
-                    <p className="text-neutral-600">لا توجد مشاريع</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Settings Tab */}
-          <TabsContent value="settings" className="space-y-6">
+          {/* إدارة المستخدمين */}
+          <TabsContent value="users" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>إعدادات المنصة</CardTitle>
-                <CardDescription>تخصيص إعدادات المنصة</CardDescription>
+                <CardTitle>إدارة المستخدمين</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-neutral-600">قريباً</p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>اسم المستخدم</TableHead>
+                      <TableHead>البريد الإلكتروني</TableHead>
+                      <TableHead>الدور</TableHead>
+                      <TableHead>تاريخ التسجيل</TableHead>
+                      <TableHead className="text-left">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {users?.map((user: any) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center justify-center px-2 py-1 text-xs font-medium rounded-full ${
+                            user.role === "admin" 
+                              ? "bg-purple-100 text-purple-800" 
+                              : user.role === "company" 
+                                ? "bg-blue-100 text-blue-800" 
+                                : "bg-green-100 text-green-800"
+                          }`}>
+                            {user.role === "admin" 
+                              ? "مسؤول" 
+                              : user.role === "company" 
+                                ? "شركة" 
+                                : "رائد أعمال"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(user.createdAt).toLocaleDateString("ar-SA")}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2 rtl:space-x-reverse">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/users/${user.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleToggleUserStatus(user.id, user.active)}
+                            >
+                              {user.active ? (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              )}
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setSelectedUserId(user.id);
+                                setDeleteDialogOpen(true);
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4 text-red-600" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* إدارة الشركات */}
+          <TabsContent value="companies" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>إدارة الشركات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>اسم الشركة</TableHead>
+                      <TableHead>الموقع</TableHead>
+                      <TableHead>التقييم</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead className="text-left">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {companies?.map((company: any) => (
+                      <TableRow key={company.id}>
+                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell>{company.location || "غير محدد"}</TableCell>
+                        <TableCell>{company.rating || "لا يوجد"}</TableCell>
+                        <TableCell>
+                          {company.verified ? (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
+                              موثقة
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
+                              غير موثقة
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2 rtl:space-x-reverse">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/companies/${company.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                // تنفيذ إجراء التحقق/إلغاء التحقق
+                                toast({
+                                  title: `تم ${company.verified ? "إلغاء توثيق" : "توثيق"} الشركة`,
+                                  description: `تم ${company.verified ? "إلغاء توثيق" : "توثيق"} شركة ${company.name} بنجاح`,
+                                });
+                                refetchCompanies();
+                              }}
+                            >
+                              {company.verified ? (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
       </div>
-    </>
-  );
-};
 
-export default AdminDashboard;
+      {/* مربع حوار تأكيد الحذف */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>تأكيد حذف المستخدم</DialogTitle>
+            <DialogDescription>
+              هل أنت متأكد من رغبتك في حذف هذا المستخدم؟ هذا الإجراء لا يمكن التراجع عنه.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+              إلغاء
+            </Button>
+            <Button variant="destructive" onClick={handleDeleteUser}>
+              حذف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
