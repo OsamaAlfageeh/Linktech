@@ -159,6 +159,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     return res.status(401).json({ message: 'Not authenticated' });
   });
 
+  // جلب جميع المستخدمين (للمسؤول فقط)
+  app.get('/api/users/all', async (req: Request, res: Response) => {
+    try {
+      // تحقق ما إذا كان المستخدم مسجل الدخول ومسؤول
+      if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      const users = await storage.getUsers();
+      res.json(users);
+    } catch (error) {
+      console.error('Error fetching all users:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // User routes
   app.get('/api/users/:id', async (req: Request, res: Response) => {
     try {
