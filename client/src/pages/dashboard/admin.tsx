@@ -60,7 +60,7 @@ export default function AdminDashboard() {
   // تأكد من أن المستخدم مسؤول
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/admin-login");
+      navigate("/auth/login");
       return;
     }
 

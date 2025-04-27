@@ -94,7 +94,7 @@ function App() {
           <Route path="/companies/:id" component={CompanyDetails} />
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
-          <Route path="/admin-login" component={() => <AdminLogin />} />
+          {/* Removed separate admin login route */}
           
           {/* Protected routes */}
           <Route path="/dashboard/entrepreneur">
