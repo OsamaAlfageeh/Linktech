@@ -4,6 +4,114 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== تأثيرات التفاعل والحركة ===== */
+@layer components {
+  /* تأثيرات البطاقات */
+  .hover-card-lift {
+    @apply transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  /* تأثيرات الأزرار */
+  .hover-button-scale {
+    @apply transition-transform duration-150 ease-in-out active:scale-95 hover:scale-105;
+  }
+  
+  /* تأثيرات للنص الفائق */
+  .link-underline {
+    @apply relative after:absolute after:bg-primary after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:origin-bottom-right after:transition-all after:duration-300 hover:after:origin-bottom-left hover:after:w-full;
+  }
+  
+  /* تأثيرات الشارات */
+  .badge-pulse {
+    @apply transition-all duration-300 hover:bg-primary/10 hover:text-primary;
+  }
+  
+  /* تأثير الاهتزاز اللطيف */
+  .subtle-shake {
+    animation: subtle-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  @keyframes subtle-shake {
+    10%, 90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+    
+    20%, 80% {
+      transform: translate3d(1px, 0, 0);
+    }
+    
+    30%, 50%, 70% {
+      transform: translate3d(-2px, 0, 0);
+    }
+    
+    40%, 60% {
+      transform: translate3d(2px, 0, 0);
+    }
+  }
+  
+  /* تأثير النبض */
+  .pulse-effect {
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(var(--color-primary), 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(var(--color-primary), 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(var(--color-primary), 0);
+    }
+  }
+  
+  /* تأثير الظهور التدريجي */
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  /* تأثير العناصر المتلاشية عند التمرير */
+  .fade-out-on-scroll {
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+  }
+  
+  /* تأثير زر عائم */
+  .floating-button {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0px); }
+  }
+  
+  /* تأثير تغيير الألوان التدريجي */
+  .shimmer {
+    background: linear-gradient(90deg, 
+      rgba(var(--color-primary), 0.1) 0%, 
+      rgba(var(--color-primary), 0.2) 50%, 
+      rgba(var(--color-primary), 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+}
+
 :root {
   --background: 0 0% 100%;
   --foreground: 20 14.3% 4.1%;

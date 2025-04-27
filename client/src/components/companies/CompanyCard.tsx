@@ -67,24 +67,26 @@ const CompanyCard = ({ company }: CompanyProps) => {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover:shadow-md transition-shadow">
+    <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover-card-lift">
       <div className="relative">
-        <div className={`h-32 ${company.coverPhoto ? '' : getCoverGradient(company.id)}`}>
-          {company.coverPhoto && (
+        <div className={`h-32 ${company.coverPhoto ? '' : getCoverGradient(company.id)} overflow-hidden`}>
+          {company.coverPhoto ? (
             <img 
               src={company.coverPhoto} 
               alt={company.name || ''} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
             />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10"></div>
           )}
         </div>
-        <div className="absolute -bottom-12 right-6">
-          <div className="w-24 h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1">
+        <div className="absolute -bottom-12 right-6 z-10">
+          <div className="w-24 h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg">
             {company.logo ? (
               <img 
                 src={company.logo} 
                 alt={company.name || ''} 
-                className="w-full h-full object-cover rounded"
+                className="w-full h-full object-cover rounded hover:scale-105 transition-transform duration-300"
               />
             ) : (
               <div className={`w-full h-full flex items-center justify-center rounded ${getCoverGradient(company.id)} text-white text-2xl font-bold`}>
@@ -95,9 +97,11 @@ const CompanyCard = ({ company }: CompanyProps) => {
         </div>
       </div>
       <div className="p-6 pt-16">
-        <h3 className="font-heading font-semibold text-xl mb-2">{company.name}</h3>
-        <div className="flex items-center text-sm text-amber-500 mb-3">
-          {renderStars(company.rating)}
+        <h3 className="font-heading font-semibold text-xl mb-2 transition-colors duration-300 hover:text-primary">{company.name}</h3>
+        <div className="flex items-center text-sm text-amber-500 mb-3 group">
+          <div className="flex transition-transform duration-300 group-hover:scale-110">
+            {renderStars(company.rating)}
+          </div>
           <span className="text-neutral-600 mr-2">
             ({company.rating || 0}) - {company.reviewCount || 0} مراجعة
           </span>
@@ -105,23 +109,36 @@ const CompanyCard = ({ company }: CompanyProps) => {
         <p className="text-neutral-600 mb-4">{truncateText(company.description, 120)}</p>
         <div className="flex flex-wrap gap-2 mb-4">
           {(company.skills || []).slice(0, 3).map((skill, index) => (
-            <Badge key={index} variant="outline" className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded">
+            <Badge 
+              key={index} 
+              variant="outline" 
+              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse"
+            >
               {skill}
             </Badge>
           ))}
           {(company.skills || []).length > 3 && (
-            <Badge variant="outline" className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded">
+            <Badge 
+              variant="outline" 
+              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse"
+            >
               +{(company.skills || []).length - 3}
             </Badge>
           )}
         </div>
       </div>
       <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200 flex justify-between items-center">
-        <Link href={`/companies/${company.id}`} className="text-primary hover:text-primary-dark font-medium">
+        <Link 
+          href={`/companies/${company.id}`} 
+          className="text-primary hover:text-primary-dark font-medium link-underline"
+        >
           عرض الملف
         </Link>
-        <Link href={`/messages?userId=${company.userId}`} className="text-neutral-600 hover:text-primary">
-          <MessageSquare className="h-5 w-5 rtl-flip" />
+        <Link 
+          href={`/messages?userId=${company.userId}`} 
+          className="text-neutral-600 hover:text-primary p-1 rounded-full transition-colors duration-200 hover:bg-neutral-200"
+        >
+          <MessageSquare className="h-5 w-5 rtl-flip transition-transform duration-200 hover:scale-110" />
         </Link>
       </div>
     </div>
