@@ -395,6 +395,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // مسارات محرك التوصية بالمشاريع
+  // 1. الحصول على المشاريع الموصى بها لشركة معينة
+  app.get('/api/recommendations/companies/:companyId/projects', async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.companyId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      const recommendedProjects = await getRecommendedProjectsForCompany(companyId, limit);
+      res.json(recommendedProjects);
+    } catch (error) {
+      console.error('Error in recommended projects:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 2. الحصول على الشركات الموصى بها لمشروع معين
+  app.get('/api/recommendations/projects/:projectId/companies', async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      const recommendedCompanies = await getRecommendedCompaniesForProject(projectId, limit);
+      res.json(recommendedCompanies);
+    } catch (error) {
+      console.error('Error in recommended companies:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 3. الحصول على المشاريع المشابهة لمشروع محدد
+  app.get('/api/recommendations/projects/:projectId/similar', async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 3;
+      
+      const similarProjects = await getSimilarProjects(projectId, limit);
+      res.json(similarProjects);
+    } catch (error) {
+      console.error('Error in similar projects:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 4. الحصول على المشاريع الرائجة (عالية الطلب)
+  app.get('/api/recommendations/trending-projects', async (req: Request, res: Response) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      const trendingProjects = await getTrendingProjects(limit);
+      res.json(trendingProjects);
+    } catch (error) {
+      console.error('Error in trending projects:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
   // Testimonial routes
   app.get('/api/testimonials', async (req: Request, res: Response) => {
     try {
