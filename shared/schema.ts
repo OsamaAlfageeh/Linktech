@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User roles enumeration
 export const UserRole = {
@@ -98,6 +99,57 @@ export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
   id: true, 
   createdAt: true 
 });
+
+// Relation definitions
+export const usersRelations = relations(users, ({ one, many }) => ({
+  companyProfile: one(companyProfiles, {
+    fields: [users.id],
+    references: [companyProfiles.userId],
+  }),
+  projects: many(projects),
+  testimonials: many(testimonials),
+  sentMessages: many(messages, { relationName: "sentMessages" }),
+  receivedMessages: many(messages, { relationName: "receivedMessages" }),
+}));
+
+export const companyProfilesRelations = relations(companyProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [companyProfiles.userId],
+    references: [users.id],
+  }),
+}));
+
+export const projectsRelations = relations(projects, ({ one, many }) => ({
+  user: one(users, {
+    fields: [projects.userId],
+    references: [users.id],
+  }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  fromUser: one(users, {
+    fields: [messages.fromUserId],
+    references: [users.id],
+    relationName: "sentMessages",
+  }),
+  toUser: one(users, {
+    fields: [messages.toUserId],
+    references: [users.id],
+    relationName: "receivedMessages",
+  }),
+  project: one(projects, {
+    fields: [messages.projectId],
+    references: [projects.id],
+  }),
+}));
+
+export const testimonialsRelations = relations(testimonials, ({ one }) => ({
+  user: one(users, {
+    fields: [testimonials.userId],
+    references: [users.id],
+  }),
+}));
 
 // Types
 export type User = typeof users.$inferSelect;

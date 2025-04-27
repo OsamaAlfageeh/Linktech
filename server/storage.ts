@@ -5,6 +5,8 @@ import {
   messages, Message, InsertMessage,
   testimonials, Testimonial, InsertTestimonial,
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, or, desc, asc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -407,4 +409,211 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  // User operations
+  async getUser(id: number): Promise<User | undefined> {
+    const users = await db.query.users.findMany({
+      where: eq(schema.users.id, id),
+      limit: 1
+    });
+    return users.length > 0 ? users[0] : undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const users = await db.query.users.findMany({
+      where: eq(schema.users.username, username),
+      limit: 1
+    });
+    return users.length > 0 ? users[0] : undefined;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const users = await db.query.users.findMany({
+      where: eq(schema.users.email, email),
+      limit: 1
+    });
+    return users.length > 0 ? users[0] : undefined;
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const [insertedUser] = await db.insert(schema.users)
+      .values(user)
+      .returning();
+    return insertedUser;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.query.users.findMany();
+  }
+
+  // Company profile operations
+  async getCompanyProfile(id: number): Promise<CompanyProfile | undefined> {
+    const profiles = await db.query.companyProfiles.findMany({
+      where: eq(schema.companyProfiles.id, id),
+      limit: 1
+    });
+    return profiles.length > 0 ? profiles[0] : undefined;
+  }
+
+  async getCompanyProfileByUserId(userId: number): Promise<CompanyProfile | undefined> {
+    const profiles = await db.query.companyProfiles.findMany({
+      where: eq(schema.companyProfiles.userId, userId),
+      limit: 1
+    });
+    return profiles.length > 0 ? profiles[0] : undefined;
+  }
+
+  async createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile> {
+    const [insertedProfile] = await db.insert(schema.companyProfiles)
+      .values({
+        ...profile,
+        rating: 0,
+        reviewCount: 0
+      })
+      .returning();
+    return insertedProfile;
+  }
+
+  async updateCompanyProfile(id: number, updates: Partial<CompanyProfile>): Promise<CompanyProfile | undefined> {
+    const [updatedProfile] = await db.update(schema.companyProfiles)
+      .set(updates)
+      .where(eq(schema.companyProfiles.id, id))
+      .returning();
+    return updatedProfile;
+  }
+
+  async getCompanyProfiles(): Promise<CompanyProfile[]> {
+    return await db.query.companyProfiles.findMany();
+  }
+
+  // Project operations
+  async getProject(id: number): Promise<Project | undefined> {
+    const projects = await db.query.projects.findMany({
+      where: eq(schema.projects.id, id),
+      limit: 1
+    });
+    return projects.length > 0 ? projects[0] : undefined;
+  }
+
+  async getProjects(): Promise<Project[]> {
+    return await db.query.projects.findMany();
+  }
+
+  async getProjectsByUserId(userId: number): Promise<Project[]> {
+    return await db.query.projects.findMany({
+      where: eq(schema.projects.userId, userId)
+    });
+  }
+
+  async createProject(project: InsertProject): Promise<Project> {
+    const [insertedProject] = await db.insert(schema.projects)
+      .values({
+        ...project,
+        status: "open",
+      })
+      .returning();
+    return insertedProject;
+  }
+
+  async updateProject(id: number, updates: Partial<Project>): Promise<Project | undefined> {
+    const [updatedProject] = await db.update(schema.projects)
+      .set(updates)
+      .where(eq(schema.projects.id, id))
+      .returning();
+    return updatedProject;
+  }
+
+  // Message operations
+  async getMessage(id: number): Promise<Message | undefined> {
+    const messages = await db.query.messages.findMany({
+      where: eq(schema.messages.id, id),
+      limit: 1
+    });
+    return messages.length > 0 ? messages[0] : undefined;
+  }
+
+  async getMessages(userId: number): Promise<Message[]> {
+    return await db.query.messages.findMany({
+      where: or(
+        eq(schema.messages.fromUserId, userId),
+        eq(schema.messages.toUserId, userId)
+      )
+    });
+  }
+
+  async getConversation(user1Id: number, user2Id: number, projectId?: number): Promise<Message[]> {
+    let whereClause;
+    if (projectId) {
+      whereClause = and(
+        or(
+          and(
+            eq(schema.messages.fromUserId, user1Id),
+            eq(schema.messages.toUserId, user2Id)
+          ),
+          and(
+            eq(schema.messages.fromUserId, user2Id),
+            eq(schema.messages.toUserId, user1Id)
+          )
+        ),
+        eq(schema.messages.projectId, projectId)
+      );
+    } else {
+      whereClause = or(
+        and(
+          eq(schema.messages.fromUserId, user1Id),
+          eq(schema.messages.toUserId, user2Id)
+        ),
+        and(
+          eq(schema.messages.fromUserId, user2Id),
+          eq(schema.messages.toUserId, user1Id)
+        )
+      );
+    }
+
+    return await db.query.messages.findMany({
+      where: whereClause,
+      orderBy: asc(schema.messages.createdAt)
+    });
+  }
+
+  async createMessage(message: InsertMessage): Promise<Message> {
+    const [insertedMessage] = await db.insert(schema.messages)
+      .values({
+        ...message,
+        read: false
+      })
+      .returning();
+    return insertedMessage;
+  }
+
+  async markMessageAsRead(id: number): Promise<Message | undefined> {
+    const [updatedMessage] = await db.update(schema.messages)
+      .set({ read: true })
+      .where(eq(schema.messages.id, id))
+      .returning();
+    return updatedMessage;
+  }
+
+  // Testimonial operations
+  async getTestimonial(id: number): Promise<Testimonial | undefined> {
+    const testimonials = await db.query.testimonials.findMany({
+      where: eq(schema.testimonials.id, id),
+      limit: 1
+    });
+    return testimonials.length > 0 ? testimonials[0] : undefined;
+  }
+
+  async getTestimonials(): Promise<Testimonial[]> {
+    return await db.query.testimonials.findMany();
+  }
+
+  async createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial> {
+    const [insertedTestimonial] = await db.insert(schema.testimonials)
+      .values(testimonial)
+      .returning();
+    return insertedTestimonial;
+  }
+}
+
+// Change from MemStorage to DatabaseStorage
+export const storage = new DatabaseStorage();
