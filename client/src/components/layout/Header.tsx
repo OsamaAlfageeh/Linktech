@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
-import { Menu, User, LogOut, LayoutDashboard, MessageSquare } from "lucide-react";
+import { Menu, User, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, UserPlus } from "lucide-react";
 
 type HeaderProps = {
   auth: {
@@ -131,6 +131,10 @@ const Header = ({ auth }: HeaderProps) => {
               <Link href="/auth/register" className="bg-primary hover:bg-primary-dark text-white font-medium rounded-lg px-4 py-2 transition-colors">
                 إنشاء حساب
               </Link>
+              <Link href="/admin-login" className="text-neutral-600 hover:text-primary font-medium">
+                <ShieldCheck className="inline-block ml-1 h-4 w-4" />
+                <span className="text-xs">دخول المسؤول</span>
+              </Link>
             </div>
           )}
 
@@ -217,6 +221,14 @@ const Header = ({ auth }: HeaderProps) => {
                           className="block w-full text-center bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-md font-medium"
                         >
                           إنشاء حساب
+                        </Link>
+                        <Link 
+                          href="/admin-login"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center justify-center mt-3 text-neutral-600 hover:text-primary"
+                        >
+                          <ShieldCheck className="ml-2 h-4 w-4" />
+                          <span>دخول المسؤول</span>
                         </Link>
                       </div>
                     )}
