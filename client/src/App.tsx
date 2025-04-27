@@ -24,6 +24,7 @@ import AdminDashboard from "@/pages/dashboard/admin";
 import Messages from "@/pages/messages";
 import NotFound from "@/pages/not-found";
 import Redirect from "@/pages/redirect";
+import UserProfile from "@/pages/users/UserProfile";
 
 export type User = {
   id: number;
@@ -137,10 +138,7 @@ function App() {
           </Route>
           
           {/* مسار صفحة المستخدم */}
-          <Route path="/users/:id" component={() => {
-            const UserPage = require('./pages/users/[id]').default;
-            return <UserPage />;
-          }} />
+          <Route path="/users/:id" component={UserProfile} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
