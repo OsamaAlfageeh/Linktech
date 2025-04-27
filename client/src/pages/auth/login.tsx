@@ -18,9 +18,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { AlertCircle, ShieldCheck } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+// إزالة استيراد مكتبات علامات التبويب
 import { Badge } from "@/components/ui/badge";
 
 // Define our form schema
@@ -41,7 +41,7 @@ const Login = ({ auth }: LoginProps) => {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [serverError, setServerError] = useState("");
-  const [activeTab, setActiveTab] = useState("user"); // "user" أو "admin"
+  // واجهة تسجيل دخول موحدة
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -104,16 +104,6 @@ const Login = ({ auth }: LoginProps) => {
             </p>
           </div>
           
-          <Tabs defaultValue="user" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="user">مستخدم</TabsTrigger>
-              <TabsTrigger value="admin">
-                <ShieldCheck className="inline-block ml-1 h-4 w-4" />
-                مسؤول
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           {serverError && (
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
@@ -122,13 +112,10 @@ const Login = ({ auth }: LoginProps) => {
             </Alert>
           )}
           
-          {activeTab === "admin" && (
-            <div className="p-3 bg-blue-50 rounded-lg border border-blue-100">
-              <p className="text-sm text-blue-700 mb-2 font-medium">بيانات تسجيل دخول المسؤول:</p>
-              <p className="text-xs text-blue-600 mb-1">اسم المستخدم: admin</p>
-              <p className="text-xs text-blue-600">كلمة المرور: admin123</p>
-            </div>
-          )}
+          <div className="mt-2 mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
+            <p className="text-sm text-blue-700 mb-1 font-medium">معلومات هامة:</p>
+            <p className="text-xs text-blue-600">سيتم توجيهك تلقائياً حسب نوع حسابك بعد تسجيل الدخول</p>
+          </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
