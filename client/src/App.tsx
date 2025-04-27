@@ -113,13 +113,9 @@ function App() {
               <NotFound />
             )}
           </Route>
-          <Route path="/dashboard/admin">
-            {auth.isAuthenticated && auth.user?.role === "admin" ? (
-              <AdminDashboard auth={auth} />
-            ) : (
-              <NotFound />
-            )}
-          </Route>
+          {/* صفحة المسؤول بدون تحقق (مؤقتاً) */}
+          <Route path="/dashboard/admin" component={() => <AdminDashboard auth={auth} />} />
+          {/* نهاية التعديل المؤقت */}
           <Route path="/messages">
             {auth.isAuthenticated ? (
               <Messages auth={auth} />
