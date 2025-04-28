@@ -61,6 +61,22 @@ export const projects = pgTable("projects", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Offer schema
+export const projectOffers = pgTable("project_offers", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  companyId: integer("company_id").notNull().references(() => companyProfiles.id), 
+  amount: text("amount").notNull(),
+  duration: text("duration").notNull(),
+  description: text("description").notNull(),
+  status: text("status").default("pending").notNull(), // pending, accepted, rejected, completed
+  depositPaid: boolean("deposit_paid").default(false),
+  depositAmount: text("deposit_amount"),
+  depositDate: timestamp("deposit_date"),
+  contactRevealed: boolean("contact_revealed").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Message schema
 export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
@@ -121,6 +137,16 @@ export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
   createdAt: true 
 });
 
+export const insertProjectOfferSchema = createInsertSchema(projectOffers).omit({
+  id: true,
+  status: true,
+  depositPaid: true,
+  depositAmount: true,
+  depositDate: true,
+  contactRevealed: true,
+  createdAt: true
+});
+
 // Relation definitions
 export const usersRelations = relations(users, ({ one, many }) => ({
   companyProfile: one(companyProfiles, {
@@ -146,6 +172,18 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
     references: [users.id],
   }),
   messages: many(messages),
+  offers: many(projectOffers),
+}));
+
+export const projectOffersRelations = relations(projectOffers, ({ one }) => ({
+  project: one(projects, {
+    fields: [projectOffers.projectId],
+    references: [projects.id],
+  }),
+  company: one(companyProfiles, {
+    fields: [projectOffers.companyId],
+    references: [companyProfiles.id],
+  }),
 }));
 
 export const messagesRelations = relations(messages, ({ one }) => ({
@@ -187,3 +225,6 @@ export type InsertMessage = z.infer<typeof insertMessageSchema>;
 
 export type Testimonial = typeof testimonials.$inferSelect;
 export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
+
+export type ProjectOffer = typeof projectOffers.$inferSelect;
+export type InsertProjectOffer = z.infer<typeof insertProjectOfferSchema>;

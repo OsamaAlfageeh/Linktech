@@ -5,6 +5,7 @@ import {
   Project, InsertProject,
   Message, InsertMessage,
   Testimonial, InsertTestimonial,
+  ProjectOffer, InsertProjectOffer,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
@@ -43,6 +44,15 @@ export interface IStorage {
   getTestimonial(id: number): Promise<Testimonial | undefined>;
   getTestimonials(): Promise<Testimonial[]>;
   createTestimonial(testimonial: InsertTestimonial): Promise<Testimonial>;
+
+  // Project Offer operations
+  getProjectOffer(id: number): Promise<ProjectOffer | undefined>;
+  getProjectOffersByProjectId(projectId: number): Promise<ProjectOffer[]>;
+  getProjectOffersByCompanyId(companyId: number): Promise<ProjectOffer[]>;
+  createProjectOffer(offer: InsertProjectOffer): Promise<ProjectOffer>;
+  updateProjectOfferStatus(id: number, status: string): Promise<ProjectOffer | undefined>;
+  setProjectOfferDepositPaid(id: number, depositAmount: string): Promise<ProjectOffer | undefined>;
+  setProjectOfferContactRevealed(id: number): Promise<ProjectOffer | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -51,12 +61,14 @@ export class MemStorage implements IStorage {
   private projects: Map<number, Project>;
   private messages: Map<number, Message>;
   private testimonials: Map<number, Testimonial>;
+  private projectOffers: Map<number, ProjectOffer>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
   private projectIdCounter: number = 1;
   private messageIdCounter: number = 1;
   private testimonialIdCounter: number = 1;
+  private projectOfferIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -64,6 +76,7 @@ export class MemStorage implements IStorage {
     this.projects = new Map();
     this.messages = new Map();
     this.testimonials = new Map();
+    this.projectOffers = new Map();
     
     this.seedData();
   }
