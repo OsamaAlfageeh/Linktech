@@ -104,16 +104,35 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [projectAttachments, setProjectAttachments] = useState<UploadedFile[]>([]);
 
-  // Check if URL has a query parameter for creating a project
+  // Check URL query parameters for actions (create or edit project)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get("action") === "create-project") {
+    const action = urlParams.get("action");
+    
+    if (action === "create-project") {
       setActiveTab("projects");
       setIsCreateDialogOpen(true);
       // Clean up the URL
       navigate("/dashboard/entrepreneur", { replace: true });
+    } 
+    else if (action === "edit" && urlParams.get("projectId")) {
+      // Handle project editing
+      const projectId = urlParams.get("projectId");
+      setActiveTab("projects");
+      // This is where we'll need to initiate project editing
+      // We'll implement this in the next step
+      console.log("Edit project with ID:", projectId);
+      
+      // For now, navigate to projects tab
+      navigate("/dashboard/entrepreneur?tab=projects", { replace: true });
+      
+      // Show a toast notification about editing feature
+      toast({
+        title: "تحرير المشروع",
+        description: `جاري العمل على ميزة تحرير المشروع رقم ${projectId}. ستكون متاحة قريباً.`,
+      });
     }
-  }, [navigate]);
+  }, [navigate, toast]);
 
   // Fetch projects for this entrepreneur
   const {
