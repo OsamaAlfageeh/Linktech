@@ -23,6 +23,7 @@ export interface IStorage {
   createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
   updateCompanyProfile(id: number, profile: Partial<CompanyProfile>): Promise<CompanyProfile | undefined>;
   getCompanyProfiles(): Promise<CompanyProfile[]>;
+  verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined>;
   
   // Project operations
   getProject(id: number): Promise<Project | undefined>;
@@ -130,6 +131,15 @@ export class MemStorage implements IStorage {
   
   async getCompanyProfiles(): Promise<CompanyProfile[]> {
     return Array.from(this.companyProfiles.values());
+  }
+  
+  async verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined> {
+    const profile = this.companyProfiles.get(id);
+    if (!profile) return undefined;
+    
+    const updatedProfile = { ...profile, verified };
+    this.companyProfiles.set(id, updatedProfile);
+    return updatedProfile;
   }
   
   // Project operations

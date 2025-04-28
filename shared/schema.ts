@@ -43,6 +43,7 @@ export const companyProfiles = pgTable("company_profiles", {
   skills: text("skills").array(),
   rating: integer("rating"),
   reviewCount: integer("review_count").default(0),
+  verified: boolean("verified").default(false), // إضافة حقل للتوثيق
 });
 
 // Project schema
