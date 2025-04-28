@@ -8,13 +8,15 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
 import { RecommendedCompanies, SimilarProjects } from "@/components/recommendations";
+import { useAuth } from "@/App";
 import { 
   Calendar, 
   Clock, 
   Banknote, 
   ArrowLeft, 
   MessageSquare,
-  AlertCircle
+  AlertCircle,
+  Settings
 } from "lucide-react";
 
 import { UploadedFile } from "@/components/ui/dropzone-uploader";
@@ -39,6 +41,7 @@ const ProjectDetails = () => {
   const { id } = useParams<{ id: string }>();
   const projectId = parseInt(id);
   const [_, navigate] = useLocation();
+  const auth = useAuth();
 
   const {
     data: project,
@@ -140,15 +143,27 @@ const ProjectDetails = () => {
                   </div>
                 </div>
                 <div className="mt-4 md:mt-0">
-                  <Link href={`/messages?userId=${project.userId}&projectId=${project.id}`}>
-                    <Button className="hover-button-scale transition-all duration-300 hover:shadow-md">
-                      <MessageSquare className="ml-2 h-4 w-4 rtl-flip transition-transform group-hover:scale-110" />
-                      <span className="relative">
-                        تواصل مع صاحب المشروع
-                        <span className="absolute -bottom-1 right-0 w-full h-0.5 bg-white/70 transform scale-x-0 transition-transform duration-300 origin-right group-hover:scale-x-100"></span>
-                      </span>
-                    </Button>
-                  </Link>
+                  {auth.isAuthenticated && auth.user?.id !== project.userId && (
+                    <Link href={`/messages?userId=${project.userId}&projectId=${project.id}`}>
+                      <Button className="hover-button-scale transition-all duration-300 hover:shadow-md">
+                        <MessageSquare className="ml-2 h-4 w-4 rtl-flip transition-transform group-hover:scale-110" />
+                        <span className="relative">
+                          تواصل مع صاحب المشروع
+                          <span className="absolute -bottom-1 right-0 w-full h-0.5 bg-white/70 transform scale-x-0 transition-transform duration-300 origin-right group-hover:scale-x-100"></span>
+                        </span>
+                      </Button>
+                    </Link>
+                  )}
+                  {auth.isAuthenticated && auth.user?.id === project.userId && (
+                    <Link href={`/dashboard/entrepreneur?tab=projects`}>
+                      <Button className="hover-button-scale transition-all duration-300 hover:shadow-md">
+                        <span className="relative">
+                          إدارة هذا المشروع
+                          <span className="absolute -bottom-1 right-0 w-full h-0.5 bg-white/70 transform scale-x-0 transition-transform duration-300 origin-right group-hover:scale-x-100"></span>
+                        </span>
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
 
