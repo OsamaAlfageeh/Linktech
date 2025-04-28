@@ -17,9 +17,11 @@ export interface UploadedFile {
 export interface DropzoneUploaderProps {
   value?: UploadedFile[];
   onChange?: (files: UploadedFile[]) => void;
+  onFilesChange?: (files: UploadedFile[]) => void;
+  initialFiles?: UploadedFile[];
   maxFiles?: number;
   maxSize?: number; // in bytes
-  acceptedFileTypes?: string[];
+  acceptedFileTypes?: Record<string, string[]>;
   uploadPath?: string;
   className?: string;
   disabled?: boolean;
@@ -45,15 +47,24 @@ const uploadFileToServer = async (file: File): Promise<string> => {
 export const DropzoneUploader = forwardRef<HTMLDivElement, DropzoneUploaderProps>(({
   value = [],
   onChange,
+  onFilesChange,
+  initialFiles = [],
   maxFiles = 5,
   maxSize = 5 * 1024 * 1024, // 5MB default
-  acceptedFileTypes = ['image/*', 'application/pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'],
+  acceptedFileTypes = {
+    'image/jpeg': ['.jpg', '.jpeg'],
+    'image/png': ['.png'],
+    'image/gif': ['.gif'],
+    'application/pdf': ['.pdf'],
+    'application/msword': ['.doc', '.docx'],
+    'application/vnd.ms-excel': ['.xls', '.xlsx']
+  },
   uploadPath = '/upload',
   className,
   disabled = false
 }, ref) => {
   const [isUploading, setIsUploading] = useState(false);
-  const [files, setFiles] = useState<UploadedFile[]>(value);
+  const [files, setFiles] = useState<UploadedFile[]>(initialFiles.length > 0 ? initialFiles : value);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (disabled) return;
@@ -85,30 +96,29 @@ export const DropzoneUploader = forwardRef<HTMLDivElement, DropzoneUploaderProps
       
       const updatedFiles = [...files, ...newFiles];
       setFiles(updatedFiles);
-      onChange?.(updatedFiles);
+      if (onChange) onChange(updatedFiles);
+      if (onFilesChange) onFilesChange(updatedFiles);
     } catch (error) {
       console.error('Error uploading files:', error);
     } finally {
       setIsUploading(false);
     }
-  }, [files, maxFiles, disabled, onChange]);
+  }, [files, maxFiles, disabled, onChange, onFilesChange]);
 
   const removeFile = (fileId: string) => {
     if (disabled) return;
     
     const updatedFiles = files.filter(file => file.id !== fileId);
     setFiles(updatedFiles);
-    onChange?.(updatedFiles);
+    if (onChange) onChange(updatedFiles);
+    if (onFilesChange) onFilesChange(updatedFiles);
   };
   
   const { getRootProps, getInputProps, isDragActive, open } = useDropzone({ 
     onDrop,
     maxSize,
     disabled: disabled || isUploading || files.length >= maxFiles,
-    accept: acceptedFileTypes.reduce((acc, type) => {
-      acc[type] = [];
-      return acc;
-    }, {} as Record<string, string[]>),
+    accept: acceptedFileTypes,
     noClick: true, // Disable click to avoid double triggers
     noKeyboard: true
   });
@@ -160,7 +170,7 @@ export const DropzoneUploader = forwardRef<HTMLDivElement, DropzoneUploaderProps
           <p className="text-xs text-gray-500 mt-2">
             بحد أقصى {maxFiles} ملفات. الحد الأقصى: {(maxSize / (1024 * 1024)).toFixed(0)} ميجابايت لكل ملف.
             <br />
-            {`الصيغ المقبولة: ${acceptedFileTypes.join(', ')}`}
+            الصيغ المقبولة: jpg, png, gif, pdf, doc, xls
           </p>
         </div>
       </div>
