@@ -155,11 +155,11 @@ const ProjectDetails = () => {
                     </Link>
                   )}
                   {auth.isAuthenticated && auth.user?.id === project.userId && (
-                    <Link href={`/dashboard/entrepreneur?tab=projects`}>
+                    <Link href={`/dashboard/entrepreneur?tab=projects&action=edit&projectId=${project.id}`}>
                       <Button className="hover-button-scale transition-all duration-300 hover:shadow-md">
                         <Settings className="ml-2 h-4 w-4 rtl-flip transition-transform group-hover:scale-110" />
                         <span className="relative">
-                          إدارة هذا المشروع
+                          تعديل هذا المشروع
                           <span className="absolute -bottom-1 right-0 w-full h-0.5 bg-white/70 transform scale-x-0 transition-transform duration-300 origin-right group-hover:scale-x-100"></span>
                         </span>
                       </Button>
