@@ -170,6 +170,38 @@ export default function AdminDashboard() {
     }
   };
 
+  // توثيق أو إلغاء توثيق شركة
+  const handleToggleCompanyVerification = async (companyId: number, currentVerified: boolean) => {
+    try {
+      const response = await fetch(`/api/companies/${companyId}/verify`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ verified: !currentVerified }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update company verification status');
+      }
+
+      toast({
+        title: `تم ${currentVerified ? "إلغاء توثيق" : "توثيق"} الشركة`,
+        description: `تم ${currentVerified ? "إلغاء توثيق" : "توثيق"} الشركة بنجاح`,
+      });
+      
+      // تحديث قائمة الشركات
+      refetchCompanies();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث حالة توثيق الشركة",
+        variant: "destructive",
+      });
+      console.error(error);
+    }
+  };
+
   // حذف مستخدم
   const handleDeleteUser = async () => {
     if (!selectedUserId) return;
