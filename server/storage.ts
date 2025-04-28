@@ -510,6 +510,14 @@ export class DatabaseStorage implements IStorage {
     return await db.query.companyProfiles.findMany();
   }
 
+  async verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined> {
+    const [updatedProfile] = await db.update(schema.companyProfiles)
+      .set({ verified })
+      .where(eq(schema.companyProfiles.id, id))
+      .returning();
+    return updatedProfile;
+  }
+
   // Project operations
   async getProject(id: number): Promise<Project | undefined> {
     const projects = await db.query.projects.findMany({

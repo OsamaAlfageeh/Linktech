@@ -272,13 +272,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Company profile not found' });
       }
       
-      if (profile.userId !== user.id) {
+      if (profile.userId !== user.id && user.role !== 'admin') {
         return res.status(403).json({ message: 'Not authorized to update this profile' });
       }
       
       const updatedProfile = await storage.updateCompanyProfile(profileId, req.body);
       res.json(updatedProfile);
     } catch (error) {
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // توثيق أو إلغاء توثيق شركة - للمسؤولين فقط
+  app.patch('/api/companies/:id/verify', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      // تأكد من أن المستخدم مسؤول
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: 'هذه العملية متاحة للمسؤولين فقط' });
+      }
+      
+      const companyId = parseInt(req.params.id);
+      const verified = req.body.verified === true;
+      
+      const companyProfile = await storage.verifyCompany(companyId, verified);
+      if (!companyProfile) {
+        return res.status(404).json({ message: 'الشركة غير موجودة' });
+      }
+      
+      res.json(companyProfile);
+    } catch (error) {
+      console.error('Error verifying company:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
