@@ -55,6 +55,7 @@ import {
   Calendar,
   Clock,
   Banknote,
+  Loader2,
 } from "lucide-react";
 
 type Project = {
@@ -112,6 +113,12 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const action = urlParams.get("action");
+    const tab = urlParams.get("tab");
+    
+    // Set the active tab based on URL parameter
+    if (tab) {
+      setActiveTab(tab);
+    }
     
     if (action === "create-project") {
       setActiveTab("projects");
@@ -126,7 +133,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
         setActiveTab("projects");
         setEditProjectId(projectId);
         setIsEditDialogOpen(true);
-        console.log("Edit project with ID:", projectId);
+        // Don't clean up URL yet to allow refresh during edit
       }
     }
   }, [navigate]);
@@ -625,6 +632,274 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
         </Tabs>
       </div>
     </>
+  );
+};
+
+// EditProjectForm component for editing projects
+interface EditProjectFormProps {
+  projectId: number;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps) => {
+  const { toast } = useToast();
+  const [editAttachments, setEditAttachments] = useState<UploadedFile[]>([]);
+  const [loadingProject, setLoadingProject] = useState(true);
+  
+  // Edit form
+  const editForm = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      budget: "",
+      duration: "",
+      skills: "",
+      status: "open" // Default status
+    },
+  });
+  
+  // Fetch the specific project to edit
+  const { data: project } = useQuery<Project>({
+    queryKey: [`/api/projects/${projectId}`],
+    enabled: !!projectId,
+  });
+
+  // Handle project data once it's loaded
+  useEffect(() => {
+    if (project) {
+      setLoadingProject(false);
+      // If project has attachments, set them
+      if (project.attachments) {
+        setEditAttachments(project.attachments as UploadedFile[]);
+      }
+      
+      // Set form default values from project data
+      editForm.reset({
+        title: project.title,
+        description: project.description,
+        budget: project.budget,
+        duration: project.duration,
+        skills: project.skills.join(", "), // Convert array to comma-separated string
+        status: project.status
+      });
+    }
+  }, [project, editForm]);
+
+  // Update project mutation
+  const updateProjectMutation = useMutation({
+    mutationFn: async (data: ProjectFormValues) => {
+      const skills = data.skills.split(",").map((skill) => skill.trim());
+      const projectData = {
+        ...data,
+        skills,
+        attachments: editAttachments.length > 0 ? editAttachments : undefined,
+      };
+      
+      const response = await apiRequest("PATCH", `/api/projects/${projectId}`, projectData);
+      return response.json();
+    },
+    onSuccess: () => {
+      onSuccess();
+    },
+    onError: (error) => {
+      toast({
+        title: "حدث خطأ",
+        description: "لم نتمكن من تحديث المشروع، يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleEditSubmit = (data: ProjectFormValues) => {
+    updateProjectMutation.mutate(data);
+  };
+  
+  const handleEditAttachmentsChange = (files: UploadedFile[]) => {
+    setEditAttachments(files);
+  };
+
+  if (loadingProject) {
+    return (
+      <div className="py-4 text-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+        <p>جاري تحميل بيانات المشروع...</p>
+      </div>
+    );
+  }
+
+  return (
+    <Form {...editForm}>
+      <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-6">
+        <FormField
+          control={editForm.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>عنوان المشروع</FormLabel>
+              <FormControl>
+                <Input placeholder="مثال: تطبيق متجر إلكتروني" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={editForm.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>وصف المشروع</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="اشرح تفاصيل مشروعك، متطلباته، وأهدافه" 
+                  {...field} 
+                  rows={5}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={editForm.control}
+            name="budget"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>الميزانية المتوقعة</FormLabel>
+                <FormControl>
+                  <Input placeholder="مثال: 5,000 - 10,000 ريال" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={editForm.control}
+            name="duration"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>المدة المتوقعة</FormLabel>
+                <FormControl>
+                  <Input placeholder="مثال: 2-3 أشهر" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+        <FormField
+          control={editForm.control}
+          name="skills"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>المهارات المطلوبة</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="أدخل المهارات مفصولة بفواصل, مثال: React, Node.js, تصميم واجهات" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={editForm.control}
+          name="status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>حالة المشروع</FormLabel>
+              <div className="flex items-center space-x-4 space-x-reverse">
+                <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="status"
+                    className="w-4 h-4 text-primary border-gray-300 focus:ring-primary"
+                    value="open"
+                    checked={field.value === "open"}
+                    onChange={() => field.onChange("open")}
+                  />
+                  <span className="mr-2">مفتوح</span>
+                </label>
+                <label className="flex items-center space-x-2 space-x-reverse cursor-pointer">
+                  <input 
+                    type="radio" 
+                    name="status"
+                    className="w-4 h-4 text-neutral-500 border-gray-300 focus:ring-neutral-500"
+                    value="closed"
+                    checked={field.value === "closed"}
+                    onChange={() => field.onChange("closed")}
+                  />
+                  <span className="mr-2">مغلق</span>
+                </label>
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div>
+          <div className="mb-2">
+            <FormLabel>مرفقات المشروع (اختياري)</FormLabel>
+            <p className="text-sm text-neutral-500 mb-2">
+              يمكنك إرفاق صور، وثائق، أو أي ملفات أخرى متعلقة بمشروعك
+            </p>
+          </div>
+          <DropzoneUploader 
+            onFilesChange={handleEditAttachmentsChange} 
+            maxFiles={5}
+            initialFiles={editAttachments}
+            acceptedFileTypes={{
+              'image/jpeg': ['.jpg', '.jpeg'],
+              'image/png': ['.png'],
+              'image/gif': ['.gif'],
+              'application/pdf': ['.pdf'],
+              'application/msword': ['.doc', '.docx'],
+              'application/vnd.ms-excel': ['.xls', '.xlsx'],
+            }}
+          />
+        </div>
+        <div className="flex justify-end space-x-2 space-x-reverse">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onClose}
+          >
+            إلغاء
+          </Button>
+          <Button type="submit" disabled={updateProjectMutation.isPending}>
+            {updateProjectMutation.isPending ? (
+              <>
+                <span className="ml-2 inline-block animate-spin">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                </span>
+                جاري التحديث...
+              </>
+            ) : (
+              "تحديث المشروع"
+            )}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 
