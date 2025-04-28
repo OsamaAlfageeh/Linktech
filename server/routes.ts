@@ -547,6 +547,228 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Project Offers routes
+  app.get('/api/projects/:projectId/offers', async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      // إذا كان المستخدم مسجل الدخول وهو صاحب المشروع، أظهر كل العروض
+      // إذا كان المستخدم شركة، أظهر فقط عروضها على هذا المشروع
+      // إذا كان زائر، أظهر فقط عدد العروض المقدمة
+      let offers = await storage.getProjectOffersByProjectId(projectId);
+      
+      if (req.isAuthenticated()) {
+        const user = req.user as any;
+        
+        if (project.userId === user.id || user.role === 'admin') {
+          // صاحب المشروع أو المسؤول - يرى جميع العروض
+          // لكل عرض، أحضر بيانات الشركة مع إخفاء بعض المعلومات
+          const offersWithCompanyData = await Promise.all(
+            offers.map(async (offer) => {
+              const companyProfile = await storage.getCompanyProfile(offer.companyId);
+              const user = await storage.getUser(companyProfile?.userId || 0);
+              
+              return {
+                ...offer,
+                companyName: user ? (offer.contactRevealed ? user.name : `شركة ${user.name.charAt(0)}****`) : null,
+                companyLogo: companyProfile?.logo || null,
+                companyVerified: companyProfile?.verified || false,
+                companyRating: companyProfile?.rating || null,
+              };
+            })
+          );
+          
+          return res.json(offersWithCompanyData);
+        } else if (user.role === 'company') {
+          // المستخدم شركة - يرى فقط عروضه على هذا المشروع
+          const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+          
+          if (!companyProfile) {
+            return res.status(403).json({ message: 'Company profile not found' });
+          }
+          
+          offers = offers.filter(offer => offer.companyId === companyProfile.id);
+          return res.json(offers);
+        }
+      }
+      
+      // المستخدم زائر أو غير مصرح له - يرى فقط إحصائيات العروض
+      return res.json({ 
+        count: offers.length,
+        minAmount: offers.length > 0 ? Math.min(...offers.map(o => parseInt(o.amount.replace(/[^0-9]/g, '')))) : null,
+        maxAmount: offers.length > 0 ? Math.max(...offers.map(o => parseInt(o.amount.replace(/[^0-9]/g, '')))) : null,
+      });
+      
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/projects/:projectId/offers', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'Only companies can submit offers' });
+      }
+      
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      if (!companyProfile) {
+        return res.status(403).json({ message: 'Company profile not found' });
+      }
+      
+      // تحقق مما إذا كانت الشركة قد قدمت عرضاً بالفعل
+      const existingOffers = await storage.getProjectOffersByProjectId(projectId);
+      const hasExistingOffer = existingOffers.some(offer => offer.companyId === companyProfile.id);
+      
+      if (hasExistingOffer) {
+        return res.status(400).json({ message: 'You have already submitted an offer for this project' });
+      }
+      
+      const offerData = insertProjectOfferSchema.parse({
+        ...req.body,
+        projectId,
+        companyId: companyProfile.id
+      });
+      
+      const offer = await storage.createProjectOffer(offerData);
+      res.status(201).json(offer);
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: error.errors });
+      }
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.patch('/api/offers/:id/accept', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const offerId = parseInt(req.params.id);
+      
+      // تحقق من أن العرض موجود
+      const offer = await storage.getProjectOffer(offerId);
+      if (!offer) {
+        return res.status(404).json({ message: 'Offer not found' });
+      }
+      
+      // تحقق من أن المشروع موجود
+      const project = await storage.getProject(offer.projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      // تحقق من أن مقدم الطلب هو صاحب المشروع
+      if (project.userId !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only the project owner can accept offers' });
+      }
+      
+      // حساب قيمة العربون (10% من قيمة العرض)
+      const amount = parseInt(offer.amount.replace(/[^0-9]/g, ''));
+      const depositAmount = Math.round(amount * 0.1).toString();
+      
+      // تحديث حالة العرض إلى 'accepted'
+      const updatedOffer = await storage.updateProjectOfferStatus(offerId, 'accepted');
+      
+      // إرجاع العرض المحدث مع معلومات الدفع المطلوبة
+      res.json({
+        ...updatedOffer,
+        depositAmount,
+        paymentRequired: true
+      });
+      
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  app.post('/api/offers/:id/pay-deposit', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const offerId = parseInt(req.params.id);
+      const { paymentId, depositAmount } = req.body;
+      
+      if (!paymentId || !depositAmount) {
+        return res.status(400).json({ message: 'Payment ID and deposit amount are required' });
+      }
+      
+      // تحقق من أن العرض موجود
+      const offer = await storage.getProjectOffer(offerId);
+      if (!offer) {
+        return res.status(404).json({ message: 'Offer not found' });
+      }
+      
+      // تحقق من أن المشروع موجود
+      const project = await storage.getProject(offer.projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      // تحقق من أن مقدم الطلب هو صاحب المشروع
+      if (project.userId !== user.id && user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only the project owner can pay deposits' });
+      }
+      
+      // تحقق من أن العرض مقبول ولم يتم دفع العربون بعد
+      if (offer.status !== 'accepted' || offer.depositPaid) {
+        return res.status(400).json({ message: 'Invalid offer status or deposit already paid' });
+      }
+      
+      // تحديث العرض لتسجيل دفع العربون
+      const updatedOffer = await storage.setProjectOfferDepositPaid(offerId, depositAmount);
+      
+      // كشف معلومات التواصل الخاصة بالشركة
+      const revealedOffer = await storage.setProjectOfferContactRevealed(offerId);
+      
+      // الحصول على معلومات الشركة وصاحب المشروع
+      const company = await storage.getCompanyProfile(offer.companyId);
+      const companyUser = company ? await storage.getUser(company.userId) : null;
+      const projectOwner = await storage.getUser(project.userId);
+      
+      // إنشاء رسالة إلى الشركة تحتوي على تفاصيل التواصل
+      if (companyUser && projectOwner) {
+        await storage.createMessage({
+          content: `تم قبول عرضك على مشروع "${project.title}" ودفع العربون. يمكنك التواصل مع ${projectOwner.name} عبر البريد الإلكتروني: ${projectOwner.email}`,
+          fromUserId: projectOwner.id,
+          toUserId: companyUser.id,
+          projectId: project.id
+        });
+      }
+      
+      // تحديث حالة المشروع إلى 'in-progress'
+      await storage.updateProject(project.id, { status: 'in-progress' });
+      
+      // إرجاع معلومات العرض المحدثة
+      res.json({
+        success: true,
+        offer: revealedOffer,
+        companyContact: companyUser ? {
+          name: companyUser.name,
+          email: companyUser.email
+        } : null
+      });
+      
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

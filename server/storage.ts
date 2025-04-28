@@ -255,6 +255,72 @@ export class MemStorage implements IStorage {
     return newTestimonial;
   }
   
+  // Project Offer operations
+  async getProjectOffer(id: number): Promise<ProjectOffer | undefined> {
+    return this.projectOffers.get(id);
+  }
+  
+  async getProjectOffersByProjectId(projectId: number): Promise<ProjectOffer[]> {
+    return Array.from(this.projectOffers.values()).filter(
+      (offer) => offer.projectId === projectId
+    );
+  }
+  
+  async getProjectOffersByCompanyId(companyId: number): Promise<ProjectOffer[]> {
+    return Array.from(this.projectOffers.values()).filter(
+      (offer) => offer.companyId === companyId
+    );
+  }
+  
+  async createProjectOffer(offer: InsertProjectOffer): Promise<ProjectOffer> {
+    const id = this.projectOfferIdCounter++;
+    const now = new Date();
+    const newOffer: ProjectOffer = { 
+      ...offer, 
+      id, 
+      status: 'pending',
+      depositPaid: false,
+      depositAmount: null,
+      depositDate: null,
+      contactRevealed: false,
+      createdAt: now 
+    };
+    this.projectOffers.set(id, newOffer);
+    return newOffer;
+  }
+  
+  async updateProjectOfferStatus(id: number, status: string): Promise<ProjectOffer | undefined> {
+    const offer = this.projectOffers.get(id);
+    if (!offer) return undefined;
+    
+    const updatedOffer = { ...offer, status };
+    this.projectOffers.set(id, updatedOffer);
+    return updatedOffer;
+  }
+  
+  async setProjectOfferDepositPaid(id: number, depositAmount: string): Promise<ProjectOffer | undefined> {
+    const offer = this.projectOffers.get(id);
+    if (!offer) return undefined;
+    
+    const updatedOffer = { 
+      ...offer, 
+      depositPaid: true,
+      depositAmount,
+      depositDate: new Date()
+    };
+    this.projectOffers.set(id, updatedOffer);
+    return updatedOffer;
+  }
+  
+  async setProjectOfferContactRevealed(id: number): Promise<ProjectOffer | undefined> {
+    const offer = this.projectOffers.get(id);
+    if (!offer) return undefined;
+    
+    const updatedOffer = { ...offer, contactRevealed: true };
+    this.projectOffers.set(id, updatedOffer);
+    return updatedOffer;
+  }
+  
   // Seed initial data
   private seedData() {
     // إضافة مستخدم مسؤول (admin)
@@ -657,6 +723,68 @@ export class DatabaseStorage implements IStorage {
       .values(testimonial)
       .returning();
     return insertedTestimonial;
+  }
+  
+  // Project Offer operations
+  async getProjectOffer(id: number): Promise<ProjectOffer | undefined> {
+    const offers = await db.query.projectOffers.findMany({
+      where: eq(schema.projectOffers.id, id),
+      limit: 1
+    });
+    return offers.length > 0 ? offers[0] : undefined;
+  }
+  
+  async getProjectOffersByProjectId(projectId: number): Promise<ProjectOffer[]> {
+    return await db.query.projectOffers.findMany({
+      where: eq(schema.projectOffers.projectId, projectId)
+    });
+  }
+  
+  async getProjectOffersByCompanyId(companyId: number): Promise<ProjectOffer[]> {
+    return await db.query.projectOffers.findMany({
+      where: eq(schema.projectOffers.companyId, companyId)
+    });
+  }
+  
+  async createProjectOffer(offer: InsertProjectOffer): Promise<ProjectOffer> {
+    const [insertedOffer] = await db.insert(schema.projectOffers)
+      .values({
+        ...offer,
+        status: 'pending',
+        depositPaid: false,
+        contactRevealed: false
+      })
+      .returning();
+    return insertedOffer;
+  }
+  
+  async updateProjectOfferStatus(id: number, status: string): Promise<ProjectOffer | undefined> {
+    const [updatedOffer] = await db.update(schema.projectOffers)
+      .set({ status })
+      .where(eq(schema.projectOffers.id, id))
+      .returning();
+    return updatedOffer;
+  }
+  
+  async setProjectOfferDepositPaid(id: number, depositAmount: string): Promise<ProjectOffer | undefined> {
+    const now = new Date();
+    const [updatedOffer] = await db.update(schema.projectOffers)
+      .set({ 
+        depositPaid: true, 
+        depositAmount,
+        depositDate: now
+      })
+      .where(eq(schema.projectOffers.id, id))
+      .returning();
+    return updatedOffer;
+  }
+  
+  async setProjectOfferContactRevealed(id: number): Promise<ProjectOffer | undefined> {
+    const [updatedOffer] = await db.update(schema.projectOffers)
+      .set({ contactRevealed: true })
+      .where(eq(schema.projectOffers.id, id))
+      .returning();
+    return updatedOffer;
   }
 }
 
