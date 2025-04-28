@@ -93,6 +93,7 @@ const projectSchema = z.object({
   budget: z.string().min(1, "الميزانية المتوقعة مطلوبة"),
   duration: z.string().min(1, "المدة المتوقعة مطلوبة"),
   skills: z.string().min(1, "المهارات المطلوبة مطلوبة"),
+  status: z.string().optional(),
 });
 
 type ProjectFormValues = z.infer<typeof projectSchema>;
@@ -102,7 +103,10 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editProjectId, setEditProjectId] = useState<number | null>(null);
   const [projectAttachments, setProjectAttachments] = useState<UploadedFile[]>([]);
+  const [editProjectAttachments, setEditProjectAttachments] = useState<UploadedFile[]>([]);
 
   // Check URL query parameters for actions (create or edit project)
   useEffect(() => {
@@ -117,22 +121,15 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
     } 
     else if (action === "edit" && urlParams.get("projectId")) {
       // Handle project editing
-      const projectId = urlParams.get("projectId");
-      setActiveTab("projects");
-      // This is where we'll need to initiate project editing
-      // We'll implement this in the next step
-      console.log("Edit project with ID:", projectId);
-      
-      // For now, navigate to projects tab
-      navigate("/dashboard/entrepreneur?tab=projects", { replace: true });
-      
-      // Show a toast notification about editing feature
-      toast({
-        title: "تحرير المشروع",
-        description: `جاري العمل على ميزة تحرير المشروع رقم ${projectId}. ستكون متاحة قريباً.`,
-      });
+      const projectId = parseInt(urlParams.get("projectId") || "0");
+      if (projectId > 0) {
+        setActiveTab("projects");
+        setEditProjectId(projectId);
+        setIsEditDialogOpen(true);
+        console.log("Edit project with ID:", projectId);
+      }
     }
-  }, [navigate, toast]);
+  }, [navigate]);
 
   // Fetch projects for this entrepreneur
   const {
