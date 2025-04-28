@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { Helmet } from "react-helmet";
@@ -8,6 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
 import { RecommendedCompanies, SimilarProjects } from "@/components/recommendations";
+import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
+import { OffersList } from "@/components/offers/OffersList";
 import { useAuth } from "@/App";
 import { 
   Calendar, 
@@ -16,7 +18,8 @@ import {
   ArrowLeft, 
   MessageSquare,
   AlertCircle,
-  Settings
+  Settings,
+  Plus
 } from "lucide-react";
 
 import { UploadedFile } from "@/components/ui/dropzone-uploader";
@@ -301,9 +304,49 @@ const ProjectDetails = () => {
           </div>
         )}
 
+        {/* Project Offers Section */}
+        {project && (
+          <div className="mt-10 mb-10">
+            {/* Show offers only if project is open */}
+            {project.status === "open" && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
+                <div className="p-6 md:p-8">
+                  <h2 className="text-2xl font-bold font-heading mb-6">عروض الشركات</h2>
+                  
+                  {/* For companies: Show the form to submit a new offer */}
+                  {auth.isAuthenticated && auth.user?.role === "company" && auth.user?.id !== project.userId && (
+                    <div className="mb-8">
+                      <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-semibold">قدم عرضك على هذا المشروع</h3>
+                      </div>
+                      
+                      <CreateOfferForm projectId={project.id} />
+                    </div>
+                  )}
+                  
+                  {/* Display offers list */}
+                  <div className="mt-8">
+                    <OffersList 
+                      projectId={project.id} 
+                      isOwner={auth.isAuthenticated && (auth.user?.id === project.userId || auth.user?.role === "admin")}
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {project.status !== "open" && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden p-6 md:p-8 text-center">
+                <h2 className="text-xl font-semibold text-neutral-700 mb-3">هذا المشروع مغلق للعروض الجديدة</h2>
+                <p className="text-neutral-600">تم إغلاق هذا المشروع أو تعيينه إلى إحدى الشركات بالفعل.</p>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Recommendations */}
         {project && (
-          <div className="mt-10 space-y-12">
+          <div className="space-y-12">
             {/* Recommended Companies */}
             <div className="mb-10">
               <RecommendedCompanies projectId={project.id} limit={3} />
