@@ -6,7 +6,8 @@ import {
   insertCompanyProfileSchema, 
   insertProjectSchema, 
   insertMessageSchema,
-  insertTestimonialSchema 
+  insertTestimonialSchema,
+  insertProjectOfferSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
