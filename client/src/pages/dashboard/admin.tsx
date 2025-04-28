@@ -497,14 +497,7 @@ export default function AdminDashboard() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
-                                // تنفيذ إجراء التحقق/إلغاء التحقق
-                                toast({
-                                  title: `تم ${company.verified ? "إلغاء توثيق" : "توثيق"} الشركة`,
-                                  description: `تم ${company.verified ? "إلغاء توثيق" : "توثيق"} شركة ${company.name} بنجاح`,
-                                });
-                                refetchCompanies();
-                              }}
+                              onClick={() => handleToggleCompanyVerification(company.id, company.verified)}
                             >
                               {company.verified ? (
                                 <XCircle className="h-4 w-4 text-red-600" />
