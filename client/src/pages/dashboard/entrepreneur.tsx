@@ -460,10 +460,18 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                       <div className="space-y-2">
                         <FormLabel>المرفقات (اختياري)</FormLabel>
                         <DropzoneUploader 
-                          value={projectAttachments}
                           onChange={handleAttachmentsChange}
+                          onFilesChange={handleAttachmentsChange}
+                          initialFiles={projectAttachments}
                           maxFiles={5}
-                          acceptedFileTypes={['image/*', 'application/pdf', '.doc', '.docx', '.xls', '.xlsx']}
+                          acceptedFileTypes={{
+                            'image/jpeg': ['.jpg', '.jpeg'],
+                            'image/png': ['.png'],
+                            'image/gif': ['.gif'],
+                            'application/pdf': ['.pdf'],
+                            'application/msword': ['.doc', '.docx'],
+                            'application/vnd.ms-excel': ['.xls', '.xlsx'],
+                          }}
                         />
                         <p className="text-xs text-neutral-500">
                           يمكنك إرفاق صور توضيحية أو مستندات لتوضيح متطلبات المشروع بشكل أفضل.
