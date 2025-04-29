@@ -60,10 +60,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     if (!auth.isAuthenticated || !auth.user?.id) return;
     
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    let isConnecting = false;
+
     const connectWebSocket = () => {
+      // تجنب محاولات الاتصال المتزامنة
+      if (isConnecting) return;
+      isConnecting = true;
+
       // تنظيف الاتصال السابق إذا وجد
-      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.close();
+      if (wsRef.current) {
+        try {
+          // إغلاق الاتصال القديم بغض النظر عن حالته
+          wsRef.current.close();
+          wsRef.current = null;
+        } catch (e) {
+          console.log('خطأ عند إغلاق الاتصال القديم:', e);
+        }
       }
       
       try {
@@ -75,8 +87,18 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         const ws = new WebSocket(wsUrl);
         wsRef.current = ws;
         
+        // تحديد مهلة زمنية للاتصال
+        const connectionTimeout = setTimeout(() => {
+          if (ws.readyState !== WebSocket.OPEN) {
+            console.log('انتهت مهلة الاتصال بـ WebSocket');
+            ws.close();
+          }
+        }, 5000);
+        
         // مراقبة الأحداث
         ws.onopen = () => {
+          clearTimeout(connectionTimeout);
+          isConnecting = false;
           console.log('تم فتح اتصال WebSocket بنجاح');
           setWsConnected(true);
           setWsError(false);
@@ -84,27 +106,39 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           
           // إرسال رسالة المصادقة
           if (ws.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
-              type: 'auth',
-              userId: auth.user.id
-            }));
-            
-            console.log('تم إرسال بيانات المصادقة للمستخدم:', auth.user.id);
+            try {
+              ws.send(JSON.stringify({
+                type: 'auth',
+                userId: auth.user.id
+              }));
+              console.log('تم إرسال بيانات المصادقة للمستخدم:', auth.user.id);
+            } catch (e) {
+              console.error('خطأ عند إرسال بيانات المصادقة:', e);
+            }
           }
         };
         
         ws.onclose = (event) => {
+          clearTimeout(connectionTimeout);
+          isConnecting = false;
           console.log('انقطع اتصال WebSocket. كود:', event.code, 'سبب:', event.reason);
           setWsConnected(false);
           
-          // محاولة إعادة الاتصال إذا لم نتجاوز الحد الأقصى
-          if (wsReconnectAttempts < maxReconnectAttempts) {
-            console.log(`محاولة إعادة الاتصال (${wsReconnectAttempts + 1}/${maxReconnectAttempts}) بعد ${reconnectInterval}ms`);
+          // فحص الكود والحالة قبل محاولة إعادة الاتصال
+          const shouldRetry = [1000, 1001, 1006, 1011, 1012, 1013].includes(event.code);
+          
+          // محاولة إعادة الاتصال إذا لم نتجاوز الحد الأقصى وكان الكود قابل للإعادة
+          if (wsReconnectAttempts < maxReconnectAttempts && shouldRetry) {
+            // زيادة وقت الانتظار مع كل محاولة فاشلة
+            const delay = reconnectInterval * (Math.pow(1.5, wsReconnectAttempts));
+            console.log(`محاولة إعادة الاتصال (${wsReconnectAttempts + 1}/${maxReconnectAttempts}) بعد ${delay}ms`);
+            
             reconnectTimer = setTimeout(() => {
               setWsReconnectAttempts(prev => prev + 1);
               connectWebSocket();
-            }, reconnectInterval);
+            }, delay);
           } else {
+            // عند فشل إعادة الاتصال، نستخدم آلية الاسترجاع المؤقت
             console.log('تم الوصول للحد الأقصى من محاولات إعادة الاتصال. استخدام آلية الاسترجاع المؤقت.');
             setWsError(true);
           }
