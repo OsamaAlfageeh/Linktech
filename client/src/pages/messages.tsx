@@ -113,11 +113,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               queryKey: ['/api/messages/conversation', selectedConversation] 
             });
             
-            // أضف الرسالة إلى المحادثة المحلية مباشرة
-            const updatedMessages = [...localMessages, data.message];
-            setLocalMessages(updatedMessages);
-            // حفظ الرسائل في التخزين المحلي
-            localStorage.setItem('localMessages', JSON.stringify(updatedMessages));
+            // أضف الرسالة إلى المحادثة المحلية مؤقتاً حتى تظهر من قاعدة البيانات
+            setLocalMessages(prev => [...prev, data.message]);
             
             // عرض إشعار صغير
             toast({
@@ -160,6 +157,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   
   // حالة محلية لتخزين الرسائل المؤقتة قبل ظهورها في قاعدة البيانات
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  
+  // تنظيف الرسائل المحلية عند تغيير المحادثة
+  useEffect(() => {
+    setLocalMessages([]);
+  }, [selectedConversation]);
   
   // إرسال رسالة جديدة
   const sendMessageMutation = useMutation({
