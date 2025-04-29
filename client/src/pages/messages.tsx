@@ -49,90 +49,139 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [wsConnected, setWsConnected] = useState(false);
   const [wsError, setWsError] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
-  
-  // إنشاء اتصال WebSocket
+  const [sentWelcomeMessage, setSentWelcomeMessage] = useState(false);
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [wsReconnectAttempts, setWsReconnectAttempts] = useState(0);
+  const maxReconnectAttempts = 5;
+  const reconnectInterval = 3000; // 3 ثوانٍ
+
+  // آلية الاتصال بـ WebSocket مع إعادة المحاولة
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.user?.id) return;
     
-    // تنظيف الاتصال السابق إذا وجد
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    
-    // تكوين WebSocket
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    
-    // مراقبة الأحداث
-    ws.onopen = () => {
-      console.log('اتصال WebSocket مفتوح');
-      setWsConnected(true);
-      setWsError(false);
+    let reconnectTimer: ReturnType<typeof setTimeout>;
+    const connectWebSocket = () => {
+      // تنظيف الاتصال السابق إذا وجد
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+        wsRef.current.close();
+      }
       
-      // إرسال رسالة المصادقة
-      ws.send(JSON.stringify({
-        type: 'auth',
-        userId: auth.user.id
-      }));
-    };
-    
-    ws.onclose = () => {
-      console.log('انقطع اتصال WebSocket');
-      setWsConnected(false);
-    };
-    
-    ws.onerror = (error) => {
-      console.error('خطأ في اتصال WebSocket:', error);
-      setWsError(true);
-      setWsConnected(false);
-    };
-    
-    ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data);
-        console.log('رسالة WebSocket جديدة:', data);
+        // تكوين WebSocket
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/ws`;
         
-        // إذا كانت رسالة جديدة
-        if (data.type === 'new_message') {
-          // تحديث المحادثات
-          queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+        console.log('محاولة الاتصال بـ WebSocket:', wsUrl);
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+        
+        // مراقبة الأحداث
+        ws.onopen = () => {
+          console.log('تم فتح اتصال WebSocket بنجاح');
+          setWsConnected(true);
+          setWsError(false);
+          setWsReconnectAttempts(0);
           
-          // إذا كان المستخدم يعرض نفس المحادثة، قم بتحديثها
-          if (selectedConversation === data.message.fromUserId) {
-            queryClient.invalidateQueries({ 
-              queryKey: ['/api/messages/conversation', selectedConversation] 
-            });
+          // إرسال رسالة المصادقة
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({
+              type: 'auth',
+              userId: auth.user.id
+            }));
             
-            // أضف الرسالة إلى المحادثة المحلية مؤقتاً حتى تظهر من قاعدة البيانات
-            setLocalMessages(prev => [...prev, data.message]);
-            
-            // عرض إشعار صغير
-            toast({
-              title: 'رسالة جديدة',
-              description: `${data.message.fromUser?.name || 'مستخدم'}: ${data.message.content}`,
-            });
+            console.log('تم إرسال بيانات المصادقة للمستخدم:', auth.user.id);
           }
-        }
+        };
         
-        // إذا كانت رسالة مرسلة بنجاح
-        if (data.type === 'message_sent') {
-          // تحديث المحادثات
-          queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-        }
+        ws.onclose = (event) => {
+          console.log('انقطع اتصال WebSocket. كود:', event.code, 'سبب:', event.reason);
+          setWsConnected(false);
+          
+          // محاولة إعادة الاتصال إذا لم نتجاوز الحد الأقصى
+          if (wsReconnectAttempts < maxReconnectAttempts) {
+            console.log(`محاولة إعادة الاتصال (${wsReconnectAttempts + 1}/${maxReconnectAttempts}) بعد ${reconnectInterval}ms`);
+            reconnectTimer = setTimeout(() => {
+              setWsReconnectAttempts(prev => prev + 1);
+              connectWebSocket();
+            }, reconnectInterval);
+          } else {
+            console.log('تم الوصول للحد الأقصى من محاولات إعادة الاتصال. استخدام آلية الاسترجاع المؤقت.');
+            setWsError(true);
+          }
+        };
+        
+        ws.onerror = (error) => {
+          console.error('خطأ في اتصال WebSocket:', error);
+          // لا نضبط الحالة هنا لأن onclose سيتم استدعاؤه تلقائياً
+        };
+        
+        ws.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            console.log('رسالة WebSocket جديدة:', data);
+            
+            // إذا كانت رسالة جديدة
+            if (data.type === 'new_message') {
+              // تحديث المحادثات
+              queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+              
+              // إذا كان المستخدم يعرض نفس المحادثة، قم بتحديثها
+              if (selectedConversation === data.message.fromUserId) {
+                queryClient.invalidateQueries({ 
+                  queryKey: ['/api/messages/conversation', selectedConversation] 
+                });
+                
+                // أضف الرسالة إلى المحادثة المحلية مؤقتاً
+                setLocalMessages(prev => [...prev, data.message]);
+                
+                // عرض إشعار
+                toast({
+                  title: 'رسالة جديدة',
+                  description: `${data.message.fromUser?.name || 'مستخدم'}: ${data.message.content}`,
+                });
+              } else {
+                // إذا كان المستخدم يعرض محادثة أخرى، أظهر إشعار فقط
+                toast({
+                  title: 'رسالة جديدة',
+                  description: `${data.message.fromUser?.name || 'مستخدم'} أرسل لك رسالة`,
+                  variant: "default"
+                });
+              }
+            }
+            
+            // إذا كانت رسالة مرسلة بنجاح
+            if (data.type === 'message_sent' || data.type === 'message_ack') {
+              // تحديث المحادثات
+              queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+              
+              if (selectedConversation) {
+                queryClient.invalidateQueries({ 
+                  queryKey: ['/api/messages/conversation', selectedConversation] 
+                });
+              }
+            }
+          } catch (error) {
+            console.error('خطأ في معالجة رسالة WebSocket:', error);
+          }
+        };
       } catch (error) {
-        console.error('خطأ في معالجة رسالة WebSocket:', error);
+        console.error('خطأ أثناء إنشاء اتصال WebSocket:', error);
+        setWsError(true);
+        setWsConnected(false);
       }
     };
     
+    // بدء الاتصال
+    connectWebSocket();
+    
+    // تنظيف عند إلغاء التحميل
     return () => {
+      clearTimeout(reconnectTimer);
       if (wsRef.current) {
         wsRef.current.close();
       }
     };
-  }, [auth.isAuthenticated, auth.user?.id, queryClient, selectedConversation, toast]);
+  }, [auth.isAuthenticated, auth.user?.id, wsReconnectAttempts]);
   
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading } = useQuery({
@@ -164,8 +213,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
   });
   
-  // حالة محلية لتخزين الرسائل المؤقتة قبل ظهورها في قاعدة البيانات
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  // تم نقل هذا إلى الأعلى
   
   // تنظيف الرسائل المحلية عند تغيير المحادثة
   useEffect(() => {
@@ -267,8 +315,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     }
   }, []);
   
-  // متغير للتأكد من إرسال رسالة واحدة فقط عند بدء محادثة جديدة
-  const [sentWelcomeMessage, setSentWelcomeMessage] = useState(false);
+  // تم نقل هذا المتغير إلى الأعلى مع باقي المتغيرات
   
   // إرسال رسالة ترحيبية مرة واحدة فقط عند وجود معرف المستخدم ومعرف المشروع في URL
   useEffect(() => {
