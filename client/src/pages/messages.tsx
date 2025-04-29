@@ -501,43 +501,71 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         </div>
       )}
       
-      <div className="flex flex-col md:flex-row h-[80vh] gap-4">
-        {/* قائمة المحادثات */}
-        <Card className="md:w-1/3 h-full overflow-hidden flex flex-col">
-          <CardHeader className="pb-3">
+      {/* وضع التنقل للأجهزة الصغيرة فقط */}
+      <div className="md:hidden flex justify-center mb-4 gap-2">
+        <Button
+          variant={!selectedConversation ? "default" : "outline"}
+          className="w-1/2"
+          onClick={() => setSelectedConversation(null)}
+        >
+          جميع المحادثات
+        </Button>
+        <Button
+          variant={selectedConversation ? "default" : "outline"}
+          className="w-1/2"
+          disabled={!selectedConversation}
+        >
+          المحادثة الحالية
+        </Button>
+      </div>
+
+      <div className="flex flex-col md:flex-row h-[75vh] sm:h-[80vh] gap-4">
+        {/* قائمة المحادثات - تظهر دائماً في الشاشات الكبيرة، وتختفي في الشاشات الصغيرة عند اختيار محادثة */}
+        <Card className={`md:w-1/3 h-full overflow-hidden flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+          <CardHeader className="pb-2 md:pb-3">
             <div className="flex justify-between items-center">
-              <CardTitle>المحادثات</CardTitle>
+              <CardTitle className="text-lg md:text-xl">المحادثات</CardTitle>
+              <div className="md:hidden">
+                <span className="text-xs text-muted-foreground">{conversations.length} محادثة</span>
+              </div>
             </div>
             <div className="mt-2">
               <Input 
                 placeholder="بحث في المحادثات..." 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="text-sm md:text-base"
               />
             </div>
           </CardHeader>
-          <CardContent className="flex-grow overflow-y-auto space-y-2 p-3">
+          <CardContent className="flex-grow overflow-y-auto space-y-1 md:space-y-2 p-2 md:p-3">
             {conversations.length > 0 ? (
-              conversations.map((conv) => (
+              conversations
+                .filter(conv => 
+                  searchTerm === "" || 
+                  conv.otherUserName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+                )
+                .map((conv) => (
                 <div 
                   key={conv.otherUserId}
-                  className={`p-3 rounded-lg cursor-pointer hover:bg-accent ${selectedConversation === conv.otherUserId ? 'bg-accent' : ''}`}
+                  className={`p-2 md:p-3 rounded-lg cursor-pointer hover:bg-accent transition-colors ${selectedConversation === conv.otherUserId ? 'bg-accent' : 'bg-card'}`}
                   onClick={() => setSelectedConversation(conv.otherUserId)}
                 >
-                  <div className="flex items-start gap-3">
-                    <Avatar className="h-10 w-10">
+                  <div className="flex items-start gap-2 md:gap-3">
+                    <Avatar className="h-8 w-8 md:h-10 md:w-10">
                       <AvatarImage src={conv.otherUserAvatar || undefined} alt={conv.otherUserName} />
                       <AvatarFallback>{getInitials(conv.otherUserName)}</AvatarFallback>
                     </Avatar>
                     <div className="flex-grow min-w-0">
                       <div className="flex justify-between items-center">
-                        <p className="font-medium truncate">{conv.otherUserName}</p>
+                        <p className="font-medium truncate text-sm md:text-base">{conv.otherUserName}</p>
                         <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(new Date(conv.lastMessageTime))}</span>
                       </div>
-                      <p className="text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
                     </div>
                     {conv.unreadCount > 0 && (
-                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
+                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
                         <span className="text-xs text-white font-semibold">{conv.unreadCount}</span>
                       </div>
                     )}
@@ -546,8 +574,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               ))
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                <p className="text-muted-foreground mb-4">ليس لديك أي محادثات حالية</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-muted-foreground mb-2 md:mb-4 text-sm md:text-base">ليس لديك أي محادثات حالية</p>
+                <p className="text-xs md:text-sm text-muted-foreground">
                   يمكنك بدء محادثة من صفحة تفاصيل أي مشروع تهتم به
                 </p>
               </div>
@@ -555,20 +583,32 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           </CardContent>
         </Card>
 
-        {/* منطقة المحادثة */}
-        <Card className="md:w-2/3 h-full overflow-hidden flex flex-col">
+        {/* منطقة المحادثة - تظهر دائماً في الشاشات الكبيرة، وتظهر فقط عند اختيار محادثة في الشاشات الصغيرة */}
+        <Card className={`md:w-2/3 h-full overflow-hidden flex flex-col ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           {selectedConversation ? (
             <>
-              <CardHeader className="pb-3 border-b">
-                <div className="flex items-center gap-3">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={conversations.find(c => c.otherUserId === selectedConversation)?.otherUserAvatar || undefined} />
+              <CardHeader className="pb-2 md:pb-3 border-b">
+                <div className="flex items-center gap-2 md:gap-3">
+                  {/* زر الرجوع للمحادثات في الأجهزة الصغيرة */}
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    className="md:hidden" 
+                    onClick={() => setSelectedConversation(null)}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="m15 18-6-6 6-6"/>
+                    </svg>
+                  </Button>
+
+                  <Avatar className="h-8 w-8 md:h-10 md:w-10">
+                    <AvatarImage src={conversations.find(c => c.otherUserId === selectedConversation)?.otherUserAvatar || undefined} alt="صورة المستخدم" />
                     <AvatarFallback>
                       {getInitials(conversations.find(c => c.otherUserId === selectedConversation)?.otherUserName || "مستخدم")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-grow">
-                    <CardTitle className="text-lg">
+                    <CardTitle className="text-base md:text-lg truncate">
                       {conversations.find(c => c.otherUserId === selectedConversation)?.otherUserName || "مستخدم"}
                     </CardTitle>
                   </div>
@@ -578,17 +618,17 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                     {wsConnected ? (
                       <>
                         <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                        <span>متصل</span>
+                        <span className="hidden md:inline">متصل</span>
                       </>
                     ) : wsError ? (
                       <>
                         <AlertTriangle className="h-3 w-3 text-amber-500" />
-                        <span>غير متصل</span>
+                        <span className="hidden md:inline">غير متصل</span>
                       </>
                     ) : (
                       <>
-                        <div className="h-2 w-2 rounded-full bg-amber-500"></div>
-                        <span>جاري الاتصال...</span>
+                        <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></div>
+                        <span className="hidden md:inline">جاري الاتصال...</span>
                       </>
                     )}
                   </div>
@@ -596,7 +636,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               </CardHeader>
               
               <CardContent 
-                className="flex-grow overflow-y-auto p-4 space-y-4"
+                className="flex-grow overflow-y-auto p-2 md:p-4 space-y-2 md:space-y-4"
                 ref={(el) => {
                   // التمرير إلى آخر الرسائل
                   if (el && !conversationLoading && 
@@ -616,7 +656,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 />
               </CardContent>
               
-              <div className="p-3 border-t">
+              <div className="p-2 md:p-3 border-t">
                 <form 
                   className="flex gap-2" 
                   onSubmit={(e) => {
@@ -626,7 +666,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 >
                   <Textarea 
                     placeholder="اكتب رسالتك هنا..."
-                    className="min-h-[60px]"
+                    className="min-h-[50px] md:min-h-[60px] text-sm md:text-base"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
                     onKeyDown={(e) => {
@@ -642,10 +682,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   <Button 
                     type="submit"
                     className="shrink-0"
+                    size="sm"
                     disabled={!newMessage.trim()}
                   >
-                    <Send className="h-4 w-4 ml-2" />
-                    إرسال
+                    <Send className="h-4 w-4 md:ml-2" />
+                    <span className="hidden md:inline">إرسال</span>
                   </Button>
                 </form>
               </div>
@@ -653,10 +694,10 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-4">
               <div className="mb-4">
-                <Send className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
+                <Send className="h-10 w-10 md:h-12 md:w-12 mx-auto text-muted-foreground opacity-20" />
               </div>
-              <h3 className="text-xl font-medium mb-2">اختر محادثة</h3>
-              <p className="text-muted-foreground">
+              <h3 className="text-lg md:text-xl font-medium mb-2">اختر محادثة</h3>
+              <p className="text-sm md:text-base text-muted-foreground">
                 اختر محادثة من القائمة لعرض الرسائل
               </p>
             </div>
