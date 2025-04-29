@@ -20,6 +20,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";
+import { WebSocketServer, WebSocket } from "ws";
 
 const SessionStore = MemoryStore(session);
 

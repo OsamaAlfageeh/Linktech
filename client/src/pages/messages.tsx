@@ -68,6 +68,9 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     refetchInterval: 5000, // إعادة جلب بيانات المحادثة الحالية كل 5 ثوانٍ
   });
   
+  // حالة محلية لتخزين الرسائل غير المحفوظة
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  
   // إرسال رسالة جديدة
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string; toUserId: number; projectId: number | null }) => {
@@ -75,20 +78,26 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       return await response.json();
     },
     onSuccess: (newMessage) => {
+      console.log("رسالة جديدة تم إرسالها:", newMessage);
+      
       // تفريغ حقل الرسالة
       setNewMessage('');
+      
+      // إضافة الرسالة الجديدة إلى الرسائل المحلية
+      const tempMessage: Message = {
+        ...newMessage,
+        // إضافة معلومات المستخدم المرسل (أنت)
+        fromUser: {
+          name: auth.user.name || auth.user.username,
+          avatar: auth.user.avatar
+        }
+      };
+      
+      setLocalMessages(prev => [...prev, tempMessage]);
       
       // تحديث قائمة المحادثات والمحادثة الحالية
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
-      
-      // إضافة الرسالة الجديدة للمحادثة مباشرة لتجنب الانتظار لإعادة الجلب
-      if (conversationData && Array.isArray(conversationData)) {
-        queryClient.setQueryData(
-          ['/api/messages/conversation', selectedConversation],
-          [...conversationData, newMessage]
-        );
-      }
       
       toast({
         title: "تم إرسال الرسالة",
@@ -345,19 +354,26 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 className="flex-grow overflow-y-auto p-4 space-y-4"
                 ref={(el) => {
                   // التمرير إلى آخر الرسائل
-                  if (el && !conversationLoading && conversationData?.length) {
+                  if (el && !conversationLoading && 
+                      (conversationData?.length || localMessages.length)) {
                     setTimeout(() => {
                       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
                     }, 100);
                   }
                 }}
               >
-                {conversationLoading ? (
+                {conversationLoading && !(conversationData?.length || localMessages.length) ? (
                   <div className="h-full flex justify-center items-center">
                     <Loader2 className="w-8 h-8 animate-spin" />
                   </div>
                 ) : (
-                  (conversationData as Message[] || []).map((message: Message) => (
+                  // دمج الرسائل من الخادم مع الرسائل المحلية المؤقتة
+                  [...(conversationData as Message[] || []), 
+                   ...localMessages.filter(msg => 
+                     msg.toUserId === selectedConversation || 
+                     msg.fromUserId === selectedConversation
+                   )
+                  ].map((message: Message) => (
                     <div 
                       key={message.id}
                       className={`flex ${message.fromUserId === auth.user.id ? 'justify-end' : 'justify-start'}`}
