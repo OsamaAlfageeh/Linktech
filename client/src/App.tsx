@@ -35,16 +35,28 @@ export type User = {
   avatar?: string;
 };
 
-// Auth context - simplified for this implementation
-export const useAuth = () => {
+export interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isCompany: boolean;
+  isEntrepreneur: boolean;
+  isAdmin: boolean;
+  logout: () => void;
+  login: (userData: User) => void;
+}
+
+// Auth context
+export const useAuth = (): AuthContextType => {
   const [user, setUser] = useState<User | null>(null);
   const [location, navigate] = useLocation();
   
   // Check if user is logged in
-  const { data } = useQuery<{user: User}>({
+  const { data, isLoading } = useQuery<{user: User}>({
     queryKey: ['/api/auth/user'],
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
   
   // Update user when data changes
@@ -58,9 +70,14 @@ export const useAuth = () => {
   // Logout mutation
   const logoutMutation = useMutation({
     mutationFn: async () => {
-      await apiRequest("POST", "/api/auth/logout", {});
+      const response = await apiRequest("POST", "/api/auth/logout", {});
+      if (!response.ok) {
+        throw new Error("Failed to logout");
+      }
+      return true;
     },
     onSuccess: () => {
+      console.log("تم تسجيل الخروج بنجاح");
       queryClient.invalidateQueries({queryKey: ['/api/auth/user']});
       setUser(null);
       navigate("/");
@@ -72,6 +89,7 @@ export const useAuth = () => {
     isAuthenticated: !!user,
     isCompany: user?.role === "company",
     isEntrepreneur: user?.role === "entrepreneur",
+    isAdmin: user?.role === "admin",
     logout: () => logoutMutation.mutate(),
     login: (userData: User) => setUser(userData),
   };

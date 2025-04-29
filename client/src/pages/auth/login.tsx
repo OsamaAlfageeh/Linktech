@@ -54,37 +54,64 @@ const Login = ({ auth }: LoginProps) => {
 
   const loginMutation = useMutation({
     mutationFn: async (data: LoginFormValues) => {
-      const response = await apiRequest("POST", "/api/auth/login", data);
-      return response.json();
+      try {
+        console.log("محاولة تسجيل الدخول للمستخدم:", data.username);
+        const response = await apiRequest("POST", "/api/auth/login", data);
+        
+        if (!response.ok) {
+          // للتعامل مع أخطاء HTTP بشكل صحيح
+          const errorData = await response.json();
+          throw new Error(errorData.message || "فشل تسجيل الدخول");
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error("خطأ أثناء تسجيل الدخول:", error);
+        throw error;
+      }
     },
     onSuccess: (responseData) => {
       console.log("تسجيل دخول ناجح، البيانات المستلمة:", responseData);
-      setData(responseData); // تخزين بيانات الاستجابة
-      auth.login(responseData.user);
+      
+      // التأكد من أن البيانات المستلمة تحتوي على معلومات المستخدم
+      const userData = responseData.user || responseData;
+      setData(responseData);
+      
+      // تحديث حالة تسجيل الدخول
+      auth.login(userData);
       
       // عرض رسالة نجاح
       toast({
         title: "تم تسجيل الدخول بنجاح",
-        description: `مرحباً بعودتك، ${responseData.user.name}!`,
+        description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
       });
       
-      // توجيه مباشر بسيط
+      // توجيه المستخدم حسب دوره
       setTimeout(() => {
-        console.log("توجيه مباشر للمستخدم...");
-        if (responseData.user.role === "admin") {
-          console.log("توجيه مباشر إلى لوحة المسؤول");
-          window.location.replace("/admin");
-        } else if (responseData.user.role === "entrepreneur") {
-          console.log("توجيه مباشر إلى لوحة رائد الأعمال");
-          window.location.replace("/dashboard/entrepreneur");
+        const role = userData.role;
+        console.log("توجيه المستخدم بدور:", role);
+        
+        if (role === "admin") {
+          navigate("/admin");
+        } else if (role === "entrepreneur") {
+          navigate("/dashboard/entrepreneur");
+        } else if (role === "company") {
+          navigate("/dashboard/company");
         } else {
-          console.log("توجيه مباشر إلى لوحة الشركة");
-          window.location.replace("/dashboard/company");
+          // إذا لم يكن للمستخدم دور محدد، توجيهه إلى الصفحة الرئيسية
+          navigate("/");
         }
       }, 800);
     },
     onError: (error: any) => {
-      setServerError("اسم المستخدم أو كلمة المرور غير صحيحة.");
+      console.error("خطأ تسجيل الدخول:", error);
+      setServerError("اسم المستخدم أو كلمة المرور غير صحيحة. الرجاء المحاولة مرة أخرى.");
+      
+      toast({
+        title: "فشل تسجيل الدخول",
+        description: "تعذر تسجيل الدخول بالبيانات المدخلة. الرجاء التحقق والمحاولة مرة أخرى.",
+        variant: "destructive"
+      });
     },
   });
 
@@ -126,6 +153,14 @@ const Login = ({ auth }: LoginProps) => {
           <div className="mt-2 mb-3 px-3 py-2 bg-blue-50 rounded-lg border border-blue-100">
             <p className="text-sm text-blue-700 mb-1 font-medium">معلومات هامة:</p>
             <p className="text-xs text-blue-600 mb-2">سيتم توجيهك تلقائياً حسب نوع حسابك بعد تسجيل الدخول</p>
+            <div className="mt-2 text-xs text-blue-700">
+              <p className="mb-1">بيانات الدخول للاختبار:</p>
+              <ul className="list-disc list-inside space-y-1">
+                <li>مسؤول: admin / admin123</li>
+                <li>شركة: devstar / 123456</li>
+                <li>رائد أعمال: tech_founder / 123456</li>
+              </ul>
+            </div>
             {data?.user && data.user.role === "admin" && (
               <div className="mt-2">
                 <p className="text-xs text-blue-700 mb-1">تم تسجيل دخولك كمسؤول، اضغط هنا للوصول إلى لوحة التحكم:</p>
