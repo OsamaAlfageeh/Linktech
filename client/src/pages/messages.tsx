@@ -198,11 +198,54 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     });
   };
 
-  const startNewConversation = () => {
-    // منطق بدء محادثة جديدة
-    console.log('Starting new conversation with user ID:', newRecipientId);
-    setIsNewMessageDialogOpen(false);
-  };
+  // معالجة بيانات الرسائل لعرض المحادثات
+  if (messagesData && Array.isArray(messagesData)) {
+    // إنشاء قاموس للمستخدمين الآخرين وآخر الرسائل
+    const conversationsMap = new Map<number, Conversation>();
+    
+    messagesData.forEach((message: Message) => {
+      // تحديد المستخدم الآخر (المرسل أو المستقبل)
+      const isFromCurrentUser = message.fromUserId === auth.user.id;
+      const otherUserId = isFromCurrentUser ? message.toUserId : message.fromUserId;
+      const otherUserName = isFromCurrentUser 
+        ? (message.toUser?.name || "مستخدم") 
+        : (message.fromUser?.name || "مستخدم");
+      const otherUserAvatar = isFromCurrentUser 
+        ? message.toUser?.avatar || null 
+        : message.fromUser?.avatar || null;
+      
+      // إذا لم تكن هناك محادثة مع هذا المستخدم بعد، أضف واحدة جديدة
+      if (!conversationsMap.has(otherUserId)) {
+        conversationsMap.set(otherUserId, {
+          otherUserId,
+          otherUserName,
+          otherUserAvatar,
+          lastMessage: message.content,
+          lastMessageTime: message.createdAt,
+          unreadCount: (!isFromCurrentUser && !message.read) ? 1 : 0
+        });
+      } else {
+        // تحديث المحادثة الموجودة إذا كانت الرسالة أحدث
+        const conversation = conversationsMap.get(otherUserId)!;
+        const messageTime = new Date(message.createdAt);
+        const lastMessageTime = new Date(conversation.lastMessageTime);
+        
+        if (messageTime > lastMessageTime) {
+          conversation.lastMessage = message.content;
+          conversation.lastMessageTime = message.createdAt;
+        }
+        
+        // زيادة عدد الرسائل غير المقروءة
+        if (!isFromCurrentUser && !message.read) {
+          conversation.unreadCount++;
+        }
+      }
+    });
+    
+    // تحويل القاموس إلى مصفوفة وترتيبها حسب وقت آخر رسالة (الأحدث أولاً)
+    conversations.push(...Array.from(conversationsMap.values())
+      .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()));
+  }
 
   return (
     <div className="container mx-auto p-4">
@@ -311,22 +354,37 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               </CardContent>
               
               <div className="p-3 border-t">
-                <div className="flex gap-2">
+                <form 
+                  className="flex gap-2" 
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    sendMessage();
+                  }}
+                >
                   <Textarea 
                     placeholder="اكتب رسالتك هنا..."
                     className="min-h-[60px]"
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
+                    onKeyDown={(e) => {
+                      // ارسال الرسالة عند الضغط على Enter (بدون Shift)
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        if (newMessage.trim()) {
+                          sendMessage();
+                        }
+                      }
+                    }}
                   />
                   <Button 
+                    type="submit"
                     className="shrink-0"
-                    onClick={sendMessage}
                     disabled={!newMessage.trim()}
                   >
                     <Send className="h-4 w-4 ml-2" />
                     إرسال
                   </Button>
-                </div>
+                </form>
               </div>
             </>
           ) : (
