@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { Link } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send } from 'lucide-react';
+import { Loader2, Send, AlertTriangle } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -53,19 +53,106 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [projectId, setProjectId] = useState<number | null>(null);
   const { toast } = useToast();
+  const [wsConnected, setWsConnected] = useState(false);
+  const [wsError, setWsError] = useState(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  
+  // إنشاء اتصال WebSocket
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.user?.id) return;
+    
+    // تنظيف الاتصال السابق إذا وجد
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    
+    // تكوين WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+    
+    // مراقبة الأحداث
+    ws.onopen = () => {
+      console.log('اتصال WebSocket مفتوح');
+      setWsConnected(true);
+      setWsError(false);
+      
+      // إرسال رسالة المصادقة
+      ws.send(JSON.stringify({
+        type: 'auth',
+        userId: auth.user.id
+      }));
+    };
+    
+    ws.onclose = () => {
+      console.log('انقطع اتصال WebSocket');
+      setWsConnected(false);
+    };
+    
+    ws.onerror = (error) => {
+      console.error('خطأ في اتصال WebSocket:', error);
+      setWsError(true);
+      setWsConnected(false);
+    };
+    
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        console.log('رسالة WebSocket جديدة:', data);
+        
+        // إذا كانت رسالة جديدة
+        if (data.type === 'new_message') {
+          // تحديث المحادثات
+          queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+          
+          // إذا كان المستخدم يعرض نفس المحادثة، قم بتحديثها
+          if (selectedConversation === data.message.fromUserId) {
+            queryClient.invalidateQueries({ 
+              queryKey: ['/api/messages/conversation', selectedConversation] 
+            });
+            
+            // أضف الرسالة إلى المحادثة المحلية مباشرة
+            setLocalMessages(prev => [...prev, data.message]);
+            
+            // عرض إشعار صغير
+            toast({
+              title: 'رسالة جديدة',
+              description: `${data.message.fromUser?.name || 'مستخدم'}: ${data.message.content}`,
+            });
+          }
+        }
+        
+        // إذا كانت رسالة مرسلة بنجاح
+        if (data.type === 'message_sent') {
+          // تحديث المحادثات
+          queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+        }
+      } catch (error) {
+        console.error('خطأ في معالجة رسالة WebSocket:', error);
+      }
+    };
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [auth.isAuthenticated, auth.user?.id, queryClient]);
   
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading, error: messagesError } = useQuery({
     queryKey: ['/api/messages'],
     enabled: auth.isAuthenticated,
-    refetchInterval: 10000, // إعادة جلب البيانات كل 10 ثوانٍ للتحقق من وجود رسائل جديدة
+    refetchInterval: 10000, // إعادة جلب البيانات كل 10 ثوانٍ كنسخة احتياطية
   });
 
   // جلب المحادثة المحددة
   const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation],
     enabled: !!selectedConversation && auth.isAuthenticated,
-    refetchInterval: 5000, // إعادة جلب بيانات المحادثة الحالية كل 5 ثوانٍ
+    refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
   });
   
   // حالة محلية لتخزين الرسائل غير المحفوظة
@@ -214,11 +301,50 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const sendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
     
-    sendMessageMutation.mutate({
-      content: newMessage,
-      toUserId: selectedConversation,
-      projectId: projectId
-    });
+    // إذا كان WebSocket متصل، استخدمه
+    if (wsRef.current && wsConnected && wsRef.current.readyState === WebSocket.OPEN) {
+      // إنشاء معرّف مؤقت للرسالة (سيتم استبداله بالمعرّف الحقيقي من الخادم)
+      const tempId = Date.now();
+      
+      // إنشاء رسالة مؤقتة للعرض المباشر
+      const tempMessage: Message = {
+        id: tempId,
+        content: newMessage,
+        fromUserId: auth.user.id,
+        toUserId: selectedConversation,
+        projectId: projectId,
+        read: false,
+        createdAt: new Date().toISOString(),
+        fromUser: {
+          name: auth.user.name || auth.user.username,
+          avatar: auth.user.avatar
+        }
+      };
+      
+      // إضافة الرسالة المؤقتة للعرض
+      setLocalMessages(prev => [...prev, tempMessage]);
+      
+      // تفريغ حقل الرسالة
+      setNewMessage('');
+      
+      // إرسال الرسالة عبر WebSocket
+      wsRef.current.send(JSON.stringify({
+        type: 'message',
+        content: newMessage,
+        toUserId: selectedConversation,
+        projectId: projectId
+      }));
+      
+      console.log('تم إرسال الرسالة عبر WebSocket');
+    } else {
+      // استخدام الطريقة التقليدية كنسخة احتياطية
+      console.log('استخدام الطريقة التقليدية لإرسال الرسالة (WebSocket غير متصل)');
+      sendMessageMutation.mutate({
+        content: newMessage,
+        toUserId: selectedConversation,
+        projectId: projectId
+      });
+    }
   };
 
   // معالجة بيانات الرسائل لعرض المحادثات
@@ -342,10 +468,30 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                       {getInitials(conversations.find(c => c.otherUserId === selectedConversation)?.otherUserName || "مستخدم")}
                     </AvatarFallback>
                   </Avatar>
-                  <div>
+                  <div className="flex-grow">
                     <CardTitle className="text-lg">
                       {conversations.find(c => c.otherUserId === selectedConversation)?.otherUserName || "مستخدم"}
                     </CardTitle>
+                  </div>
+                  
+                  {/* مؤشر حالة الاتصال */}
+                  <div className="flex items-center text-xs gap-1 text-muted-foreground">
+                    {wsConnected ? (
+                      <>
+                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                        <span>متصل</span>
+                      </>
+                    ) : wsError ? (
+                      <>
+                        <AlertTriangle className="h-3 w-3 text-amber-500" />
+                        <span>غير متصل</span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="h-2 w-2 rounded-full bg-amber-500"></div>
+                        <span>جاري الاتصال...</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </CardHeader>
