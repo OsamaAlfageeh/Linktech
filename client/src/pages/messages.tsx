@@ -1,12 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
+import { Link } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send, Plus } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatDate, getInitials } from '@/lib/utils';
 import { User } from '../App';
@@ -50,9 +50,7 @@ interface Conversation {
 const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [isNewMessageDialogOpen, setIsNewMessageDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [newRecipientId, setNewRecipientId] = useState<number | null>(null);
   const [projectId, setProjectId] = useState<number | null>(null);
   const { toast } = useToast();
   
@@ -117,49 +115,43 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     }
   }, []);
   
-  // منطق إرسال الرسالة الأولى التلقائية
-  const sendFirstMessage = useCallback(() => {
-    if (selectedConversation && projectId) {
-      console.log("إرسال رسالة ترحيبية تلقائية إلى:", selectedConversation, "بخصوص المشروع:", projectId);
-      sendMessageMutation.mutate({
-        content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
-        toUserId: selectedConversation,
-        projectId: projectId
-      });
-    }
-  }, [selectedConversation, projectId, sendMessageMutation]);
-  
-  // ضبط معلومات المحادثة عند الوصول إلى الصفحة
+  // متغير للتأكد من إرسال رسالة واحدة فقط عند بدء محادثة جديدة
   const [sentWelcomeMessage, setSentWelcomeMessage] = useState(false);
   
-  // التحقق من حالة الرسائل وإرسال رسالة ترحيبية إذا كانت المحادثة جديدة (مرة واحدة فقط)
+  // إرسال رسالة ترحيبية مرة واحدة فقط عند وجود معرف المستخدم ومعرف المشروع في URL
   useEffect(() => {
+    // عدم إرسال رسالة إذا كان المستخدم غير مسجل الدخول أو سبق إرسال رسالة أو لا توجد معلمات كافية
     if (
       !auth.isAuthenticated || 
       !selectedConversation || 
       !projectId || 
-      !messagesData || 
-      sentWelcomeMessage
+      sentWelcomeMessage || 
+      !conversationData
     ) {
       return;
     }
     
-    // تحقق إذا كانت هناك رسائل موجودة بالفعل
-    const messages = Array.isArray(messagesData) ? messagesData : [];
-    if (messages.length === 0) {
-      console.log("لا توجد رسائل سابقة، إرسال رسالة ترحيبية...");
+    // التحقق إذا كانت المحادثة فارغة
+    const conversation = Array.isArray(conversationData) ? conversationData : [];
+    if (conversation.length === 0) {
+      console.log("محادثة جديدة، إرسال رسالة ترحيبية...");
       
-      const timer = setTimeout(() => {
-        sendFirstMessage();
-        setSentWelcomeMessage(true);
+      // تعيين متغير لتجنب إرسال رسائل متكررة
+      setSentWelcomeMessage(true);
+      
+      // إرسال الرسالة بعد تأخير قصير
+      setTimeout(() => {
+        sendMessageMutation.mutate({
+          content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
+          toUserId: selectedConversation,
+          projectId: projectId
+        });
       }, 1000);
-      
-      return () => clearTimeout(timer);
     } else {
-      // إذا كانت هناك رسائل بالفعل، ضع العلامة على أنه تم إرسال رسالة ترحيبية
+      // إذا كانت توجد رسائل بالفعل، لا نحتاج لإرسال رسالة ترحيبية
       setSentWelcomeMessage(true);
     }
-  }, [auth.isAuthenticated, messagesData, selectedConversation, projectId, sendFirstMessage, sentWelcomeMessage]);
+  }, [auth.isAuthenticated, selectedConversation, projectId, conversationData, sendMessageMutation, sentWelcomeMessage]);
 
   const { data: usersData, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users/all'],
@@ -224,51 +216,6 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           <CardHeader className="pb-3">
             <div className="flex justify-between items-center">
               <CardTitle>المحادثات</CardTitle>
-              <Dialog open={isNewMessageDialogOpen} onOpenChange={setIsNewMessageDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="h-8 w-8 p-0">
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>رسالة جديدة</DialogTitle>
-                    <DialogDescription>اختر مستخدمًا لبدء محادثة معه</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <p className="text-sm font-medium">المستخدمون:</p>
-                      {usersLoading ? (
-                        <div className="flex justify-center">
-                          <Loader2 className="w-6 h-6 animate-spin" />
-                        </div>
-                      ) : (
-                        <div className="max-h-60 overflow-y-auto space-y-2">
-                          {(usersData as User[] || []).map((user: User) => (
-                            <div 
-                              key={user.id}
-                              className={`p-2 rounded flex items-center gap-2 cursor-pointer ${newRecipientId === user.id ? 'bg-primary/10' : 'hover:bg-muted'}`}
-                              onClick={() => setNewRecipientId(user.id)}
-                            >
-                              <Avatar className="h-8 w-8">
-                                <AvatarImage src={user.avatar} alt={user.name} />
-                                <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="text-sm font-medium">{user.name}</p>
-                                <p className="text-xs text-muted-foreground">{user.email}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                    <Button onClick={startNewConversation} disabled={!newRecipientId}>
-                      بدء محادثة
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
             <div className="mt-2">
               <Input 
@@ -309,9 +256,9 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
                 <p className="text-muted-foreground mb-4">ليس لديك أي محادثات حالية</p>
-                <Button onClick={() => setIsNewMessageDialogOpen(true)} variant="outline">
-                  بدء محادثة جديدة
-                </Button>
+                <p className="text-sm text-muted-foreground">
+                  يمكنك بدء محادثة من صفحة تفاصيل أي مشروع تهتم به
+                </p>
               </div>
             )}
           </CardContent>
@@ -385,10 +332,12 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
               <h3 className="text-lg font-semibold mb-2">لم يتم تحديد محادثة</h3>
-              <p className="text-muted-foreground mb-4">اختر محادثة من القائمة أو ابدأ محادثة جديدة</p>
-              <Button onClick={() => setIsNewMessageDialogOpen(true)} variant="outline">
-                بدء محادثة جديدة
-              </Button>
+              <p className="text-muted-foreground mb-4">يرجى اختيار محادثة من القائمة على اليمين</p>
+              <Link href="/projects">
+                <Button variant="outline">
+                  استعرض المشاريع
+                </Button>
+              </Link>
             </div>
           )}
         </Card>
