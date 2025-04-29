@@ -283,11 +283,29 @@ const ProjectDetails = () => {
                 <div className="flex items-center">
                   <Avatar className="h-12 w-12 ml-3">
                     <AvatarImage src="" />
-                    <AvatarFallback>{getInitials(project.name || "")}</AvatarFallback>
+                    <AvatarFallback>
+                      {auth.isAuthenticated && auth.user?.role === "company" 
+                        ? project.name?.charAt(0) || "م"
+                        : getInitials(project.name || "")}
+                    </AvatarFallback>
                   </Avatar>
                   <div>
-                    <h3 className="font-semibold">{project.name}</h3>
-                    <p className="text-sm text-neutral-600">صاحب المشروع</p>
+                    {auth.isAuthenticated && auth.user?.role === "company" ? (
+                      <div>
+                        <h3 className="font-semibold blur-text">
+                          {project.name?.substring(0, 1)}****{" "}
+                          <span className="text-xs bg-amber-100 text-amber-700 rounded px-2 py-0.5">
+                            تظهر البيانات بعد قبول العرض
+                          </span>
+                        </h3>
+                        <p className="text-sm text-neutral-600">صاحب المشروع</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <h3 className="font-semibold">{project.name}</h3>
+                        <p className="text-sm text-neutral-600">صاحب المشروع</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

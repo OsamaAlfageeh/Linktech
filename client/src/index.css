@@ -99,6 +99,12 @@
   .fade-out-on-scroll {
     transition: opacity 0.4s ease-out, transform 0.4s ease-out;
   }
+
+  /* نمط تضبيب النص */
+  .blur-text {
+    color: rgba(0, 0, 0, 0.7);
+    position: relative;
+  }
   
   /* تعريف keyframes للتأثير العائم يوجد في الأعلى */
   
