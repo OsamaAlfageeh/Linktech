@@ -88,12 +88,12 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   });
 
   // جلب المحادثة المحددة
-  const { data: conversationData, isLoading: conversationLoading } = useQuery({
+  const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation],
     enabled: !!selectedConversation && auth.isAuthenticated,
   });
 
-  const { data: usersData, isLoading: usersLoading } = useQuery({
+  const { data: usersData, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users/all'],
     enabled: auth.isAuthenticated && auth.user?.role === 'admin',
   });
@@ -200,7 +200,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                         </div>
                       ) : (
                         <div className="max-h-60 overflow-y-auto space-y-2">
-                          {usersData?.map((user: User) => (
+                          {(usersData as User[] || []).map((user: User) => (
                             <div 
                               key={user.id}
                               className={`p-2 rounded flex items-center gap-2 cursor-pointer ${newRecipientId === user.id ? 'bg-primary/10' : 'hover:bg-muted'}`}
@@ -299,7 +299,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                     <Loader2 className="w-8 h-8 animate-spin" />
                   </div>
                 ) : (
-                  conversationData?.map((message: Message) => (
+                  (conversationData as Message[] || []).map((message: Message) => (
                     <div 
                       key={message.id}
                       className={`flex ${message.fromUserId === auth.user.id ? 'justify-end' : 'justify-start'}`}
