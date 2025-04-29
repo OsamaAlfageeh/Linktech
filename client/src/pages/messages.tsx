@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
-import { Link } from 'wouter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { queryClient, apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
-import { Loader2, Send, AlertTriangle } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Textarea } from '@/components/ui/textarea';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { formatDate, getInitials } from '@/lib/utils';
-import { User } from '../App';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import { Textarea } from '@/components/ui/textarea';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Loader2, AlertTriangle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Link } from 'wouter';
 
-interface MessageProps {
-  auth: {
-    user: User;
-    isAuthenticated: boolean;
-  };
+// إضافة أنواع البيانات
+interface User {
+  id: number;
+  username: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  role?: string;
 }
 
 interface Message {
@@ -46,6 +47,39 @@ interface Conversation {
   lastMessageTime: string;
   unreadCount: number;
 }
+
+interface MessageProps {
+  auth: {
+    user: User;
+    isAuthenticated: boolean;
+  };
+}
+
+// دالة مساعدة للحصول على الأحرف الأولى من اسم المستخدم
+const getInitials = (name: string): string => {
+  return name
+    .split(' ')
+    .map(part => part.charAt(0))
+    .join('')
+    .toUpperCase()
+    .substring(0, 2);
+};
+
+// تنسيق التاريخ
+const formatDate = (date: Date): string => {
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diff / 60000);
+  const diffHours = Math.floor(diff / 3600000);
+  const diffDays = Math.floor(diff / 86400000);
+
+  if (diffMinutes < 1) return 'الآن';
+  if (diffMinutes < 60) return `منذ ${diffMinutes} دقيقة`;
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+
+  return date.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' });
+};
 
 const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
@@ -139,10 +173,10 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         wsRef.current.close();
       }
     };
-  }, [auth.isAuthenticated, auth.user?.id, queryClient]);
+  }, [auth.isAuthenticated, auth.user?.id, queryClient, selectedConversation, toast]);
   
   // جلب جميع الرسائل للمستخدم الحالي
-  const { data: messagesData, isLoading: messagesLoading, error: messagesError } = useQuery({
+  const { data: messagesData, isLoading: messagesLoading } = useQuery({
     queryKey: ['/api/messages'],
     enabled: auth.isAuthenticated,
     refetchInterval: 10000, // إعادة جلب البيانات كل 10 ثوانٍ كنسخة احتياطية
@@ -181,7 +215,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         // إضافة معلومات المستخدم المرسل (أنت)
         fromUser: {
           name: auth.user.name || auth.user.username,
-          avatar: auth.user.avatar
+          avatar: auth.user.avatar || null
         }
       };
       
@@ -350,7 +384,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         createdAt: new Date().toISOString(),
         fromUser: {
           name: auth.user.name || auth.user.username,
-          avatar: auth.user.avatar
+          avatar: auth.user.avatar || null
         }
       };
       
@@ -544,14 +578,14 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 ref={(el) => {
                   // التمرير إلى آخر الرسائل
                   if (el && !conversationLoading && 
-                      (conversationData?.length || localMessages.length)) {
+                      ((conversationData && conversationData.length > 0) || localMessages.length > 0)) {
                     setTimeout(() => {
                       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
                     }, 100);
                   }
                 }}
               >
-                {conversationLoading && !(conversationData?.length || localMessages.length) ? (
+                {conversationLoading && !((conversationData && conversationData.length > 0) || localMessages.length > 0) ? (
                   <div className="h-full flex justify-center items-center">
                     <Loader2 className="w-8 h-8 animate-spin" />
                   </div>
@@ -618,14 +652,14 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               </div>
             </>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6">
-              <h3 className="text-lg font-semibold mb-2">لم يتم تحديد محادثة</h3>
-              <p className="text-muted-foreground mb-4">يرجى اختيار محادثة من القائمة على اليمين</p>
-              <Link href="/projects">
-                <Button variant="outline">
-                  استعرض المشاريع
-                </Button>
-              </Link>
+            <div className="h-full flex flex-col items-center justify-center text-center p-4">
+              <div className="mb-4">
+                <Send className="h-12 w-12 mx-auto text-muted-foreground opacity-20" />
+              </div>
+              <h3 className="text-xl font-medium mb-2">اختر محادثة</h3>
+              <p className="text-muted-foreground">
+                اختر محادثة من القائمة لعرض الرسائل
+              </p>
             </div>
           )}
         </Card>
