@@ -114,7 +114,10 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
             });
             
             // أضف الرسالة إلى المحادثة المحلية مباشرة
-            setLocalMessages(prev => [...prev, data.message]);
+            const updatedMessages = [...localMessages, data.message];
+            setLocalMessages(updatedMessages);
+            // حفظ الرسائل في التخزين المحلي
+            localStorage.setItem('localMessages', JSON.stringify(updatedMessages));
             
             // عرض إشعار صغير
             toast({
@@ -155,8 +158,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
   });
   
-  // حالة محلية لتخزين الرسائل غير المحفوظة
-  const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  // حالة محلية لتخزين الرسائل غير المحفوظة مع استعادتها من التخزين المحلي عند التحميل
+  const [localMessages, setLocalMessages] = useState<Message[]>(() => {
+    // استعادة الرسائل المحلية من التخزين المحلي عند تحميل الصفحة
+    if (typeof window !== 'undefined') {
+      const savedMessages = localStorage.getItem('localMessages');
+      if (savedMessages) {
+        try {
+          return JSON.parse(savedMessages);
+        } catch(e) {
+          console.error('خطأ في تحليل الرسائل المخزنة:', e);
+          return [];
+        }
+      }
+    }
+    return [];
+  });
   
   // إرسال رسالة جديدة
   const sendMessageMutation = useMutation({
@@ -180,7 +197,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         }
       };
       
-      setLocalMessages(prev => [...prev, tempMessage]);
+      const updatedMessages = [...localMessages, tempMessage];
+      setLocalMessages(updatedMessages);
+      
+      // حفظ الرسائل المحلية في التخزين المحلي
+      localStorage.setItem('localMessages', JSON.stringify(updatedMessages));
       
       // تحديث قائمة المحادثات والمحادثة الحالية
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
@@ -349,7 +370,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       };
       
       // إضافة الرسالة المؤقتة للعرض
-      setLocalMessages(prev => [...prev, tempMessage]);
+      const updatedMessages = [...localMessages, tempMessage];
+      setLocalMessages(updatedMessages);
+      
+      // حفظ الرسائل المحلية في التخزين المحلي
+      localStorage.setItem('localMessages', JSON.stringify(updatedMessages));
       
       // تفريغ حقل الرسالة
       setNewMessage('');
