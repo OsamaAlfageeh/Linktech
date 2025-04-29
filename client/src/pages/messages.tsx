@@ -402,6 +402,16 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         <title>الرسائل | تِكلينك</title>
       </Helmet>
       
+      {wsError && (
+        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800">
+          <AlertTriangle className="w-5 h-5 text-amber-500" />
+          <div>
+            <p className="font-medium">فشل الاتصال بنظام المراسلة الفوري</p>
+            <p className="text-sm">يتم استخدام النظام الاحتياطي للرسائل. سيتم تحديث الرسائل كل 5 ثوانٍ بدلاً من الرسائل الفورية.</p>
+          </div>
+        </div>
+      )}
+      
       <div className="flex flex-col md:flex-row h-[80vh] gap-4">
         {/* قائمة المحادثات */}
         <Card className="md:w-1/3 h-full overflow-hidden flex flex-col">
@@ -514,11 +524,12 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   </div>
                 ) : (
                   // دمج الرسائل من الخادم مع الرسائل المحلية المؤقتة
-                  [...(conversationData as Message[] || []), 
-                   ...localMessages.filter(msg => 
-                     msg.toUserId === selectedConversation || 
-                     msg.fromUserId === selectedConversation
-                   )
+                  [
+                    ...(Array.isArray(conversationData) ? conversationData : []),
+                    ...localMessages.filter(msg => 
+                      msg.toUserId === selectedConversation || 
+                      msg.fromUserId === selectedConversation
+                    )
                   ].map((message: Message) => (
                     <div 
                       key={message.id}
