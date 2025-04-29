@@ -108,9 +108,9 @@ const Companies = () => {
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-heading mb-2">شركات البرمجة</h1>
-          <p className="text-neutral-600">استعرض أفضل شركات البرمجة المتخصصة في تطوير المشاريع التقنية</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading mb-1 sm:mb-2">شركات البرمجة</h1>
+          <p className="text-neutral-600 text-sm sm:text-base">استعرض أفضل شركات البرمجة المتخصصة في تطوير المشاريع التقنية</p>
         </div>
 
         {/* Filters and Controls */}
@@ -157,35 +157,41 @@ const Companies = () => {
 
         {/* Companies Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <CompanySkeleton />
             <CompanySkeleton />
             <CompanySkeleton />
-            <CompanySkeleton />
-            <CompanySkeleton />
-            <CompanySkeleton />
+            <div className="hidden sm:block">
+              <CompanySkeleton />
+            </div>
+            <div className="hidden sm:block">
+              <CompanySkeleton />
+            </div>
+            <div className="hidden sm:block">
+              <CompanySkeleton />
+            </div>
           </div>
         ) : error ? (
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
-            <p className="text-neutral-600">حدث خطأ أثناء تحميل الشركات. حاول مرة أخرى لاحقاً.</p>
+          <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
+            <p className="text-neutral-600 text-sm sm:text-base">حدث خطأ أثناء تحميل الشركات. حاول مرة أخرى لاحقاً.</p>
             <Button 
               onClick={() => window.location.reload()} 
               variant="outline" 
-              className="mt-4"
+              className="mt-3 sm:mt-4 text-xs sm:text-sm"
             >
               إعادة المحاولة
             </Button>
           </div>
         ) : sortedCompanies.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {sortedCompanies.map((company) => (
               <CompanyCard key={company.id} company={company} />
             ))}
           </div>
         ) : (
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
-            <p className="text-neutral-600 mb-2">لا توجد شركات متطابقة مع معايير البحث.</p>
-            <p className="text-neutral-500 text-sm mb-4">حاول تغيير معايير البحث أو التصفية.</p>
+          <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
+            <p className="text-neutral-600 text-sm sm:text-base mb-1 sm:mb-2">لا توجد شركات متطابقة مع معايير البحث.</p>
+            <p className="text-neutral-500 text-xs sm:text-sm mb-3 sm:mb-4">حاول تغيير معايير البحث أو التصفية.</p>
             <Button 
               onClick={() => {
                 setSearchQuery("");
@@ -193,6 +199,7 @@ const Companies = () => {
                 setSortBy("rating");
               }} 
               variant="outline"
+              className="text-xs sm:text-sm"
             >
               إعادة ضبط عوامل التصفية
             </Button>

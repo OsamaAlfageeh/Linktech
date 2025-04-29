@@ -120,20 +120,20 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold font-heading mb-2">المشاريع</h1>
-          <p className="text-neutral-600">استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة</p>
+        <div className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading mb-1 sm:mb-2">المشاريع</h1>
+          <p className="text-neutral-600 text-sm sm:text-base">استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة</p>
         </div>
 
         {/* Filters and Controls */}
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-neutral-200 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-neutral-200 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="sm:col-span-2">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
                 <Input
                   placeholder="البحث عن مشروع..."
-                  className="pl-3 pr-9"
+                  className="pl-3 pr-9 text-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -141,7 +141,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
             </div>
             <div>
               <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="التصنيف" />
                 </SelectTrigger>
                 <SelectContent>
@@ -154,7 +154,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
             </div>
             <div>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="الترتيب" />
                 </SelectTrigger>
                 <SelectContent>
@@ -168,10 +168,10 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
           </div>
           
           {auth?.isAuthenticated && auth?.isEntrepreneur && (
-            <div className="mt-4 pt-4 border-t border-neutral-200">
+            <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-center sm:justify-start">
               <Link href="/dashboard/entrepreneur?action=create-project">
-                <Button className="w-full sm:w-auto">
-                  <PlusCircle className="ml-2 h-4 w-4" />
+                <Button className="w-full sm:w-auto text-sm sm:text-base">
+                  <PlusCircle className="ml-2 h-3 w-3 sm:h-4 sm:w-4 transition-transform duration-200 group-hover:scale-110" />
                   إضافة مشروع جديد
                 </Button>
               </Link>
@@ -181,35 +181,41 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
         {/* Projects Grid */}
         {isLoading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             <ProjectSkeleton />
             <ProjectSkeleton />
             <ProjectSkeleton />
-            <ProjectSkeleton />
-            <ProjectSkeleton />
-            <ProjectSkeleton />
+            <div className="hidden sm:block">
+              <ProjectSkeleton />
+            </div>
+            <div className="hidden sm:block">
+              <ProjectSkeleton />
+            </div>
+            <div className="hidden sm:block">
+              <ProjectSkeleton />
+            </div>
           </div>
         ) : error ? (
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
-            <p className="text-neutral-600">حدث خطأ أثناء تحميل المشاريع. حاول مرة أخرى لاحقاً.</p>
+          <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
+            <p className="text-neutral-600 text-sm sm:text-base">حدث خطأ أثناء تحميل المشاريع. حاول مرة أخرى لاحقاً.</p>
             <Button 
               onClick={() => window.location.reload()} 
               variant="outline" 
-              className="mt-4"
+              className="mt-3 sm:mt-4 text-xs sm:text-sm"
             >
               إعادة المحاولة
             </Button>
           </div>
         ) : sortedProjects.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {sortedProjects.map((project) => (
               <ProjectCard key={project.id} project={project} />
             ))}
           </div>
         ) : (
-          <div className="bg-white p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
-            <p className="text-neutral-600 mb-2">لا توجد مشاريع متطابقة مع معايير البحث.</p>
-            <p className="text-neutral-500 text-sm mb-4">حاول تغيير معايير البحث أو التصفية.</p>
+          <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
+            <p className="text-neutral-600 text-sm sm:text-base mb-1 sm:mb-2">لا توجد مشاريع متطابقة مع معايير البحث.</p>
+            <p className="text-neutral-500 text-xs sm:text-sm mb-3 sm:mb-4">حاول تغيير معايير البحث أو التصفية.</p>
             <Button 
               onClick={() => {
                 setSearchQuery("");
@@ -217,6 +223,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
                 setSortBy("newest");
               }} 
               variant="outline"
+              className="text-xs sm:text-sm"
             >
               إعادة ضبط عوامل التصفية
             </Button>
