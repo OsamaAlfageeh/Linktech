@@ -44,16 +44,14 @@ export const useAuth = () => {
   const { data } = useQuery({
     queryKey: ['/api/auth/user'],
     retry: false,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    onSuccess: (data) => {
+      if (data) setUser(data);
+    },
     onError: () => {
       setUser(null);
     }
   });
-  
-  useEffect(() => {
-    if (data?.user) {
-      setUser(data.user);
-    }
-  }, [data]);
 
   // Logout mutation
   const logoutMutation = useMutation({

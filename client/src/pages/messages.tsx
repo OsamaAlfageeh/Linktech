@@ -10,6 +10,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, AlertTriangle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
+import { Message, Conversation } from '@/interfaces/messageTypes';
+import ConversationWrapper, { formatDate } from '@/components/messages/ConversationWrapper';
 
 // إضافة أنواع البيانات
 interface User {
@@ -19,33 +21,6 @@ interface User {
   email?: string;
   avatar?: string;
   role?: string;
-}
-
-interface Message {
-  id: number;
-  content: string;
-  fromUserId: number;
-  toUserId: number;
-  projectId: number | null;
-  read: boolean;
-  createdAt: string;
-  fromUser?: {
-    name: string;
-    avatar: string | null;
-  };
-  toUser?: {
-    name: string;
-    avatar: string | null;
-  };
-}
-
-interface Conversation {
-  otherUserId: number;
-  otherUserName: string;
-  otherUserAvatar: string | null;
-  lastMessage: string;
-  lastMessageTime: string;
-  unreadCount: number;
 }
 
 interface MessageProps {
@@ -63,22 +38,6 @@ const getInitials = (name: string): string => {
     .join('')
     .toUpperCase()
     .substring(0, 2);
-};
-
-// تنسيق التاريخ
-const formatDate = (date: Date): string => {
-  const now = new Date();
-  const diff = now.getTime() - date.getTime();
-  const diffMinutes = Math.floor(diff / 60000);
-  const diffHours = Math.floor(diff / 3600000);
-  const diffDays = Math.floor(diff / 86400000);
-
-  if (diffMinutes < 1) return 'الآن';
-  if (diffMinutes < 60) return `منذ ${diffMinutes} دقيقة`;
-  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-  if (diffDays < 7) return `منذ ${diffDays} يوم`;
-
-  return date.toLocaleDateString('ar-SA', { day: 'numeric', month: 'short' });
 };
 
 const Messages: React.FC<MessageProps> = ({ auth }) => {
@@ -592,36 +551,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   }
                 }}
               >
-                {conversationLoading && ((!conversationData || !Array.isArray(conversationData) || conversationData.length === 0) && localMessages.length === 0) ? (
-                  <div className="h-full flex justify-center items-center">
-                    <Loader2 className="w-8 h-8 animate-spin" />
-                  </div>
-                ) : (
-                  // دمج الرسائل من الخادم مع الرسائل المحلية المؤقتة
-                  [
-                    ...(Array.isArray(conversationData) ? conversationData : []),
-                    ...localMessages.filter(msg => 
-                      msg.toUserId === selectedConversation || 
-                      msg.fromUserId === selectedConversation
-                    )
-                  ].map((message: Message) => (
-                    <div 
-                      key={message.id}
-                      className={`flex ${message.fromUserId === auth.user.id ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div 
-                        className={`max-w-[80%] p-3 rounded-lg ${
-                          message.fromUserId === auth.user.id 
-                            ? 'bg-primary text-primary-foreground'
-                            : 'bg-muted'
-                        }`}
-                      >
-                        <p className="text-sm">{message.content}</p>
-                        <p className="text-xs mt-1 opacity-70">{formatDate(new Date(message.createdAt))}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
+                <ConversationWrapper 
+                  conversationLoading={conversationLoading} 
+                  conversationData={conversationData} 
+                  localMessages={localMessages} 
+                  selectedConversation={selectedConversation} 
+                  userId={auth.user?.id || 0} 
+                />
               </CardContent>
               
               <div className="p-3 border-t">
