@@ -185,6 +185,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // جلب المحادثة المحددة
   const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation],
+    queryFn: async () => {
+      if (!selectedConversation) return [];
+      const response = await apiRequest('GET', `/api/messages/conversation/${selectedConversation}`);
+      const data = await response.json();
+      console.log('تم استلام بيانات المحادثة:', data);
+      return data;
+    },
     enabled: !!selectedConversation && auth.isAuthenticated,
     refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
   });
@@ -578,14 +585,14 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 ref={(el) => {
                   // التمرير إلى آخر الرسائل
                   if (el && !conversationLoading && 
-                      ((conversationData && conversationData.length > 0) || localMessages.length > 0)) {
+                      ((conversationData && Array.isArray(conversationData) && conversationData.length > 0) || localMessages.length > 0)) {
                     setTimeout(() => {
                       el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
                     }, 100);
                   }
                 }}
               >
-                {conversationLoading && !((conversationData && conversationData.length > 0) || localMessages.length > 0) ? (
+                {conversationLoading && ((!conversationData || !Array.isArray(conversationData) || conversationData.length === 0) && localMessages.length === 0) ? (
                   <div className="h-full flex justify-center items-center">
                     <Loader2 className="w-8 h-8 animate-spin" />
                   </div>

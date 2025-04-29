@@ -1,0 +1,26 @@
+export interface Message {
+  id: number;
+  content: string;
+  fromUserId: number;
+  toUserId: number;
+  projectId: number | null;
+  read: boolean;
+  createdAt: string;
+  fromUser?: {
+    name: string;
+    avatar: string | null;
+  };
+  toUser?: {
+    name: string;
+    avatar: string | null;
+  };
+}
+
+export interface Conversation {
+  otherUserId: number;
+  otherUserName: string;
+  otherUserAvatar: string | null;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+}
