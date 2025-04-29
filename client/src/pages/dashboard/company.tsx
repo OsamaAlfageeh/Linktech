@@ -225,8 +225,8 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
           <p className="text-neutral-600">إدارة ملف شركتك والتواصل مع العملاء</p>
         </div>
 
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
-          <TabsList className="bg-neutral-100 p-1">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8" dir="rtl">
+          <TabsList className="bg-neutral-100 p-1 flex-row-reverse">
             <TabsTrigger value="dashboard" className="flex items-center">
               <LayoutDashboard className="ml-2 h-4 w-4" />
               <span>الرئيسية</span>
