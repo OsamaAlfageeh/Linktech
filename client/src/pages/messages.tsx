@@ -58,12 +58,14 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const { data: messagesData, isLoading: messagesLoading, error: messagesError } = useQuery({
     queryKey: ['/api/messages'],
     enabled: auth.isAuthenticated,
+    refetchInterval: 10000, // إعادة جلب البيانات كل 10 ثوانٍ للتحقق من وجود رسائل جديدة
   });
 
   // جلب المحادثة المحددة
   const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation],
     enabled: !!selectedConversation && auth.isAuthenticated,
+    refetchInterval: 5000, // إعادة جلب بيانات المحادثة الحالية كل 5 ثوانٍ
   });
   
   // إرسال رسالة جديدة
@@ -72,10 +74,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       const response = await apiRequest('POST', '/api/messages', data);
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newMessage) => {
+      // تفريغ حقل الرسالة
       setNewMessage('');
+      
+      // تحديث قائمة المحادثات والمحادثة الحالية
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+      
+      // إضافة الرسالة الجديدة للمحادثة مباشرة لتجنب الانتظار لإعادة الجلب
+      if (conversationData && Array.isArray(conversationData)) {
+        queryClient.setQueryData(
+          ['/api/messages/conversation', selectedConversation],
+          [...conversationData, newMessage]
+        );
+      }
+      
       toast({
         title: "تم إرسال الرسالة",
         description: "تم إرسال رسالتك بنجاح",
@@ -327,7 +341,17 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 </div>
               </CardHeader>
               
-              <CardContent className="flex-grow overflow-y-auto p-4 space-y-4">
+              <CardContent 
+                className="flex-grow overflow-y-auto p-4 space-y-4"
+                ref={(el) => {
+                  // التمرير إلى آخر الرسائل
+                  if (el && !conversationLoading && conversationData?.length) {
+                    setTimeout(() => {
+                      el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' });
+                    }, 100);
+                  }
+                }}
+              >
                 {conversationLoading ? (
                   <div className="h-full flex justify-center items-center">
                     <Loader2 className="w-8 h-8 animate-spin" />
