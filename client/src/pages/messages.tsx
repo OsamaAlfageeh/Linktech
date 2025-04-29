@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input';
 import { formatDate, getInitials } from '@/lib/utils';
 import { User } from '../App';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { useToast } from '@/hooks/use-toast';
 
 interface MessageProps {
   auth: {
@@ -51,6 +53,33 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [isNewMessageDialogOpen, setIsNewMessageDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [newRecipientId, setNewRecipientId] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<number | null>(null);
+  const { toast } = useToast();
+
+  // استخدام معلمات URL
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search);
+      const userIdParam = urlParams.get('userId');
+      const projectIdParam = urlParams.get('projectId');
+
+      if (userIdParam) {
+        const userId = parseInt(userIdParam);
+        if (!isNaN(userId)) {
+          console.log("تم تحديد محادثة مع المستخدم:", userId);
+          setSelectedConversation(userId);
+        }
+      }
+
+      if (projectIdParam) {
+        const projId = parseInt(projectIdParam);
+        if (!isNaN(projId)) {
+          console.log("المحادثة بخصوص المشروع:", projId);
+          setProjectId(projId);
+        }
+      }
+    }
+  }, []);
 
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading, error: messagesError } = useQuery({
@@ -67,6 +96,30 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const { data: usersData, isLoading: usersLoading } = useQuery({
     queryKey: ['/api/users/all'],
     enabled: auth.isAuthenticated && auth.user?.role === 'admin',
+  });
+
+  // إرسال رسالة جديدة
+  const sendMessageMutation = useMutation({
+    mutationFn: async (data: { content: string; toUserId: number; projectId: number | null }) => {
+      const response = await apiRequest('POST', '/api/messages', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      setNewMessage('');
+      queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+      toast({
+        title: "تم إرسال الرسالة",
+        description: "تم إرسال رسالتك بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "فشل إرسال الرسالة",
+        description: "حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    }
   });
 
   // تحويل الرسائل إلى محادثات
@@ -100,9 +153,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   }
 
   const sendMessage = () => {
-    // هنا نضيف منطق إرسال الرسالة
-    console.log('Sending message:', newMessage);
-    setNewMessage('');
+    if (!newMessage.trim() || !selectedConversation) return;
+    
+    sendMessageMutation.mutate({
+      content: newMessage,
+      toUserId: selectedConversation,
+      projectId: projectId
+    });
   };
 
   const startNewConversation = () => {
