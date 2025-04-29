@@ -41,17 +41,19 @@ export const useAuth = () => {
   const [location, navigate] = useLocation();
   
   // Check if user is logged in
-  const { data } = useQuery({
+  const { data } = useQuery<{user: User}>({
     queryKey: ['/api/auth/user'],
     retry: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    onSuccess: (data) => {
-      if (data) setUser(data);
-    },
-    onError: () => {
-      setUser(null);
-    }
   });
+  
+  // Update user when data changes
+  useEffect(() => {
+    console.log("Auth data received:", data);
+    if (data && data.user) {
+      setUser(data.user);
+    }
+  }, [data]);
 
   // Logout mutation
   const logoutMutation = useMutation({

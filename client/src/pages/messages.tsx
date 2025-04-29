@@ -145,11 +145,20 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation],
     queryFn: async () => {
-      if (!selectedConversation) return [];
-      const response = await apiRequest('GET', `/api/messages/conversation/${selectedConversation}`);
-      const data = await response.json();
-      console.log('تم استلام بيانات المحادثة:', data);
-      return data;
+      if (!selectedConversation || !auth.isAuthenticated) return [];
+      try {
+        console.log('جاري جلب بيانات المحادثة للمستخدم:', selectedConversation);
+        const response = await apiRequest('GET', `/api/messages/conversation/${selectedConversation}`);
+        if (!response.ok) {
+          throw new Error(`Error fetching conversation: ${response.status}`);
+        }
+        const data = await response.json();
+        console.log('تم استلام بيانات المحادثة:', data);
+        return data;
+      } catch (error) {
+        console.error('خطأ في جلب بيانات المحادثة:', error);
+        return [];
+      }
     },
     enabled: !!selectedConversation && auth.isAuthenticated,
     refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
