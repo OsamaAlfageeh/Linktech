@@ -158,22 +158,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
   });
   
-  // حالة محلية لتخزين الرسائل غير المحفوظة مع استعادتها من التخزين المحلي عند التحميل
-  const [localMessages, setLocalMessages] = useState<Message[]>(() => {
-    // استعادة الرسائل المحلية من التخزين المحلي عند تحميل الصفحة
-    if (typeof window !== 'undefined') {
-      const savedMessages = localStorage.getItem('localMessages');
-      if (savedMessages) {
-        try {
-          return JSON.parse(savedMessages);
-        } catch(e) {
-          console.error('خطأ في تحليل الرسائل المخزنة:', e);
-          return [];
-        }
-      }
-    }
-    return [];
-  });
+  // حالة محلية لتخزين الرسائل المؤقتة قبل ظهورها في قاعدة البيانات
+  const [localMessages, setLocalMessages] = useState<Message[]>([]);
   
   // إرسال رسالة جديدة
   const sendMessageMutation = useMutation({
@@ -197,11 +183,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         }
       };
       
-      const updatedMessages = [...localMessages, tempMessage];
-      setLocalMessages(updatedMessages);
-      
-      // حفظ الرسائل المحلية في التخزين المحلي
-      localStorage.setItem('localMessages', JSON.stringify(updatedMessages));
+      // إضافة الرسالة المؤقتة للعرض مؤقتاً حتى تظهر من قاعدة البيانات
+      setLocalMessages(prev => [...prev, tempMessage]);
       
       // تحديث قائمة المحادثات والمحادثة الحالية
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
@@ -369,12 +352,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         }
       };
       
-      // إضافة الرسالة المؤقتة للعرض
-      const updatedMessages = [...localMessages, tempMessage];
-      setLocalMessages(updatedMessages);
-      
-      // حفظ الرسائل المحلية في التخزين المحلي
-      localStorage.setItem('localMessages', JSON.stringify(updatedMessages));
+      // إضافة الرسالة المؤقتة للعرض مؤقتاً حتى تظهر من قاعدة البيانات
+      setLocalMessages(prev => [...prev, tempMessage]);
       
       // تفريغ حقل الرسالة
       setNewMessage('');
