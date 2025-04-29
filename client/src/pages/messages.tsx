@@ -200,18 +200,32 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     }
   });
 
-  // استخدام معلمات URL لبدء محادثة
+  // استخدام معلمات URL لبدء محادثة أو استعادة المحادثة السابقة من التخزين المحلي
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
       const userIdParam = urlParams.get('userId');
       const projectIdParam = urlParams.get('projectId');
-
+      
+      // التحقق من وجود معلمات في URL
       if (userIdParam) {
         const userId = parseInt(userIdParam);
         if (!isNaN(userId)) {
           console.log("تم تحديد محادثة مع المستخدم:", userId);
           setSelectedConversation(userId);
+          
+          // حفظ معرف المستخدم في التخزين المحلي
+          localStorage.setItem('lastConversationUserId', userId.toString());
+        }
+      } else {
+        // إذا لم توجد معلمات URL، استعادة المحادثة الأخيرة من التخزين المحلي
+        const lastConversationUserId = localStorage.getItem('lastConversationUserId');
+        if (lastConversationUserId) {
+          const userId = parseInt(lastConversationUserId);
+          if (!isNaN(userId)) {
+            console.log("استعادة المحادثة الأخيرة مع المستخدم:", userId);
+            setSelectedConversation(userId);
+          }
         }
       }
 
@@ -220,6 +234,19 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         if (!isNaN(projId)) {
           console.log("المحادثة بخصوص المشروع:", projId);
           setProjectId(projId);
+          
+          // حفظ معرف المشروع في التخزين المحلي
+          localStorage.setItem('lastConversationProjectId', projId.toString());
+        }
+      } else {
+        // استعادة معرف المشروع من التخزين المحلي
+        const lastProjectId = localStorage.getItem('lastConversationProjectId');
+        if (lastProjectId) {
+          const projId = parseInt(lastProjectId);
+          if (!isNaN(projId)) {
+            console.log("استعادة معرف المشروع الأخير:", projId);
+            setProjectId(projId);
+          }
         }
       }
     }
