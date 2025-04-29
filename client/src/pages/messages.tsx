@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -55,8 +55,44 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [newRecipientId, setNewRecipientId] = useState<number | null>(null);
   const [projectId, setProjectId] = useState<number | null>(null);
   const { toast } = useToast();
+  
+  // جلب جميع الرسائل للمستخدم الحالي
+  const { data: messagesData, isLoading: messagesLoading, error: messagesError } = useQuery({
+    queryKey: ['/api/messages'],
+    enabled: auth.isAuthenticated,
+  });
 
-  // استخدام معلمات URL
+  // جلب المحادثة المحددة
+  const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
+    queryKey: ['/api/messages/conversation', selectedConversation],
+    enabled: !!selectedConversation && auth.isAuthenticated,
+  });
+  
+  // إرسال رسالة جديدة
+  const sendMessageMutation = useMutation({
+    mutationFn: async (data: { content: string; toUserId: number; projectId: number | null }) => {
+      const response = await apiRequest('POST', '/api/messages', data);
+      return await response.json();
+    },
+    onSuccess: () => {
+      setNewMessage('');
+      queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+      toast({
+        title: "تم إرسال الرسالة",
+        description: "تم إرسال رسالتك بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "فشل إرسال الرسالة",
+        description: "حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // استخدام معلمات URL لبدء محادثة
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
@@ -80,46 +116,54 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       }
     }
   }, []);
-
-  // جلب جميع الرسائل للمستخدم الحالي
-  const { data: messagesData, isLoading: messagesLoading, error: messagesError } = useQuery({
-    queryKey: ['/api/messages'],
-    enabled: auth.isAuthenticated,
-  });
-
-  // جلب المحادثة المحددة
-  const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages/conversation', selectedConversation],
-    enabled: !!selectedConversation && auth.isAuthenticated,
-  });
+  
+  // منطق إرسال الرسالة الأولى التلقائية
+  const sendFirstMessage = useCallback(() => {
+    if (selectedConversation && projectId) {
+      console.log("إرسال رسالة ترحيبية تلقائية إلى:", selectedConversation, "بخصوص المشروع:", projectId);
+      sendMessageMutation.mutate({
+        content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
+        toUserId: selectedConversation,
+        projectId: projectId
+      });
+    }
+  }, [selectedConversation, projectId, sendMessageMutation]);
+  
+  // ضبط معلومات المحادثة عند الوصول إلى الصفحة
+  const [sentWelcomeMessage, setSentWelcomeMessage] = useState(false);
+  
+  // التحقق من حالة الرسائل وإرسال رسالة ترحيبية إذا كانت المحادثة جديدة (مرة واحدة فقط)
+  useEffect(() => {
+    if (
+      !auth.isAuthenticated || 
+      !selectedConversation || 
+      !projectId || 
+      !messagesData || 
+      sentWelcomeMessage
+    ) {
+      return;
+    }
+    
+    // تحقق إذا كانت هناك رسائل موجودة بالفعل
+    const messages = Array.isArray(messagesData) ? messagesData : [];
+    if (messages.length === 0) {
+      console.log("لا توجد رسائل سابقة، إرسال رسالة ترحيبية...");
+      
+      const timer = setTimeout(() => {
+        sendFirstMessage();
+        setSentWelcomeMessage(true);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } else {
+      // إذا كانت هناك رسائل بالفعل، ضع العلامة على أنه تم إرسال رسالة ترحيبية
+      setSentWelcomeMessage(true);
+    }
+  }, [auth.isAuthenticated, messagesData, selectedConversation, projectId, sendFirstMessage, sentWelcomeMessage]);
 
   const { data: usersData, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users/all'],
     enabled: auth.isAuthenticated && auth.user?.role === 'admin',
-  });
-
-  // إرسال رسالة جديدة
-  const sendMessageMutation = useMutation({
-    mutationFn: async (data: { content: string; toUserId: number; projectId: number | null }) => {
-      const response = await apiRequest('POST', '/api/messages', data);
-      return await response.json();
-    },
-    onSuccess: () => {
-      setNewMessage('');
-      queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
-      toast({
-        title: "تم إرسال الرسالة",
-        description: "تم إرسال رسالتك بنجاح",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "فشل إرسال الرسالة",
-        description: "حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
-    }
   });
 
   // تحويل الرسائل إلى محادثات
