@@ -69,7 +69,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover-card-lift transform transition-all duration-300 hover:shadow-md">
       <div className="relative">
-        <div className={`h-32 ${company.coverPhoto ? '' : getCoverGradient(company.id)} overflow-hidden`}>
+        <div className={`h-24 sm:h-28 md:h-32 ${company.coverPhoto ? '' : getCoverGradient(company.id)} overflow-hidden`}>
           {company.coverPhoto ? (
             <img 
               src={company.coverPhoto} 
@@ -80,8 +80,8 @@ const CompanyCard = ({ company }: CompanyProps) => {
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10"></div>
           )}
         </div>
-        <div className="absolute -bottom-12 right-6 z-10">
-          <div className="w-24 h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg hover:scale-105">
+        <div className="absolute -bottom-10 sm:-bottom-12 right-4 sm:right-6 z-10">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg hover:scale-105">
             {company.logo ? (
               <img 
                 src={company.logo} 
@@ -89,56 +89,56 @@ const CompanyCard = ({ company }: CompanyProps) => {
                 className="w-full h-full object-cover rounded hover:scale-105 transition-transform duration-300"
               />
             ) : (
-              <div className={`w-full h-full flex items-center justify-center rounded ${getCoverGradient(company.id)} text-white text-2xl font-bold transition-all duration-300 hover:opacity-90`}>
+              <div className={`w-full h-full flex items-center justify-center rounded ${getCoverGradient(company.id)} text-white text-xl sm:text-2xl font-bold transition-all duration-300 hover:opacity-90`}>
                 {company.name?.charAt(0) || ''}
               </div>
             )}
           </div>
         </div>
       </div>
-      <div className="p-6 pt-16">
-        <h3 className="font-heading font-semibold text-xl mb-2 transition-colors duration-300 hover:text-primary bg-gradient-to-r from-primary to-primary bg-[length:0%_2px] bg-no-repeat bg-bottom group-hover:bg-[length:100%_2px]">{company.name}</h3>
-        <div className="flex items-center text-sm text-amber-500 mb-3 group">
+      <div className="p-3 sm:p-4 md:p-6 pt-12 sm:pt-16">
+        <h3 className="font-heading font-semibold text-base sm:text-lg md:text-xl mb-1 sm:mb-2 transition-colors duration-300 hover:text-primary bg-gradient-to-r from-primary to-primary bg-[length:0%_2px] bg-no-repeat bg-bottom group-hover:bg-[length:100%_2px] line-clamp-1">{company.name}</h3>
+        <div className="flex items-center text-xs sm:text-sm text-amber-500 mb-2 sm:mb-3 group">
           <div className="flex transition-transform duration-300 group-hover:scale-110">
             {renderStars(company.rating)}
           </div>
-          <span className="text-neutral-600 mr-2">
+          <span className="text-neutral-600 mr-2 text-xs">
             ({company.rating || 0}) - {company.reviewCount || 0} مراجعة
           </span>
         </div>
-        <p className="text-neutral-600 mb-4">{truncateText(company.description, 120)}</p>
-        <div className="flex flex-wrap gap-2 mb-4">
-          {(company.skills || []).slice(0, 3).map((skill, index) => (
+        <p className="text-neutral-600 text-xs sm:text-sm md:text-base mb-3 sm:mb-4 line-clamp-3">{truncateText(company.description, window.innerWidth < 640 ? 80 : 120)}</p>
+        <div className="flex flex-wrap gap-1 sm:gap-2 mb-3 sm:mb-4">
+          {(company.skills || []).slice(0, window.innerWidth < 640 ? 2 : 3).map((skill, index) => (
             <Badge 
               key={index} 
               variant="outline" 
-              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse transition-all duration-300 hover:bg-neutral-200"
+              className="bg-neutral-100 text-neutral-700 text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded badge-pulse transition-all duration-300 hover:bg-neutral-200"
             >
               {skill}
             </Badge>
           ))}
-          {(company.skills || []).length > 3 && (
+          {(company.skills || []).length > (window.innerWidth < 640 ? 2 : 3) && (
             <Badge 
               variant="outline" 
-              className="bg-neutral-100 text-neutral-700 text-xs font-medium px-2.5 py-1 rounded badge-pulse transition-all duration-300 hover:bg-neutral-200"
+              className="bg-neutral-100 text-neutral-700 text-[10px] sm:text-xs font-medium px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded badge-pulse transition-all duration-300 hover:bg-neutral-200"
             >
-              +{(company.skills || []).length - 3}
+              +{(company.skills || []).length - (window.innerWidth < 640 ? 2 : 3)}
             </Badge>
           )}
         </div>
       </div>
-      <div className="bg-neutral-50 px-6 py-3 border-t border-neutral-200 flex justify-between items-center">
+      <div className="bg-neutral-50 px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-t border-neutral-200 flex justify-between items-center">
         <Link 
           href={`/companies/${company.id}`} 
-          className="text-primary hover:text-primary-dark font-medium link-underline relative overflow-hidden after:absolute after:bottom-0 after:right-0 after:h-[2px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-primary-dark after:transition-transform after:duration-300 hover:after:origin-bottom-left hover:after:scale-x-100"
+          className="text-primary hover:text-primary-dark text-sm sm:text-base font-medium link-underline relative overflow-hidden after:absolute after:bottom-0 after:right-0 after:h-[2px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-primary-dark after:transition-transform after:duration-300 hover:after:origin-bottom-left hover:after:scale-x-100"
         >
           عرض الملف
         </Link>
         <Link 
           href={`/messages?userId=${company.userId}`} 
-          className="text-neutral-600 hover:text-primary p-2 rounded-full transition-all duration-200 hover:bg-neutral-200 hover:shadow-sm"
+          className="text-neutral-600 hover:text-primary p-1.5 sm:p-2 rounded-full transition-all duration-200 hover:bg-neutral-200 hover:shadow-sm"
         >
-          <MessageSquare className="h-5 w-5 rtl-flip transition-transform duration-200 hover:scale-110" />
+          <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 rtl-flip transition-transform duration-200 hover:scale-110" />
         </Link>
       </div>
     </div>

@@ -114,14 +114,14 @@ const Companies = () => {
         </div>
 
         {/* Filters and Controls */}
-        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-neutral-200 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="md:col-span-2">
+        <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-neutral-200 mb-4 sm:mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+            <div className="sm:col-span-2">
               <div className="relative">
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-500" />
                 <Input
                   placeholder="البحث عن شركة..."
-                  className="pl-3 pr-9"
+                  className="pl-3 pr-9 text-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -129,7 +129,7 @@ const Companies = () => {
             </div>
             <div>
               <Select value={selectedSkill} onValueChange={setSelectedSkill}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="التخصص" />
                 </SelectTrigger>
                 <SelectContent>
@@ -142,7 +142,7 @@ const Companies = () => {
             </div>
             <div>
               <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger>
+                <SelectTrigger className="text-xs sm:text-sm h-9 sm:h-10">
                   <SelectValue placeholder="الترتيب" />
                 </SelectTrigger>
                 <SelectContent>
