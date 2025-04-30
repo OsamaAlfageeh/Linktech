@@ -112,24 +112,14 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
                 احصل على عرض سعر مبدئي خلال 30 دقيقة فقط!
               </p>
               
-              <div className="grid grid-cols-2 gap-6 mt-4">
-                <div className="bg-white/10 p-3 rounded-lg flex items-center">
-                  <Users className="ml-3 h-6 w-6 text-blue-200" />
-                  <div>
-                    <div className="font-bold text-2xl text-white">
-                      {statsLoading ? "..." : platformStats?.verifiedCompaniesCount || 0}+
-                    </div>
-                    <div className="text-sm text-blue-100">شركة موثقة</div>
-                  </div>
-                </div>
-                
-                <div className="bg-white/10 p-3 rounded-lg flex items-center">
+              <div className="mt-4 mx-auto">
+                <div className="bg-white/10 p-4 rounded-lg flex items-center justify-center w-full sm:w-3/4 mx-auto">
                   <TrendingUp className="ml-3 h-6 w-6 text-green-200" />
                   <div>
-                    <div className="font-bold text-2xl text-white">
+                    <div className="font-bold text-3xl text-white">
                       {statsLoading ? "..." : platformStats?.projectsCount || 0}+
                     </div>
-                    <div className="text-sm text-green-100">مشروع نشط</div>
+                    <div className="text-sm text-green-100">مشروع نشط في انتظار العروض</div>
                   </div>
                 </div>
               </div>
