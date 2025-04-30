@@ -18,6 +18,7 @@ import {
   getTrendingProjects
 } from "./recommendation";
 import session from "express-session";
+import { checkMessageForProhibitedContent, sanitizeMessageContent } from "./contentFilter";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";
@@ -432,6 +433,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/messages', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
+      
+      // تحقق من محتوى الرسالة قبل الحفظ
+      const contentCheck = checkMessageForProhibitedContent(req.body.content);
+      
+      if (!contentCheck.safe) {
+        // إذا احتوت الرسالة على معلومات محظورة، نقوم بتنظيف المحتوى
+        return res.status(400).json({ 
+          message: 'الرسالة تحتوي على معلومات اتصال محظورة',
+          violations: contentCheck.violations,
+          error: true
+        });
+      }
       
       const messageData = insertMessageSchema.parse({
         ...req.body,
