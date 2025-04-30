@@ -70,6 +70,12 @@ export default function AdminDashboard() {
   const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // متغيرات لصورة الجانب
+  const [sideImageUrl, setSideImageUrl] = useState<string>("");
+  const [sideImageFile, setSideImageFile] = useState<File | null>(null);
+  const [uploadingSideImage, setUploadingSideImage] = useState(false);
+  const sideImageInputRef = useRef<HTMLInputElement>(null);
 
   // تأكد من أن المستخدم مسؤول
   // تعطيل التحقق مؤقتاً
@@ -812,7 +818,7 @@ export default function AdminDashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  <div>
+                  <div className="mb-10">
                     <h3 className="text-lg font-medium mb-2">صورة الهيدر</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
@@ -880,6 +886,80 @@ export default function AdminDashboard() {
                           <h4 className="text-sm font-medium mb-1">معاينة</h4>
                           <p className="text-sm text-muted-foreground">
                             ستظهر الصورة في صفحة الرئيسية للموقع كخلفية لقسم الهيدر.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">صورة الجانب</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <div className="bg-gray-100 rounded-lg p-4 mb-4 aspect-[3/2] overflow-hidden relative">
+                          {sideImageUrl ? (
+                            <img 
+                              src={sideImageUrl} 
+                              alt="صورة الجانب" 
+                              className="w-full h-full object-cover rounded"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <Image className="h-24 w-24 text-muted-foreground opacity-25" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col space-y-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleSideImageSelect}
+                            className="hidden"
+                            ref={sideImageInputRef}
+                          />
+                          
+                          <div className="flex space-x-2 rtl:space-x-reverse">
+                            <Button
+                              variant="outline"
+                              onClick={() => sideImageInputRef.current?.click()}
+                              className="flex-1"
+                            >
+                              <Upload className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                              اختيار صورة
+                            </Button>
+                            
+                            <Button
+                              onClick={handleSideImageUpload}
+                              disabled={!sideImageFile || uploadingSideImage}
+                              className="flex-1"
+                            >
+                              {uploadingSideImage ? (
+                                <Loader2 className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0 animate-spin" />
+                              ) : (
+                                <Image className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                              )}
+                              {uploadingSideImage ? "جارِ الرفع..." : "تحديث الصورة"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">تعليمات</h4>
+                          <ul className="list-disc list-inside text-sm text-muted-foreground">
+                            <li>يفضل أن تكون الصورة بنسبة عرض إلى ارتفاع 3:2 للحصول على أفضل نتيجة</li>
+                            <li>الحد الأقصى لحجم الملف هو 2 ميجابايت</li>
+                            <li>الصيغ المدعومة: JPG، PNG، WebP</li>
+                            <li>استخدم صورة ذات دقة عالية</li>
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">معاينة</h4>
+                          <p className="text-sm text-muted-foreground">
+                            ستظهر الصورة في الجانب الأيمن من قسم الهيدر في الصفحة الرئيسية.
                           </p>
                         </div>
                       </div>
