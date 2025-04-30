@@ -18,7 +18,7 @@ import {
   getTrendingProjects
 } from "./recommendation";
 import session from "express-session";
-import { checkMessageForProhibitedContent, sanitizeMessageContent } from "./contentFilter";
+import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";
@@ -434,17 +434,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       
-      // تحقق من محتوى الرسالة قبل الحفظ
-      const contentCheck = checkMessageForProhibitedContent(req.body.content);
+      // تحقق من محتوى الرسالة قبل الحفظ مع تمرير معرفات المستخدمين للكشف عن الأنماط المتسلسلة
+      const contentCheck = checkMessageForProhibitedContent(
+        req.body.content,
+        user.id,
+        req.body.toUserId
+      );
       
       if (!contentCheck.safe) {
-        // إذا احتوت الرسالة على معلومات محظورة، نقوم بتنظيف المحتوى
+        // رسالة خطأ مخصصة للنمط المتسلسل
+        let errorMessage = 'الرسالة تحتوي على معلومات اتصال محظورة';
+        if (contentCheck.violations?.includes('نمط_متسلسل_مشبوه')) {
+          errorMessage = 'تم رصد محاولة لتمرير معلومات اتصال عبر عدة رسائل';
+          console.log(`تم اكتشاف نمط متسلسل مشبوه بين المستخدمين ${user.id} و ${req.body.toUserId}`);
+        }
+        
+        // إذا احتوت الرسالة على معلومات محظورة
         return res.status(400).json({ 
-          message: 'الرسالة تحتوي على معلومات اتصال محظورة',
+          message: errorMessage,
           violations: contentCheck.violations,
           error: true
         });
       }
+      
+      // إضافة الرسالة إلى سجل المحادثة للفحص المستقبلي
+      addMessageToConversationHistory(user.id, req.body.toUserId, req.body.content);
       
       const messageData = insertMessageSchema.parse({
         ...req.body,
