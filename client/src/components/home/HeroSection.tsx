@@ -1,6 +1,15 @@
 import { Link } from "wouter";
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Clock, Users, CheckCircle, TrendingUp } from "lucide-react";
+
+// تعريف نوع الإحصائيات
+interface PlatformStats {
+  verifiedCompaniesCount: number;
+  projectsCount: number;
+  responseTimeMinutes: number;
+  completedProjectsCount: number;
+}
 
 type HeroSectionProps = {
   auth: {
@@ -38,6 +47,18 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
     },
   });
   
+  // استعلام لجلب إحصائيات المنصة (عدد الشركات الموثقة ووقت الاستجابة)
+  const { data: platformStats, isLoading: statsLoading } = useQuery<PlatformStats>({
+    queryKey: ["/api/platform-stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/platform-stats");
+      if (!response.ok) {
+        throw new Error("Failed to fetch platform stats");
+      }
+      return response.json();
+    },
+  });
+  
   // استخراج روابط الصور عند تحميل البيانات
   useEffect(() => {
     if (headerImageSetting?.value) {
@@ -48,6 +69,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
       setSideImageUrl(sideImageSetting.value);
     }
   }, [headerImageSetting, sideImageSetting]);
+  
   const getEntrepreneurLink = () => {
     if (auth.isAuthenticated && auth.isEntrepreneur) {
       return "/dashboard/entrepreneur";
@@ -79,9 +101,40 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
             <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4 text-shadow-lg">
               ربط رواد الأعمال بشركات البرمجة المحترفة
             </h1>
-            <p className="text-lg md:text-xl mb-8 text-white text-shadow">
+            <p className="text-lg md:text-xl mb-4 text-white text-shadow">
               نسهل عليك إيجاد الشريك المناسب لتحويل أفكارك التقنية إلى واقع. ابدأ رحلتك التقنية اليوم!
             </p>
+            
+            {/* عبارة تسويقية وإحصائيات المنصة */}
+            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg mb-6 border border-white/20">
+              <p className="text-amber-300 font-semibold mb-2 flex items-center">
+                <Clock className="ml-2 h-5 w-5" />
+                احصل على عرض سعر مبدئي خلال 30 دقيقة فقط!
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <div className="flex items-center">
+                  <Users className="ml-2 h-5 w-5 text-blue-200" />
+                  <div>
+                    <div className="font-bold text-xl text-blue-200">
+                      {statsLoading ? "..." : platformStats?.verifiedCompaniesCount || 0}+
+                    </div>
+                    <div className="text-sm text-blue-100">شركة موثقة</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center">
+                  <CheckCircle className="ml-2 h-5 w-5 text-green-200" />
+                  <div>
+                    <div className="font-bold text-xl text-green-200">
+                      {statsLoading ? "..." : platformStats?.completedProjectsCount || 0}+
+                    </div>
+                    <div className="text-sm text-green-100">مشروع مكتمل</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
             <div className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
               <Link 
                 href={getEntrepreneurLink()} 
