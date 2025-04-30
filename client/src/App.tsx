@@ -64,6 +64,9 @@ export const useAuth = (): AuthContextType => {
     console.log("Auth data received:", data);
     if (data && data.user) {
       setUser(data.user);
+    } else {
+      // إعادة ضبط حالة المستخدم عند عدم وجود بيانات مصادقة
+      setUser(null);
     }
   }, [data]);
 

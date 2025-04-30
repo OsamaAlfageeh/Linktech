@@ -73,9 +73,22 @@ const Login = ({ auth }: LoginProps) => {
     onSuccess: (responseData) => {
       console.log("تسجيل دخول ناجح، البيانات المستلمة:", responseData);
       
-      // التأكد من أن البيانات المستلمة تحتوي على معلومات المستخدم
+      // تحسين استخراج بيانات المستخدم
+      if (!responseData || (!responseData.user && !responseData.username)) {
+        console.error("خطأ: البيانات المستلمة غير صالحة:", responseData);
+        toast({
+          title: "خطأ في النظام",
+          description: "تم تسجيل الدخول ولكن البيانات المستلمة غير صالحة.",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // استخراج بيانات المستخدم من الاستجابة بشكل صحيح
       const userData = responseData.user || responseData;
       setData(responseData);
+      
+      console.log("بيانات المستخدم المستخرجة:", userData);
       
       // تحديث حالة تسجيل الدخول
       auth.login(userData);
@@ -102,6 +115,7 @@ const Login = ({ auth }: LoginProps) => {
           navigate("/dashboard/company");
         } else {
           // إذا لم يكن للمستخدم دور محدد، توجيهه إلى الصفحة الرئيسية
+          console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
           navigate("/");
         }
       }, 800);

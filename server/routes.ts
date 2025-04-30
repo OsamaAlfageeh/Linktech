@@ -44,24 +44,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Configure passport
   passport.use(new LocalStrategy(async (username, password, done) => {
     try {
+      console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
+      
       const user = await storage.getUserByUsername(username);
       if (!user) {
+        console.log(`لم يتم العثور على مستخدم باسم: ${username}`);
         return done(null, false, { message: 'Incorrect username.' });
       }
+      
+      console.log(`تم العثور على المستخدم: ${username}, يتم التحقق من كلمة المرور...`);
       
       // للتوافق مع الحسابات الموجودة والمستقبلية
       let isValidPassword = false;
       
       // التحقق إذا كانت كلمة المرور مشفرة بالفعل
       if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+        console.log(`كلمة المرور مشفرة للمستخدم: ${username}، استخدام bcrypt للتحقق`);
         // كلمة المرور مشفرة، استخدم bcrypt للتحقق
         isValidPassword = await bcrypt.compare(password, user.password);
+        console.log(`نتيجة التحقق باستخدام bcrypt: ${isValidPassword ? 'ناجح' : 'فاشل'}`);
       } else {
+        console.log(`كلمة المرور غير مشفرة للمستخدم: ${username}، استخدام المقارنة المباشرة`);
         // كلمة المرور غير مشفرة (حسابات قديمة)، قارن مباشرة
         isValidPassword = user.password === password;
+        console.log(`نتيجة التحقق المباشر: ${isValidPassword ? 'ناجح' : 'فاشل'}`);
         
         // إذا نجح التحقق، قم بتحديث كلمة المرور لتكون مشفرة
         if (isValidPassword) {
+          console.log(`ترحيل كلمة المرور للمستخدم: ${username} إلى bcrypt`);
           const hashedPassword = await bcrypt.hash(password, 10);
           await storage.updateUserPassword(user.id, hashedPassword);
           console.log(`تم تحديث تشفير كلمة المرور للمستخدم: ${username}`);
@@ -69,11 +79,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       if (!isValidPassword) {
+        console.log(`فشل المصادقة للمستخدم: ${username} - كلمة المرور غير صحيحة`);
         return done(null, false, { message: 'Incorrect password.' });
       }
       
+      console.log(`نجاح المصادقة للمستخدم: ${username} بالدور: ${user.role}`);
       return done(null, user);
     } catch (err) {
+      console.error(`خطأ أثناء المصادقة للمستخدم: ${username}`, err);
       return done(err);
     }
   }));
@@ -201,12 +214,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/auth/user', (req: Request, res: Response) => {
+    console.log(`طلب /api/auth/user - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+    
     if (req.isAuthenticated()) {
       const user = req.user as any;
+      console.log(`استرجاع معلومات المستخدم: ${user.username}, الدور: ${user.role}, معرف: ${user.id}`);
+      
       // استثناء كلمة المرور من الاستجابة
       const { password, ...userWithoutPassword } = user;
+      console.log(`إرسال معلومات المستخدم بدون كلمة المرور: `, { user: userWithoutPassword });
+      
       return res.json({ user: userWithoutPassword });
     }
+    
+    console.log(`طلب /api/auth/user - المستخدم غير مصرح, sessionID: ${req.sessionID}`);
     return res.status(401).json({ message: 'Not authenticated' });
   });
 
