@@ -120,6 +120,15 @@ export class MemStorage implements IStorage {
   async getUsers(): Promise<User[]> {
     return Array.from(this.users.values());
   }
+
+  async updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { ...user, password: hashedPassword };
+    this.users.set(id, updatedUser);
+    return updatedUser;
+  }
   
   // Company profile operations
   async getCompanyProfile(id: number): Promise<CompanyProfile | undefined> {
@@ -594,6 +603,14 @@ export class DatabaseStorage implements IStorage {
 
   async getUsers(): Promise<User[]> {
     return await db.query.users.findMany();
+  }
+  
+  async updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined> {
+    const [updatedUser] = await db.update(schema.users)
+      .set({ password: hashedPassword })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return updatedUser;
   }
 
   // Company profile operations

@@ -114,7 +114,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Email already exists' });
       }
       
-      const user = await storage.createUser(userData);
+      // تشفير كلمة المرور قبل التخزين
+      const hashedPassword = await bcrypt.hash(userData.password, 10);
+      const securedUserData = { ...userData, password: hashedPassword };
+      
+      const user = await storage.createUser(securedUserData);
       
       // If user is a company, create a company profile
       if (userData.role === 'company' && req.body.companyProfile) {
@@ -130,7 +134,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (err) {
           return res.status(500).json({ message: 'Error logging in after registration' });
         }
-        return res.status(201).json({ user });
+        // إزالة كلمة المرور من استجابة التسجيل
+        const { password, ...userWithoutPassword } = user;
+        return res.status(201).json({ user: userWithoutPassword });
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -142,7 +148,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/auth/login', passport.authenticate('local'), (req: Request, res: Response) => {
-    res.json({ user: req.user });
+    const user = req.user as any;
+    // إزالة كلمة المرور من استجابة تسجيل الدخول
+    const { password, ...userWithoutPassword } = user;
+    res.json({ user: userWithoutPassword });
   });
 
   app.post('/api/auth/logout', (req: Request, res: Response) => {
@@ -157,20 +166,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تحقق مما إذا كان يوجد مستخدم بنفس اسم المستخدم
       const existingUser = await storage.getUserByUsername('admin');
       if (existingUser) {
-        return res.json({ message: 'Admin user already exists', user: existingUser });
+        // إزالة كلمة المرور من الاستجابة
+        const { password, ...userWithoutPassword } = existingUser;
+        return res.json({ message: 'Admin user already exists', user: userWithoutPassword });
       }
+      
+      // تشفير كلمة المرور للمسؤول
+      const hashedPassword = await bcrypt.hash('admin123', 10);
       
       // إنشاء مستخدم المسؤول
       const adminUser = await storage.createUser({
         username: 'admin',
-        password: 'admin123',
+        password: hashedPassword,
         email: 'admin@techlink.example',
         role: 'admin',
         name: 'مسؤول النظام',
         avatar: 'https://randomuser.me/api/portraits/men/33.jpg'
       });
       
-      return res.json({ message: 'Admin user created successfully', user: adminUser });
+      // إزالة كلمة المرور من الاستجابة
+      const { password, ...userWithoutPassword } = adminUser;
+      return res.json({ message: 'Admin user created successfully', user: userWithoutPassword });
     } catch (error) {
       console.error('Error creating admin user:', error);
       return res.status(500).json({ message: 'Error creating admin user' });
