@@ -803,6 +803,94 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* إعدادات الموقع */}
+          <TabsContent value="settings" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>إعدادات الموقع</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-6">
+                  <div>
+                    <h3 className="text-lg font-medium mb-2">صورة الهيدر</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <div className="bg-gray-100 rounded-lg p-4 mb-4 aspect-[3/1] overflow-hidden relative">
+                          {headerImageUrl ? (
+                            <img 
+                              src={headerImageUrl} 
+                              alt="صورة الهيدر" 
+                              className="w-full h-full object-cover rounded"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full">
+                              <Image className="h-24 w-24 text-muted-foreground opacity-25" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="flex flex-col space-y-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageSelect}
+                            className="hidden"
+                            ref={fileInputRef}
+                          />
+                          
+                          <div className="flex space-x-2 rtl:space-x-reverse">
+                            <Button
+                              variant="outline"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="flex-1"
+                            >
+                              <Upload className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                              اختيار صورة
+                            </Button>
+                            
+                            <Button
+                              onClick={handleImageUpload}
+                              disabled={!headerImageFile || uploadingImage}
+                              className="flex-1"
+                            >
+                              {uploadingImage ? (
+                                <Loader2 className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0 animate-spin" />
+                              ) : (
+                                <Image className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                              )}
+                              {uploadingImage ? "جارِ الرفع..." : "تحديث الصورة"}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">تعليمات</h4>
+                          <ul className="list-disc list-inside text-sm text-muted-foreground">
+                            <li>يجب أن تكون الصورة بنسبة عرض إلى ارتفاع 3:1 للحصول على أفضل نتيجة</li>
+                            <li>الحد الأقصى لحجم الملف هو 2 ميجابايت</li>
+                            <li>الصيغ المدعومة: JPG، PNG، WebP</li>
+                            <li>استخدم صورة ذات دقة عالية</li>
+                          </ul>
+                        </div>
+                        
+                        <div>
+                          <h4 className="text-sm font-medium mb-1">معاينة</h4>
+                          <p className="text-sm text-muted-foreground">
+                            ستظهر الصورة في صفحة الرئيسية للموقع كخلفية لقسم الهيدر.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* يمكن إضافة إعدادات أخرى هنا في المستقبل */}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
 

@@ -1,4 +1,6 @@
 import { Link } from "wouter";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 type HeroSectionProps = {
   auth: {
@@ -9,6 +11,26 @@ type HeroSectionProps = {
 };
 
 const HeroSection = ({ auth }: HeroSectionProps) => {
+  const [headerImageUrl, setHeaderImageUrl] = useState<string | null>(null);
+  
+  // استعلام لجلب إعدادات الموقع
+  const { data: siteSettings } = useQuery({
+    queryKey: ["/api/site-settings/header_image"],
+    queryFn: async () => {
+      const response = await fetch("/api/site-settings/header_image");
+      if (!response.ok) {
+        return null;
+      }
+      return response.json();
+    },
+  });
+  
+  // استخراج رابط صورة الهيدر عند تحميل البيانات
+  useEffect(() => {
+    if (siteSettings?.value) {
+      setHeaderImageUrl(siteSettings.value);
+    }
+  }, [siteSettings]);
   const getEntrepreneurLink = () => {
     if (auth.isAuthenticated && auth.isEntrepreneur) {
       return "/dashboard/entrepreneur";
@@ -24,9 +46,16 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
   };
   
   return (
-    <section className="bg-gradient-to-r from-primary to-primary-dark text-white py-16 md:py-24 relative">
+    <section 
+      className="text-white py-16 md:py-24 relative"
+      style={{
+        backgroundImage: headerImageUrl ? `url(${headerImageUrl})` : 'linear-gradient(to right, var(--primary), var(--primary-dark))',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center'
+      }}
+    >
       {/* إضافة طبقة داكنة لتحسين تباين النص */}
-      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="order-2 md:order-1">
