@@ -94,39 +94,39 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
       } : {}}
     >
       {/* إضافة طبقة داكنة لتحسين تباين النص */}
-      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="order-2 md:order-1">
-            <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4 text-shadow-lg">
-              ربط رواد الأعمال بشركات البرمجة المحترفة
+            <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-xl" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
+              ربط رواد الأعمال <span className="text-amber-300">بشركات البرمجة</span> المحترفة
             </h1>
-            <p className="text-lg md:text-xl mb-4 text-white text-shadow">
+            <p className="text-lg md:text-xl mb-4 text-white drop-shadow-md font-medium" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
               نسهل عليك إيجاد الشريك المناسب لتحويل أفكارك التقنية إلى واقع. ابدأ رحلتك التقنية اليوم!
             </p>
             
             {/* عبارة تسويقية وإحصائيات المنصة */}
-            <div className="bg-white/10 backdrop-blur-sm p-4 rounded-lg mb-6 border border-white/20">
-              <p className="text-amber-300 font-semibold mb-2 flex items-center">
-                <Clock className="ml-2 h-5 w-5" />
+            <div className="bg-primary-dark/90 backdrop-blur-sm p-5 rounded-lg mb-6 border border-white/30 shadow-lg">
+              <p className="text-amber-300 font-semibold mb-3 flex items-center text-lg">
+                <Clock className="ml-2 h-6 w-6" />
                 احصل على عرض سعر مبدئي خلال 30 دقيقة فقط!
               </p>
               
-              <div className="grid grid-cols-2 gap-4 mt-4">
-                <div className="flex items-center">
-                  <Users className="ml-2 h-5 w-5 text-blue-200" />
+              <div className="grid grid-cols-2 gap-6 mt-4">
+                <div className="bg-white/10 p-3 rounded-lg flex items-center">
+                  <Users className="ml-3 h-6 w-6 text-blue-200" />
                   <div>
-                    <div className="font-bold text-xl text-blue-200">
+                    <div className="font-bold text-2xl text-white">
                       {statsLoading ? "..." : platformStats?.verifiedCompaniesCount || 0}+
                     </div>
                     <div className="text-sm text-blue-100">شركة موثقة</div>
                   </div>
                 </div>
                 
-                <div className="flex items-center">
-                  <CheckCircle className="ml-2 h-5 w-5 text-green-200" />
+                <div className="bg-white/10 p-3 rounded-lg flex items-center">
+                  <CheckCircle className="ml-3 h-6 w-6 text-green-200" />
                   <div>
-                    <div className="font-bold text-xl text-green-200">
+                    <div className="font-bold text-2xl text-white">
                       {statsLoading ? "..." : platformStats?.completedProjectsCount || 0}+
                     </div>
                     <div className="text-sm text-green-100">مشروع مكتمل</div>
