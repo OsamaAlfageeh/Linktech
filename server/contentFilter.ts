@@ -6,6 +6,39 @@
 /**
  * تعبيرات منتظمة للكشف عن أنماط معلومات التواصل الشائعة
  */
+ 
+// قاموس تحويل الأرقام المكتوبة باللغة العربية إلى أرقام
+const arabicWordsToDigits: Record<string, string> = {
+  صفر: '0',
+  زيرو: '0',
+  واحد: '1',
+  اثنين: '2',
+  اثنان: '2',
+  إثنين: '2',
+  ثلاثة: '3',
+  ثلاث: '3',
+  ثلاثه: '3',
+  اربعة: '4',
+  اربع: '4',
+  أربعة: '4',
+  أربع: '4',
+  خمسة: '5',
+  خمس: '5',
+  خمسه: '5',
+  ستة: '6',
+  ست: '6',
+  سته: '6',
+  سبعة: '7',
+  سبع: '7',
+  سبعه: '7',
+  ثمانية: '8',
+  ثمان: '8',
+  ثمانيه: '8',
+  تسعة: '9',
+  تسع: '9',
+  تسعه: '9'
+};
+
 const contentFilters = {
   // أرقام الهواتف بصيغ مختلفة
   phoneNumbers: [
@@ -57,6 +90,137 @@ const contentFilters = {
 };
 
 /**
+ * تحويل الكلمات العربية التي تمثل أرقامًا إلى أرقام
+ * @param text النص المراد فحصه
+ * @returns نص بعد تحويل كلمات الأرقام العربية إلى أرقام فعلية
+ */
+function convertArabicWordsToDigits(text: string): string {
+  // تعديل النص لتسهيل التعرف على الكلمات
+  // إزالة علامات الترقيم والمسافات المتعددة
+  const processedText = text.replace(/[.\-,،+\/\\]/g, ' ').replace(/\s+/g, ' ');
+  
+  // تقسيم النص إلى كلمات
+  const words = processedText.split(/\s+/);
+  let result = '';
+  let consecutiveDigits = '';
+  let digitCount = 0;
+  
+  for (let i = 0; i < words.length; i++) {
+    // تطهير الكلمة من أي رموز غير مرغوب بها
+    const word = words[i].trim().replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\w]/g, '');
+    
+    // البحث عن كلمة في قاموس تحويل الأرقام
+    const digit = arabicWordsToDigits[word];
+    
+    if (digit) {
+      consecutiveDigits += digit;
+      digitCount++;
+    } else {
+      // فحص إذا كانت الكلمة تحتوي أرقام مباشرة (للتعامل مع حالات مثل "رقم5")
+      const extractedDigits = word.match(/\d+/g);
+      if (extractedDigits) {
+        for (const num of extractedDigits) {
+          consecutiveDigits += num;
+          digitCount += num.length;
+        }
+      } else {
+        // إذا كانت هناك مسافة أو فاصل ولدينا أرقام متتالية كافية، نضيفها للنتيجة
+        if (consecutiveDigits.length >= 4) {
+          // إذا كان لدينا رقم سعودي محتمل (يبدأ بـ "0" أو "5")
+          if (consecutiveDigits.match(/^0?5/) && consecutiveDigits.length >= 9) {
+            result += ' ' + consecutiveDigits + ' ';
+          } 
+          // أو إذا كان لدينا رقم طويل (5+ أرقام)
+          else if (consecutiveDigits.length >= 5) {
+            result += ' ' + consecutiveDigits + ' ';
+          }
+        }
+        consecutiveDigits = '';
+        digitCount = 0;
+      }
+    }
+    
+    // إذا وصلنا إلى 10 أو أكثر من الأرقام المتتالية، نضيفها للنتيجة ونبدأ من جديد
+    if (consecutiveDigits.length >= 10) {
+      result += ' ' + consecutiveDigits + ' ';
+      consecutiveDigits = '';
+      digitCount = 0;
+    }
+  }
+  
+  // التحقق من الأرقام المتبقية في النهاية
+  if (consecutiveDigits.length >= 4) {
+    // إذا كان لدينا رقم سعودي محتمل (يبدأ بـ "0" أو "5")
+    if (consecutiveDigits.match(/^0?5/) && consecutiveDigits.length >= 9) {
+      result += ' ' + consecutiveDigits + ' ';
+    } 
+    // أو إذا كان لدينا رقم طويل (5+ أرقام)
+    else if (consecutiveDigits.length >= 5) {
+      result += ' ' + consecutiveDigits + ' ';
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * البحث عن أنماط أرقام الهواتف السعودية في النص
+ * @param text النص المراد فحصه
+ * @returns هل يحتوي النص على نمط يشبه رقم هاتف سعودي
+ */
+function detectSaudiPhoneNumberPatterns(text: string): boolean {
+  // أنماط مختلفة لأرقام الهواتف السعودية
+  const patterns = [
+    /\b0?5\d{8}\b/g, // 05xxxxxxxx or 5xxxxxxxx
+    /\b0?5[\s-]?\d{4}[\s-]?\d{4}\b/g, // 05-xxxx-xxxx or 5 xxxx xxxx
+    /\b\+9665\d{8}\b/g, // +9665xxxxxxxx
+    /\b\+966[\s-]?5[\s-]?\d{8}\b/g, // +966-5-xxxxxxxx or +966 5 xxxxxxxx
+    /\b9665\d{8}\b/g, // 9665xxxxxxxx
+    /\b966[\s-]?5[\s-]?\d{8}\b/g, // 966-5-xxxxxxxx or 966 5 xxxxxxxx
+  ];
+  
+  // فحص جميع الأنماط
+  for (const pattern of patterns) {
+    if (pattern.test(text)) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
+ * التحقق من احتمالية أن يحتوي النص على رقم مخفي
+ * هذه الدالة تقوم بفحوصات إضافية للنص للبحث عن أنماط غير عادية
+ * مثل النصوص التي تحتوي على عدد كبير من الأرقام أو كلمات تمثل أرقام
+ */
+function detectSuspiciousNumberPatterns(text: string): boolean {
+  // عدد الأرقام المتتالية الذي يعتبر مشبوهًا
+  const SUSPICIOUS_DIGIT_COUNT = 5;
+  
+  // فحص إذا كان النص يحتوي على كلمات دالة على أرقام متبوعة بأرقام
+  const phoneKeywordsPattern = /\b(رقم|جوال|موبايل|هاتف|تلفون|اتصال|واتس|واتساب|whatsapp)[\s:]*\d+/gi;
+  if (phoneKeywordsPattern.test(text)) {
+    return true;
+  }
+  
+  // فحص إذا كان النص يحتوي على أكثر من خمسة أرقام بأي شكل
+  const digitCount = (text.match(/\d/g) || []).length;
+  if (digitCount >= SUSPICIOUS_DIGIT_COUNT) {
+    // فحص إضافي: إذا كانت هذه الأرقام تشكل نسبة كبيرة من النص
+    const textLength = text.length;
+    const digitRatio = digitCount / textLength;
+    
+    // إذا كانت نسبة الأرقام أكثر من 15% من النص، فهذا مشبوه
+    if (digitRatio > 0.15) {
+      return true;
+    }
+  }
+  
+  return false;
+}
+
+/**
  * التحقق من نص ما إذا كان يحتوي على معلومات تواصل محظورة
  * @param text النص المراد فحصه
  * @returns حالة النص (آمن أم لا) ونوع المعلومات المحظورة إن وجدت
@@ -67,12 +231,40 @@ export function checkMessageForProhibitedContent(text: string): { safe: boolean;
   }
 
   const violations: string[] = [];
-
-  // التحقق من أرقام الهواتف
+  
+  // تحويل كلمات الأرقام العربية إلى أرقام
+  const convertedText = convertArabicWordsToDigits(text);
+  
+  // طباعة النص المحول للتأكد من عمل الدالة (يمكن إزالة هذا في الإنتاج)
+  console.log('النص المحول من الكلمات العربية:', convertedText);
+  
+  // التحقق من أرقام الهواتف في النص الأصلي
   for (const pattern of contentFilters.phoneNumbers) {
     if (pattern.test(text)) {
       violations.push('رقم_هاتف');
       break;
+    }
+  }
+  
+  // التحقق من أرقام الهواتف في النص المحول (إذا تم تكوين رقم من كلمات عربية)
+  if (violations.length === 0 && convertedText.trim().length > 0) {
+    // التحقق من أنماط أرقام الهواتف السعودية
+    if (detectSaudiPhoneNumberPatterns(convertedText)) {
+      violations.push('رقم_هاتف_مكتوب_نصياً');
+    }
+    
+    // نمط عام للأرقام الطويلة (5+ أرقام متتالية)
+    const longNumberPattern = /\b\d{5,}\b/g;
+    if (longNumberPattern.test(convertedText)) {
+      violations.push('رقم_محتمل_مكتوب_نصياً');
+    }
+  }
+  
+  // فحص إضافي للأنماط المشبوهة إذا لم نجد انتهاكات سابقة
+  if (violations.length === 0) {
+    if (detectSuspiciousNumberPatterns(text) || 
+        (convertedText.trim().length > 0 && detectSuspiciousNumberPatterns(convertedText))) {
+      violations.push('نمط_مشبوه_محتمل_مشاركة_رقم');
     }
   }
 
