@@ -41,10 +41,21 @@ const getInitials = (name: string): string => {
 };
 
 const Messages: React.FC<MessageProps> = ({ auth }) => {
-  const [selectedConversation, setSelectedConversation] = useState<number | null>(null);
+  // استخلاص userId من المسار إذا تم تعيينه
+  const [, params] = useLocation();
+  const userId = window.location.pathname.includes('/messages/') 
+    ? parseInt(window.location.pathname.split('/messages/')[1]) 
+    : null;
+  
+  const [selectedConversation, setSelectedConversation] = useState<number | null>(userId);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [projectId, setProjectId] = useState<number | null>(null);
+  const [projectId, setProjectId] = useState<number | null>(
+    // قراءة معلمة المشروع من queryString إذا وجدت
+    new URLSearchParams(window.location.search).get('projectId') 
+      ? parseInt(new URLSearchParams(window.location.search).get('projectId') || '0')
+      : null
+  );
   const { toast } = useToast();
   const [wsConnected, setWsConnected] = useState(false);
   const [wsError, setWsError] = useState(false);
@@ -54,6 +65,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [wsReconnectAttempts, setWsReconnectAttempts] = useState(0);
   const maxReconnectAttempts = 5;
   const reconnectInterval = 3000; // 3 ثوانٍ
+  
+  // تسجيل معلومات التنقيح
+  useEffect(() => {
+    console.log("صفحة الرسائل: المسار =", window.location.pathname);
+    console.log("صفحة الرسائل: userId المستخلص =", userId);
+    console.log("صفحة الرسائل: projectId المستخلص =", projectId);
+  }, [userId, projectId]);
 
   // آلية الاتصال بـ WebSocket مع إعادة المحاولة
   useEffect(() => {

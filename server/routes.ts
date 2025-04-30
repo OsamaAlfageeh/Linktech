@@ -31,15 +31,27 @@ const SessionStore = MemoryStore(session);
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize session and passport
+  // تكوين الجلسة بشكل صحيح
   app.use(session({
     secret: process.env.SESSION_SECRET || 'techlinkapp',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { secure: false, maxAge: 24 * 60 * 60 * 1000 }, // 24 hours
+    resave: true, // تعديل للتأكد من حفظ التغييرات 
+    saveUninitialized: true, // تعديل للتأكد من حفظ الجلسات الجديدة
+    cookie: { 
+      secure: false, // تغيير إلى true في بيئة الإنتاج مع HTTPS
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم
+      httpOnly: true,
+      sameSite: 'lax'
+    },
     store: new SessionStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
+      checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
     })
   }));
+  
+  // لتصحيح الأخطاء المتعلقة بالـ CORS مع الجلسات
+  app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Credentials', 'true');
+    next();
+  });
 
   app.use(passport.initialize());
   app.use(passport.session());

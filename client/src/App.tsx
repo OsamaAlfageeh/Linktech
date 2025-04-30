@@ -150,7 +150,15 @@ function App() {
             </div>
           </Route>
           {/* نهاية التعديل المؤقت */}
+          {/* صفحة الرسائل: تدعم المسار الأساسي والمسار مع معلمة userId */}
           <Route path="/messages">
+            {auth.isAuthenticated ? (
+              <Messages auth={auth} />
+            ) : (
+              <NotFound />
+            )}
+          </Route>
+          <Route path="/messages/:userId">
             {auth.isAuthenticated ? (
               <Messages auth={auth} />
             ) : (
