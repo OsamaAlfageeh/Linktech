@@ -47,15 +47,15 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
   
   return (
     <section 
-      className="text-white py-16 md:py-24 relative"
-      style={{
-        backgroundImage: headerImageUrl ? `url(${headerImageUrl})` : 'linear-gradient(to right, var(--primary), var(--primary-dark))',
+      className="text-white py-16 md:py-24 relative bg-gradient-to-r from-primary to-primary-dark"
+      style={headerImageUrl ? {
+        backgroundImage: `url(${headerImageUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
-      }}
+      } : {}}
     >
       {/* إضافة طبقة داكنة لتحسين تباين النص */}
-      <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+      <div className="absolute inset-0 bg-black bg-opacity-10"></div>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="order-2 md:order-1">
