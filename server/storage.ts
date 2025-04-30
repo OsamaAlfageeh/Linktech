@@ -69,6 +69,7 @@ export class MemStorage implements IStorage {
   private messages: Map<number, Message>;
   private testimonials: Map<number, Testimonial>;
   private projectOffers: Map<number, ProjectOffer>;
+  private siteSettings: Map<string, SiteSetting>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -76,6 +77,7 @@ export class MemStorage implements IStorage {
   private messageIdCounter: number = 1;
   private testimonialIdCounter: number = 1;
   private projectOfferIdCounter: number = 1;
+  private siteSettingsIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -84,6 +86,7 @@ export class MemStorage implements IStorage {
     this.messages = new Map();
     this.testimonials = new Map();
     this.projectOffers = new Map();
+    this.siteSettings = new Map();
     
     this.seedData();
   }
@@ -326,6 +329,42 @@ export class MemStorage implements IStorage {
     const updatedOffer = { ...offer, contactRevealed: true };
     this.projectOffers.set(id, updatedOffer);
     return updatedOffer;
+  }
+  
+  // Site Settings operations
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    return Array.from(this.siteSettings.values()).find(
+      (setting) => setting.key === key
+    );
+  }
+  
+  async setSiteSetting(key: string, value: string): Promise<SiteSetting> {
+    const existingSetting = await this.getSiteSetting(key);
+    const now = new Date();
+    
+    if (existingSetting) {
+      const updatedSetting: SiteSetting = { 
+        ...existingSetting, 
+        value, 
+        updatedAt: now 
+      };
+      this.siteSettings.set(existingSetting.id.toString(), updatedSetting);
+      return updatedSetting;
+    } else {
+      const id = this.siteSettingsIdCounter++;
+      const newSetting: SiteSetting = { 
+        id, 
+        key, 
+        value, 
+        updatedAt: now 
+      };
+      this.siteSettings.set(id.toString(), newSetting);
+      return newSetting;
+    }
+  }
+  
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    return Array.from(this.siteSettings.values());
   }
   
   // Seed initial data
@@ -792,6 +831,36 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.projectOffers.id, id))
       .returning();
     return updatedOffer;
+  }
+  
+  // Site Settings operations
+  async getSiteSetting(key: string): Promise<SiteSetting | undefined> {
+    const settings = await db.query.siteSettings.findMany({
+      where: eq(schema.siteSettings.key, key),
+      limit: 1
+    });
+    return settings.length > 0 ? settings[0] : undefined;
+  }
+
+  async setSiteSetting(key: string, value: string): Promise<SiteSetting> {
+    const existingSetting = await this.getSiteSetting(key);
+
+    if (existingSetting) {
+      const [updatedSetting] = await db.update(schema.siteSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(schema.siteSettings.key, key))
+        .returning();
+      return updatedSetting;
+    } else {
+      const [newSetting] = await db.insert(schema.siteSettings)
+        .values({ key, value })
+        .returning();
+      return newSetting;
+    }
+  }
+
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    return await db.query.siteSettings.findMany();
   }
 }
 
