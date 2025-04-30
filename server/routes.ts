@@ -85,6 +85,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
+      if (!user) {
+        return done(null, false);
+      }
+      // نحن لا نحتاج لإزالة كلمة المرور هنا لأن هذه المعلومات ستبقى في العملية
+      // وخطوة إزالة كلمة المرور تحدث عند إرسال البيانات للمستخدم في استجابات API
       done(null, user);
     } catch (err) {
       done(err);
@@ -148,9 +153,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post('/api/auth/login', passport.authenticate('local'), (req: Request, res: Response) => {
+    console.log('تسجيل دخول ناجح للمستخدم:', req.user?.username);
     const user = req.user as any;
     // إزالة كلمة المرور من استجابة تسجيل الدخول
     const { password, ...userWithoutPassword } = user;
+    console.log('إرسال استجابة تسجيل الدخول:', { user: userWithoutPassword });
     res.json({ user: userWithoutPassword });
   });
 
