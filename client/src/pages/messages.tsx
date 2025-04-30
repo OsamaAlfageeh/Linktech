@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, AlertTriangle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link } from 'wouter';
-import { Message, Conversation } from '@/interfaces/messageTypes';
+import { Message, Conversation, WebSocketMessage, ContentError } from '@/interfaces/messageTypes';
 import ConversationWrapper, { formatDate } from '@/components/messages/ConversationWrapper';
 
 // إضافة أنواع البيانات
@@ -191,6 +191,28 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               if (selectedConversation) {
                 queryClient.invalidateQueries({ 
                   queryKey: ['/api/messages/conversation', selectedConversation] 
+                });
+              }
+            }
+            
+            // إذا كان هناك خطأ في محتوى الرسالة (وجود معلومات اتصال محظورة)
+            if (data.type === 'message_error' && data.error) {
+              console.log('خطأ في محتوى الرسالة:', data.error);
+              
+              // إظهار رسالة خطأ للمستخدم
+              toast({
+                title: 'لم يتم إرسال الرسالة',
+                description: data.error.message || 'الرسالة تحتوي على محتوى غير مسموح به',
+                variant: "destructive",
+              });
+              
+              // عرض تفاصيل المخالفة للمستخدم
+              if (data.error.violations && data.error.violations.length > 0) {
+                const violations = data.error.violations.join('، ');
+                toast({
+                  title: 'تفاصيل المخالفة',
+                  description: `نوع المخالفة: ${violations}. لا يمكن مشاركة معلومات الاتصال عبر المنصة. سيتم الكشف عن معلومات التواصل بعد دفع العمولة عند قبول العرض.`,
+                  variant: "warning",
                 });
               }
             }

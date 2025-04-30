@@ -826,6 +826,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         if (data.type === 'message' && userId && typeof data.toUserId === 'number') {
           console.log(`رسالة جديدة من المستخدم ${userId} إلى ${data.toUserId}`);
           
+          // التحقق من محتوى الرسالة قبل الحفظ
+          const contentCheck = checkMessageForProhibitedContent(data.content);
+          
+          // التحقق من مخالفة قوانين المحتوى
+          if (!contentCheck.safe) {
+            console.log(`محتوى رسالة محظور من المستخدم ${userId}، المخالفات: ${contentCheck.violations?.join(', ')}`);
+            
+            // إرسال إشعار بالخطأ للمرسل
+            ws.send(JSON.stringify({
+              type: 'message_error',
+              error: {
+                message: 'الرسالة تحتوي على معلومات اتصال محظورة',
+                violations: contentCheck.violations
+              }
+            }));
+            
+            return; // عدم إكمال معالجة الرسالة
+          }
+          
           // حفظ الرسالة في قاعدة البيانات
           const message = await storage.createMessage({
             content: data.content,

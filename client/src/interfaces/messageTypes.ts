@@ -24,3 +24,18 @@ export interface Conversation {
   lastMessageTime: string;
   unreadCount: number;
 }
+
+// أنواع بيانات الرسائل والأخطاء للـ WebSocket
+export interface WebSocketMessage {
+  type: string;
+  message?: Message;
+  error?: ContentError;
+}
+
+export interface ContentError {
+  message: string;
+  violations?: string[];
+}
+
+// أنواع مخالفات المحتوى
+export type ContentViolationType = 'رقم_هاتف' | 'بريد_إلكتروني' | 'حساب_تواصل_اجتماعي' | 'رابط_خارجي';
