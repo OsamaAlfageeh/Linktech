@@ -798,6 +798,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Site Settings routes
+  // Get a specific site setting by key
+  app.get('/api/site-settings/:key', async (req: Request, res: Response) => {
+    try {
+      const key = req.params.key;
+      const setting = await storage.getSiteSetting(key);
+      
+      if (!setting) {
+        return res.status(404).json({ message: 'Setting not found' });
+      }
+      
+      res.json(setting);
+    } catch (error) {
+      console.error('Error getting site setting:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Get all site settings
+  app.get('/api/site-settings', async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error getting all site settings:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Set a site setting (admin only)
+  app.post('/api/site-settings/:key', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // Only admin can update site settings
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: 'هذه العملية متاحة للمسؤولين فقط' });
+      }
+      
+      const key = req.params.key;
+      const value = req.body.value;
+      
+      if (value === undefined) {
+        return res.status(400).json({ message: 'Value is required' });
+      }
+      
+      const setting = await storage.setSiteSetting(key, value);
+      res.json(setting);
+    } catch (error) {
+      console.error('Error setting site setting:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // إنشاء خادم WebSocket
