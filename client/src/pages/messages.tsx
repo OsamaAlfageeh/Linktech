@@ -212,7 +212,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 toast({
                   title: 'تفاصيل المخالفة',
                   description: `نوع المخالفة: ${violations}. لا يمكن مشاركة معلومات الاتصال عبر المنصة. سيتم الكشف عن معلومات التواصل بعد دفع العمولة عند قبول العرض.`,
-                  variant: "warning",
+                  variant: "destructive",
                 });
               }
             }
