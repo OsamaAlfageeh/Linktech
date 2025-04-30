@@ -56,6 +56,14 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  
+  // متغيرات لمراقبة المحادثات
+  const [selectedUser1Id, setSelectedUser1Id] = useState<number | null>(null);
+  const [selectedUser2Id, setSelectedUser2Id] = useState<number | null>(null);
+  const [conversation, setConversation] = useState<any[]>([]);
+  const [conversationLoading, setConversationLoading] = useState(false);
+  const [conversationLoaded, setConversationLoaded] = useState(false);
+  const [conversationError, setConversationError] = useState<string | null>(null);
 
   // تأكد من أن المستخدم مسؤول
   // تعطيل التحقق مؤقتاً
@@ -202,6 +210,45 @@ export default function AdminDashboard() {
     }
   };
 
+  // تحميل محادثة بين مستخدمين
+  const loadConversation = async () => {
+    if (!selectedUser1Id || !selectedUser2Id) {
+      setConversationError("يرجى اختيار مستخدمين لعرض المحادثة بينهما");
+      return;
+    }
+
+    setConversationLoading(true);
+    setConversationError(null);
+    
+    try {
+      const response = await fetch(`/api/messages/conversation/${selectedUser1Id}?otherUserId=${selectedUser2Id}`);
+      
+      if (!response.ok) {
+        throw new Error("فشل تحميل المحادثة");
+      }
+      
+      const messages = await response.json();
+      
+      // إضافة أسماء المستخدمين للعرض
+      const user1 = users?.find((u: any) => u.id === selectedUser1Id);
+      const user2 = users?.find((u: any) => u.id === selectedUser2Id);
+      
+      const enhancedMessages = messages.map((msg: any) => ({
+        ...msg,
+        fromUserName: msg.fromUserId === selectedUser1Id ? user1?.name : user2?.name,
+        toUserName: msg.toUserId === selectedUser1Id ? user1?.name : user2?.name,
+      }));
+      
+      setConversation(enhancedMessages);
+      setConversationLoaded(true);
+    } catch (error) {
+      console.error("Error loading conversation:", error);
+      setConversationError("حدث خطأ أثناء تحميل المحادثة");
+    } finally {
+      setConversationLoading(false);
+    }
+  };
+
   // حذف مستخدم
   const handleDeleteUser = async () => {
     if (!selectedUserId) return;
@@ -255,10 +302,11 @@ export default function AdminDashboard() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-3 w-full md:w-[400px]">
+          <TabsList className="grid grid-cols-4 w-full md:w-[500px]">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="users">المستخدمون</TabsTrigger>
             <TabsTrigger value="companies">الشركات</TabsTrigger>
+            <TabsTrigger value="messages">المحادثات</TabsTrigger>
           </TabsList>
 
           {/* نظرة عامة - الإحصائيات */}
@@ -511,6 +559,108 @@ export default function AdminDashboard() {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* إدارة المحادثات */}
+          <TabsContent value="messages" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>مراقبة المحادثات</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="mb-4">
+                  <h3 className="text-sm font-medium mb-1">اختر المستخدمين لعرض محادثاتهم</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">المستخدم الأول</label>
+                      <select 
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        value={selectedUser1Id?.toString() || ""}
+                        onChange={(e) => setSelectedUser1Id(Number(e.target.value) || null)}
+                      >
+                        <option value="">-- اختر مستخدم --</option>
+                        {users?.map((user: any) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} ({user.role === "admin" ? "مسؤول" : user.role === "company" ? "شركة" : "رائد أعمال"})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium mb-1 block">المستخدم الثاني</label>
+                      <select 
+                        className="w-full p-2 border border-gray-300 rounded-md"
+                        value={selectedUser2Id}
+                        onChange={(e) => setSelectedUser2Id(Number(e.target.value) || null)}
+                      >
+                        <option value="">-- اختر مستخدم --</option>
+                        {users?.map((user: any) => (
+                          <option key={user.id} value={user.id}>
+                            {user.name} ({user.role === "admin" ? "مسؤول" : user.role === "company" ? "شركة" : "رائد أعمال"})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="mt-2">
+                    <Button 
+                      onClick={() => loadConversation()} 
+                      disabled={!selectedUser1Id || !selectedUser2Id || conversationLoading}
+                      className="w-full md:w-auto"
+                    >
+                      {conversationLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          جاري التحميل...
+                        </>
+                      ) : (
+                        "عرض المحادثة"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+
+                {conversationError && (
+                  <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">
+                    {conversationError}
+                  </div>
+                )}
+
+                {conversation && conversation.length > 0 ? (
+                  <div className="border rounded-md">
+                    <div className="p-4 border-b bg-muted/30">
+                      <h3 className="font-medium">المحادثة بين {conversation[0]?.fromUserName} و {conversation[0]?.toUserName}</h3>
+                    </div>
+                    <div className="p-4 max-h-[400px] overflow-y-auto space-y-3">
+                      {conversation.map((message: any) => (
+                        <div
+                          key={message.id}
+                          className={`flex ${message.fromUserId === selectedUser1Id ? 'justify-start' : 'justify-end'}`}
+                        >
+                          <div
+                            className={`max-w-[80%] p-3 rounded-lg ${
+                              message.fromUserId === selectedUser1Id
+                                ? 'bg-muted text-foreground rounded-tr-lg rounded-bl-lg rounded-br-lg'
+                                : 'bg-primary text-primary-foreground rounded-tl-lg rounded-bl-lg rounded-br-lg'
+                            }`}
+                          >
+                            <div className="text-sm mb-1 opacity-70">
+                              {message.fromUserId === selectedUser1Id ? 'من: ' : 'من: '}
+                              <strong>{message.fromUserName}</strong> - {new Date(message.createdAt).toLocaleString('ar-SA')}
+                            </div>
+                            <div>{message.content}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : conversationLoaded && !conversationLoading ? (
+                  <div className="text-center p-8 text-muted-foreground">
+                    لا توجد رسائل بين هذين المستخدمين
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </TabsContent>
