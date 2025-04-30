@@ -80,7 +80,7 @@ const CompanyCard = ({ company }: CompanyProps) => {
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10"></div>
           )}
         </div>
-        <div className="absolute -bottom-10 sm:-bottom-12 right-4 sm:right-6 z-10">
+        <div className="absolute -bottom-12 sm:-bottom-14 right-4 sm:right-6 z-10">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg hover:scale-105">
             {company.logo ? (
               <img 
@@ -96,8 +96,8 @@ const CompanyCard = ({ company }: CompanyProps) => {
           </div>
         </div>
       </div>
-      <div className="p-3 sm:p-4 md:p-6 pt-12 sm:pt-16">
-        <h3 className="font-heading font-semibold text-base sm:text-lg md:text-xl mb-1 sm:mb-2 transition-colors duration-300 hover:text-primary bg-gradient-to-r from-primary to-primary bg-[length:0%_2px] bg-no-repeat bg-bottom group-hover:bg-[length:100%_2px] line-clamp-1">{company.name}</h3>
+      <div className="p-3 sm:p-4 md:p-6 pt-14 sm:pt-20">
+        <h3 className="font-heading font-semibold text-base sm:text-lg md:text-xl mb-1 sm:mb-2 transition-colors duration-300 hover:text-primary bg-gradient-to-r from-primary to-primary bg-[length:0%_2px] bg-no-repeat bg-bottom group-hover:bg-[length:100%_2px] line-clamp-1 relative">{company.name}</h3>
         <div className="flex items-center text-xs sm:text-sm text-amber-500 mb-2 sm:mb-3 group">
           <div className="flex transition-transform duration-300 group-hover:scale-110">
             {renderStars(company.rating)}
