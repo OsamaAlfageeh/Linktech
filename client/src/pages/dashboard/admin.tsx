@@ -1,12 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useAuth } from "@/App";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
-import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2 } from "lucide-react";
+import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -64,6 +64,12 @@ export default function AdminDashboard() {
   const [conversationLoading, setConversationLoading] = useState(false);
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
+  
+  // متغيرات لإعدادات الموقع
+  const [headerImageUrl, setHeaderImageUrl] = useState<string>("");
+  const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // تأكد من أن المستخدم مسؤول
   // تعطيل التحقق مؤقتاً
@@ -136,6 +142,66 @@ export default function AdminDashboard() {
     },
     enabled: isAuthenticated && user?.role === "admin",
   });
+  
+  // استعلام لجلب إعدادات الموقع
+  const {
+    data: siteSettings,
+    isLoading: settingsLoading,
+    refetch: refetchSettings,
+  } = useQuery({
+    queryKey: ["/api/site-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/site-settings");
+      if (!response.ok) {
+        throw new Error("فشل في جلب إعدادات الموقع");
+      }
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === "admin"
+  });
+  
+  // استخراج رابط صورة الهيدر عند تحميل البيانات
+  useEffect(() => {
+    if (siteSettings) {
+      const headerImage = siteSettings.find((setting: any) => setting.key === "header_image");
+      if (headerImage) {
+        setHeaderImageUrl(headerImage.value);
+      }
+    }
+  }, [siteSettings]);
+  
+  // تعديل باستخدام: useMutation لتحديث إعدادات الموقع
+  const updateSiteSettingMutation = useMutation({
+    mutationFn: async ({ key, value }: { key: string, value: string }) => {
+      const response = await fetch(`/api/site-settings/${key}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ value }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("فشل في تحديث إعدادات الموقع");
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "تم التحديث",
+        description: "تم تحديث إعدادات الموقع بنجاح",
+      });
+      refetchSettings();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "خطأ",
+        description: error.message || "حدث خطأ أثناء تحديث إعدادات الموقع",
+        variant: "destructive",
+      });
+    },
+  });
 
   // حساب الإحصائيات
   const stats: AdminDashboardStats = {
@@ -157,8 +223,80 @@ export default function AdminDashboard() {
     },
   };
 
+  // دالة لمعالجة اختيار الصورة
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setHeaderImageFile(file);
+      
+      // قراءة الملف وتحويله إلى URL مؤقت للعرض
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setHeaderImageUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // دالة لرفع الصورة وتحديث الإعدادات
+  const handleImageUpload = async () => {
+    if (!headerImageFile) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء اختيار صورة أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploadingImage(true);
+    
+    try {
+      // تحويل الصورة إلى Base64
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        const base64String = e.target?.result as string;
+        // استخراج البيانات فقط دون معلومات النوع
+        const base64Data = base64String.split(',')[1];
+        
+        // تحديث إعدادات الموقع باستخدام الـ mutation
+        await updateSiteSettingMutation.mutateAsync({
+          key: "header_image",
+          value: base64String,
+        });
+        
+        setUploadingImage(false);
+        toast({
+          title: "تم رفع الصورة",
+          description: "تم تحديث صورة الهيدر بنجاح",
+        });
+      };
+      
+      reader.onerror = () => {
+        setUploadingImage(false);
+        toast({
+          title: "خطأ",
+          description: "فشل في قراءة الصورة",
+          variant: "destructive",
+        });
+      };
+      
+      reader.readAsDataURL(headerImageFile);
+      
+    } catch (error) {
+      setUploadingImage(false);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء رفع الصورة",
+        variant: "destructive",
+      });
+      console.error(error);
+    }
+  };
+  
   // لتحميل البيانات
-  const isLoading = usersLoading || projectsLoading || companiesLoading;
+  const isLoading = usersLoading || projectsLoading || companiesLoading || settingsLoading;
 
   // تحديث حالة مستخدم (تفعيل/تعطيل)
   const handleToggleUserStatus = async (userId: number, currentStatus: boolean) => {
@@ -302,11 +440,12 @@ export default function AdminDashboard() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-4 w-full md:w-[500px]">
+          <TabsList className="grid grid-cols-5 w-full md:w-[600px]">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="users">المستخدمون</TabsTrigger>
             <TabsTrigger value="companies">الشركات</TabsTrigger>
             <TabsTrigger value="messages">المحادثات</TabsTrigger>
+            <TabsTrigger value="settings">الإعدادات</TabsTrigger>
           </TabsList>
 
           {/* نظرة عامة - الإحصائيات */}
