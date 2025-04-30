@@ -431,17 +431,12 @@ export function checkMessageForProhibitedContent(
   }
   
   // التحقق من الأنماط المتسلسلة (إذا تم تقديم معرفات المستخدمين)
-  if (violations.length === 0 && fromUserId && toUserId) {
+  if (fromUserId && toUserId) {
     if (detectSuspiciousSequentialPatterns(fromUserId, toUserId, text)) {
       violations.push('نمط_متسلسل_مشبوه');
       
       // طباعة إشعار (يمكن إزالته في الإنتاج)
       console.log(`تم اكتشاف نمط متسلسل مشبوه بين المستخدمين ${fromUserId} و ${toUserId}`);
-    }
-    
-    // تحديث سجل المحادثة بالرسالة الجديدة إذا تم قبولها فقط
-    if (violations.length === 0) {
-      addMessageToConversationHistory(fromUserId, toUserId, text);
     }
   }
 
