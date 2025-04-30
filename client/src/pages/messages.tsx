@@ -111,9 +111,10 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 type: 'auth',
                 userId: auth.user.id
               }));
-              console.log('تم إرسال بيانات المصادقة للمستخدم:', auth.user.id);
             } catch (e) {
-              console.error('خطأ عند إرسال بيانات المصادقة:', e);
+              console.error('WebSocket authentication error:', e);
+              // Fallback to HTTP polling if WebSocket fails
+              wsReconnectAttempts = maxReconnectAttempts;
             }
           }
         };
