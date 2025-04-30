@@ -166,12 +166,17 @@ export default function AdminDashboard() {
     enabled: isAuthenticated && user?.role === "admin"
   });
   
-  // استخراج رابط صورة الهيدر عند تحميل البيانات
+  // استخراج رابط صور الهيدر والجانب عند تحميل البيانات
   useEffect(() => {
     if (siteSettings) {
       const headerImage = siteSettings.find((setting: any) => setting.key === "header_image");
       if (headerImage) {
         setHeaderImageUrl(headerImage.value);
+      }
+      
+      const sideImage = siteSettings.find((setting: any) => setting.key === "side_image");
+      if (sideImage) {
+        setSideImageUrl(sideImage.value);
       }
     }
   }, [siteSettings]);
@@ -229,7 +234,7 @@ export default function AdminDashboard() {
     },
   };
 
-  // دالة لمعالجة اختيار الصورة
+  // دالة لمعالجة اختيار صورة الهيدر
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -244,7 +249,22 @@ export default function AdminDashboard() {
     }
   };
   
-  // دالة لرفع الصورة وتحديث الإعدادات
+  // دالة لمعالجة اختيار صورة الجانب
+  const handleSideImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSideImageFile(file);
+      
+      // قراءة الملف وتحويله إلى URL مؤقت للعرض
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setSideImageUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // دالة لرفع صورة الهيدر وتحديث الإعدادات
   const handleImageUpload = async () => {
     if (!headerImageFile) {
       toast({
@@ -292,6 +312,61 @@ export default function AdminDashboard() {
       
     } catch (error) {
       setUploadingImage(false);
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء رفع الصورة",
+        variant: "destructive",
+      });
+      console.error(error);
+    }
+  };
+  
+  // دالة لرفع صورة الجانب وتحديث الإعدادات
+  const handleSideImageUpload = async () => {
+    if (!sideImageFile) {
+      toast({
+        title: "خطأ",
+        description: "الرجاء اختيار صورة أولاً",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setUploadingSideImage(true);
+    
+    try {
+      // تحويل الصورة إلى Base64
+      const reader = new FileReader();
+      
+      reader.onload = async (e) => {
+        const base64String = e.target?.result as string;
+        
+        // تحديث إعدادات الموقع باستخدام الـ mutation
+        await updateSiteSettingMutation.mutateAsync({
+          key: "side_image",
+          value: base64String,
+        });
+        
+        setUploadingSideImage(false);
+        toast({
+          title: "تم رفع الصورة",
+          description: "تم تحديث صورة الجانب بنجاح",
+        });
+      };
+      
+      reader.onerror = () => {
+        setUploadingSideImage(false);
+        toast({
+          title: "خطأ",
+          description: "فشل في قراءة الصورة",
+          variant: "destructive",
+        });
+      };
+      
+      reader.readAsDataURL(sideImageFile);
+      
+    } catch (error) {
+      setUploadingSideImage(false);
       toast({
         title: "خطأ",
         description: "حدث خطأ أثناء رفع الصورة",
