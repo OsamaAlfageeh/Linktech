@@ -4,6 +4,7 @@ import FeaturedProjects from "@/components/home/FeaturedProjects";
 import TopCompanies from "@/components/home/TopCompanies";
 import Testimonials from "@/components/home/Testimonials";
 import CTASection from "@/components/home/CTASection";
+import OfficialCompaniesSection from "@/components/home/OfficialCompaniesSection";
 import { TrendingProjects } from "@/components/recommendations";
 import { Helmet } from "react-helmet";
 
@@ -24,6 +25,7 @@ const Home = ({ auth }: HomeProps) => {
       </Helmet>
       
       <HeroSection auth={auth} />
+      <OfficialCompaniesSection />
       <HowItWorks />
       <div className="container mx-auto px-4 py-10">
         <TrendingProjects limit={3} />
