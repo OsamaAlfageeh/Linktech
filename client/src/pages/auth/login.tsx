@@ -86,13 +86,16 @@ const Login = ({ auth }: LoginProps) => {
         description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
       });
       
+      // التمرير إلى أعلى الصفحة قبل التوجيه
+      window.scrollTo(0, 0);
+      
       // توجيه المستخدم حسب دوره
       setTimeout(() => {
         const role = userData.role;
         console.log("توجيه المستخدم بدور:", role);
         
         if (role === "admin") {
-          navigate("/admin");
+          navigate("/dashboard/admin");
         } else if (role === "entrepreneur") {
           navigate("/dashboard/entrepreneur");
         } else if (role === "company") {
