@@ -282,25 +282,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Company profile routes
+  // Company profile routes - الشركات لا تظهر أبداً للزوار أو العملاء
   app.get('/api/companies', async (req: Request, res: Response) => {
     try {
-      const companyProfiles = await storage.getCompanyProfiles();
-      
-      // Get associated user data for each profile
-      const profilesWithUserData = await Promise.all(
-        companyProfiles.map(async (profile) => {
-          const user = await storage.getUser(profile.userId);
-          return {
-            ...profile,
-            username: user?.username,
-            name: user?.name,
-            email: user?.email
-          };
-        })
-      );
-      
-      res.json(profilesWithUserData);
+      // المستخدم مسجل دخول والمستخدم هو مسؤول، نعرض جميع الشركات
+      if (req.isAuthenticated() && (req.user as any).role === 'admin') {
+        const companyProfiles = await storage.getCompanyProfiles();
+        
+        // الحصول على بيانات المستخدم المرتبطة بكل شركة
+        const profilesWithUserData = await Promise.all(
+          companyProfiles.map(async (profile) => {
+            const user = await storage.getUser(profile.userId);
+            return {
+              ...profile,
+              username: user?.username,
+              name: user?.name,
+              email: user?.email
+            };
+          })
+        );
+        
+        res.json(profilesWithUserData);
+      } else {
+        // الزوار والعملاء لا يرون الشركات أبداً
+        res.json([]);
+      }
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
     }
@@ -666,7 +672,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Project Offers routes
+  // Project Offers routes - الشركات تظهر فقط بشكل معمّى للعميل صاحب المشروع
   app.get('/api/projects/:projectId/offers', async (req: Request, res: Response) => {
     try {
       const projectId = parseInt(req.params.projectId);
@@ -676,35 +682,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'Project not found' });
       }
       
-      // إذا كان المستخدم مسجل الدخول وهو صاحب المشروع، أظهر كل العروض
-      // إذا كان المستخدم شركة، أظهر فقط عروضها على هذا المشروع
+      // إذا كان المستخدم مسجل الدخول وهو صاحب المشروع، أظهر كل العروض مع تعمية معلومات الشركات
+      // إذا كان المستخدم شركة، أظهر فقط عروضه على هذا المشروع
       // إذا كان زائر، أظهر فقط عدد العروض المقدمة
       let offers = await storage.getProjectOffersByProjectId(projectId);
       
       if (req.isAuthenticated()) {
         const user = req.user as any;
         
-        if (project.userId === user.id || user.role === 'admin') {
-          // صاحب المشروع أو المسؤول - يرى جميع العروض
-          // لكل عرض، أحضر بيانات الشركة مع إخفاء بعض المعلومات
-          const offersWithCompanyData = await Promise.all(
+        if (project.userId === user.id) {
+          // صاحب المشروع - يرى جميع العروض مع تعمية معلومات الشركات
+          const offersWithBlurredCompanyData = await Promise.all(
             offers.map(async (offer) => {
               const companyProfile = await storage.getCompanyProfile(offer.companyId);
-              const user = await storage.getUser(companyProfile?.userId || 0);
+              const companyUser = await storage.getUser(companyProfile?.userId || 0);
               
+              // إذا كان العرض مقبول وتم الدفع، نكشف معلومات الشركة
+              if (offer.status === 'accepted' && offer.depositPaid) {
+                return {
+                  ...offer,
+                  companyName: companyUser?.name,
+                  companyLogo: companyProfile?.logo,
+                  companyVerified: companyProfile?.verified,
+                  companyRating: companyProfile?.rating,
+                  companyEmail: companyUser?.email,
+                  companyUsername: companyUser?.username,
+                  companyContactRevealed: true
+                };
+              }
+              
+              // وإلا نعرض المعلومات بشكل معمّى
               return {
                 ...offer,
-                companyName: user ? (offer.contactRevealed ? user.name : `شركة ${user.name.charAt(0)}****`) : null,
-                companyLogo: companyProfile?.logo || null,
+                // تعمية اسم الشركة مع الإشارة إلى حالة التوثيق فقط
+                companyName: companyProfile?.verified 
+                  ? `شركة موثقة ${companyUser?.name ? companyUser.name.charAt(0) : ''}***` 
+                  : `شركة ${companyUser?.name ? companyUser.name.charAt(0) : ''}***`,
+                companyLogo: null, // إخفاء الشعار
                 companyVerified: companyProfile?.verified || false,
-                companyRating: companyProfile?.rating || null,
+                companyRating: companyProfile?.rating, // نعرض التقييم لأنه مفيد للمقارنة
+                companyBlurred: true // علامة للواجهة للإشارة إلى أن المعلومات معمّاة
               };
             })
           );
           
-          return res.json(offersWithCompanyData);
+          return res.json(offersWithBlurredCompanyData);
+        } else if (user.role === 'admin') {
+          // المسؤولون - يرون جميع البيانات كاملة
+          const offersWithFullCompanyData = await Promise.all(
+            offers.map(async (offer) => {
+              const companyProfile = await storage.getCompanyProfile(offer.companyId);
+              const companyUser = await storage.getUser(companyProfile?.userId || 0);
+              
+              return {
+                ...offer,
+                company: {
+                  ...companyProfile,
+                  username: companyUser?.username,
+                  name: companyUser?.name,
+                  email: companyUser?.email
+                }
+              };
+            })
+          );
+          
+          return res.json(offersWithFullCompanyData);
         } else if (user.role === 'company') {
-          // المستخدم شركة - يرى فقط عروضه على هذا المشروع
+          // الشركة - ترى فقط عروضها على هذا المشروع
           const companyProfile = await storage.getCompanyProfileByUserId(user.id);
           
           if (!companyProfile) {
