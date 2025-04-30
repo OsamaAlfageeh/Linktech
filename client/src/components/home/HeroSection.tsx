@@ -124,12 +124,12 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
                 </div>
                 
                 <div className="bg-white/10 p-3 rounded-lg flex items-center">
-                  <CheckCircle className="ml-3 h-6 w-6 text-green-200" />
+                  <TrendingUp className="ml-3 h-6 w-6 text-green-200" />
                   <div>
                     <div className="font-bold text-2xl text-white">
-                      {statsLoading ? "..." : platformStats?.completedProjectsCount || 0}+
+                      {statsLoading ? "..." : platformStats?.projectsCount || 0}+
                     </div>
-                    <div className="text-sm text-green-100">مشروع مكتمل</div>
+                    <div className="text-sm text-green-100">مشروع نشط</div>
                   </div>
                 </div>
               </div>
