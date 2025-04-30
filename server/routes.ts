@@ -22,6 +22,7 @@ import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToC
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";
+import bcrypt from "bcryptjs";
 
 const SessionStore = MemoryStore(session);
 
@@ -47,9 +48,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return done(null, false, { message: 'Incorrect username.' });
       }
-      if (user.password !== password) { // In a real app, use bcrypt to compare passwords
+      
+      // للتوافق مع الحسابات الموجودة والمستقبلية
+      let isValidPassword = false;
+      
+      // التحقق إذا كانت كلمة المرور مشفرة بالفعل
+      if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+        // كلمة المرور مشفرة، استخدم bcrypt للتحقق
+        isValidPassword = await bcrypt.compare(password, user.password);
+      } else {
+        // كلمة المرور غير مشفرة (حسابات قديمة)، قارن مباشرة
+        isValidPassword = user.password === password;
+        
+        // إذا نجح التحقق، قم بتحديث كلمة المرور لتكون مشفرة
+        if (isValidPassword) {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await storage.updateUserPassword(user.id, hashedPassword);
+          console.log(`تم تحديث تشفير كلمة المرور للمستخدم: ${username}`);
+        }
+      }
+      
+      if (!isValidPassword) {
         return done(null, false, { message: 'Incorrect password.' });
       }
+      
       return done(null, user);
     } catch (err) {
       return done(err);
@@ -157,7 +179,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/auth/user', (req: Request, res: Response) => {
     if (req.isAuthenticated()) {
-      return res.json({ user: req.user });
+      const user = req.user as any;
+      // استثناء كلمة المرور من الاستجابة
+      const { password, ...userWithoutPassword } = user;
+      return res.json({ user: userWithoutPassword });
     }
     return res.status(401).json({ message: 'Not authenticated' });
   });
@@ -171,7 +196,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const users = await storage.getUsers();
-      res.json(users);
+      // استثناء كلمات المرور من القائمة
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      res.json(usersWithoutPasswords);
     } catch (error) {
       console.error('Error fetching all users:', error);
       res.status(500).json({ message: 'Internal server error' });

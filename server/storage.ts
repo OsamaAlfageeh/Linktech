@@ -19,6 +19,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
+  updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined>;
   
   // Company profile operations
   getCompanyProfile(id: number): Promise<CompanyProfile | undefined>;
