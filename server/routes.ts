@@ -827,17 +827,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log(`رسالة جديدة من المستخدم ${userId} إلى ${data.toUserId}`);
           
           // التحقق من محتوى الرسالة قبل الحفظ
-          const contentCheck = checkMessageForProhibitedContent(data.content);
+          // فحص المحتوى مع تمرير معرفات المستخدمين للكشف عن الأنماط المتسلسلة
+          const contentCheck = checkMessageForProhibitedContent(data.content, userId, data.toUserId);
           
           // التحقق من مخالفة قوانين المحتوى
           if (!contentCheck.safe) {
-            console.log(`محتوى رسالة محظور من المستخدم ${userId}، المخالفات: ${contentCheck.violations?.join(', ')}`);
+            console.log(`محتوى رسالة محظور من المستخدم ${userId} إلى ${data.toUserId}، المخالفات: ${contentCheck.violations?.join(', ')}`);
+            
+            // رسالة خطأ مخصصة للنمط المتسلسل
+            let errorMessage = 'الرسالة تحتوي على معلومات اتصال محظورة';
+            if (contentCheck.violations?.includes('نمط_متسلسل_مشبوه')) {
+              errorMessage = 'تم رصد محاولة لتمرير معلومات اتصال عبر عدة رسائل';
+            }
             
             // إرسال إشعار بالخطأ للمرسل
             ws.send(JSON.stringify({
               type: 'message_error',
               error: {
-                message: 'الرسالة تحتوي على معلومات اتصال محظورة',
+                message: errorMessage,
                 violations: contentCheck.violations
               }
             }));

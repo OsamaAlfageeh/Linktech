@@ -1,7 +1,27 @@
 /**
  * وحدة تصفية المحتوى
  * تستخدم للتحقق من المحتوى وحظر إرسال معلومات التواصل في المحادثات
+ * تتضمن حماية من محاولات تمرير معلومات الاتصال عبر رسائل متعددة
  */
+
+// هيكل لتخزين الرسائل الأخيرة بين المستخدمين لكشف محاولات تجاوز الفلتر
+interface ConversationHistory {
+  userId1: number;
+  userId2: number;
+  messages: {
+    content: string;
+    timestamp: number;
+  }[];
+}
+
+// تخزين تاريخ المحادثات للكشف عن محاولات تجاوز الفلتر
+const conversationHistories: ConversationHistory[] = [];
+
+// عدد الرسائل التي يتم الاحتفاظ بها في التاريخ (للمستخدمين المتحادثين)
+const MESSAGE_HISTORY_LIMIT = 5;
+
+// الحد الأقصى للوقت بين الرسائل لاعتبارها متسلسلة (بالمللي ثانية)
+const MAX_SEQUENTIAL_MESSAGE_TIME = 60000; // دقيقة واحدة
 
 /**
  * تعبيرات منتظمة للكشف عن أنماط معلومات التواصل الشائعة
@@ -221,11 +241,121 @@ function detectSuspiciousNumberPatterns(text: string): boolean {
 }
 
 /**
+ * الحصول على سجل المحادثة بين مستخدمين أو إنشاء سجل جديد
+ * @param userId1 معرف المستخدم الأول
+ * @param userId2 معرف المستخدم الثاني
+ * @returns سجل المحادثة
+ */
+function getOrCreateConversationHistory(userId1: number, userId2: number): ConversationHistory {
+  // ترتيب المعرفات لضمان التناسق في البحث والتخزين
+  const [smallerId, largerId] = userId1 < userId2 ? [userId1, userId2] : [userId2, userId1];
+  
+  // البحث عن سجل محادثة موجود
+  let history = conversationHistories.find(
+    h => h.userId1 === smallerId && h.userId2 === largerId
+  );
+  
+  // إنشاء سجل جديد إذا لم يكن موجوداً
+  if (!history) {
+    history = { userId1: smallerId, userId2: largerId, messages: [] };
+    conversationHistories.push(history);
+  }
+  
+  return history;
+}
+
+/**
+ * إضافة رسالة إلى سجل المحادثة
+ * @param fromUserId معرف المرسل
+ * @param toUserId معرف المستقبل
+ * @param messageContent محتوى الرسالة
+ */
+export function addMessageToConversationHistory(fromUserId: number, toUserId: number, messageContent: string): void {
+  const history = getOrCreateConversationHistory(fromUserId, toUserId);
+  
+  // إضافة الرسالة الجديدة
+  history.messages.push({
+    content: messageContent,
+    timestamp: Date.now()
+  });
+  
+  // الاحتفاظ فقط بالرسائل الحديثة حسب الحد المحدد
+  if (history.messages.length > MESSAGE_HISTORY_LIMIT) {
+    history.messages = history.messages.slice(history.messages.length - MESSAGE_HISTORY_LIMIT);
+  }
+}
+
+/**
+ * البحث عن أنماط مشبوهة في تسلسل الرسائل
+ * مثل محاولة تقسيم رقم على عدة رسائل
+ * @param fromUserId معرف المرسل
+ * @param toUserId معرف المستقبل
+ * @param currentMessage الرسالة الحالية
+ * @returns إذا كان هناك نمط مشبوه
+ */
+function detectSuspiciousSequentialPatterns(fromUserId: number, toUserId: number, currentMessage: string): boolean {
+  const history = getOrCreateConversationHistory(fromUserId, toUserId);
+  
+  // إذا لم يكن هناك رسائل سابقة، فلا يمكن أن يكون هناك نمط تسلسلي
+  if (history.messages.length === 0) {
+    return false;
+  }
+  
+  // جمع الرسائل الأخيرة التي تم إرسالها في فترة زمنية متقاربة
+  const now = Date.now();
+  const recentMessages = history.messages.filter(
+    msg => (now - msg.timestamp) <= MAX_SEQUENTIAL_MESSAGE_TIME
+  );
+  
+  // إضافة الرسالة الحالية
+  recentMessages.push({ content: currentMessage, timestamp: now });
+  
+  // إذا كان لدينا عدة رسائل متتالية، نقوم بفحصها
+  if (recentMessages.length >= 2) {
+    // استخراج الأرقام من جميع الرسائل
+    let combinedText = recentMessages.map(msg => msg.content).join(' ');
+    
+    // تحويل كلمات الأرقام العربية إلى أرقام في النص المجمع
+    const convertedCombinedText = convertArabicWordsToDigits(combinedText);
+    
+    // البحث عن أنماط أرقام الهواتف في النص المجمع
+    if (detectSaudiPhoneNumberPatterns(combinedText) || 
+        (convertedCombinedText.trim().length > 0 && detectSaudiPhoneNumberPatterns(convertedCombinedText))) {
+      return true;
+    }
+    
+    // البحث عن كميات كبيرة من الأرقام في الرسائل المجمعة
+    if (detectSuspiciousNumberPatterns(combinedText) || 
+        (convertedCombinedText.trim().length > 0 && detectSuspiciousNumberPatterns(convertedCombinedText))) {
+      return true;
+    }
+    
+    // البحث عن أجزاء من الأرقام التي تكمل بعضها
+    const digits = combinedText.match(/\d+/g) || [];
+    if (digits.length >= 2) {
+      const combinedDigits = digits.join('');
+      // التحقق إذا كان الناتج يشبه رقم هاتف (8-10 أرقام)
+      if (combinedDigits.length >= 8 && combinedDigits.length <= 15) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+/**
  * التحقق من نص ما إذا كان يحتوي على معلومات تواصل محظورة
  * @param text النص المراد فحصه
+ * @param fromUserId معرف المرسل (اختياري - للتحقق من الأنماط المتسلسلة)
+ * @param toUserId معرف المستقبل (اختياري - للتحقق من الأنماط المتسلسلة)
  * @returns حالة النص (آمن أم لا) ونوع المعلومات المحظورة إن وجدت
  */
-export function checkMessageForProhibitedContent(text: string): { safe: boolean; violations?: string[] } {
+export function checkMessageForProhibitedContent(
+  text: string, 
+  fromUserId?: number, 
+  toUserId?: number
+): { safe: boolean; violations?: string[] } {
   if (!text || typeof text !== 'string') {
     return { safe: true };
   }
@@ -299,6 +429,21 @@ export function checkMessageForProhibitedContent(text: string): { safe: boolean;
       break;
     }
   }
+  
+  // التحقق من الأنماط المتسلسلة (إذا تم تقديم معرفات المستخدمين)
+  if (violations.length === 0 && fromUserId && toUserId) {
+    if (detectSuspiciousSequentialPatterns(fromUserId, toUserId, text)) {
+      violations.push('نمط_متسلسل_مشبوه');
+      
+      // طباعة إشعار (يمكن إزالته في الإنتاج)
+      console.log(`تم اكتشاف نمط متسلسل مشبوه بين المستخدمين ${fromUserId} و ${toUserId}`);
+    }
+    
+    // تحديث سجل المحادثة بالرسالة الجديدة إذا تم قبولها فقط
+    if (violations.length === 0) {
+      addMessageToConversationHistory(fromUserId, toUserId, text);
+    }
+  }
 
   return {
     safe: violations.length === 0,
@@ -309,10 +454,12 @@ export function checkMessageForProhibitedContent(text: string): { safe: boolean;
 /**
  * تنظيف محتوى الرسالة من المعلومات المحظورة
  * @param text محتوى الرسالة الأصلي
+ * @param fromUserId معرف المرسل (اختياري - للتحقق من الأنماط المتسلسلة)
+ * @param toUserId معرف المستقبل (اختياري - للتحقق من الأنماط المتسلسلة)
  * @returns محتوى منظف أو تحذير إذا كان المحتوى محظوراً
  */
-export function sanitizeMessageContent(text: string): string {
-  const checkResult = checkMessageForProhibitedContent(text);
+export function sanitizeMessageContent(text: string, fromUserId?: number, toUserId?: number): string {
+  const checkResult = checkMessageForProhibitedContent(text, fromUserId, toUserId);
   
   if (!checkResult.safe) {
     const violationTypes = checkResult.violations?.join('، ');
