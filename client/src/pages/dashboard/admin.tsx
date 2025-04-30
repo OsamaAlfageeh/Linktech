@@ -592,7 +592,7 @@ export default function AdminDashboard() {
                       <label className="text-sm font-medium mb-1 block">المستخدم الثاني</label>
                       <select 
                         className="w-full p-2 border border-gray-300 rounded-md"
-                        value={selectedUser2Id}
+                        value={selectedUser2Id?.toString() || ""}
                         onChange={(e) => setSelectedUser2Id(Number(e.target.value) || null)}
                       >
                         <option value="">-- اختر مستخدم --</option>

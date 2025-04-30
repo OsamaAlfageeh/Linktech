@@ -228,3 +228,19 @@ export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
 
 export type ProjectOffer = typeof projectOffers.$inferSelect;
 export type InsertProjectOffer = z.infer<typeof insertProjectOfferSchema>;
+
+// Site Settings schema
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertSiteSettingsSchema = createInsertSchema(siteSettings).omit({ 
+  id: true, 
+  updatedAt: true 
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingsSchema>;

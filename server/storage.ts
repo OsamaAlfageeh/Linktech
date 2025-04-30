@@ -6,6 +6,8 @@ import {
   Message, InsertMessage,
   Testimonial, InsertTestimonial,
   ProjectOffer, InsertProjectOffer,
+  SiteSetting, InsertSiteSetting,
+  siteSettings
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
@@ -53,6 +55,11 @@ export interface IStorage {
   updateProjectOfferStatus(id: number, status: string): Promise<ProjectOffer | undefined>;
   setProjectOfferDepositPaid(id: number, depositAmount: string): Promise<ProjectOffer | undefined>;
   setProjectOfferContactRevealed(id: number): Promise<ProjectOffer | undefined>;
+  
+  // Site Settings operations
+  getSiteSetting(key: string): Promise<SiteSetting | undefined>;
+  setSiteSetting(key: string, value: string): Promise<SiteSetting>;
+  getAllSiteSettings(): Promise<SiteSetting[]>;
 }
 
 export class MemStorage implements IStorage {
