@@ -9,7 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, AlertTriangle, Send } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Link } from 'wouter';
+import { Link, useLocation } from 'wouter';
 import { Message, Conversation, WebSocketMessage, ContentError } from '@/interfaces/messageTypes';
 import ConversationWrapper, { formatDate } from '@/components/messages/ConversationWrapper';
 
@@ -132,7 +132,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
             } catch (e) {
               console.error('WebSocket authentication error:', e);
               // Fallback to HTTP polling if WebSocket fails
-              wsReconnectAttempts = maxReconnectAttempts;
+              setWsReconnectAttempts(maxReconnectAttempts);
             }
           }
         };
