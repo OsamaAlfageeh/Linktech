@@ -8,9 +8,9 @@ type CTASectionProps = {
 
 const CTASection = ({ auth }: CTASectionProps) => {
   return (
-    <section className="py-16 bg-slate-950 text-white relative overflow-hidden">
+    <section className="py-16 bg-blue-950 text-white relative overflow-hidden">
       {/* الخلفية المتدرجة */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 opacity-95"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 opacity-95"></div>
       
       {/* أشكال زخرفية متحركة في الخلفية */}
       <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-amber-500/15 blur-3xl animate-blob"></div>
@@ -28,7 +28,7 @@ const CTASection = ({ auth }: CTASectionProps) => {
           <h2 className="font-heading text-3xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-400 text-transparent bg-clip-text">
             ابدأ رحلتك التقنية اليوم
           </h2>
-          <p className="text-slate-300 text-lg md:text-xl mb-8 font-medium max-w-xl mx-auto">
+          <p className="text-blue-100 text-lg md:text-xl mb-8 font-medium max-w-xl mx-auto">
             سواء كنت رائد أعمال تبحث عن تنفيذ فكرتك أو شركة برمجة تبحث عن عملاء جدد، انضم إلينا الآن وكن جزءاً من منصتنا.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
