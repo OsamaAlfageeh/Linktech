@@ -79,11 +79,9 @@ export default function AdminDashboard() {
   const sideImageInputRef = useRef<HTMLInputElement>(null);
 
   // تأكد من أن المستخدم مسؤول
-  // تعطيل التحقق مؤقتاً
-  /*
   useEffect(() => {
     if (!isAuthenticated) {
-      navigate("/auth/login");
+      navigate("/auth");
       return;
     }
 
@@ -96,7 +94,6 @@ export default function AdminDashboard() {
       navigate("/");
     }
   }, [user, isAuthenticated, navigate, toast]);
-  */
 
   // استعلام لجلب جميع المستخدمين
   const {

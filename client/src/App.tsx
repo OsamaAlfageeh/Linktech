@@ -151,8 +151,14 @@ function App() {
               <NotFound />
             )}
           </Route>
-          {/* صفحة المسؤول بدون تحقق (مؤقتاً) */}
-          <Route path="/dashboard/admin" component={() => <AdminDashboard auth={auth} />} />
+          {/* صفحة المسؤول مع تحقق */}
+          <Route path="/dashboard/admin">
+            {auth.isAuthenticated && auth.isAdmin ? (
+              <AdminDashboard auth={auth} />
+            ) : (
+              <Redirect to="/auth" />
+            )}
+          </Route>
           {/* صفحة المسؤول المبسطة للوصول المباشر */}
           <Route path="/admin">
             <div className="container mx-auto p-4 sm:p-6">
