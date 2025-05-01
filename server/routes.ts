@@ -419,9 +419,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company profile routes - الشركات لا تظهر أبداً للزوار أو العملاء
   app.get('/api/companies', async (req: Request, res: Response) => {
     try {
+      console.log(`طلب قائمة الشركات - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      
       // المستخدم مسجل دخول والمستخدم هو مسؤول، نعرض جميع الشركات
       if (req.isAuthenticated() && (req.user as any).role === 'admin') {
+        console.log(`المستخدم مسؤول، عرض جميع الشركات`);
+        
         const companyProfiles = await storage.getCompanyProfiles();
+        console.log(`تم العثور على ${companyProfiles.length} شركة في قاعدة البيانات`);
         
         // الحصول على بيانات المستخدم المرتبطة بكل شركة
         const profilesWithUserData = await Promise.all(
@@ -436,32 +441,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
         );
         
+        console.log(`تم تحضير ${profilesWithUserData.length} ملف شركة للمسؤول`);
         res.json(profilesWithUserData);
       } else {
-        // الزوار والعملاء لا يرون الشركات أبداً
-        res.json([]);
+        // الشركات تظهر للمستخدمين المسجلين
+        console.log(`طلب قائمة الشركات من مستخدم ليس مسؤول أو زائر غير مسجل`);
+        
+        if (req.isAuthenticated()) {
+          // للمستخدمين المسجلين - ارسال قائمة الشركات (محجوبة جزئياً) 
+          const companyProfiles = await storage.getCompanyProfiles();
+          
+          // الحصول على بيانات المستخدم المرتبطة بكل شركة
+          const profilesWithUserData = await Promise.all(
+            companyProfiles.map(async (profile) => {
+              const user = await storage.getUser(profile.userId);
+              return {
+                ...profile,
+                username: user?.username,
+                name: user?.name
+              };
+            })
+          );
+          
+          console.log(`تم إرسال ${profilesWithUserData.length} شركة للمستخدم المسجل`);
+          res.json(profilesWithUserData);
+        } else {
+          // للزوار غير المسجلين - لا نرسل أي شركات
+          console.log(`زائر غير مسجل - عدم إرسال بيانات الشركات`);
+          res.json([]);
+        }
       }
     } catch (error) {
+      console.error('خطأ في استرجاع قائمة الشركات:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
 
   app.get('/api/companies/:id', async (req: Request, res: Response) => {
     try {
-      const profile = await storage.getCompanyProfile(parseInt(req.params.id));
+      console.log(`طلب تفاصيل الشركة برقم ${req.params.id} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      
+      const companyId = parseInt(req.params.id);
+      if (isNaN(companyId)) {
+        return res.status(400).json({ message: 'Invalid company ID' });
+      }
+      
+      const profile = await storage.getCompanyProfile(companyId);
       if (!profile) {
+        console.log(`لم يتم العثور على ملف للشركة برقم ${companyId}`);
         return res.status(404).json({ message: 'Company profile not found' });
       }
       
       const user = await storage.getUser(profile.userId);
+      if (!user) {
+        console.log(`لم يتم العثور على حساب المستخدم المرتبط بالشركة ${companyId}`);
+        return res.status(404).json({ message: 'Company user not found' });
+      }
       
-      res.json({
+      // بناء كائن الاستجابة
+      const response = {
         ...profile,
-        username: user?.username,
-        name: user?.name,
-        email: user?.email
-      });
+        username: user.username,
+        name: user.name,
+        email: user.email
+      };
+      
+      console.log(`تم إرسال بيانات الشركة "${user.name}" بنجاح`);
+      res.json(response);
     } catch (error) {
+      console.error(`خطأ في استرجاع بيانات الشركة:`, error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
