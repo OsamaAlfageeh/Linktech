@@ -543,51 +543,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.get('/api/projects', async (req: Request, res: Response) => {
     try {
-      const projects = await storage.getProjects();
+      console.log(`طلب قائمة المشاريع - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
       
-      // Get associated user data for each project
+      // فقط المستخدمين المسجلين يمكنهم مشاهدة المشاريع
+      if (!req.isAuthenticated()) {
+        console.log(`رفض طلب غير مصرح للوصول إلى قائمة المشاريع`);
+        return res.json([]); // إرجاع مصفوفة فارغة للمستخدمين غير المسجلين
+      }
+      
+      // المسؤولون يمكنهم مشاهدة جميع المشاريع
+      // المستخدمون العاديون يرون فقط مشاريعهم الخاصة
+      const user = req.user as any;
+      let projects: any[] = [];
+      
+      if (user.role === 'admin') {
+        console.log(`المستخدم مسؤول، عرض جميع المشاريع`);
+        projects = await storage.getProjects();
+      } else if (user.role === 'entrepreneur') {
+        console.log(`مستخدم عادي (${user.username})، عرض المشاريع الخاصة فقط`);
+        projects = await storage.getProjectsByUserId(user.id);
+      } else if (user.role === 'company') {
+        console.log(`شركة (${user.username})، عرض المشاريع المتاحة للشركات`);
+        // الشركات تستطيع مشاهدة المشاريع المتاحة فقط
+        projects = await storage.getProjects();
+      }
+      
+      // الحصول على بيانات المستخدم المرتبطة بكل مشروع
       const projectsWithUserData = await Promise.all(
         projects.map(async (project) => {
-          const user = await storage.getUser(project.userId);
+          const projectUser = await storage.getUser(project.userId);
           return {
             ...project,
-            username: user?.username,
-            name: user?.name
+            username: projectUser?.username,
+            name: projectUser?.name
           };
         })
       );
       
+      console.log(`إرسال ${projectsWithUserData.length} مشروع للمستخدم ${user.username}`);
       res.json(projectsWithUserData);
     } catch (error) {
+      console.error('خطأ في استرجاع المشاريع:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
 
   app.get('/api/projects/:id', async (req: Request, res: Response) => {
     try {
-      const project = await storage.getProject(parseInt(req.params.id));
+      console.log(`طلب تفاصيل المشروع برقم ${req.params.id} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      
+      // فقط المستخدمين المسجلين يمكنهم مشاهدة تفاصيل المشاريع
+      if (!req.isAuthenticated()) {
+        console.log(`رفض طلب غير مصرح للوصول إلى تفاصيل المشروع ${req.params.id}`);
+        return res.status(401).json({ message: 'Unauthorized access to project details' });
+      }
+      
+      const projectId = parseInt(req.params.id);
+      const project = await storage.getProject(projectId);
+      
       if (!project) {
         return res.status(404).json({ message: 'Project not found' });
       }
       
-      const user = await storage.getUser(project.userId);
+      // المستخدم مرتبط بالمشروع، أو مسؤول، أو شركة مصرح لها بمشاهدة المشاريع المتاحة
+      const user = req.user as any;
+      if (user.role !== 'admin' && user.role !== 'company' && project.userId !== user.id) {
+        console.log(`رفض وصول غير مصرح: المستخدم ${user.username} حاول الوصول إلى مشروع المستخدم ${project.userId}`);
+        return res.status(403).json({ message: 'Forbidden: You are not authorized to view this project' });
+      }
       
+      const projectUser = await storage.getUser(project.userId);
+      
+      console.log(`تم ارسال تفاصيل المشروع "${project.title}" للمستخدم ${user.username}`);
       res.json({
         ...project,
-        username: user?.username,
-        name: user?.name
+        username: projectUser?.username,
+        name: projectUser?.name
       });
     } catch (error) {
+      console.error('خطأ في استرجاع تفاصيل المشروع:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
 
   app.get('/api/users/:userId/projects', async (req: Request, res: Response) => {
     try {
+      console.log(`طلب مشاريع المستخدم ${req.params.userId} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      
+      // فقط المستخدمين المسجلين يمكنهم مشاهدة مشاريع المستخدمين
+      if (!req.isAuthenticated()) {
+        console.log(`رفض طلب غير مصرح للوصول إلى مشاريع المستخدم ${req.params.userId}`);
+        return res.json([]); // إرجاع مصفوفة فارغة للمستخدمين غير المسجلين
+      }
+      
       const userId = parseInt(req.params.userId);
+      const user = req.user as any;
+      
+      // المستخدم يمكنه فقط الوصول إلى مشاريعه الخاصة
+      // (المسؤولون يمكنهم الوصول إلى جميع المشاريع)
+      if (user.role !== 'admin' && user.id !== userId) {
+        console.log(`رفض وصول غير مصرح: المستخدم ${user.username} حاول الوصول إلى مشاريع المستخدم ${userId}`);
+        return res.json([]); // إرجاع مصفوفة فارغة للوصول غير المصرح
+      }
+      
       const projects = await storage.getProjectsByUserId(userId);
+      console.log(`تم إرسال ${projects.length} مشروع للمستخدم ${user.username} (مشاريع المستخدم ${userId})`);
       res.json(projects);
     } catch (error) {
+      console.error('خطأ في استرجاع مشاريع المستخدم:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
@@ -766,10 +829,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 4. الحصول على المشاريع الرائجة (عالية الطلب)
   app.get('/api/recommendations/trending-projects', async (req: Request, res: Response) => {
     try {
+      console.log(`طلب المشاريع الرائجة - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      
+      // فقط المستخدمين المسجلين يمكنهم مشاهدة المشاريع الرائجة
+      if (!req.isAuthenticated()) {
+        console.log(`رفض طلب غير مصرح للوصول إلى المشاريع الرائجة`);
+        return res.json([]); // إرجاع مصفوفة فارغة للمستخدمين غير المسجلين
+      }
+      
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      const user = req.user as any;
+      console.log(`جلب المشاريع الرائجة للمستخدم ${user.username} (الدور: ${user.role})`);
       
       const trendingProjects = await getTrendingProjects(limit);
-      res.json(trendingProjects);
+      
+      // المسؤولون يمكنهم مشاهدة جميع المشاريع الرائجة
+      // المستخدمون العاديون يمكنهم مشاهدة مشاريعهم الرائجة فقط
+      // الشركات يمكنها مشاهدة المشاريع الرائجة المتاحة
+      let filteredProjects = trendingProjects;
+      
+      if (user.role === 'entrepreneur') {
+        // رواد الأعمال يشاهدون فقط مشاريعهم الرائجة
+        filteredProjects = trendingProjects.filter(project => project.userId === user.id);
+      }
+      
+      console.log(`إرسال ${filteredProjects.length} مشروع رائج للمستخدم ${user.username}`);
+      res.json(filteredProjects);
     } catch (error) {
       console.error('Error in trending projects:', error);
       res.status(500).json({ message: 'Internal server error' });
