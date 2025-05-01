@@ -46,22 +46,29 @@ const ForgotPassword = () => {
         // حالياً نحاكي استجابة ناجحة
         console.log("إرسال طلب استعادة كلمة المرور للبريد:", data.email);
         
-        // هنا سيكون الاتصال الفعلي بالخادم API
+        // إضافة تأخير زمني لمحاكاة اتصال بالخادم
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // هنا سيكون الاتصال الفعلي بالخادم API في الإنتاج
         // const response = await apiRequest("POST", "/api/auth/forgot-password", data);
         // return await response.json();
         
-        // محاكاة نجاح لأغراض العرض
-        return { success: true };
+        // ملاحظة: في البيئة الحقيقية، سنستخدم SendGrid أو خدمة مماثلة لإرسال البريد
+        // لكن حالياً نحاكي نجاح العملية فقط
+        return { 
+          success: true,
+          message: "تمت محاكاة إرسال البريد بنجاح (في وضع التطوير)" 
+        };
       } catch (error) {
         console.error("خطأ أثناء إرسال طلب استعادة كلمة المرور:", error);
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (response) => {
       setSuccess(true);
       toast({
-        title: "تم إرسال طلب استعادة كلمة المرور",
-        description: "تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك.",
+        title: "تمت معالجة الطلب بنجاح",
+        description: "تم استلام طلب استعادة كلمة المرور بنجاح" + (response.message ? " - " + response.message : ""),
       });
     },
     onError: (error: any) => {
@@ -114,9 +121,12 @@ const ForgotPassword = () => {
           {success ? (
             <Alert className="bg-green-50 text-green-700 border-green-200">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <AlertTitle>تم إرسال البريد الإلكتروني</AlertTitle>
+              <AlertTitle>تمت معالجة الطلب بنجاح</AlertTitle>
               <AlertDescription className="text-green-600">
-                تم إرسال رابط إعادة تعيين كلمة المرور إلى بريدك الإلكتروني. يرجى التحقق من صندوق الوارد الخاص بك والضغط على الرابط لإعادة تعيين كلمة المرور الخاصة بك.
+                <p className="mb-1">تمت معالجة طلب إعادة تعيين كلمة المرور بنجاح.</p>
+                <div className="bg-blue-50 p-2 rounded-md border border-blue-100 text-blue-600 mt-2 text-xs">
+                  <strong>ملاحظة:</strong> حالياً المنصة في وضع التطوير، لذا لن يتم إرسال بريد إلكتروني فعلي. في الإصدار النهائي، سيتم إرسال رابط إعادة تعيين كلمة المرور إلى عنوان البريد الإلكتروني المدخل.
+                </div>
               </AlertDescription>
             </Alert>
           ) : (
