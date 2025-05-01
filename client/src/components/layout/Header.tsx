@@ -59,12 +59,21 @@ const Header = ({ auth }: HeaderProps) => {
           <nav className="hidden md:block">
             <ul className="flex space-x-8 space-x-reverse">
               <li>
-                <Link 
-                  href="/" 
-                  className={`px-3 py-2 font-medium ${isActive("/") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
-                >
-                  الرئيسية
-                </Link>
+                {auth.isAuthenticated ? (
+                  <Link 
+                    href={getDashboardLink()} 
+                    className={`px-3 py-2 font-medium ${isActive(getDashboardLink()) ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                  >
+                    لوحة التحكم
+                  </Link>
+                ) : (
+                  <Link 
+                    href="/" 
+                    className={`px-3 py-2 font-medium ${isActive("/") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                  >
+                    الرئيسية
+                  </Link>
+                )}
               </li>
               <li>
                 <Link 
@@ -153,9 +162,23 @@ const Header = ({ auth }: HeaderProps) => {
 
                 <div className="py-4">
                   <nav className="flex flex-col space-y-4">
-                    <Link href="/" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
-                      الرئيسية
-                    </Link>
+                    {auth.isAuthenticated ? (
+                      <Link 
+                        href={getDashboardLink()} 
+                        onClick={() => setMobileMenuOpen(false)} 
+                        className="text-lg font-medium"
+                      >
+                        لوحة التحكم
+                      </Link>
+                    ) : (
+                      <Link 
+                        href="/" 
+                        onClick={() => setMobileMenuOpen(false)} 
+                        className="text-lg font-medium"
+                      >
+                        الرئيسية
+                      </Link>
+                    )}
                     <Link href="/projects" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                       المشاريع
                     </Link>
