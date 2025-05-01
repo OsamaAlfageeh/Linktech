@@ -99,17 +99,17 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
           <div className="order-2 md:order-1">
             <h1 className="font-heading text-4xl md:text-5xl font-bold mb-4 text-white drop-shadow-xl" style={{ textShadow: '0 2px 10px rgba(0,0,0,0.6)' }}>
-              ربط رواد الأعمال <span className="text-amber-300">بشركات البرمجة</span> المحترفة
+              ربط رواد الأعمال <span className="text-amber-300">بشركات البرمجة</span> الموثوقة والمعتمدة
             </h1>
             <p className="text-lg md:text-xl mb-4 text-white drop-shadow-md font-medium" style={{ textShadow: '0 1px 8px rgba(0,0,0,0.5)' }}>
-              نسهل عليك إيجاد الشريك المناسب لتحويل أفكارك التقنية إلى واقع. ابدأ رحلتك التقنية اليوم!
+              منصة رسمية تضمن لك إيجاد الشريك التقني المعتمد لتحويل أفكارك إلى مشاريع ناجحة بأعلى معايير الجودة والاحترافية.
             </p>
             
             {/* عبارة تسويقية وإحصائيات المنصة */}
             <div className="bg-primary-dark/90 backdrop-blur-sm p-5 rounded-lg mb-6 border border-white/30 shadow-lg">
               <p className="text-amber-300 font-semibold mb-3 flex items-center text-lg">
                 <Clock className="ml-2 h-6 w-6" />
-                احصل على عرض سعر مبدئي خلال 30 دقيقة فقط!
+                تواصل مع شركات مرخصة ومعتمدة في مجال تطوير البرمجيات
               </p>
               
               <div className="mt-4 grid grid-cols-2 gap-4">
