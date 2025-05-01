@@ -80,19 +80,25 @@ export default function AdminDashboard() {
 
   // تأكد من أن المستخدم مسؤول
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate("/auth");
-      return;
+    console.log("فحص حالة المصادقة:", { isAuthenticated, user });
+    
+    // تحقق فقط عندما تكتمل عملية تحميل حالة المصادقة
+    if (isAuthenticated && user) {
+      if (user.role !== "admin") {
+        toast({
+          title: "غير مصرح",
+          description: "فقط المسؤولون يمكنهم الوصول إلى لوحة التحكم",
+          variant: "destructive",
+        });
+        navigate("/");
+      } else {
+        console.log("مرحباً بك في لوحة تحكم المسؤول");
+      }
+    } else if (isAuthenticated === false) {
+      // تحولنا فقط عندما نتأكد أن المستخدم غير مسجل دخول
+      navigate("/auth/login");
     }
-
-    if (user?.role !== "admin") {
-      toast({
-        title: "غير مصرح",
-        description: "فقط المسؤولون يمكنهم الوصول إلى لوحة التحكم",
-        variant: "destructive",
-      });
-      navigate("/");
-    }
+    // لا تفعل شيئاً أثناء التحميل
   }, [user, isAuthenticated, navigate, toast]);
 
   // استعلام لجلب جميع المستخدمين
