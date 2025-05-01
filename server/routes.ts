@@ -754,6 +754,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // تغيير حالة المشروع (مفتوح/مغلق) - للمسؤولين أو مالك المشروع
+  app.patch('/api/projects/:id/status', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (status !== 'open' && status !== 'closed') {
+        return res.status(400).json({ message: 'الحالة غير صالحة. يجب أن تكون "open" أو "closed".' });
+      }
+      
+      // التحقق من وجود المشروع
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // التحقق من الصلاحيات - فقط المسؤول أو صاحب المشروع يمكنه تغيير الحالة
+      if (user.role !== 'admin' && project.userId !== user.id) {
+        return res.status(403).json({ message: 'غير مصرح لك بتعديل هذا المشروع' });
+      }
+      
+      // تحديث حالة المشروع
+      const updatedProject = await storage.updateProject(projectId, { status });
+      
+      console.log(`تم تغيير حالة المشروع ${projectId} إلى "${status}" بواسطة المستخدم ${user.username}`);
+      res.json(updatedProject);
+    } catch (error) {
+      console.error('خطأ في تحديث حالة المشروع:', error);
+      res.status(500).json({ message: 'خطأ في الخادم' });
+    }
+  });
+
   app.get('/api/users/:userId/projects', async (req: Request, res: Response) => {
     try {
       console.log(`طلب مشاريع المستخدم ${req.params.userId} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
