@@ -169,9 +169,11 @@ const Header = ({ auth }: HeaderProps) => {
                     <Link href="/companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                       شركات البرمجة
                     </Link>
-                    <Link href="/for-companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
-                      للشركات
-                    </Link>
+                    {auth.isCompany && (
+                      <Link href="/for-companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                        للشركات
+                      </Link>
+                    )}
                   </nav>
 
                   <div className="mt-8 pt-4 border-t border-gray-200">
