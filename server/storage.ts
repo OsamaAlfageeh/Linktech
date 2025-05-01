@@ -9,7 +9,9 @@ import {
   SiteSetting, InsertSiteSetting,
   siteSettings,
   passwordResetTokens,
-  InsertPasswordResetToken
+  InsertPasswordResetToken,
+  NewsletterSubscriber, InsertNewsletterSubscriber,
+  newsletterSubscribers
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";

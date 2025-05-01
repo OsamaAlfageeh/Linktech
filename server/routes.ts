@@ -13,7 +13,8 @@ import {
   insertProjectSchema, 
   insertMessageSchema,
   insertTestimonialSchema,
-  insertProjectOfferSchema
+  insertProjectOfferSchema,
+  insertNewsletterSubscriberSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
