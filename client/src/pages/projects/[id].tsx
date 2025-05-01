@@ -7,7 +7,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
-import { RecommendedCompanies, SimilarProjects } from "@/components/recommendations";
+import { 
+  RecommendedCompanies, 
+  SimilarProjects, 
+  AIRecommendedCompanies, 
+  AISimilarProjects,
+  AIMarketTrends
+} from "@/components/recommendations";
 import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
 import { OffersList } from "@/components/offers/OffersList";
 import { useAuth } from "@/App";
@@ -278,7 +284,14 @@ const ProjectDetails = () => {
                 </div>
               </div>
 
-              {/* Owner info */}
+              {/* AI Project Analysis - visible only for project owners and admins */}
+              {auth.isAuthenticated && (auth.user?.id === project.userId || auth.user?.role === "admin") && (
+                <div className="mb-8">
+                  <AIProjectAnalysis projectId={project.id} />
+                </div>
+              )}
+
+            {/* Owner info */}
               <div className="border-t border-neutral-200 pt-6">
                 <div className="flex items-center">
                   <Avatar className="h-12 w-12 ml-3">
@@ -365,14 +378,19 @@ const ProjectDetails = () => {
         {/* Recommendations */}
         {project && (
           <div className="space-y-12">
-            {/* Recommended Companies */}
+            {/* Recommended Companies - AI Enhanced */}
             <div className="mb-10">
-              <RecommendedCompanies projectId={project.id} limit={3} />
+              <AIRecommendedCompanies projectId={project.id} limit={3} />
             </div>
             
-            {/* Similar Projects */}
+            {/* Similar Projects - AI Enhanced */}
+            <div className="mb-10">
+              <AISimilarProjects projectId={project.id} limit={3} />
+            </div>
+            
+            {/* Market Trends Analytics */}
             <div className="mb-6">
-              <SimilarProjects projectId={project.id} limit={3} />
+              <AIMarketTrends limit={8} />
             </div>
           </div>
         )}
