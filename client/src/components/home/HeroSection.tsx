@@ -109,7 +109,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
             <div className="bg-primary-dark/90 backdrop-blur-sm p-5 rounded-lg mb-6 border border-white/30 shadow-lg">
               <p className="text-amber-300 font-semibold mb-3 flex items-center text-lg">
                 <Clock className="ml-2 h-6 w-6" />
-                تواصل مع شركات مرخصة ومعتمدة في مجال تطوير البرمجيات
+                احصل على عرض سعر مبدئي خلال 30 دقيقة فقط!
               </p>
               
               <div className="mt-4 grid grid-cols-2 gap-4">
