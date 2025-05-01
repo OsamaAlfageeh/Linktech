@@ -8,9 +8,9 @@ type CTASectionProps = {
 
 const CTASection = ({ auth }: CTASectionProps) => {
   return (
-    <section className="py-16 bg-blue-950 text-white relative overflow-hidden">
+    <section className="py-16 bg-blue-600 text-white relative overflow-hidden">
       {/* الخلفية المتدرجة */}
-      <div className="absolute inset-0 bg-gradient-to-br from-blue-950 via-blue-900 to-blue-950 opacity-95"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-600 opacity-95"></div>
       
       {/* أشكال زخرفية متحركة في الخلفية */}
       <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-amber-500/15 blur-3xl animate-blob"></div>
