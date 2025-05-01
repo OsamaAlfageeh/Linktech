@@ -215,7 +215,7 @@ const Login = ({ auth }: LoginProps) => {
 
               <div className="flex items-center justify-end">
                 <div className="text-sm">
-                  <Link href="#" className="text-primary hover:text-primary-dark font-medium">
+                  <Link href="/auth/forgot-password" className="text-primary hover:text-primary-dark font-medium">
                     نسيت كلمة المرور؟
                   </Link>
                 </div>

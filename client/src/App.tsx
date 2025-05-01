@@ -17,6 +17,7 @@ import ProjectDetails from "@/pages/projects/[id]";
 import ForCompanies from "@/pages/for-companies";
 import Register from "@/pages/auth/register";
 import Login from "@/pages/auth/login";
+import ForgotPassword from "@/pages/auth/forgot-password";
 import EntrepreneurDashboard from "@/pages/dashboard/entrepreneur";
 import CompanyDashboard from "@/pages/dashboard/company";
 import AdminDashboard from "@/pages/dashboard/admin";
@@ -124,6 +125,7 @@ function App() {
           </Route>
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
+          <Route path="/auth/forgot-password" component={ForgotPassword} />
           <Route path="/redirect" component={Redirect} />
           {/* Removed separate admin login route */}
           
