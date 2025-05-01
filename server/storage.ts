@@ -52,6 +52,7 @@ export interface IStorage {
   getProjectOffer(id: number): Promise<ProjectOffer | undefined>;
   getProjectOffersByProjectId(projectId: number): Promise<ProjectOffer[]>;
   getProjectOffersByCompanyId(companyId: number): Promise<ProjectOffer[]>;
+  getAllProjectOffers(): Promise<ProjectOffer[]>;
   createProjectOffer(offer: InsertProjectOffer): Promise<ProjectOffer>;
   updateProjectOfferStatus(id: number, status: string): Promise<ProjectOffer | undefined>;
   setProjectOfferDepositPaid(id: number, depositAmount: string): Promise<ProjectOffer | undefined>;
@@ -290,6 +291,10 @@ export class MemStorage implements IStorage {
     return Array.from(this.projectOffers.values()).filter(
       (offer) => offer.companyId === companyId
     );
+  }
+  
+  async getAllProjectOffers(): Promise<ProjectOffer[]> {
+    return Array.from(this.projectOffers.values());
   }
   
   async createProjectOffer(offer: InsertProjectOffer): Promise<ProjectOffer> {
