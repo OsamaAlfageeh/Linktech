@@ -35,7 +35,7 @@ const Footer = () => {
               <li><Link href="/projects" className="hover:text-white transition-colors">المشاريع</Link></li>
               <li><Link href="/companies" className="hover:text-white transition-colors">شركات البرمجة</Link></li>
               <li><a href="#how-it-works" className="hover:text-white transition-colors">كيف يعمل</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">الأسئلة الشائعة</a></li>
+              <li><Link href="/help-center" className="hover:text-white transition-colors">الأسئلة الشائعة</Link></li>
             </ul>
           </div>
 
@@ -43,10 +43,10 @@ const Footer = () => {
           <div>
             <h3 className="font-heading text-white text-xl font-semibold mb-4">الدعم</h3>
             <ul className="space-y-3">
-              <li><a href="#" className="hover:text-white transition-colors">مركز المساعدة</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">التواصل معنا</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">الشروط والأحكام</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">سياسة الخصوصية</a></li>
+              <li><Link href="/help-center" className="hover:text-white transition-colors">مركز المساعدة</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">التواصل معنا</Link></li>
+              <li><Link href="/terms" className="hover:text-white transition-colors">الشروط والأحكام</Link></li>
+              <li><Link href="/privacy" className="hover:text-white transition-colors">سياسة الخصوصية</Link></li>
             </ul>
           </div>
 
