@@ -11,8 +11,8 @@ const mailerSend = process.env.MAILERSEND_API_KEY
   : null;
 
 // إعداد معلومات المرسل
-// استخدام الدومين المسجل في حساب MailerSend
-const sender = new Sender("noreply@test-q3enl6kkd8r42vwr.mlsender.net", "لينكتك");
+// استخدام الدومين المعتمد والموثق
+const sender = new Sender("noreply@linktech.app", "لينكتك");
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
@@ -253,7 +253,7 @@ export async function sendWelcomeEmail(
             ${roleSpecificContent}
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://linktech.sa/dashboard" style="background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">الانتقال إلى لوحة التحكم</a>
+              <a href="https://linktech.app/dashboard" style="background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">الانتقال إلى لوحة التحكم</a>
             </div>
             
             <p>إذا كانت لديك أي استفسارات، لا تتردد في التواصل مع فريق الدعم لدينا.</p>

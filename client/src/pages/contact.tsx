@@ -101,8 +101,8 @@ const ContactPage = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">البريد الإلكتروني</h3>
-                    <p className="text-neutral-600">info@linktech.sa</p>
-                    <p className="text-neutral-600">support@linktech.sa</p>
+                    <p className="text-neutral-600">info@linktech.app</p>
+                    <p className="text-neutral-600">support@linktech.app</p>
                   </div>
                 </div>
                 
@@ -292,7 +292,7 @@ const ContactPage = () => {
               <div>
                 <h3 className="font-bold text-lg mb-2 text-primary">كيف يمكنني الحصول على الدعم الفني؟</h3>
                 <p className="text-neutral-600">
-                  يمكنك التواصل معنا من خلال نموذج التواصل في هذه الصفحة، أو مراسلتنا مباشرة على البريد الإلكتروني support@linktech.sa.
+                  يمكنك التواصل معنا من خلال نموذج التواصل في هذه الصفحة، أو مراسلتنا مباشرة على البريد الإلكتروني support@linktech.app.
                 </p>
               </div>
             </div>

@@ -349,7 +349,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminUser = await storage.createUser({
         username: 'admin',
         password: hashedPassword,
-        email: 'admin@linktech.sa',
+        email: 'admin@linktech.app',
         role: 'admin',
         name: 'مسؤول النظام',
         avatar: 'https://randomuser.me/api/portraits/men/33.jpg'
