@@ -11,8 +11,8 @@ if (!apiKey) {
 const mailerSend = new MailerSend({ apiKey });
 
 // Create sender
-// Using a standard mail service domain that's likely verified
-const sender = new Sender("password-reset@mailersend.com", "تِكلينك");
+// Using the registered domain in MailerSend account
+const sender = new Sender("noreply@test-q3enl6kkd8r42vwr.mlsender.net", "تِكلينك");
 
 // Test function
 async function testMailerSend() {
