@@ -67,6 +67,12 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
   const { data: projects, isLoading, error } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
+    onSuccess: (data) => {
+      console.log('تم استلام بيانات المشاريع بنجاح:', data);
+    },
+    onError: (err) => {
+      console.error('حدث خطأ أثناء جلب المشاريع:', err);
+    }
   });
 
   // Filter and sort projects
