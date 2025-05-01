@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { RecommendedProjects } from "@/components/recommendations";
+import { useAuth } from "@/App";
 import {
   Dialog,
   DialogContent,
@@ -59,6 +60,8 @@ const CompanyDetails = () => {
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
   const [paymentProcessing, setPaymentProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const auth = useAuth();
+  const isAdmin = auth?.user?.role === "admin";
 
   // فحص حالة الدفع للشركة عند تحميل الصفحة
   useEffect(() => {
@@ -276,7 +279,7 @@ const CompanyDetails = () => {
               <div className="pt-20 pb-8">
                 {/* Company name and rating */}
                 <div className="mb-6 relative">
-                  <div className={!hasPaid ? "blur-sm select-none" : ""}>
+                  <div className={!hasPaid && !isAdmin ? "blur-sm select-none" : ""}>
                     <h1 className="text-3xl font-bold font-heading mb-2">{company.name}</h1>
                     <div className="flex items-center">
                       <div className="flex items-center text-amber-500 ml-2">
@@ -289,7 +292,7 @@ const CompanyDetails = () => {
                   </div>
                   
                   {/* قفل اسم الشركة */}
-                  {!hasPaid && (
+                  {!hasPaid && !isAdmin && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="bg-white/80 rounded-lg p-2 shadow-sm border flex items-center">
                         <Lock className="text-primary h-4 w-4 ml-1" />
@@ -318,7 +321,7 @@ const CompanyDetails = () => {
 
                 {/* Contact details */}
                 <div className="relative mb-6">
-                  <div className={`flex flex-col md:flex-row md:items-center gap-4 md:gap-6 ${!hasPaid ? "blur-sm select-none" : ""}`}>
+                  <div className={`flex flex-col md:flex-row md:items-center gap-4 md:gap-6 ${!hasPaid && !isAdmin ? "blur-sm select-none" : ""}`}>
                     {company.location && (
                       <div className="flex items-center text-neutral-700">
                         <MapPin className="ml-1 h-5 w-5 text-neutral-500" />
@@ -331,7 +334,7 @@ const CompanyDetails = () => {
                         <a href={company.website.startsWith('http') ? company.website : `https://${company.website}`} 
                            target="_blank" 
                            rel="noopener noreferrer"
-                           className={`text-primary hover:underline ${!hasPaid ? "pointer-events-none" : ""}`}>
+                           className={`text-primary hover:underline ${!hasPaid && !isAdmin ? "pointer-events-none" : ""}`}>
                           {company.website.replace(/^https?:\/\//, '')}
                         </a>
                       </div>
@@ -347,7 +350,7 @@ const CompanyDetails = () => {
                   </div>
                   
                   {/* قفل معلومات الاتصال */}
-                  {!hasPaid && (
+                  {!hasPaid && !isAdmin && (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <div className="bg-white/80 rounded-lg p-4 shadow-sm border flex flex-col items-center">
                         <Lock className="text-primary h-6 w-6 mb-2" />
