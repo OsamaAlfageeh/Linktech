@@ -237,38 +237,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const resetLink = `${req.protocol}://${req.get('host')}/auth/reset-password/${token}`;
       
       // Send email
+      console.log("إرسال بريد إعادة تعيين كلمة المرور إلى:", user.email);
+      let emailSent = false;
+      
       try {
-        const emailSent = await sendPasswordResetEmail(
+        emailSent = await sendPasswordResetEmail(
           user.email,
           user.name,
           token,
           resetLink
         );
-        
-        if (!emailSent) {
-          console.log("خدمة البريد الإلكتروني غير متاحة، عرض رابط إعادة التعيين للتطوير فقط:", resetLink);
-          // لأغراض التطوير، نرسل الرابط مباشرة في الاستجابة
-          return res.json({ 
-            success: true, 
-            message: 'Password reset link generated. For development purposes, it is returned in this response.', 
-            resetLink: resetLink
-          });
-        }
+        console.log("نتيجة إرسال البريد الإلكتروني:", emailSent ? "ناجح" : "فاشل");
       } catch (error) {
-        console.error("فشل في إرسال البريد الإلكتروني:", error);
-        console.log("عرض رابط إعادة التعيين للتطوير فقط:", resetLink);
+        console.error("استثناء أثناء إرسال البريد الإلكتروني:", error);
+      }
+      
+      // في بيئة التطوير، نعرض دائماً الرابط (سواء نجح إرسال البريد أم لا)
+      // في بيئة الإنتاج، يمكن تعديل هذا الشرط ليكون process.env.NODE_ENV !== 'production'
+      const isDevelopment = true;
+      
+      if (isDevelopment || !emailSent) {
+        console.log("عرض رابط إعادة التعيين في بيئة التطوير:", resetLink);
         return res.json({ 
           success: true, 
-          message: 'Password reset link generated. For development purposes, it is returned in this response.',
-          resetLink: resetLink 
+          message: 'Password reset link generated. For development purposes, it is returned in this response.', 
+          resetLink: resetLink,
+          emailSent: emailSent
         });
       }
       
+      // هذا الجزء سيتم تنفيذه فقط في حالة نجاح إرسال البريد في بيئة الإنتاج
       res.json({ 
         success: true, 
-        message: 'Password reset link has been sent to your email',
-        // للاختبار فقط، إزالة هذا في بيئة الإنتاج
-        debug: { token, resetLink }
+        message: 'Password reset link has been sent to your email'
       });
     } catch (error) {
       console.error('Error in forgot password:', error);
