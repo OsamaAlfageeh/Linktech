@@ -141,6 +141,19 @@ const CompanyDetails = () => {
   
   // وظيفة معالجة الدفع
   const handlePayment = async () => {
+    // للمسؤول، نمنح الوصول الفوري دون دفع
+    if (isAdmin) {
+      setHasPaid(true);
+      setIsPaymentModalOpen(false);
+      
+      toast({
+        title: "صلاحيات المسؤول",
+        description: "لديك وصول كامل كمسؤول دون الحاجة للدفع",
+      });
+      
+      return;
+    }
+    
     setPaymentProcessing(true);
     try {
       // في البيئة الحقيقية، سنرسل طلب إلى الخادم وننتظر استجابة ميسر
@@ -212,6 +225,13 @@ const CompanyDetails = () => {
             <ArrowLeft className="ml-1 h-4 w-4 rtl-flip" />
             العودة إلى الشركات
           </Link>
+          
+          {isAdmin && (
+            <div className="mt-2 flex items-center text-primary font-medium">
+              <Badge variant="outline" className="bg-primary/10 border-primary/25 text-primary ml-1">مشرف</Badge>
+              عرض بصلاحيات المشرف - جميع المعلومات مكشوفة
+            </div>
+          )}
         </div>
 
         {isLoading ? (
@@ -306,6 +326,18 @@ const CompanyDetails = () => {
                 <div className="mb-8">
                   <p className="text-neutral-700 whitespace-pre-line">{company.description}</p>
                 </div>
+
+                {/* Admin indicator */}
+                {isAdmin && (
+                  <div className="mb-4 p-2 bg-primary/10 border border-primary/20 rounded-lg">
+                    <div className="flex items-center text-primary">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="ml-2 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                      <span className="font-medium">أنت تتصفح هذه الصفحة بصلاحيات المسؤول - كل المعلومات مرئية</span>
+                    </div>
+                  </div>
+                )}
 
                 {/* Skills */}
                 <div className="mb-8">
