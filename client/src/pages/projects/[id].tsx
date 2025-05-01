@@ -76,7 +76,7 @@ const ProjectDetails = () => {
   return (
     <>
       <Helmet>
-        <title>{project ? `${project.title} | لينكتيك` : 'تفاصيل المشروع | لينكتيك'}</title>
+        <title>{project ? `${project.title} | لنكتك` : 'تفاصيل المشروع | لنكتك'}</title>
         <meta name="description" content={"تفاصيل المشروع متاحة للمستخدمين المسجلين فقط"} />
       </Helmet>
 

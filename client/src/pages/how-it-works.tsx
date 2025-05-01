@@ -7,13 +7,13 @@ const HowItWorksPage = () => {
   return (
     <>
       <Helmet>
-        <title>كيف يعمل موقعنا | لينكتيك</title>
+        <title>كيف يعمل موقعنا | لنكتك</title>
         <meta name="description" content="تعرف على كيفية عمل منصتنا وكيف يمكن أن تساعد في ربط أصحاب المشاريع التقنية مع الشركات المتخصصة" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">كيف يعمل لينكتيك</h1>
+          <h1 className="text-3xl md:text-4xl font-bold text-center mb-8">كيف يعمل لنكتك</h1>
           
           <div className="bg-white rounded-xl shadow-md p-6 md:p-8 mb-8">
             <h2 className="text-2xl font-bold mb-6 text-primary">الخطوات البسيطة للتواصل والإنجاز</h2>
@@ -77,7 +77,7 @@ const HowItWorksPage = () => {
           </div>
           
           <div className="bg-white rounded-xl shadow-md p-6 md:p-8 mb-8">
-            <h2 className="text-2xl font-bold mb-6 text-primary">مميزات لينكتيك</h2>
+            <h2 className="text-2xl font-bold mb-6 text-primary">مميزات لنكتك</h2>
             
             <div className="grid md:grid-cols-2 gap-6">
               <div className="flex items-start gap-4">
@@ -118,7 +118,7 @@ const HowItWorksPage = () => {
             <div className="max-w-3xl mx-auto text-center">
               <h2 className="text-2xl md:text-3xl font-bold mb-4">ابدأ رحلتك الآن</h2>
               <p className="mb-8 text-white/80">
-                سواء كنت صاحب مشروع تقني طموح أو شركة تطوير متخصصة، انضم إلينا اليوم واستفد من ميزات منصة لينكتيك لتحقيق أهدافك.
+                سواء كنت صاحب مشروع تقني طموح أو شركة تطوير متخصصة، انضم إلينا اليوم واستفد من ميزات منصة لنكتك لتحقيق أهدافك.
               </p>
               
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
