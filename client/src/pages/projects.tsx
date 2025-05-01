@@ -130,7 +130,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
   return (
     <>
       <Helmet>
-        <title>المشاريع | تِكلينك</title>
+        <title>المشاريع | لينكتيك</title>
         <meta name="description" content="استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة" />
       </Helmet>
 
