@@ -28,7 +28,7 @@ const CTASection = ({ auth }: CTASectionProps) => {
               {auth.isAuthenticated ? "استكشف المشاريع" : "أنشئ حسابك مجاناً"}
             </Link>
             <Link 
-              href="/companies" 
+              href="/auth/register" 
               className="bg-[hsla(160,84%,30%,0.3)] text-white hover:bg-[hsla(160,84%,30%,0.5)] font-medium rounded-lg px-8 py-3 text-center border border-white/30 transition-all duration-300 hover:border-white hover:shadow-lg hover-button-scale"
             >
               ابدأ رحلتك التقنية اليوم

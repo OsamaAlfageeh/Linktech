@@ -14,8 +14,6 @@ import ScrollToTop from "@/components/layout/ScrollToTop";
 import Home from "@/pages/home";
 import Projects from "@/pages/projects";
 import ProjectDetails from "@/pages/projects/[id]";
-import Companies from "@/pages/companies";
-import CompanyDetails from "@/pages/companies/[id]";
 import ForCompanies from "@/pages/for-companies";
 import Register from "@/pages/auth/register";
 import Login from "@/pages/auth/login";
@@ -116,8 +114,7 @@ function App() {
           <Route path="/" component={() => <Home auth={auth} />} />
           <Route path="/projects" component={() => <Projects auth={auth} />} />
           <Route path="/projects/:id" component={ProjectDetails} />
-          <Route path="/companies" component={Companies} />
-          <Route path="/companies/:id" component={CompanyDetails} />
+
           <Route path="/for-companies">
             {auth.isAuthenticated && auth.isCompany ? (
               <ForCompanies auth={auth} />

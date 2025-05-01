@@ -74,14 +74,7 @@ const Header = ({ auth }: HeaderProps) => {
                   المشاريع
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href="/companies" 
-                  className={`px-3 py-2 font-medium ${isActive("/companies") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
-                >
-                  شركات البرمجة
-                </Link>
-              </li>
+
               {auth.isCompany && (
                 <li>
                   <Link 
@@ -166,9 +159,7 @@ const Header = ({ auth }: HeaderProps) => {
                     <Link href="/projects" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                       المشاريع
                     </Link>
-                    <Link href="/companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
-                      شركات البرمجة
-                    </Link>
+
                     {auth.isCompany && (
                       <Link href="/for-companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                         للشركات
