@@ -12,7 +12,8 @@ import {
   SimilarProjects, 
   AIRecommendedCompanies, 
   AISimilarProjects,
-  AIMarketTrends
+  AIMarketTrends,
+  AIProjectAnalysis
 } from "@/components/recommendations";
 import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
 import { OffersList } from "@/components/offers/OffersList";
