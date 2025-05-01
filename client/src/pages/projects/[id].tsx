@@ -188,7 +188,7 @@ const ProjectDetails = () => {
                       </Button>
                     </Link>
                   )}
-                  {auth.isAuthenticated && auth.user?.id === project.userId && (
+                  {auth.isAuthenticated && auth.user?.id === project.userId && auth.user?.role === "entrepreneur" && (
                     <Link href={`/dashboard/entrepreneur?tab=projects&action=edit&projectId=${project.id}`}>
                       <Button className="hover-button-scale transition-all duration-300 hover:shadow-md">
                         <Settings className="ml-2 h-4 w-4 rtl-flip transition-transform group-hover:scale-110" />
