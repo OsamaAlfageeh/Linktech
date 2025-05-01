@@ -563,7 +563,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   return (
     <div className="container mx-auto p-4">
       <Helmet>
-        <title>الرسائل | تِكلينك</title>
+        <title>الرسائل | لينكتيك</title>
       </Helmet>
       
       {wsError && (
