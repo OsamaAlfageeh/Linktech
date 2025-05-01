@@ -413,3 +413,42 @@ export const ndaAgreementsRelations = relations(ndaAgreements, ({ one }) => ({
     references: [projects.id],
   }),
 }));
+
+// Personal information schema (required for NDA agreements)
+export const personalInformation = pgTable("personal_information", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  fullName: text("full_name").notNull(),
+  idNumber: text("id_number").notNull(), // National ID (هوية وطنية)
+  mobileNumber: text("mobile_number").notNull(),
+  dateOfBirth: text("date_of_birth").notNull(),
+  nationalAddress: text("national_address").notNull(), // العنوان الوطني
+  isComplete: boolean("is_complete").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPersonalInformationSchema = createInsertSchema(personalInformation).omit({ 
+  id: true, 
+  isComplete: true,
+  createdAt: true,
+  updatedAt: true 
+});
+
+export type PersonalInformation = typeof personalInformation.$inferSelect;
+export type InsertPersonalInformation = z.infer<typeof insertPersonalInformationSchema>;
+
+export const personalInformationRelations = relations(personalInformation, ({ one }) => ({
+  user: one(users, {
+    fields: [personalInformation.userId],
+    references: [users.id],
+  }),
+}));
+
+// Add personal info to user relations
+export const usersPersonalInfoRelation = relations(users, ({ one }) => ({
+  personalInfo: one(personalInformation, {
+    fields: [users.id],
+    references: [personalInformation.userId],
+  }),
+}));

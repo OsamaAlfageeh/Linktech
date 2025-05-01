@@ -181,9 +181,36 @@ export function NdaSection({
                     </p>
                   </div>
                   
+                  {/* التحقق من استكمال البيانات الشخصية */}
+                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                      <Info className="h-5 w-5 ml-2 text-blue-600" />
+                      متطلبات توقيع اتفاقية عدم الإفصاح
+                    </h4>
+                    <p className="text-blue-700 mb-3 text-sm">
+                      لتوقيع اتفاقية عدم الإفصاح، يجب عليك استكمال بياناتك الشخصية أولاً:
+                    </p>
+                    <ul className="text-sm text-blue-700 list-disc list-inside mb-3">
+                      <li>الاسم الكامل</li>
+                      <li>رقم الهوية الوطنية</li>
+                      <li>رقم الجوال</li>
+                      <li>تاريخ الميلاد</li>
+                      <li>العنوان الوطني</li>
+                    </ul>
+                    <Link href="/dashboard/company?tab=personal">
+                      <Button
+                        variant="outline"
+                        className="bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
+                      >
+                        استكمال بياناتك الشخصية
+                      </Button>
+                    </Link>
+                  </div>
+                  
                   <Button 
                     onClick={() => setIsNdaDialogOpen(true)}
                     className="bg-gradient-to-l from-blue-600 to-primary hover:from-blue-700 hover:to-primary-dark"
+                    disabled={true} // سيتم تفعيله عندما يتم التحقق من اكتمال البيانات الشخصية
                   >
                     <Shield className="ml-2 h-5 w-5" />
                     توقيع اتفاقية عدم الإفصاح
