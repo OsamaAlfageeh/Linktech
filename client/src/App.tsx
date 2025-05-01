@@ -116,7 +116,13 @@ function App() {
           <Route path="/projects/:id" component={ProjectDetails} />
           <Route path="/companies" component={Companies} />
           <Route path="/companies/:id" component={CompanyDetails} />
-          <Route path="/for-companies" component={() => <ForCompanies />} />
+          <Route path="/for-companies">
+            {auth.isAuthenticated && auth.isCompany ? (
+              <ForCompanies auth={auth} />
+            ) : (
+              <NotFound />
+            )}
+          </Route>
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
           <Route path="/redirect" component={Redirect} />

@@ -17,15 +17,17 @@ import {
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
 import { ArrowLeft, BriefcaseIcon, BuildingIcon, GraduationCapIcon, LockIcon, WalletIcon } from "lucide-react";
-import { useAuth } from "../App";
+import { AuthContextType } from "../App";
 
-export default function ForCompanies() {
+interface ForCompaniesProps {
+  auth: AuthContextType;
+}
+
+export default function ForCompanies({ auth }: ForCompaniesProps) {
   const [_, navigate] = useLocation();
-  const auth = useAuth();
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header auth={auth} />
       <Helmet>
         <title>للشركات - منصة تيك لينك</title>
       </Helmet>

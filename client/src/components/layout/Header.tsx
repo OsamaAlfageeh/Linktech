@@ -82,14 +82,16 @@ const Header = ({ auth }: HeaderProps) => {
                   شركات البرمجة
                 </Link>
               </li>
-              <li>
-                <Link 
-                  href="/for-companies" 
-                  className={`px-3 py-2 font-medium ${isActive("/for-companies") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
-                >
-                  للشركات
-                </Link>
-              </li>
+              {auth.isCompany && (
+                <li>
+                  <Link 
+                    href="/for-companies" 
+                    className={`px-3 py-2 font-medium ${isActive("/for-companies") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                  >
+                    للشركات
+                  </Link>
+                </li>
+              )}
             </ul>
           </nav>
 
