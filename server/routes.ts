@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendWelcomeEmail } from "./emailService";
+import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
 
 // Track active connections
 const connections = new Map<number, WebSocket>();

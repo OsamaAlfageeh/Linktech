@@ -127,6 +127,7 @@ function App() {
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
           <Route path="/auth/forgot-password" component={ForgotPassword} />
+          <Route path="/reset-password/:token" component={ResetPassword} />
           <Route path="/redirect" component={Redirect} />
           {/* Removed separate admin login route */}
           
