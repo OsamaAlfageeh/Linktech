@@ -140,15 +140,15 @@ const Login = ({ auth }: LoginProps) => {
   return (
     <>
       <Helmet>
-        <title>تسجيل الدخول | تِكلينك</title>
-        <meta name="description" content="تسجيل الدخول إلى منصة تِكلينك للتواصل بين رواد الأعمال وشركات البرمجة" />
+        <title>تسجيل الدخول | لينكتيك</title>
+        <meta name="description" content="تسجيل الدخول إلى منصة لينكتيك للتواصل بين رواد الأعمال وشركات البرمجة" />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md space-y-8 bg-white p-8 rounded-xl shadow-sm">
           <div className="text-center">
             <Link href="/">
-              <span className="inline-block text-primary font-heading font-bold text-3xl mb-4">تِك<span className="text-accent">لينك</span></span>
+              <span className="inline-block text-primary font-heading font-bold text-3xl mb-4">لينك<span className="text-accent">تيك</span></span>
             </Link>
             <h2 className="text-2xl font-bold font-heading">تسجيل الدخول</h2>
             <p className="mt-2 text-sm text-neutral-600">
