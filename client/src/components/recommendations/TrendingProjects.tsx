@@ -92,7 +92,7 @@ const TrendingProjects: FC<TrendingProjectsProps> = ({ limit = 5 }) => {
     <div className="space-y-3 rtl">
       <div className="flex items-center mb-4">
         <TrendingUp className="ml-2 text-primary" />
-        <h3 className="text-xl font-bold">المشاريع الرائجة</h3>
+        <h3 className="text-xl font-bold">المشاريع ذات الطلب العالي</h3>
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {data.map((project) => (
@@ -104,20 +104,8 @@ const TrendingProjects: FC<TrendingProjectsProps> = ({ limit = 5 }) => {
                   {project.highlightStatus || project.status}
                 </Badge>
               </div>
-              <CardDescription className="text-right text-sm text-muted-foreground">
-                بواسطة {project.name || project.username || 'مستخدم'}
-              </CardDescription>
             </CardHeader>
             <CardContent>
-              <p className="text-right mb-3">{truncateText(project.description, 100)}</p>
-              <div className="flex justify-between text-sm mb-3 text-gray-500">
-                <div>
-                  <span className="font-bold">الميزانية:</span> {project.budget}
-                </div>
-                <div>
-                  <span className="font-bold">المدة:</span> {project.duration}
-                </div>
-              </div>
               <div className="flex flex-wrap gap-1 mt-2">
                 {project.skills?.map((skill) => (
                   <Badge key={skill} variant="outline" className="text-xs bg-gray-100">
@@ -127,8 +115,8 @@ const TrendingProjects: FC<TrendingProjectsProps> = ({ limit = 5 }) => {
               </div>
             </CardContent>
             <CardFooter>
-              <Link href={`/projects/${project.id}`}>
-                <Button variant="outline" className="w-full">عرض التفاصيل</Button>
+              <Link href="/auth/register">
+                <Button className="w-full">اطلب مشروع مماثل</Button>
               </Link>
             </CardFooter>
           </Card>
