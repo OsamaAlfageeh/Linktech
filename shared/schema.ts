@@ -57,6 +57,8 @@ export const projects = pgTable("projects", {
   status: text("status").notNull().default("open"),
   userId: integer("user_id").notNull().references(() => users.id),
   highlightStatus: text("highlight_status"), // For "high demand", "new", etc.
+  requiresNda: boolean("requires_nda").default(false), // Indicates if NDA is required
+  ndaId: integer("nda_id"), // Reference to NDA document if required
   attachments: jsonb("attachments"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -230,6 +232,10 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
   }),
   messages: many(messages),
   offers: many(projectOffers),
+  ndaAgreement: one(ndaAgreements, {
+    fields: [projects.id],
+    references: [ndaAgreements.projectId],
+  }),
 }));
 
 export const projectOffersRelations = relations(projectOffers, ({ one }) => ({
@@ -371,10 +377,32 @@ export const newsletterSubscribers = pgTable("newsletter_subscribers", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// NDA Agreements schema
+export const ndaAgreements = pgTable("nda_agreements", {
+  id: serial("id").primaryKey(),
+  projectId: integer("project_id").notNull().references(() => projects.id),
+  pdfUrl: text("pdf_url"), // URL or path to the generated PDF
+  status: text("status").notNull().default("pending"), // pending, signed, expired
+  companySignatureInfo: jsonb("company_signature_info"), // IP, browser, timestamp
+  signedAt: timestamp("signed_at"), // When the company signed
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+});
+
 export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({ 
   id: true, 
   createdAt: true 
 });
 
+export const insertNdaAgreementSchema = createInsertSchema(ndaAgreements).omit({
+  id: true,
+  status: true,
+  createdAt: true,
+  signedAt: true
+});
+
 export type NewsletterSubscriber = typeof newsletterSubscribers.$inferSelect;
 export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscriberSchema>;
+
+export type NdaAgreement = typeof ndaAgreements.$inferSelect;
+export type InsertNdaAgreement = z.infer<typeof insertNdaAgreementSchema>;
