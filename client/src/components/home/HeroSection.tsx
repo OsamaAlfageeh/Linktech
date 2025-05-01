@@ -5,8 +5,8 @@ import { Clock, Users, CheckCircle, TrendingUp } from "lucide-react";
 
 // تعريف نوع الإحصائيات
 interface PlatformStats {
-  verifiedCompaniesCount: number;
-  projectsCount: number;
+  companiesCount: number;
+  offersCount: number;
   responseTimeMinutes: number;
   completedProjectsCount: number;
 }
@@ -112,14 +112,24 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
                 احصل على عرض سعر مبدئي خلال 30 دقيقة فقط!
               </p>
               
-              <div className="mt-4 mx-auto">
-                <div className="bg-white/10 p-4 rounded-lg flex items-center justify-center w-full sm:w-3/4 mx-auto">
+              <div className="mt-4 grid grid-cols-2 gap-4">
+                <div className="bg-white/10 p-4 rounded-lg flex items-center justify-center">
+                  <Users className="ml-3 h-6 w-6 text-blue-200" />
+                  <div>
+                    <div className="font-bold text-3xl text-white">
+                      {statsLoading ? "..." : platformStats?.companiesCount || 0}+
+                    </div>
+                    <div className="text-sm text-blue-100">شركة برمجية</div>
+                  </div>
+                </div>
+                
+                <div className="bg-white/10 p-4 rounded-lg flex items-center justify-center">
                   <TrendingUp className="ml-3 h-6 w-6 text-green-200" />
                   <div>
                     <div className="font-bold text-3xl text-white">
-                      {statsLoading ? "..." : platformStats?.projectsCount || 0}+
+                      {statsLoading ? "..." : platformStats?.offersCount || 0}+
                     </div>
-                    <div className="text-sm text-green-100">مشروع نشط في انتظار العروض</div>
+                    <div className="text-sm text-green-100">عرض مقدم</div>
                   </div>
                 </div>
               </div>

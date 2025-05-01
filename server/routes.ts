@@ -1104,24 +1104,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // إحصائيات المنصة للزوار - فقط الأرقام بدون معلومات تفصيلية
   app.get('/api/platform-stats', async (req: Request, res: Response) => {
     try {
-      // الحصول على عدد الشركات الموثقة
+      // الحصول على عدد الشركات (الجميع، ليس فقط الموثقة)
       const companyProfiles = await storage.getCompanyProfiles();
-      const verifiedCompaniesCount = companyProfiles.filter(company => company.verified).length;
+      const companiesCount = companyProfiles.length;
       
-      // الحصول على عدد المشاريع
-      const projects = await storage.getProjects();
-      const projectsCount = projects.length;
+      // الحصول على عدد العروض المقدمة
+      const offers = await storage.getAllProjectOffers();
+      const offersCount = offers.length;
       
       // الحصول على متوسط وقت الاستجابة (30 دقيقة كقيمة ثابتة للعرض التسويقي)
       const responseTimeMinutes = 30;
       
       // الحصول على عدد المشاريع المكتملة
+      const projects = await storage.getProjects();
       const completedProjectsCount = projects.filter(project => project.status === 'completed').length;
       
       // الاستجابة بالإحصائيات
       res.json({
-        verifiedCompaniesCount,
-        projectsCount,
+        companiesCount,
+        offersCount,
         responseTimeMinutes,
         completedProjectsCount
       });
