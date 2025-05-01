@@ -7,7 +7,9 @@ import {
   Testimonial, InsertTestimonial,
   ProjectOffer, InsertProjectOffer,
   SiteSetting, InsertSiteSetting,
-  siteSettings
+  siteSettings,
+  passwordResetTokens,
+  InsertPasswordResetToken
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
@@ -666,6 +668,75 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.users.id, id))
       .returning();
     return updatedUser;
+  }
+
+  // Password reset operations
+  async createPasswordResetToken(email: string, token: string, expiresAt: Date): Promise<boolean> {
+    try {
+      const user = await this.getUserByEmail(email);
+      if (!user) {
+        return false;
+      }
+      
+      // First, delete any existing tokens for this user
+      await db.delete(passwordResetTokens)
+        .where(eq(passwordResetTokens.userId, user.id));
+      
+      // Then create the new token
+      await db.insert(passwordResetTokens).values({
+        userId: user.id,
+        email,
+        token,
+        expiresAt
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating password reset token:', error);
+      return false;
+    }
+  }
+  
+  async getPasswordResetToken(token: string): Promise<{ userId: number, email: string, expiresAt: Date } | undefined> {
+    try {
+      const tokens = await db.select()
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token));
+      
+      if (!tokens.length) {
+        return undefined;
+      }
+      
+      const tokenData = tokens[0];
+      
+      // Check if token has expired
+      if (tokenData.expiresAt < new Date()) {
+        // Token expired, delete it
+        await this.deletePasswordResetToken(token);
+        return undefined;
+      }
+      
+      return {
+        userId: tokenData.userId,
+        email: tokenData.email,
+        expiresAt: tokenData.expiresAt
+      };
+    } catch (error) {
+      console.error('Error getting password reset token:', error);
+      return undefined;
+    }
+  }
+  
+  async deletePasswordResetToken(token: string): Promise<boolean> {
+    try {
+      await db.delete(passwordResetTokens)
+        .where(eq(passwordResetTokens.token, token));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting password reset token:', error);
+      return false;
+    }
   }
 
   // Company profile operations

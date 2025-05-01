@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -336,3 +336,28 @@ export const insertSiteSettingsSchema = createInsertSchema(siteSettings).omit({
 
 export type SiteSetting = typeof siteSettings.$inferSelect;
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingsSchema>;
+
+// Password Reset Tokens schema
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  token: varchar("token", { length: 64 }).notNull().unique(),
+  email: text("email").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPasswordResetTokenSchema = createInsertSchema(passwordResetTokens).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type InsertPasswordResetToken = z.infer<typeof insertPasswordResetTokenSchema>;
+
+export const passwordResetTokensRelations = relations(passwordResetTokens, ({ one }) => ({
+  user: one(users, {
+    fields: [passwordResetTokens.userId],
+    references: [users.id],
+  }),
+}));
