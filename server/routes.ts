@@ -22,15 +22,14 @@ import {
 } from "./recommendation";
 
 import {
-  recordActivity,
-  ActivityTypes,
-  getOrCreateUserAchievement,
-  getUserRecentActivities,
-  getUserAchievementDetails,
-  getTopUsers,
-  updateLoginStreak,
-  seedDefaultBadges
-} from "./gamification";
+  getEnhancedRecommendationsForProject,
+  getEnhancedRecommendationsForCompany,
+  getEnhancedSimilarProjects,
+  discoverProjectDomains,
+  discoverTrendingTechnologies,
+  analyzeProject,
+  analyzeCompany
+} from "./aiRecommendation";
 import session from "express-session";
 import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
 import passport from "passport";
@@ -649,6 +648,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(trendingProjects);
     } catch (error) {
       console.error('Error in trending projects:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // محرك التوصيات المعزز بالذكاء الاصطناعي
+  // 1. الحصول على الشركات الموصى بها لمشروع معين (نسخة معززة)
+  app.get('/api/ai-recommendations/projects/:projectId/companies', async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      // استخدام محرك التوصيات المعزز
+      const recommendedCompanies = await getEnhancedRecommendationsForProject(projectId, limit);
+      
+      // إذا كان هناك مستخدم مسجل الدخول وهو صاحب المشروع، أظهر المعلومات مع تعمية الشركات
+      if (req.isAuthenticated()) {
+        const user = req.user as any;
+        const project = await storage.getProject(projectId);
+        
+        if (project && project.userId === user.id) {
+          const companiesWithBlurredData = await Promise.all(
+            recommendedCompanies.map(async ({ company, matchScore, matchDetails }) => {
+              const companyUser = await storage.getUser(company.userId);
+              
+              // إنشاء اسم مستعار مختصر
+              const blurredName = companyUser?.name 
+                ? `شركة ${companyUser.name.charAt(0)}...` 
+                : 'شركة متخصصة';
+              
+              return {
+                company: {
+                  ...company,
+                  blurredName,
+                  verified: company.verified,
+                  rating: company.rating,
+                  skills: company.skills
+                },
+                matchScore,
+                matchDetails
+              };
+            })
+          );
+          
+          return res.json(companiesWithBlurredData);
+        }
+      }
+      
+      // للزوار أو الشركات الأخرى، إخفاء المعلومات تماماً
+      res.json([]);
+    } catch (error) {
+      console.error('Error fetching AI recommendations:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 2. الحصول على المشاريع الموصى بها لشركة معينة (نسخة معززة)
+  app.get('/api/ai-recommendations/companies/:companyId/projects', async (req: Request, res: Response) => {
+    try {
+      const companyId = parseInt(req.params.companyId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
+      
+      // استخدام محرك التوصيات المعزز
+      const recommendedProjects = await getEnhancedRecommendationsForCompany(companyId, limit);
+      res.json(recommendedProjects);
+    } catch (error) {
+      console.error('Error fetching AI recommendations:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 3. الحصول على المشاريع المشابهة لمشروع معين (نسخة معززة)
+  app.get('/api/ai-recommendations/projects/:projectId/similar', async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 3;
+      
+      // استخدام محرك التوصيات المعزز
+      const similarProjects = await getEnhancedSimilarProjects(projectId, limit);
+      res.json(similarProjects);
+    } catch (error) {
+      console.error('Error fetching AI similar projects:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 4. تحليل اتجاهات السوق - المجالات الشائعة
+  app.get('/api/ai-recommendations/market/domains', async (req: Request, res: Response) => {
+    try {
+      const domains = await discoverProjectDomains();
+      res.json(domains);
+    } catch (error) {
+      console.error('Error discovering market domains:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 5. تحليل اتجاهات السوق - التقنيات الشائعة
+  app.get('/api/ai-recommendations/market/technologies', async (req: Request, res: Response) => {
+    try {
+      const technologies = await discoverTrendingTechnologies();
+      res.json(technologies);
+    } catch (error) {
+      console.error('Error discovering trending technologies:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // 6. تحليل مشروع محدد
+  app.get('/api/ai-recommendations/analyze/project/:projectId', async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: 'Project not found' });
+      }
+      
+      // التحقق من صلاحية الوصول - يمكن فقط لصاحب المشروع أو مسؤول النظام رؤية التحليل
+      if (req.isAuthenticated()) {
+        const user = req.user as any;
+        
+        if (project.userId === user.id || user.role === 'admin') {
+          const analyzedProject = analyzeProject(project);
+          return res.json(analyzedProject);
+        }
+      }
+      
+      res.status(403).json({ message: 'Unauthorized' });
+    } catch (error) {
+      console.error('Error analyzing project:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
