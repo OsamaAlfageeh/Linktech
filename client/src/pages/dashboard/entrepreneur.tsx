@@ -214,8 +214,8 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   return (
     <>
       <Helmet>
-        <title>لوحة التحكم | تِكلينك</title>
-        <meta name="description" content="لوحة تحكم رائد الأعمال في منصة تِكلينك" />
+        <title>لوحة التحكم | لينكتيك</title>
+        <meta name="description" content="لوحة تحكم رائد الأعمال في منصة لينكتيك" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">

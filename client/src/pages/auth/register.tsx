@@ -131,7 +131,7 @@ const Register = ({ auth }: RegisterProps) => {
       auth.login(data.user);
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "مرحباً بك في منصة تِكلينك!",
+        description: "مرحباً بك في منصة لينكتيك!",
       });
 
       // Redirect based on role
@@ -181,15 +181,15 @@ const Register = ({ auth }: RegisterProps) => {
   return (
     <>
       <Helmet>
-        <title>إنشاء حساب جديد | تِكلينك</title>
-        <meta name="description" content="إنشاء حساب جديد في منصة تِكلينك للتواصل بين رواد الأعمال وشركات البرمجة" />
+        <title>إنشاء حساب جديد | لينكتيك</title>
+        <meta name="description" content="إنشاء حساب جديد في منصة لينكتيك للتواصل بين رواد الأعمال وشركات البرمجة" />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8">
         <div className="w-full max-w-md md:max-w-lg space-y-8 bg-white p-8 rounded-xl shadow-sm">
           <div className="text-center">
             <Link href="/">
-              <span className="inline-block text-primary font-heading font-bold text-3xl mb-4">تِك<span className="text-accent">لينك</span></span>
+              <span className="inline-block text-primary font-heading font-bold text-3xl mb-4">لينك<span className="text-accent">تيك</span></span>
             </Link>
             <h2 className="text-2xl font-bold font-heading">إنشاء حساب جديد</h2>
             <p className="mt-2 text-sm text-neutral-600">
