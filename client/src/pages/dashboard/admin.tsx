@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
-import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image } from "lucide-react";
+import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
+  DollarSign, Clock, Award, MessageSquare } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -164,6 +165,39 @@ export default function AdminDashboard() {
       return response.json();
     },
     enabled: isAuthenticated && user?.role === "admin"
+  });
+  
+  // استعلام لجلب كافة العروض المقدمة على المشاريع
+  const {
+    data: allOffers,
+    isLoading: offersLoading,
+    refetch: refetchOffers,
+  } = useQuery({
+    queryKey: ["/api/offers/all"],
+    queryFn: async () => {
+      // جمع العروض من جميع المشاريع
+      if (!projects || projects.length === 0) return [];
+      
+      const projectOffersPromises = projects.map(async (project: any) => {
+        const response = await fetch(`/api/projects/${project.id}/offers`);
+        if (!response.ok) {
+          console.error(`فشل في جلب عروض المشروع ${project.id}`);
+          return [];
+        }
+        const offers = await response.json();
+        // إضافة معلومات المشروع لكل عرض
+        return offers.map((offer: any) => ({
+          ...offer,
+          projectTitle: project.title,
+          projectId: project.id
+        }));
+      });
+      
+      const allProjectOffers = await Promise.all(projectOffersPromises);
+      // دمج كل العروض في مصفوفة واحدة
+      return allProjectOffers.flat();
+    },
+    enabled: isAuthenticated && user?.role === "admin" && Boolean(projects?.length)
   });
   
   // استخراج رابط صور الهيدر والجانب عند تحميل البيانات
@@ -555,11 +589,12 @@ export default function AdminDashboard() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-6 w-full md:w-[720px]">
+          <TabsList className="grid grid-cols-7 w-full md:w-[840px]">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="users">المستخدمون</TabsTrigger>
             <TabsTrigger value="companies">الشركات</TabsTrigger>
             <TabsTrigger value="projects">المشاريع</TabsTrigger>
+            <TabsTrigger value="offers">العروض</TabsTrigger>
             <TabsTrigger value="messages">المحادثات</TabsTrigger>
             <TabsTrigger value="settings">الإعدادات</TabsTrigger>
           </TabsList>
@@ -895,6 +930,105 @@ export default function AdminDashboard() {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* قسم إدارة العروض */}
+          <TabsContent value="offers" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>إدارة العروض</CardTitle>
+                <Button 
+                  size="sm" 
+                  onClick={() => refetchOffers()}
+                  disabled={offersLoading}
+                >
+                  {offersLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                  تحديث
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {offersLoading ? (
+                  <div className="flex justify-center items-center py-10">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : allOffers && allOffers.length > 0 ? (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>المشروع</TableHead>
+                        <TableHead>الشركة</TableHead>
+                        <TableHead>المبلغ المعروض</TableHead>
+                        <TableHead>المدة المتوقعة</TableHead>
+                        <TableHead>تاريخ العرض</TableHead>
+                        <TableHead>الحالة</TableHead>
+                        <TableHead>تفاصيل</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {allOffers.map((offer: any) => (
+                        <TableRow key={offer.id}>
+                          <TableCell className="font-medium">{offer.projectTitle}</TableCell>
+                          <TableCell>{offer.companyName || "غير معروف"}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <DollarSign className="h-4 w-4 text-green-600 mr-1 rtl:ml-1 rtl:mr-0" /> 
+                              {offer.amount} ريال
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              <Clock className="h-4 w-4 text-blue-600 mr-1 rtl:ml-1 rtl:mr-0" /> 
+                              {offer.timeline}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {new Date(offer.createdAt).toLocaleDateString("ar-SA")}
+                          </TableCell>
+                          <TableCell>
+                            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                              offer.status === "pending" 
+                                ? "bg-amber-100 text-amber-800" 
+                                : offer.status === "accepted" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : offer.status === "rejected" 
+                                    ? "bg-red-100 text-red-800" 
+                                    : offer.status === "paid" 
+                                      ? "bg-blue-100 text-blue-800" 
+                                      : "bg-gray-100 text-gray-800"
+                            }`}>
+                              {offer.status === "pending" 
+                                ? "قيد الانتظار" 
+                                : offer.status === "accepted" 
+                                  ? "مقبول" 
+                                  : offer.status === "rejected" 
+                                    ? "مرفوض" 
+                                    : offer.status === "paid" 
+                                      ? "مدفوع" 
+                                      : "غير معروف"}
+                            </span>
+                          </TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => navigate(`/projects/${offer.projectId}#offers`)}
+                            >
+                              <Eye className="h-4 w-4 mr-1 rtl:ml-1 rtl:mr-0" />
+                              عرض التفاصيل
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                ) : (
+                  <div className="text-center py-10">
+                    <Award className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <p className="text-muted-foreground">لا توجد عروض مقدمة حتى الآن</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
