@@ -31,7 +31,7 @@ const CTASection = ({ auth }: CTASectionProps) => {
               href="/companies" 
               className="bg-[hsla(160,84%,30%,0.3)] text-white hover:bg-[hsla(160,84%,30%,0.5)] font-medium rounded-lg px-8 py-3 text-center border border-white/30 transition-all duration-300 hover:border-white hover:shadow-lg hover-button-scale"
             >
-              تعرف على الشركات
+              ابدأ رحلتك التقنية اليوم
             </Link>
           </div>
         </div>
