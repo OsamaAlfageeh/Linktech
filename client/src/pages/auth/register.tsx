@@ -22,6 +22,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { FileUpload } from "@/components/ui/file-upload";
 
 // Define interface for the registration payload
 interface RegisterPayload {
@@ -35,6 +36,7 @@ interface RegisterPayload {
     skills: string[];
     website?: string;
     location?: string;
+    registrationDocument?: File;
   };
 }
 
@@ -76,6 +78,8 @@ const Register = ({ auth }: RegisterProps) => {
   const [_, navigate] = useLocation();
   const { toast } = useToast();
   const [serverError, setServerError] = useState("");
+  const [registrationDocument, setRegistrationDocument] = useState<File | null>(null);
+  const [documentError, setDocumentError] = useState<string | null>(null);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -112,6 +116,12 @@ const Register = ({ auth }: RegisterProps) => {
           website: data.companyWebsite,
           location: data.companyLocation,
         };
+        
+        // إذا كان هناك ملف registrationDocument في البيانات (من التحويل السابق في الـ onSubmit)
+        if ('registrationDocument' in data && typeof data.registrationDocument === 'string') {
+          // @ts-ignore - نضيف هذا التعليق لتجاوز خطأ TypeScript لأن registrationDocument ليس جزءاً من نوع RegisterFormValues
+          payload.companyProfile.registrationDocument = data.registrationDocument;
+        }
       }
 
       const response = await apiRequest("POST", "/api/auth/register", payload);
@@ -138,7 +148,32 @@ const Register = ({ auth }: RegisterProps) => {
 
   const onSubmit = (data: RegisterFormValues) => {
     setServerError("");
-    registerMutation.mutate(data);
+    setDocumentError(null);
+    
+    // إذا كان نوع الحساب شركة، يجب وجود صورة السجل التجاري
+    if (data.role === "company" && !registrationDocument) {
+      setDocumentError("يجب رفع صورة السجل التجاري للشركة");
+      return;
+    }
+    
+    // إضافة ملف السجل التجاري إلى البيانات
+    if (data.role === "company" && registrationDocument) {
+      // Convert file to base64 and append to payload
+      const reader = new FileReader();
+      reader.readAsDataURL(registrationDocument);
+      reader.onload = () => {
+        const payload = { 
+          ...data, 
+          registrationDocument: reader.result as string 
+        };
+        registerMutation.mutate(payload);
+      };
+      reader.onerror = () => {
+        setServerError("حدث خطأ أثناء قراءة ملف السجل التجاري");
+      };
+    } else {
+      registerMutation.mutate(data);
+    }
   };
 
   const roleType = form.watch("role");
@@ -329,6 +364,23 @@ const Register = ({ auth }: RegisterProps) => {
                             <FormMessage />
                           </FormItem>
                         )}
+                      />
+                    </div>
+                    
+                    {/* حقل رفع صورة السجل التجاري */}
+                    <div>
+                      <FormLabel className="block mb-2">صورة السجل التجاري</FormLabel>
+                      <FileUpload
+                        value={registrationDocument}
+                        onChange={setRegistrationDocument}
+                        label="صورة السجل التجاري"
+                        helperText="قم برفع صورة السجل التجاري للشركة (مطلوب)"
+                        error={documentError || ""}
+                        accept={{
+                          "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+                          "application/pdf": [".pdf"],
+                        }}
+                        maxSize={5 * 1024 * 1024} // 5MB
                       />
                     </div>
                   </>
