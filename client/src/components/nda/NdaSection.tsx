@@ -5,6 +5,24 @@ import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Info, ExternalLink } from "lucide-react";
 import { NdaDialog } from "./NdaDialog";
 
+// تعريف نوع البيانات الخاص باتفاقية عدم الإفصاح
+interface NdaAgreement {
+  id: number;
+  projectId: number;
+  status: string;
+  pdfUrl: string | null;
+  createdAt: string;
+  signedAt: string | null;
+  expiresAt: string | null;
+  companySignatureInfo: {
+    signerName: string;
+    signerTitle: string;
+    signerIp: string;
+    companyName?: string;
+    timestamp: string;
+  };
+}
+
 interface NdaSectionProps {
   projectId: number;
   projectTitle: string;
@@ -30,7 +48,7 @@ export function NdaSection({
   const {
     data: ndaData,
     isLoading: isLoadingNda,
-  } = useQuery({
+  } = useQuery<NdaAgreement>({
     queryKey: [`/api/nda/${ndaId}`],
     enabled: !!ndaId && ndaId > 0,
   });
@@ -39,7 +57,7 @@ export function NdaSection({
   const {
     data: projectNdas,
     isLoading: isLoadingProjectNdas,
-  } = useQuery({
+  } = useQuery<NdaAgreement[]>({
     queryKey: [`/api/projects/${projectId}/nda`],
     enabled: !!projectId && userRole === 'admin' || (currentUserId === userId), // فقط المسؤولون أو صاحب المشروع
   });
@@ -78,7 +96,7 @@ export function NdaSection({
               تم توقيع {projectNdas.length} اتفاقية عدم إفصاح على هذا المشروع من قبل الشركات التالية:
             </p>
             <div className="mt-3 space-y-2">
-              {projectNdas.map((nda: any) => (
+              {projectNdas?.map((nda: NdaAgreement) => (
                 <div 
                   key={nda.id} 
                   className="border border-neutral-200 rounded p-3 bg-neutral-50 flex justify-between items-center"
@@ -96,7 +114,8 @@ export function NdaSection({
                       تاريخ التوقيع: {new Date(nda.signedAt).toLocaleDateString('ar-SA')}
                     </div>
                   </div>
-                  <Badge variant={nda.status === 'active' ? 'success' : 'outline'}>
+                  <Badge variant={nda.status === 'active' ? 'secondary' : 'outline'} 
+                    className={nda.status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}>
                     {nda.status === 'active' ? 'سارية' : 'معلقة'}
                   </Badge>
                 </div>
@@ -131,7 +150,8 @@ export function NdaSection({
                   <div className="bg-white rounded p-3 border border-amber-200 text-sm">
                     <div className="flex items-center justify-between mb-2">
                       <span className="font-medium text-neutral-800">حالة الاتفاقية:</span>
-                      <Badge variant={ndaData?.status === 'active' ? 'success' : 'outline'}>
+                      <Badge variant={ndaData?.status === 'active' ? 'secondary' : 'outline'}
+                        className={ndaData?.status === 'active' ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}>
                         {ndaData?.status === 'active' ? 'سارية' : 'معلقة'}
                       </Badge>
                     </div>

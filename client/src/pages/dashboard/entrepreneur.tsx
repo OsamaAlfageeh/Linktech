@@ -70,6 +70,8 @@ type Project = {
   userId: number;
   createdAt: string;
   attachments?: UploadedFile[];
+  requiresNda?: boolean;
+  ndaId?: number;
 };
 
 type User = {
@@ -94,6 +96,7 @@ const projectSchema = z.object({
   budget: z.string().min(1, "الميزانية المتوقعة مطلوبة"),
   duration: z.string().min(1, "المدة المتوقعة مطلوبة"),
   skills: z.string().min(1, "المهارات المطلوبة مطلوبة"),
+  requiresNda: z.boolean().optional().default(false),
   status: z.string().optional(),
 });
 
@@ -157,6 +160,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
       budget: "",
       duration: "",
       skills: "",
+      requiresNda: false,
     },
   });
 
