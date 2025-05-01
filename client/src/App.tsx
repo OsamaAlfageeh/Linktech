@@ -15,6 +15,7 @@ import Projects from "@/pages/projects";
 import ProjectDetails from "@/pages/projects/[id]";
 import Companies from "@/pages/companies";
 import CompanyDetails from "@/pages/companies/[id]";
+import ForCompanies from "@/pages/for-companies";
 import Register from "@/pages/auth/register";
 import Login from "@/pages/auth/login";
 import EntrepreneurDashboard from "@/pages/dashboard/entrepreneur";
@@ -115,6 +116,7 @@ function App() {
           <Route path="/projects/:id" component={ProjectDetails} />
           <Route path="/companies" component={Companies} />
           <Route path="/companies/:id" component={CompanyDetails} />
+          <Route path="/for-companies" component={() => <ForCompanies />} />
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
           <Route path="/redirect" component={Redirect} />
