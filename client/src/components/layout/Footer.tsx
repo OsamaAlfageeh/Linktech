@@ -73,7 +73,7 @@ const Footer = () => {
         </div>
 
         <div className="border-t border-neutral-700 pt-6 text-center text-sm">
-          <p>© 2023 تِكلينك. جميع الحقوق محفوظة.</p>
+          <p>© 2023 لينكتيك. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>

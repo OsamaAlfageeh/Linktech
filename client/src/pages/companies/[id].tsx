@@ -228,7 +228,7 @@ const CompanyDetails = () => {
   return (
     <>
       <Helmet>
-        <title>{company ? `${company.name} | تِكلينك` : 'ملف الشركة | تِكلينك'}</title>
+        <title>{company ? `${company.name} | لينكتيك` : 'ملف الشركة | لينكتيك'}</title>
         <meta name="description" content={company?.description || 'ملف شركة البرمجة'} />
       </Helmet>
 

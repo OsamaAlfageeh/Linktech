@@ -51,7 +51,7 @@ const Header = ({ auth }: HeaderProps) => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
-              <span className="text-primary font-heading font-bold text-2xl">تِك<span className="text-accent">لينك</span></span>
+              <span className="text-primary font-heading font-bold text-2xl">لينك<span className="text-accent">تيك</span></span>
             </Link>
           </div>
 
@@ -182,7 +182,7 @@ const Header = ({ auth }: HeaderProps) => {
               </SheetTrigger>
               <SheetContent side="right" className="sm:max-w-md max-h-screen overflow-y-auto">
                 <div className="mt-6 mb-6">
-                  <span className="text-primary font-heading font-bold text-2xl">تِك<span className="text-accent">لينك</span></span>
+                  <span className="text-primary font-heading font-bold text-2xl">لينك<span className="text-accent">تيك</span></span>
                 </div>
 
                 <div className="py-4">
