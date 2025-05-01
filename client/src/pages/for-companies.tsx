@@ -1,6 +1,4 @@
 import { Helmet } from "react-helmet";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 import {
   Card,
   CardContent,
@@ -235,7 +233,6 @@ export default function ForCompanies({ auth }: ForCompaniesProps) {
           )}
         </div>
       </div>
-      <Footer />
     </div>
   );
 }
