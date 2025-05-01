@@ -429,6 +429,40 @@ export default function AdminDashboard() {
     }
   };
 
+  // تغيير حالة المشروع (مفتوح/مغلق)
+  const handleToggleProjectStatus = async (projectId: number, currentStatus: string) => {
+    try {
+      const newStatus = currentStatus === "open" ? "closed" : "open";
+      
+      const response = await fetch(`/api/projects/${projectId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+
+      if (!response.ok) {
+        throw new Error('فشل تحديث حالة المشروع');
+      }
+
+      toast({
+        title: `تم ${newStatus === "open" ? "فتح" : "إغلاق"} المشروع`,
+        description: `تم ${newStatus === "open" ? "فتح" : "إغلاق"} المشروع بنجاح`,
+      });
+      
+      // تحديث قائمة المشاريع
+      refetchProjects();
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحديث حالة المشروع",
+        variant: "destructive",
+      });
+      console.error(error);
+    }
+  };
+
   // تحميل محادثة بين مستخدمين
   const loadConversation = async () => {
     if (!selectedUser1Id || !selectedUser2Id) {
@@ -521,10 +555,11 @@ export default function AdminDashboard() {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-5 w-full md:w-[600px]">
+          <TabsList className="grid grid-cols-6 w-full md:w-[720px]">
             <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
             <TabsTrigger value="users">المستخدمون</TabsTrigger>
             <TabsTrigger value="companies">الشركات</TabsTrigger>
+            <TabsTrigger value="projects">المشاريع</TabsTrigger>
             <TabsTrigger value="messages">المحادثات</TabsTrigger>
             <TabsTrigger value="settings">الإعدادات</TabsTrigger>
           </TabsList>
@@ -768,6 +803,87 @@ export default function AdminDashboard() {
                               onClick={() => handleToggleCompanyVerification(company.id, company.verified)}
                             >
                               {company.verified ? (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              ) : (
+                                <CheckCircle2 className="h-4 w-4 text-green-600" />
+                              )}
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* إدارة المشاريع */}
+          <TabsContent value="projects" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>إدارة المشاريع</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>اسم المشروع</TableHead>
+                      <TableHead>رائد الأعمال</TableHead>
+                      <TableHead>التاريخ</TableHead>
+                      <TableHead>الحالة</TableHead>
+                      <TableHead>العروض</TableHead>
+                      <TableHead className="text-left">الإجراءات</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {projects?.map((project: any) => (
+                      <TableRow key={project.id}>
+                        <TableCell className="font-medium">{project.title}</TableCell>
+                        <TableCell>{project.name}</TableCell>
+                        <TableCell>
+                          {new Date(project.createdAt).toLocaleDateString("ar-SA")}
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
+                            project.status === "open" 
+                              ? "bg-green-100 text-green-800" 
+                              : "bg-gray-100 text-gray-800"
+                          }`}>
+                            {project.status === "open" ? "مفتوح" : "مغلق"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            className="text-primary hover:text-primary-dark"
+                            onClick={() => navigate(`/projects/${project.id}#offers`)}
+                          >
+                            عرض العروض
+                          </Button>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2 rtl:space-x-reverse">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/projects/${project.id}`)}
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => navigate(`/dashboard/entrepreneur?tab=projects&action=edit&projectId=${project.id}`)}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleToggleProjectStatus(project.id, project.status)}
+                            >
+                              {project.status === "open" ? (
                                 <XCircle className="h-4 w-4 text-red-600" />
                               ) : (
                                 <CheckCircle2 className="h-4 w-4 text-green-600" />
