@@ -215,25 +215,44 @@ const Register = ({ auth }: RegisterProps) => {
                   control={form.control}
                   name="role"
                   render={({ field }) => (
-                    <FormItem className="space-y-1">
-                      <FormLabel>نوع الحساب</FormLabel>
+                    <FormItem className="space-y-3">
+                      <FormLabel className="text-lg font-medium">اختر نوع الحساب</FormLabel>
                       <FormControl>
                         <RadioGroup
                           onValueChange={field.onChange}
                           defaultValue={field.value}
-                          className="flex flex-col space-y-1"
+                          className="grid grid-cols-1 md:grid-cols-2 gap-4"
                         >
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <RadioGroupItem value="entrepreneur" id="entrepreneur" />
-                            <FormLabel htmlFor="entrepreneur" className="font-normal cursor-pointer">
-                              رائد أعمال (أبحث عن تنفيذ مشروع)
-                            </FormLabel>
+                          <div className={`relative overflow-hidden rounded-lg border-2 transition-all ${field.value === 'entrepreneur' ? 'border-primary bg-primary/5 shadow-md' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                            <label 
+                              htmlFor="entrepreneur" 
+                              className="flex flex-col items-center p-4 cursor-pointer h-full"
+                            >
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${field.value === 'entrepreneur' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>
+                              <span className="font-bold text-lg mb-1">رائد أعمال</span>
+                              <span className="text-sm text-center text-neutral-600">أبحث عن شركة لتنفيذ مشروعي</span>
+                              <RadioGroupItem value="entrepreneur" id="entrepreneur" className="sr-only" />
+                            </label>
                           </div>
-                          <div className="flex items-center space-x-2 space-x-reverse">
-                            <RadioGroupItem value="company" id="company" />
-                            <FormLabel htmlFor="company" className="font-normal cursor-pointer">
-                              شركة برمجة (أقدم خدمات برمجية)
-                            </FormLabel>
+                          
+                          <div className={`relative overflow-hidden rounded-lg border-2 transition-all ${field.value === 'company' ? 'border-primary bg-primary/5 shadow-md' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                            <label 
+                              htmlFor="company" 
+                              className="flex flex-col items-center p-4 cursor-pointer h-full"
+                            >
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${field.value === 'company' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                              </div>
+                              <span className="font-bold text-lg mb-1">شركة برمجة</span>
+                              <span className="text-sm text-center text-neutral-600">أقدم خدمات برمجية للمشاريع</span>
+                              <RadioGroupItem value="company" id="company" className="sr-only" />
+                            </label>
                           </div>
                         </RadioGroup>
                       </FormControl>
