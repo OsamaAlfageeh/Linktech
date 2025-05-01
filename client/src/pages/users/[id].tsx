@@ -55,7 +55,7 @@ const UserProfilePage = () => {
   return (
     <div className="container mx-auto p-4 sm:p-6">
       <Helmet>
-        <title>{user.name} | لنكتك</title>
+        <title>{user.name} | لينكتك</title>
       </Helmet>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
