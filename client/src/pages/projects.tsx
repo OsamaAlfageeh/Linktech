@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { Link } from "wouter";
@@ -65,15 +65,25 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("newest");
 
-  const { data: projects, isLoading, error } = useQuery<Project[]>({
+  const { data: projects, isLoading, error, refetch } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
     onSuccess: (data) => {
       console.log('تم استلام بيانات المشاريع بنجاح:', data);
     },
     onError: (err) => {
       console.error('حدث خطأ أثناء جلب المشاريع:', err);
-    }
+    },
+    // إعادة جلب البيانات تلقائيًا عند تغير حالة المصادقة
+    enabled: auth?.isAuthenticated === true
   });
+  
+  // إعادة جلب البيانات عند تغير حالة المصادقة
+  useEffect(() => {
+    if (auth?.isAuthenticated) {
+      console.log('إعادة جلب المشاريع بعد تغير حالة المصادقة');
+      refetch();
+    }
+  }, [auth?.isAuthenticated, refetch]);
 
   // Filter and sort projects
   const filteredProjects = projects
