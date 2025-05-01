@@ -109,7 +109,7 @@ function App() {
   const [location] = useLocation();
 
   // Skip layout for auth pages
-  const isAuthPage = location.startsWith("/auth/");
+  const isAuthPage = location.startsWith("/auth");
 
   return (
     <TooltipProvider delayDuration={0}>
@@ -128,6 +128,10 @@ function App() {
             ) : (
               <NotFound />
             )}
+          </Route>
+          {/* Main auth route redirects to login */}
+          <Route path="/auth">
+            <Redirect to="/auth/login" />
           </Route>
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
