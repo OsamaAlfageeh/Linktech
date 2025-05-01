@@ -78,8 +78,8 @@ const ContactPage = () => {
   return (
     <>
       <Helmet>
-        <title>تواصل معنا | تِكلينك</title>
-        <meta name="description" content="تواصل مع فريق تِكلينك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا" />
+        <title>تواصل معنا | لينكتيك</title>
+        <meta name="description" content="تواصل مع فريق لينكتيك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-12">
@@ -101,8 +101,8 @@ const ContactPage = () => {
                   </div>
                   <div>
                     <h3 className="font-bold text-lg">البريد الإلكتروني</h3>
-                    <p className="text-neutral-600">info@techlink.sa</p>
-                    <p className="text-neutral-600">support@techlink.sa</p>
+                    <p className="text-neutral-600">info@linktech.sa</p>
+                    <p className="text-neutral-600">support@linktech.sa</p>
                   </div>
                 </div>
                 
@@ -292,7 +292,7 @@ const ContactPage = () => {
               <div>
                 <h3 className="font-bold text-lg mb-2 text-primary">كيف يمكنني الحصول على الدعم الفني؟</h3>
                 <p className="text-neutral-600">
-                  يمكنك التواصل معنا من خلال نموذج التواصل في هذه الصفحة، أو مراسلتنا مباشرة على البريد الإلكتروني support@techlink.sa.
+                  يمكنك التواصل معنا من خلال نموذج التواصل في هذه الصفحة، أو مراسلتنا مباشرة على البريد الإلكتروني support@linktech.sa.
                 </p>
               </div>
             </div>
