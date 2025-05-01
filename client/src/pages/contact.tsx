@@ -78,8 +78,8 @@ const ContactPage = () => {
   return (
     <>
       <Helmet>
-        <title>تواصل معنا | لينكتيك</title>
-        <meta name="description" content="تواصل مع فريق لينكتيك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا" />
+        <title>تواصل معنا | لينكتك</title>
+        <meta name="description" content="تواصل مع فريق لينكتك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-12">

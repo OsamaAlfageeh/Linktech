@@ -507,7 +507,7 @@ export default function AdminDashboard() {
   return (
     <div className="container mx-auto p-4 sm:p-6">
       <Helmet>
-        <title>لوحة تحكم المسؤول | لينكتيك</title>
+        <title>لوحة تحكم المسؤول | لينكتك</title>
       </Helmet>
       
       <div className="flex flex-col space-y-4">

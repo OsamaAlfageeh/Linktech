@@ -131,7 +131,7 @@ const Register = ({ auth }: RegisterProps) => {
       auth.login(data.user);
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "مرحباً بك في منصة لينكتيك!",
+        description: "مرحباً بك في منصة لينكتك!",
       });
 
       // Redirect based on role
@@ -181,8 +181,8 @@ const Register = ({ auth }: RegisterProps) => {
   return (
     <>
       <Helmet>
-        <title>إنشاء حساب جديد | لينكتيك</title>
-        <meta name="description" content="إنشاء حساب جديد في منصة لينكتيك للتواصل بين رواد الأعمال وشركات البرمجة" />
+        <title>إنشاء حساب جديد | لينكتك</title>
+        <meta name="description" content="إنشاء حساب جديد في منصة لينكتك للتواصل بين رواد الأعمال وشركات البرمجة" />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8">

@@ -206,8 +206,8 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
   return (
     <>
       <Helmet>
-        <title>لوحة التحكم | لينكتيك</title>
-        <meta name="description" content="لوحة تحكم شركة البرمجة في منصة لينكتيك" />
+        <title>لوحة التحكم | لينكتك</title>
+        <meta name="description" content="لوحة تحكم شركة البرمجة في منصة لينكتك" />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">

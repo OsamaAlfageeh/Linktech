@@ -140,8 +140,8 @@ const Login = ({ auth }: LoginProps) => {
   return (
     <>
       <Helmet>
-        <title>تسجيل الدخول | لينكتيك</title>
-        <meta name="description" content="تسجيل الدخول إلى منصة لينكتيك للتواصل بين رواد الأعمال وشركات البرمجة" />
+        <title>تسجيل الدخول | لينكتك</title>
+        <meta name="description" content="تسجيل الدخول إلى منصة لينكتك للتواصل بين رواد الأعمال وشركات البرمجة" />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8">
