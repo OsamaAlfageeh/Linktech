@@ -58,6 +58,32 @@ export default function AdminDashboard() {
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   
+  // تحقق من صلاحية المستخدم لعرض لوحة المسؤول
+  useEffect(() => {
+    console.log("فحص حالة المصادقة:", { isAuthenticated, user });
+    if (!isAuthenticated) {
+      toast({
+        title: "غير مصرح",
+        description: "يجب تسجيل الدخول للوصول إلى هذه الصفحة",
+        variant: "destructive",
+      });
+      navigate("/auth/login");
+      return;
+    }
+    
+    if (user?.role !== "admin") {
+      toast({
+        title: "غير مصرح",
+        description: "ليس لديك صلاحية الوصول إلى لوحة المسؤول",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+    
+    console.log("المستخدم مصرح للوصول إلى لوحة المسؤول");
+  }, [isAuthenticated, user, navigate, toast]);
+  
   // متغيرات لمراقبة المحادثات
   const [selectedUser1Id, setSelectedUser1Id] = useState<number | null>(null);
   const [selectedUser2Id, setSelectedUser2Id] = useState<number | null>(null);
@@ -78,28 +104,7 @@ export default function AdminDashboard() {
   const [uploadingSideImage, setUploadingSideImage] = useState(false);
   const sideImageInputRef = useRef<HTMLInputElement>(null);
 
-  // تأكد من أن المستخدم مسؤول
-  useEffect(() => {
-    console.log("فحص حالة المصادقة:", { isAuthenticated, user });
-    
-    // تحقق فقط عندما تكتمل عملية تحميل حالة المصادقة
-    if (isAuthenticated && user) {
-      if (user.role !== "admin") {
-        toast({
-          title: "غير مصرح",
-          description: "فقط المسؤولون يمكنهم الوصول إلى لوحة التحكم",
-          variant: "destructive",
-        });
-        navigate("/");
-      } else {
-        console.log("مرحباً بك في لوحة تحكم المسؤول");
-      }
-    } else if (isAuthenticated === false) {
-      // تحولنا فقط عندما نتأكد أن المستخدم غير مسجل دخول
-      navigate("/auth/login");
-    }
-    // لا تفعل شيئاً أثناء التحميل
-  }, [user, isAuthenticated, navigate, toast]);
+  // ملاحظة: تم نقل التحقق من صلاحية المستخدم إلى فوق
 
   // استعلام لجلب جميع المستخدمين
   const {
