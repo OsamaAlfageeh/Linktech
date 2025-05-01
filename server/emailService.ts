@@ -12,7 +12,7 @@ const mailerSend = process.env.MAILERSEND_API_KEY
 
 // إعداد معلومات المرسل
 // استخدام الدومين المسجل في حساب MailerSend
-const sender = new Sender("noreply@test-q3enl6kkd8r42vwr.mlsender.net", "لنكتك");
+const sender = new Sender("noreply@test-q3enl6kkd8r42vwr.mlsender.net", "لينكتك");
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
@@ -42,11 +42,11 @@ export async function sendPasswordResetEmail(
     const emailParams = new EmailParams()
       .setFrom(sender)
       .setTo(recipients)
-      .setSubject("إعادة تعيين كلمة المرور - منصة لنكتك")
+      .setSubject("إعادة تعيين كلمة المرور - منصة لينكتك")
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لنكتك</h1>
+            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
             <p style="font-size: 16px; margin-top: 5px;">منصة ربط رواد الأعمال بشركات البرمجة</p>
           </div>
           
@@ -55,7 +55,7 @@ export async function sendPasswordResetEmail(
             
             <p style="margin-bottom: 25px;">مرحباً ${name}،</p>
             
-            <p>لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك في منصة لنكتك. يرجى النقر على الزر أدناه لإعادة تعيين كلمة المرور الخاصة بك:</p>
+            <p>لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك في منصة لينكتك. يرجى النقر على الزر أدناه لإعادة تعيين كلمة المرور الخاصة بك:</p>
             
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetLink}" style="background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">إعادة تعيين كلمة المرور</a>
@@ -69,7 +69,7 @@ export async function sendPasswordResetEmail(
             <p>إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذا البريد الإلكتروني أو الاتصال بفريق الدعم إذا كان لديك أي استفسارات.</p>
             
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; font-size: 14px; color: #666;">
-              <p>مع تحيات،<br>فريق منصة لنكتك</p>
+              <p>مع تحيات،<br>فريق منصة لينكتك</p>
             </div>
           </div>
         </div>
@@ -77,7 +77,7 @@ export async function sendPasswordResetEmail(
       .setText(
         `مرحباً ${name}،
         
-لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك في منصة لنكتك.
+لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك في منصة لينكتك.
 
 لإعادة تعيين كلمة المرور الخاصة بك، يرجى زيارة الرابط التالي:
 ${resetLink}
@@ -87,7 +87,7 @@ ${resetLink}
 إذا لم تطلب إعادة تعيين كلمة المرور، يرجى تجاهل هذا البريد الإلكتروني أو الاتصال بفريق الدعم إذا كان لديك أي استفسارات.
 
 مع تحيات،
-فريق منصة لنكتك`
+فريق منصة لينكتك`
       );
 
     // إرسال البريد الإلكتروني
@@ -124,11 +124,11 @@ export async function sendPasswordChangedNotification(
     const emailParams = new EmailParams()
       .setFrom(sender)
       .setTo(recipients)
-      .setSubject("تم تغيير كلمة المرور الخاصة بك - منصة لنكتك")
+      .setSubject("تم تغيير كلمة المرور الخاصة بك - منصة لينكتك")
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لنكتك</h1>
+            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
             <p style="font-size: 16px; margin-top: 5px;">منصة ربط رواد الأعمال بشركات البرمجة</p>
           </div>
           
@@ -137,12 +137,12 @@ export async function sendPasswordChangedNotification(
             
             <p style="margin-bottom: 25px;">مرحباً ${name}،</p>
             
-            <p>نود إعلامك أنه تم تغيير كلمة المرور لحسابك في منصة لنكتك بنجاح.</p>
+            <p>نود إعلامك أنه تم تغيير كلمة المرور لحسابك في منصة لينكتك بنجاح.</p>
             
             <p>إذا لم تقم بتغيير كلمة المرور، يرجى الاتصال بفريق الدعم على الفور.</p>
             
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; font-size: 14px; color: #666;">
-              <p>مع تحيات،<br>فريق منصة لنكتك</p>
+              <p>مع تحيات،<br>فريق منصة لينكتك</p>
             </div>
           </div>
         </div>
@@ -150,12 +150,12 @@ export async function sendPasswordChangedNotification(
       .setText(
         `مرحباً ${name}،
         
-نود إعلامك أنه تم تغيير كلمة المرور لحسابك في منصة لنكتك بنجاح.
+نود إعلامك أنه تم تغيير كلمة المرور لحسابك في منصة لينكتك بنجاح.
 
 إذا لم تقم بتغيير كلمة المرور، يرجى الاتصال بفريق الدعم على الفور.
 
 مع تحيات،
-فريق منصة لنكتك`
+فريق منصة لينكتك`
       );
 
     // إرسال البريد الإلكتروني
@@ -193,7 +193,7 @@ export async function sendWelcomeEmail(
     // تخصيص محتوى البريد الإلكتروني بناءً على دور المستخدم
     let roleSpecificContent = '';
     let roleSpecificText = '';
-    let subject = "مرحباً بك في منصة لنكتك!";
+    let subject = "مرحباً بك في منصة لينكتك!";
 
     if (userRole === 'entrepreneur') {
       roleSpecificContent = `
@@ -239,16 +239,16 @@ export async function sendWelcomeEmail(
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
-            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لنكتك</h1>
+            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
             <p style="font-size: 16px; margin-top: 5px;">منصة ربط رواد الأعمال بشركات البرمجة</p>
           </div>
           
           <div style="background-color: #ffffff; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <h2 style="color: #1f2937; margin-top: 0;">مرحباً بك في منصة لنكتك</h2>
+            <h2 style="color: #1f2937; margin-top: 0;">مرحباً بك في منصة لينكتك</h2>
             
             <p style="margin-bottom: 25px;">مرحباً ${name}،</p>
             
-            <p>شكراً لانضمامك إلى منصة لنكتك - المنصة الرائدة في ربط رواد الأعمال بشركات تطوير البرمجيات في المملكة العربية السعودية.</p>
+            <p>شكراً لانضمامك إلى منصة لينكتك - المنصة الرائدة في ربط رواد الأعمال بشركات تطوير البرمجيات في المملكة العربية السعودية.</p>
             
             ${roleSpecificContent}
             
@@ -259,7 +259,7 @@ export async function sendWelcomeEmail(
             <p>إذا كانت لديك أي استفسارات، لا تتردد في التواصل مع فريق الدعم لدينا.</p>
             
             <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; font-size: 14px; color: #666;">
-              <p>مع تحيات،<br>فريق منصة لنكتك</p>
+              <p>مع تحيات،<br>فريق منصة لينكتك</p>
             </div>
           </div>
         </div>
@@ -267,14 +267,14 @@ export async function sendWelcomeEmail(
       .setText(
         `مرحباً ${name}،
         
-شكراً لانضمامك إلى منصة لنكتك - المنصة الرائدة في ربط رواد الأعمال بشركات تطوير البرمجيات في المملكة العربية السعودية.
+شكراً لانضمامك إلى منصة لينكتك - المنصة الرائدة في ربط رواد الأعمال بشركات تطوير البرمجيات في المملكة العربية السعودية.
 
 ${roleSpecificText}
 
 إذا كانت لديك أي استفسارات، لا تتردد في التواصل مع فريق الدعم لدينا.
 
 مع تحيات،
-فريق منصة لنكتك`
+فريق منصة لينكتك`
       );
 
     // إرسال البريد الإلكتروني
