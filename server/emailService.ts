@@ -12,7 +12,7 @@ const mailerSend = process.env.MAILERSEND_API_KEY
 
 // إعداد معلومات المرسل
 // استخدام الدومين المسجل في حساب MailerSend
-const sender = new Sender("noreply@test-q3enl6kkd8r42vwr.mlsender.net", "تِكلينك");
+const sender = new Sender("noreply@test-q3enl6kkd8r42vwr.mlsender.net", "لينكتيك");
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
@@ -42,7 +42,7 @@ export async function sendPasswordResetEmail(
     const emailParams = new EmailParams()
       .setFrom(sender)
       .setTo(recipients)
-      .setSubject("إعادة تعيين كلمة المرور - منصة تِكلينك")
+      .setSubject("إعادة تعيين كلمة المرور - منصة لينكتيك")
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -124,7 +124,7 @@ export async function sendPasswordChangedNotification(
     const emailParams = new EmailParams()
       .setFrom(sender)
       .setTo(recipients)
-      .setSubject("تم تغيير كلمة المرور الخاصة بك - منصة تِكلينك")
+      .setSubject("تم تغيير كلمة المرور الخاصة بك - منصة لينكتيك")
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
@@ -193,7 +193,7 @@ export async function sendWelcomeEmail(
     // تخصيص محتوى البريد الإلكتروني بناءً على دور المستخدم
     let roleSpecificContent = '';
     let roleSpecificText = '';
-    let subject = "مرحباً بك في منصة تِكلينك!";
+    let subject = "مرحباً بك في منصة لينكتيك!";
 
     if (userRole === 'entrepreneur') {
       roleSpecificContent = `
@@ -253,7 +253,7 @@ export async function sendWelcomeEmail(
             ${roleSpecificContent}
             
             <div style="text-align: center; margin: 30px 0;">
-              <a href="https://techlink.example/dashboard" style="background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">الانتقال إلى لوحة التحكم</a>
+              <a href="https://linktech.sa/dashboard" style="background-color: #2563eb; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;">الانتقال إلى لوحة التحكم</a>
             </div>
             
             <p>إذا كانت لديك أي استفسارات، لا تتردد في التواصل مع فريق الدعم لدينا.</p>
