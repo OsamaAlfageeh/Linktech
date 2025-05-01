@@ -39,7 +39,7 @@ export async function sendPasswordResetEmail(
     // بناء معلمات البريد الإلكتروني
     const emailParams = new EmailParams()
       .setFrom(sender)
-      .setRecipients(recipients)
+      .setTo(recipients)
       .setSubject("إعادة تعيين كلمة المرور - منصة تِكلينك")
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
@@ -120,7 +120,7 @@ export async function sendPasswordChangedNotification(
     // بناء معلمات البريد الإلكتروني
     const emailParams = new EmailParams()
       .setFrom(sender)
-      .setRecipients(recipients)
+      .setTo(recipients)
       .setSubject("تم تغيير كلمة المرور الخاصة بك - منصة تِكلينك")
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
@@ -230,7 +230,7 @@ export async function sendWelcomeEmail(
     // بناء معلمات البريد الإلكتروني
     const emailParams = new EmailParams()
       .setFrom(sender)
-      .setRecipients(recipients)
+      .setTo(recipients)
       .setSubject(subject)
       .setHtml(`
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
