@@ -206,6 +206,111 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     });
   });
+  
+  // Password reset routes
+  app.post('/api/auth/forgot-password', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
+      }
+      
+      // Check if user exists
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        // لأسباب أمنية، نخبر المستخدم أن البريد تم إرساله حتى لو كان البريد غير موجود
+        return res.json({ success: true, message: 'If your email exists in our system, you will receive a password reset link' });
+      }
+      
+      // Generate token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 24); // الرمز صالح لمدة 24 ساعة
+      
+      // Store token
+      const success = await storage.createPasswordResetToken(email, token, expiresAt);
+      if (!success) {
+        return res.status(500).json({ message: 'Failed to create password reset token' });
+      }
+      
+      // Generate reset link
+      const resetLink = `${req.protocol}://${req.get('host')}/reset-password/${token}`;
+      
+      // Send email
+      const emailSent = await sendPasswordResetEmail(
+        user.email,
+        user.name,
+        token,
+        resetLink
+      );
+      
+      if (!emailSent) {
+        return res.status(500).json({ message: 'Failed to send password reset email' });
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Password reset link has been sent to your email',
+        // للاختبار فقط، إزالة هذا في بيئة الإنتاج
+        debug: { token, resetLink }
+      });
+    } catch (error) {
+      console.error('Error in forgot password:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Verify password reset token
+  app.get('/api/auth/reset-password/:token', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      
+      const tokenData = await storage.getPasswordResetToken(token);
+      if (!tokenData) {
+        return res.status(400).json({ message: 'Invalid or expired token' });
+      }
+      
+      res.json({ valid: true, email: tokenData.email });
+    } catch (error) {
+      console.error('Error verifying reset token:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // Reset password with token
+  app.post('/api/auth/reset-password/:token', async (req: Request, res: Response) => {
+    try {
+      const { token } = req.params;
+      const { password } = req.body;
+      
+      if (!password) {
+        return res.status(400).json({ message: 'Password is required' });
+      }
+      
+      // Check if token is valid
+      const tokenData = await storage.getPasswordResetToken(token);
+      if (!tokenData) {
+        return res.status(400).json({ message: 'Invalid or expired token' });
+      }
+      
+      // Hash the new password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Update the user's password
+      const updatedUser = await storage.updateUserPassword(tokenData.userId, hashedPassword);
+      if (!updatedUser) {
+        return res.status(500).json({ message: 'Failed to update password' });
+      }
+      
+      // Delete the token so it can't be used again
+      await storage.deletePasswordResetToken(token);
+      
+      res.json({ success: true, message: 'Password has been reset successfully' });
+    } catch (error) {
+      console.error('Error resetting password:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
   // طريقة سريعة لإنشاء حساب مسؤول (فقط للاختبار)
   app.get('/api/admin/create', async (req: Request, res: Response) => {

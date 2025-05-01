@@ -77,6 +77,7 @@ export class MemStorage implements IStorage {
   private testimonials: Map<number, Testimonial>;
   private projectOffers: Map<number, ProjectOffer>;
   private siteSettings: Map<string, SiteSetting>;
+  private passwordResetTokens: Map<string, {userId: number, email: string, expiresAt: Date}>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -94,6 +95,7 @@ export class MemStorage implements IStorage {
     this.testimonials = new Map();
     this.projectOffers = new Map();
     this.siteSettings = new Map();
+    this.passwordResetTokens = new Map();
     
     this.seedData();
   }
@@ -134,6 +136,49 @@ export class MemStorage implements IStorage {
     const updatedUser = { ...user, password: hashedPassword };
     this.users.set(id, updatedUser);
     return updatedUser;
+  }
+  
+  // Password reset operations
+  async createPasswordResetToken(email: string, token: string, expiresAt: Date): Promise<boolean> {
+    try {
+      const user = await this.getUserByEmail(email);
+      if (!user) {
+        return false;
+      }
+      
+      // Store the token with user info
+      this.passwordResetTokens.set(token, {
+        userId: user.id,
+        email: user.email,
+        expiresAt
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error creating password reset token:', error);
+      return false;
+    }
+  }
+  
+  async getPasswordResetToken(token: string): Promise<{userId: number, email: string, expiresAt: Date} | undefined> {
+    const tokenData = this.passwordResetTokens.get(token);
+    
+    if (!tokenData) {
+      return undefined;
+    }
+    
+    // Check if token has expired
+    if (tokenData.expiresAt < new Date()) {
+      // Expired token, remove it and return undefined
+      this.passwordResetTokens.delete(token);
+      return undefined;
+    }
+    
+    return tokenData;
+  }
+  
+  async deletePasswordResetToken(token: string): Promise<boolean> {
+    return this.passwordResetTokens.delete(token);
   }
   
   // Company profile operations

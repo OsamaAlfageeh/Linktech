@@ -18,6 +18,7 @@ import ForCompanies from "@/pages/for-companies";
 import Register from "@/pages/auth/register";
 import Login from "@/pages/auth/login";
 import ForgotPassword from "@/pages/auth/forgot-password";
+import ResetPassword from "@/pages/auth/reset-password";
 import EntrepreneurDashboard from "@/pages/dashboard/entrepreneur";
 import CompanyDashboard from "@/pages/dashboard/company";
 import AdminDashboard from "@/pages/dashboard/admin";
