@@ -71,6 +71,12 @@ export interface IStorage {
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
   setSiteSetting(key: string, value: string): Promise<SiteSetting>;
   getAllSiteSettings(): Promise<SiteSetting[]>;
+  
+  // Newsletter Subscriber operations
+  getNewsletterSubscriberByEmail(email: string): Promise<NewsletterSubscriber | undefined>;
+  createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
+  getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
+  updateNewsletterSubscriber(id: number, updates: Partial<NewsletterSubscriber>): Promise<NewsletterSubscriber | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -82,6 +88,7 @@ export class MemStorage implements IStorage {
   private projectOffers: Map<number, ProjectOffer>;
   private siteSettings: Map<string, SiteSetting>;
   private passwordResetTokens: Map<string, {userId: number, email: string, expiresAt: Date}>;
+  private newsletterSubscribers: Map<number, NewsletterSubscriber>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -90,6 +97,7 @@ export class MemStorage implements IStorage {
   private testimonialIdCounter: number = 1;
   private projectOfferIdCounter: number = 1;
   private siteSettingsIdCounter: number = 1;
+  private newsletterSubscriberIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -100,6 +108,7 @@ export class MemStorage implements IStorage {
     this.projectOffers = new Map();
     this.siteSettings = new Map();
     this.passwordResetTokens = new Map();
+    this.newsletterSubscribers = new Map();
     
     this.seedData();
   }
@@ -434,6 +443,38 @@ export class MemStorage implements IStorage {
   
   async getAllSiteSettings(): Promise<SiteSetting[]> {
     return Array.from(this.siteSettings.values());
+  }
+  
+  // Newsletter Subscriber operations
+  async getNewsletterSubscriberByEmail(email: string): Promise<NewsletterSubscriber | undefined> {
+    return Array.from(this.newsletterSubscribers.values()).find(
+      (subscriber) => subscriber.email === email
+    );
+  }
+  
+  async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const id = this.newsletterSubscriberIdCounter++;
+    const now = new Date();
+    const newSubscriber: NewsletterSubscriber = { 
+      ...subscriber, 
+      id, 
+      createdAt: now 
+    };
+    this.newsletterSubscribers.set(id, newSubscriber);
+    return newSubscriber;
+  }
+  
+  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+    return Array.from(this.newsletterSubscribers.values());
+  }
+  
+  async updateNewsletterSubscriber(id: number, updates: Partial<NewsletterSubscriber>): Promise<NewsletterSubscriber | undefined> {
+    const subscriber = this.newsletterSubscribers.get(id);
+    if (!subscriber) return undefined;
+    
+    const updatedSubscriber = { ...subscriber, ...updates };
+    this.newsletterSubscribers.set(id, updatedSubscriber);
+    return updatedSubscriber;
   }
   
   // Seed initial data
@@ -1011,6 +1052,34 @@ export class DatabaseStorage implements IStorage {
 
   async getAllSiteSettings(): Promise<SiteSetting[]> {
     return await db.query.siteSettings.findMany();
+  }
+  
+  // Newsletter Subscriber operations
+  async getNewsletterSubscriberByEmail(email: string): Promise<NewsletterSubscriber | undefined> {
+    const subscribers = await db.query.newsletterSubscribers.findMany({
+      where: eq(schema.newsletterSubscribers.email, email),
+      limit: 1
+    });
+    return subscribers.length > 0 ? subscribers[0] : undefined;
+  }
+  
+  async createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber> {
+    const [insertedSubscriber] = await db.insert(schema.newsletterSubscribers)
+      .values(subscriber)
+      .returning();
+    return insertedSubscriber;
+  }
+  
+  async getNewsletterSubscribers(): Promise<NewsletterSubscriber[]> {
+    return await db.query.newsletterSubscribers.findMany();
+  }
+  
+  async updateNewsletterSubscriber(id: number, updates: Partial<NewsletterSubscriber>): Promise<NewsletterSubscriber | undefined> {
+    const [updatedSubscriber] = await db.update(schema.newsletterSubscribers)
+      .set(updates)
+      .where(eq(schema.newsletterSubscribers.id, id))
+      .returning();
+    return updatedSubscriber;
   }
 }
 
