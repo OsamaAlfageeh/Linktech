@@ -63,6 +63,19 @@ const CompanyDetails = () => {
   const auth = useAuth();
   const isAdmin = auth?.user?.role === "admin";
 
+  // التحقق من تسجيل الدخول والتوجيه للصفحة الرئيسية إذا لم يكن المستخدم مسجلاً
+  useEffect(() => {
+    // إذا كان المستخدم غير مسجل، توجيهه للصفحة الرئيسية
+    if (!auth?.isAuthenticated) {
+      toast({
+        title: "غير مسموح بالوصول",
+        description: "يجب تسجيل الدخول للوصول إلى صفحة الشركة",
+        variant: "destructive"
+      });
+      navigate("/auth/login");
+    }
+  }, [auth, navigate, toast]);
+
   // فحص حالة الدفع للشركة عند تحميل الصفحة
   useEffect(() => {
     if (companyId) {
