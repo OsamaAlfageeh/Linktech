@@ -16,8 +16,8 @@ const CTASection = ({ auth }: CTASectionProps) => {
       
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6 shimmer inline-block">ابدأ رحلتك التقنية اليوم</h2>
-          <p className="text-white/90 text-lg mb-8 fade-in">
+          <h2 className="font-heading text-3xl md:text-4xl font-bold mb-6 shimmer inline-block drop-shadow-md" style={{ textShadow: '0 1px 3px rgba(0,0,0,0.3)' }}>ابدأ رحلتك التقنية اليوم</h2>
+          <p className="text-white text-lg mb-8 fade-in font-medium drop-shadow-sm" style={{ textShadow: '0 1px 2px rgba(0,0,0,0.2)' }}>
             سواء كنت رائد أعمال تبحث عن تنفيذ فكرتك أو شركة برمجة تبحث عن عملاء جدد، انضم إلينا الآن وكن جزءاً من منصتنا.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
@@ -29,7 +29,7 @@ const CTASection = ({ auth }: CTASectionProps) => {
             </Link>
             <Link 
               href="/auth/register" 
-              className="bg-primary-dark/30 text-white hover:bg-primary-dark/50 font-medium rounded-lg px-8 py-3 text-center border border-white/30 transition-all duration-300 hover:border-white hover:shadow-lg hover-button-scale"
+              className="bg-accent/80 text-white hover:bg-accent font-medium rounded-lg px-8 py-3 text-center border border-white/30 transition-all duration-300 hover:border-white hover:shadow-lg hover-button-scale"
             >
               ابدأ رحلتك التقنية اليوم
             </Link>
