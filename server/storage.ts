@@ -491,6 +491,80 @@ export class MemStorage implements IStorage {
     return updatedSubscriber;
   }
   
+  // NDA Agreement operations
+  async getNdaAgreement(id: number): Promise<NdaAgreement | undefined> {
+    return this.ndaAgreements.get(id);
+  }
+  
+  async getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined> {
+    return Array.from(this.ndaAgreements.values()).find(
+      (agreement) => agreement.projectId === projectId
+    );
+  }
+  
+  async createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement> {
+    const id = this.ndaAgreementIdCounter++;
+    const now = new Date();
+    const newAgreement: NdaAgreement = {
+      ...agreement,
+      id,
+      createdAt: now,
+      status: 'pending',
+      signedAt: null,
+      signatureInfo: null,
+      pdfUrl: null
+    };
+    this.ndaAgreements.set(id, newAgreement);
+    
+    // If this NDA is linked to a project, update the project's ndaId
+    if (agreement.projectId) {
+      const project = this.projects.get(agreement.projectId);
+      if (project) {
+        const updatedProject = { ...project, ndaId: id, requiresNda: true };
+        this.projects.set(agreement.projectId, updatedProject);
+      }
+    }
+    
+    return newAgreement;
+  }
+  
+  async updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined> {
+    const agreement = this.ndaAgreements.get(id);
+    if (!agreement) return undefined;
+    
+    const updatedAgreement = { ...agreement, status };
+    this.ndaAgreements.set(id, updatedAgreement);
+    return updatedAgreement;
+  }
+  
+  async signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined> {
+    const agreement = this.ndaAgreements.get(id);
+    if (!agreement) return undefined;
+    
+    const now = new Date();
+    const updatedAgreement = { 
+      ...agreement, 
+      status: 'signed',
+      signedAt: now,
+      companySignatureInfo: signatureInfo
+    };
+    this.ndaAgreements.set(id, updatedAgreement);
+    return updatedAgreement;
+  }
+  
+  async getNdaAgreements(): Promise<NdaAgreement[]> {
+    return Array.from(this.ndaAgreements.values());
+  }
+  
+  async setNdaPdfUrl(id: number, pdfUrl: string): Promise<NdaAgreement | undefined> {
+    const agreement = this.ndaAgreements.get(id);
+    if (!agreement) return undefined;
+    
+    const updatedAgreement = { ...agreement, pdfUrl };
+    this.ndaAgreements.set(id, updatedAgreement);
+    return updatedAgreement;
+  }
+  
   // Seed initial data
   private seedData() {
     // إضافة مستخدم مسؤول (admin)
@@ -1094,6 +1168,81 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.newsletterSubscribers.id, id))
       .returning();
     return updatedSubscriber;
+  }
+  
+  // NDA Agreement operations
+  async getNdaAgreement(id: number): Promise<NdaAgreement | undefined> {
+    const agreements = await db.query.ndaAgreements.findMany({
+      where: eq(schema.ndaAgreements.id, id),
+      limit: 1
+    });
+    return agreements.length > 0 ? agreements[0] : undefined;
+  }
+  
+  async getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined> {
+    const agreements = await db.query.ndaAgreements.findMany({
+      where: eq(schema.ndaAgreements.projectId, projectId),
+      limit: 1
+    });
+    return agreements.length > 0 ? agreements[0] : undefined;
+  }
+  
+  async createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement> {
+    // 1. Create the NDA record
+    const [newAgreement] = await db.insert(schema.ndaAgreements)
+      .values({
+        ...agreement,
+        status: 'pending',
+        signedAt: null,
+        signatureInfo: null,
+        pdfUrl: null
+      })
+      .returning();
+    
+    // 2. Update the project if needed to set ndaId and requiresNda
+    if (agreement.projectId) {
+      await db.update(schema.projects)
+        .set({
+          ndaId: newAgreement.id,
+          requiresNda: true
+        })
+        .where(eq(schema.projects.id, agreement.projectId));
+    }
+    
+    return newAgreement;
+  }
+  
+  async updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined> {
+    const [updatedAgreement] = await db.update(schema.ndaAgreements)
+      .set({ status })
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedAgreement;
+  }
+  
+  async signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined> {
+    const now = new Date();
+    const [updatedAgreement] = await db.update(schema.ndaAgreements)
+      .set({
+        status: 'signed',
+        signedAt: now,
+        companySignatureInfo: signatureInfo
+      })
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedAgreement;
+  }
+  
+  async getNdaAgreements(): Promise<NdaAgreement[]> {
+    return await db.query.ndaAgreements.findMany();
+  }
+  
+  async setNdaPdfUrl(id: number, pdfUrl: string): Promise<NdaAgreement | undefined> {
+    const [updatedAgreement] = await db.update(schema.ndaAgreements)
+      .set({ pdfUrl })
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedAgreement;
   }
 }
 
