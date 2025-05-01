@@ -441,7 +441,7 @@ export class MemStorage implements IStorage {
       id: this.userIdCounter++,
       username: "admin",
       password: "admin123",
-      email: "admin@techlink.example",
+      email: "admin@linktech.sa",
       role: "admin",
       name: "مسؤول النظام",
       avatar: "https://randomuser.me/api/portraits/men/33.jpg",

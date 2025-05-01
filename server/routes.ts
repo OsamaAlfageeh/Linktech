@@ -45,7 +45,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize session and passport
   // تكوين الجلسة بشكل صحيح
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'techlinkapp',
+    secret: process.env.SESSION_SECRET || 'linktechapp',
     resave: true, // تعديل للتأكد من حفظ التغييرات 
     saveUninitialized: true, // تعديل للتأكد من حفظ الجلسات الجديدة
     cookie: { 
@@ -347,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const adminUser = await storage.createUser({
         username: 'admin',
         password: hashedPassword,
-        email: 'admin@techlink.example',
+        email: 'admin@linktech.sa',
         role: 'admin',
         name: 'مسؤول النظام',
         avatar: 'https://randomuser.me/api/portraits/men/33.jpg'
