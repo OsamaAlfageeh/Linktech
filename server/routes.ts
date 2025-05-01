@@ -14,7 +14,8 @@ import {
   insertMessageSchema,
   insertTestimonialSchema,
   insertProjectOfferSchema,
-  insertNewsletterSubscriberSchema
+  insertNewsletterSubscriberSchema,
+  insertNdaAgreementSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
@@ -823,6 +824,150 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(updatedProject);
     } catch (error) {
       res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // NDA routes - مسارات اتفاقيات عدم الإفصاح
+  // إنشاء اتفاقية عدم إفصاح جديدة
+  app.post('/api/projects/:projectId/nda', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      
+      // التحقق من وجود المشروع
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // تأكد من أن المستخدم هو شركة
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'فقط الشركات يمكنها توقيع اتفاقيات عدم الإفصاح' });
+      }
+      
+      // الحصول على ملف تعريف الشركة
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      if (!companyProfile) {
+        return res.status(404).json({ message: 'ملف تعريف الشركة غير موجود' });
+      }
+      
+      // إنشاء بيانات اتفاقية عدم الإفصاح
+      const ndaData = insertNdaAgreementSchema.parse({
+        projectId,
+        status: 'pending',
+        companySignatureInfo: {
+          companyId: companyProfile.id,
+          companyName: user.name,
+          signerName: req.body.signerName || user.name,
+          signerTitle: req.body.signerTitle || 'ممثل الشركة',
+          signerIp: req.ip,
+          timestamp: new Date().toISOString()
+        },
+        signedAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // تنتهي بعد 30 يوم
+      });
+      
+      // إنشاء اتفاقية عدم الإفصاح
+      const nda = await storage.createNdaAgreement(ndaData);
+      
+      // تحديث المشروع بإضافة علامة تتطلب اتفاقية عدم إفصاح ورقم الاتفاقية
+      await storage.updateProject(projectId, {
+        requiresNda: true,
+        ndaId: nda.id
+      });
+      
+      res.status(201).json(nda);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'خطأ في التحقق من البيانات', errors: error.errors });
+      }
+      console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+  
+  // الحصول على اتفاقية عدم إفصاح محددة بواسطة المعرف
+  app.get('/api/nda/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const ndaId = parseInt(req.params.id);
+      const nda = await storage.getNdaAgreement(ndaId);
+      
+      if (!nda) {
+        return res.status(404).json({ message: 'اتفاقية عدم الإفصاح غير موجودة' });
+      }
+      
+      // التحقق من صلاحية الوصول - فقط صاحب المشروع أو الشركة الموقعة أو المسؤول
+      const user = req.user as any;
+      const project = await storage.getProject(nda.projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      const isCompanySigner = companyProfile && 
+        typeof nda.companySignatureInfo === 'object' && 
+        'companyId' in nda.companySignatureInfo && 
+        nda.companySignatureInfo.companyId === companyProfile.id;
+      
+      if (user.role === 'admin' || project.userId === user.id || isCompanySigner) {
+        return res.json(nda);
+      }
+      
+      res.status(403).json({ message: 'غير مصرح بالوصول إلى هذه الاتفاقية' });
+    } catch (error) {
+      console.error('خطأ في استرجاع اتفاقية عدم الإفصاح:', error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+  
+  // الحصول على جميع اتفاقيات عدم الإفصاح لمشروع محدد
+  app.get('/api/projects/:projectId/nda', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const project = await storage.getProject(projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // التحقق من صلاحية الوصول - فقط صاحب المشروع أو المسؤول
+      const user = req.user as any;
+      
+      if (user.role !== 'admin' && project.userId !== user.id) {
+        return res.status(403).json({ message: 'غير مصرح بالوصول إلى اتفاقيات عدم الإفصاح لهذا المشروع' });
+      }
+      
+      const ndaAgreements = await storage.getNdaAgreementsByProjectId(projectId);
+      res.json(ndaAgreements);
+    } catch (error) {
+      console.error('خطأ في استرجاع اتفاقيات عدم الإفصاح للمشروع:', error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+  
+  // تحديث حالة اتفاقية عدم إفصاح (لتغيير الحالة، تحميل ملف PDF، إلخ)
+  app.patch('/api/nda/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const ndaId = parseInt(req.params.id);
+      const nda = await storage.getNdaAgreement(ndaId);
+      
+      if (!nda) {
+        return res.status(404).json({ message: 'اتفاقية عدم الإفصاح غير موجودة' });
+      }
+      
+      // التحقق من صلاحية الوصول - فقط المسؤول يمكنه تحديث الاتفاقية
+      const user = req.user as any;
+      
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: 'فقط المسؤولون يمكنهم تحديث اتفاقيات عدم الإفصاح' });
+      }
+      
+      const updatedNda = await storage.updateNdaAgreement(ndaId, req.body);
+      res.json(updatedNda);
+    } catch (error) {
+      console.error('خطأ في تحديث اتفاقية عدم الإفصاح:', error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
     }
   });
 
