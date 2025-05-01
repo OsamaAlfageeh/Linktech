@@ -81,7 +81,7 @@ const ProjectDetails = () => {
     <>
       <Helmet>
         <title>{project ? `${project.title} | تِكلينك` : 'تفاصيل المشروع | تِكلينك'}</title>
-        <meta name="description" content={project?.description || 'تفاصيل المشروع'} />
+        <meta name="description" content={"تفاصيل المشروع متاحة للمستخدمين المسجلين فقط"} />
       </Helmet>
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
@@ -91,8 +91,34 @@ const ProjectDetails = () => {
             العودة إلى المشاريع
           </Link>
         </div>
+        
+        {/* تحقق مما إذا كان المستخدم مسجل دخول */}
+        {!auth.isAuthenticated && (
+          <div className="bg-white p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
+            <h2 className="text-xl font-bold mb-4">تفاصيل المشروع متاحة للمستخدمين المسجلين فقط</h2>
+            <p className="text-neutral-600 mb-6">لحماية خصوصية المشاريع، يمكن مشاهدة تفاصيل المشاريع المتاحة فقط للمستخدمين المسجلين.</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link href="/auth/login">
+                <Button className="w-full sm:w-auto">تسجيل الدخول</Button>
+              </Link>
+              <Link href="/auth/register">
+                <Button variant="outline" className="w-full sm:w-auto">إنشاء حساب جديد</Button>
+              </Link>
+            </div>
+            <div className="mt-8 p-4 bg-blue-50 rounded-lg">
+              <h3 className="font-semibold text-primary mb-2">لماذا يجب عليك التسجيل؟</h3>
+              <ul className="text-sm text-neutral-700 text-right list-disc list-inside space-y-1">
+                <li>الاطلاع على تفاصيل جميع المشاريع المتاحة</li>
+                <li>التواصل مع أصحاب المشاريع</li>
+                <li>تقديم عروض على المشاريع التي تناسب خبراتك</li>
+                <li>متابعة حالة العروض المقدمة منك</li>
+              </ul>
+            </div>
+          </div>
+        )}
 
-        {isLoading ? (
+        {auth.isAuthenticated && 
+          isLoading ? (
           <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden">
             <div className="p-6 md:p-8">
               <Skeleton className="h-10 w-3/4 mb-6" />
