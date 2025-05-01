@@ -815,6 +815,10 @@ export class DatabaseStorage implements IStorage {
     });
   }
   
+  async getAllProjectOffers(): Promise<ProjectOffer[]> {
+    return await db.query.projectOffers.findMany();
+  }
+  
   async createProjectOffer(offer: InsertProjectOffer): Promise<ProjectOffer> {
     const [insertedOffer] = await db.insert(schema.projectOffers)
       .values({
