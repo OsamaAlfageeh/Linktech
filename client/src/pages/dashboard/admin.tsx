@@ -601,15 +601,17 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid grid-cols-7 w-full md:w-[840px]">
-            <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
-            <TabsTrigger value="users">المستخدمون</TabsTrigger>
-            <TabsTrigger value="companies">الشركات</TabsTrigger>
-            <TabsTrigger value="projects">المشاريع</TabsTrigger>
-            <TabsTrigger value="offers">العروض</TabsTrigger>
-            <TabsTrigger value="messages">المحادثات</TabsTrigger>
-            <TabsTrigger value="settings">الإعدادات</TabsTrigger>
-          </TabsList>
+          <div className="overflow-x-auto pb-2 -mb-2">
+            <TabsList className="flex lg:grid lg:grid-cols-7 min-w-[500px] w-max lg:w-full">
+              <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
+              <TabsTrigger value="users">المستخدمون</TabsTrigger>
+              <TabsTrigger value="companies">الشركات</TabsTrigger>
+              <TabsTrigger value="projects">المشاريع</TabsTrigger>
+              <TabsTrigger value="offers">العروض</TabsTrigger>
+              <TabsTrigger value="messages">المحادثات</TabsTrigger>
+              <TabsTrigger value="settings">الإعدادات</TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* نظرة عامة - الإحصائيات */}
           <TabsContent value="overview" className="space-y-4">
