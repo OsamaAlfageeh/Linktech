@@ -12,6 +12,7 @@ import {
 } from "@/components/recommendations";
 import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
 import { OffersList } from "@/components/offers/OffersList";
+import { NdaSection } from "@/components/nda/NdaSection";
 import { useAuth } from "@/App";
 import { 
   Calendar, 
@@ -40,6 +41,8 @@ type Project = {
   username?: string;
   name?: string;
   attachments?: UploadedFile[];
+  requiresNda?: boolean;
+  ndaId?: number;
 };
 
 const ProjectDetails = () => {
@@ -220,6 +223,19 @@ const ProjectDetails = () => {
                   ))}
                 </div>
               </div>
+              
+              {/* NDA Section */}
+              {auth.isAuthenticated && (
+                <NdaSection
+                  projectId={project.id}
+                  projectTitle={project.title}
+                  requiresNda={project.requiresNda}
+                  ndaId={project.ndaId}
+                  userId={project.userId}
+                  currentUserId={auth.user?.id}
+                  userRole={auth.user?.role}
+                />
+              )}
               
               {/* Project Attachments */}
               {project.attachments && project.attachments.length > 0 && (
