@@ -20,6 +20,17 @@ import {
   getSimilarProjects,
   getTrendingProjects
 } from "./recommendation";
+
+import {
+  recordActivity,
+  ActivityTypes,
+  getOrCreateUserAchievement,
+  getUserRecentActivities,
+  getUserAchievementDetails,
+  getTopUsers,
+  updateLoginStreak,
+  seedDefaultBadges
+} from "./gamification";
 import session from "express-session";
 import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
 import passport from "passport";

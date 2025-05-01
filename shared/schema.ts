@@ -147,6 +147,63 @@ export const insertProjectOfferSchema = createInsertSchema(projectOffers).omit({
   createdAt: true
 });
 
+// Gamification related schemas
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  pointsTotal: integer("points_total").default(0).notNull(),
+  level: integer("level").default(1).notNull(),
+  projectsPosted: integer("projects_posted").default(0),
+  projectsCompleted: integer("projects_completed").default(0),
+  offersReceived: integer("offers_received").default(0),
+  offersAccepted: integer("offers_accepted").default(0),
+  responseRate: integer("response_rate").default(0),
+  responseTime: integer("response_time_minutes"),
+  badges: text("badges").array().default([]),
+  streak: integer("streak").default(0),
+  lastActive: timestamp("last_active").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const badgeDefinitions = pgTable("badge_definitions", {
+  id: serial("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull(),
+  requiredPoints: integer("required_points"),
+  requiredLevel: integer("required_level"),
+  requiredProjects: integer("required_projects"),
+  requiredOffers: integer("required_offers"),
+  category: text("category").notNull(), // "project", "engagement", "special", etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const userActivities = pgTable("user_activities", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  activityType: text("activity_type").notNull(), // "project_post", "offer_submit", etc.
+  referenceId: integer("reference_id"), // Optional ID reference to relevant entity
+  pointsEarned: integer("points_earned").default(0),
+  description: text("description").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({ 
+  id: true, 
+  updatedAt: true 
+});
+
+export const insertBadgeDefinitionSchema = createInsertSchema(badgeDefinitions).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertUserActivitySchema = createInsertSchema(userActivities).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
 // Relation definitions
 export const usersRelations = relations(users, ({ one, many }) => ({
   companyProfile: one(companyProfiles, {
@@ -210,6 +267,31 @@ export const testimonialsRelations = relations(testimonials, ({ one }) => ({
   }),
 }));
 
+// Add relations for new gamification tables
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userActivitiesRelations = relations(userActivities, ({ one }) => ({
+  user: one(users, {
+    fields: [userActivities.userId],
+    references: [users.id],
+  }),
+}));
+
+// Update user relations to include achievements and activities
+export const usersRelationsUpdate = relations(users, ({ one, many }) => ({
+  // Existing relations from usersRelations...
+  achievements: one(userAchievements, {
+    fields: [users.id],
+    references: [userAchievements.userId],
+  }),
+  activities: many(userActivities),
+}));
+
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -228,6 +310,16 @@ export type InsertTestimonial = z.infer<typeof insertTestimonialSchema>;
 
 export type ProjectOffer = typeof projectOffers.$inferSelect;
 export type InsertProjectOffer = z.infer<typeof insertProjectOfferSchema>;
+
+// Gamification types
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+
+export type BadgeDefinition = typeof badgeDefinitions.$inferSelect;
+export type InsertBadgeDefinition = z.infer<typeof insertBadgeDefinitionSchema>;
+
+export type UserActivity = typeof userActivities.$inferSelect;
+export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
 
 // Site Settings schema
 export const siteSettings = pgTable("site_settings", {
