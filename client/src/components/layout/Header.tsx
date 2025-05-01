@@ -95,6 +95,30 @@ const Header = ({ auth }: HeaderProps) => {
                   </Link>
                 </li>
               )}
+              <li>
+                <Link 
+                  href="/how-it-works" 
+                  className={`px-3 py-2 font-medium ${isActive("/how-it-works") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                >
+                  كيف يعمل
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/about" 
+                  className={`px-3 py-2 font-medium ${isActive("/about") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                >
+                  من نحن
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/contact" 
+                  className={`px-3 py-2 font-medium ${isActive("/contact") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                >
+                  تواصل معنا
+                </Link>
+              </li>
             </ul>
           </nav>
 
@@ -192,6 +216,18 @@ const Header = ({ auth }: HeaderProps) => {
                         للشركات
                       </Link>
                     )}
+                    
+                    <Link href="/how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                      كيف يعمل
+                    </Link>
+                    
+                    <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                      من نحن
+                    </Link>
+                    
+                    <Link href="/contact" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                      تواصل معنا
+                    </Link>
                   </nav>
 
                   <div className="mt-8 pt-4 border-t border-gray-200">
