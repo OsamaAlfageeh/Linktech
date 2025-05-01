@@ -34,7 +34,8 @@ export async function sendPasswordResetEmail(
   }
 
   try {
-    const recipients = [new Recipient(email, name)];
+    const recipient = new Recipient(email, name);
+    const recipients = [recipient];
 
     // بناء معلمات البريد الإلكتروني
     const emailParams = new EmailParams()
@@ -115,7 +116,8 @@ export async function sendPasswordChangedNotification(
   }
 
   try {
-    const recipients = [new Recipient(email, name)];
+    const recipient = new Recipient(email, name);
+    const recipients = [recipient];
 
     // بناء معلمات البريد الإلكتروني
     const emailParams = new EmailParams()
@@ -184,7 +186,8 @@ export async function sendWelcomeEmail(
   }
 
   try {
-    const recipients = [new Recipient(email, name)];
+    const recipient = new Recipient(email, name);
+    const recipients = [recipient];
 
     // تخصيص محتوى البريد الإلكتروني بناءً على دور المستخدم
     let roleSpecificContent = '';
