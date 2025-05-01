@@ -180,7 +180,7 @@ const Header = ({ auth }: HeaderProps) => {
                   <span className="sr-only">فتح القائمة</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent side="right" className="sm:max-w-md">
+              <SheetContent side="right" className="sm:max-w-md max-h-screen overflow-y-auto">
                 <div className="mt-6 mb-6">
                   <span className="text-primary font-heading font-bold text-2xl">تِك<span className="text-accent">لينك</span></span>
                 </div>

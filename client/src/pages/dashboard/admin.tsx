@@ -1051,7 +1051,7 @@ export default function AdminDashboard() {
 
       {/* مربع حوار تأكيد الحذف */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>تأكيد حذف المستخدم</DialogTitle>
             <DialogDescription>
