@@ -20,7 +20,7 @@ const Home = ({ auth }: HomeProps) => {
   return (
     <>
       <Helmet>
-        <title>لنكتك | منصة ربط شركات البرمجة ورواد الأعمال</title>
+        <title>لينكتك | منصة ربط شركات البرمجة ورواد الأعمال</title>
         <meta name="description" content="منصة تربط بين رواد الأعمال وشركات البرمجة لتنفيذ المشاريع التقنية بكفاءة وسهولة" />
       </Helmet>
       
