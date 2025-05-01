@@ -386,14 +386,14 @@ const Register = ({ auth }: RegisterProps) => {
                       />
                     </div>
                     
-                    {/* حقل رفع صورة السجل التجاري */}
+                    {/* حقل رفع السجل التجاري */}
                     <div>
-                      <FormLabel className="block mb-2">صورة السجل التجاري</FormLabel>
+                      <FormLabel className="block mb-2">السجل التجاري</FormLabel>
                       <FileUpload
                         value={registrationDocument}
                         onChange={setRegistrationDocument}
-                        label="صورة السجل التجاري"
-                        helperText="قم برفع صورة السجل التجاري للشركة (مطلوب)"
+                        label="رفع ملف"
+                        helperText="قم برفع نسخة من السجل التجاري للشركة (مطلوب)"
                         error={documentError || ""}
                         accept={{
                           "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
