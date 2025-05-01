@@ -11,7 +11,8 @@ const mailerSend = process.env.MAILERSEND_API_KEY
   : null;
 
 // إعداد معلومات المرسل
-const sender = new Sender("noreply@techlink.example", "تِكلينك");
+// استخدام عنوان بريد إلكتروني من نطاق معتمد
+const sender = new Sender("password-reset@mailersend.com", "تِكلينك");
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
