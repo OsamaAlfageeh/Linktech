@@ -172,7 +172,7 @@ export function PaymentDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl">
+      <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>دفع العربون</DialogTitle>
           <DialogDescription>

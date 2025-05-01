@@ -394,7 +394,7 @@ const CompanyDetails = () => {
                 
                 {/* نافذة الدفع */}
                 <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-                  <DialogContent className="sm:max-w-[425px]">
+                  <DialogContent className="sm:max-w-[425px] max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
                       <DialogTitle>ادفع للوصول إلى معلومات الشركة</DialogTitle>
                       <DialogDescription>
