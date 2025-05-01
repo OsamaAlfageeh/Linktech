@@ -50,8 +50,12 @@ type AdminDashboardStats = {
   };
 };
 
-export default function AdminDashboard() {
-  const { user, isAuthenticated } = useAuth();
+interface AdminDashboardProps {
+  auth: any;
+}
+
+export default function AdminDashboard({ auth }: AdminDashboardProps) {
+  const { user, isAuthenticated } = auth;
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
@@ -120,8 +124,8 @@ export default function AdminDashboard() {
       }
       return response.json();
     },
-    // مؤقتاً: جعل الاستعلام يعمل دائماً
-    enabled: true,
+    // تمكين الاستعلام فقط عند وجود مصادقة كمسؤول
+    enabled: isAuthenticated && user?.role === "admin",
   });
 
   // استعلام لجلب كل المشاريع

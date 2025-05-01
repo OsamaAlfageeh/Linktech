@@ -156,35 +156,37 @@ function App() {
             )}
           </Route>
           {/* صفحة المسؤول مع تحقق */}
-          <Route path="/dashboard/admin" component={() => <AdminDashboard auth={auth} />} />
-          {/* صفحة المسؤول المبسطة للوصول المباشر */}
-          <Route path="/admin">
-            <div className="container mx-auto p-4 sm:p-6">
-              <h1 className="text-3xl font-bold mb-6">لوحة المسؤول البسيطة</h1>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <p className="mb-4">تم تسجيل دخولك بنجاح كمسؤول.</p>
-                <a href="/dashboard/admin" className="inline-block bg-primary text-white px-4 py-2 rounded-md">
-                  الذهاب إلى لوحة المسؤول الكاملة
-                </a>
-              </div>
-            </div>
-          </Route>
+          <Route path="/dashboard/admin" component={() => (
+            auth.isAuthenticated && auth.isAdmin ? (
+              <AdminDashboard auth={auth} />
+            ) : (
+              <Redirect to="/auth/login" />
+            )
+          )} />
+          {/* صفحة المسؤول المبسطة للوصول المباشر - تحويل مباشر إلى لوحة المسؤول الكاملة */}
+          <Route path="/admin" component={() => (
+            auth.isAuthenticated && auth.isAdmin ? (
+              <Redirect to="/dashboard/admin" />
+            ) : (
+              <Redirect to="/auth/login" />
+            )
+          )} />
           {/* نهاية التعديل المؤقت */}
           {/* صفحة الرسائل: تدعم المسار الأساسي والمسار مع معلمة userId */}
-          <Route path="/messages">
-            {auth.isAuthenticated ? (
+          <Route path="/messages" component={() => (
+            auth.isAuthenticated ? (
               <Messages auth={auth} />
             ) : (
-              <NotFound />
-            )}
-          </Route>
-          <Route path="/messages/:userId">
-            {auth.isAuthenticated ? (
+              <Redirect to="/auth/login" />
+            )
+          )} />
+          <Route path="/messages/:userId" component={() => (
+            auth.isAuthenticated ? (
               <Messages auth={auth} />
             ) : (
-              <NotFound />
-            )}
-          </Route>
+              <Redirect to="/auth/login" />
+            )
+          )} />
           
           {/* مسار صفحة المستخدم */}
           <Route path="/users/:id" component={UserProfile} />
