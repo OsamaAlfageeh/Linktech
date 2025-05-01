@@ -8,11 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
 import { 
-  RecommendedCompanies, 
-  SimilarProjects, 
-  AIRecommendedCompanies, 
-  AISimilarProjects,
-  AIMarketTrends,
   AIProjectAnalysis
 } from "@/components/recommendations";
 import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
@@ -402,25 +397,7 @@ const ProjectDetails = () => {
           </div>
         )}
 
-        {/* Recommendations */}
-        {project && (
-          <div className="space-y-12">
-            {/* Recommended Companies - AI Enhanced */}
-            <div className="mb-10">
-              <AIRecommendedCompanies projectId={project.id} limit={3} />
-            </div>
-            
-            {/* Similar Projects - AI Enhanced */}
-            <div className="mb-10">
-              <AISimilarProjects projectId={project.id} limit={3} />
-            </div>
-            
-            {/* Market Trends Analytics */}
-            <div className="mb-6">
-              <AIMarketTrends limit={8} />
-            </div>
-          </div>
-        )}
+
       </div>
     </>
   );
