@@ -100,15 +100,6 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     error: profileError,
   } = useQuery<CompanyProfile>({
     queryKey: [`/api/companies/user/${auth.user?.id}`],
-    queryFn: async () => {
-      const response = await fetch(`/api/companies`);
-      if (!response.ok) throw new Error("Failed to fetch company profiles");
-      const profiles = await response.json();
-      // Find the profile for the current user
-      const userProfile = profiles.find((p: any) => p.userId === auth.user?.id);
-      if (!userProfile) throw new Error("Company profile not found");
-      return userProfile;
-    },
     enabled: !!auth.user?.id,
   });
 

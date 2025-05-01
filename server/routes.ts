@@ -477,6 +477,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // الحصول على بيانات الشركة بواسطة معرف المستخدم
+  app.get('/api/companies/user/:userId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      console.log(`طلب ملف الشركة للمستخدم رقم ${req.params.userId} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      
+      const userId = parseInt(req.params.userId);
+      if (isNaN(userId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      // التحقق من أن المستخدم هو صاحب الملف أو مسؤول
+      const currentUser = req.user as any;
+      if (currentUser.id !== userId && currentUser.role !== 'admin') {
+        console.log(`رفض وصول غير مصرح: المستخدم ${currentUser.id} حاول الوصول إلى ملف الشركة للمستخدم ${userId}`);
+        return res.status(403).json({ message: 'Forbidden: You are not authorized to view this profile' });
+      }
+      
+      // البحث عن ملف الشركة بناءً على معرف المستخدم
+      const profile = await storage.getCompanyProfileByUserId(userId);
+      if (!profile) {
+        console.log(`لم يتم العثور على ملف للشركة للمستخدم ${userId}`);
+        return res.status(404).json({ message: 'Company profile not found' });
+      }
+      
+      // الحصول على بيانات المستخدم
+      const user = await storage.getUser(userId);
+      if (!user) {
+        console.log(`لم يتم العثور على بيانات المستخدم ${userId}`);
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      // بناء كائن الاستجابة
+      const response = {
+        ...profile,
+        username: user.username,
+        name: user.name,
+        email: user.email
+      };
+      
+      console.log(`تم إرسال بيانات الشركة "${user.name}" بنجاح`);
+      res.json(response);
+    } catch (error) {
+      console.error(`خطأ في استرجاع بيانات الشركة:`, error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
   app.get('/api/companies/:id', async (req: Request, res: Response) => {
     try {
       console.log(`طلب تفاصيل الشركة برقم ${req.params.id} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
