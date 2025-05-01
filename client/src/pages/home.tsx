@@ -1,7 +1,7 @@
 import HeroSection from "@/components/home/HeroSection";
 import HowItWorks from "@/components/home/HowItWorks";
 import FeaturedProjects from "@/components/home/FeaturedProjects";
-import TopCompanies from "@/components/home/TopCompanies";
+import CompanyPromotionSection from "@/components/home/TopCompanies";
 import Testimonials from "@/components/home/Testimonials";
 import CTASection from "@/components/home/CTASection";
 import OfficialCompaniesSection from "@/components/home/OfficialCompaniesSection";
@@ -31,7 +31,7 @@ const Home = ({ auth }: HomeProps) => {
         <TrendingProjects limit={3} />
       </div>
       <FeaturedProjects />
-      <TopCompanies />
+      <CompanyPromotionSection />
       <Testimonials />
       <CTASection auth={auth} />
     </>
