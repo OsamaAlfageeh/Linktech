@@ -75,15 +75,16 @@ const Header = ({ auth }: HeaderProps) => {
                   </Link>
                 )}
               </li>
-              <li>
-                <Link 
-                  href="/projects" 
-                  className={`px-3 py-2 font-medium ${isActive("/projects") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
-                >
-                  المشاريع
-                </Link>
-              </li>
-
+              {auth.isCompany && (
+                <li>
+                  <Link 
+                    href="/projects" 
+                    className={`px-3 py-2 font-medium ${isActive("/projects") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                  >
+                    المشاريع
+                  </Link>
+                </li>
+              )}
               {auth.isCompany && (
                 <li>
                   <Link 
@@ -179,9 +180,12 @@ const Header = ({ auth }: HeaderProps) => {
                         الرئيسية
                       </Link>
                     )}
-                    <Link href="/projects" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
-                      المشاريع
-                    </Link>
+                    
+                    {auth.isCompany && (
+                      <Link href="/projects" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                        المشاريع
+                      </Link>
+                    )}
 
                     {auth.isCompany && (
                       <Link href="/for-companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
