@@ -564,8 +564,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         projects = await storage.getProjectsByUserId(user.id);
       } else if (user.role === 'company') {
         console.log(`شركة (${user.username})، عرض المشاريع المتاحة للشركات`);
-        // الشركات تستطيع مشاهدة المشاريع المتاحة فقط
-        projects = await storage.getProjects();
+        // الشركات تستطيع مشاهدة المشاريع المتاحة فقط (مشاريع رواد الأعمال)
+        const allProjects = await storage.getProjects();
+        console.log(`عدد المشاريع الكلي: ${allProjects.length}`);
+        
+        // المشاريع المتاحة للشركات هي المشاريع التي ينشئها رواد الأعمال
+        projects = await Promise.all(
+          allProjects.map(async (project) => {
+            const projectUser = await storage.getUser(project.userId);
+            if (projectUser && projectUser.role === 'entrepreneur') {
+              return project;
+            }
+            return null;
+          })
+        ).then(results => results.filter((project): project is any => project !== null));
+        
+        console.log(`عدد المشاريع المتاحة للشركة بعد التصفية: ${projects.length}`);
       }
       
       // الحصول على بيانات المستخدم المرتبطة بكل مشروع
@@ -607,9 +621,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // المستخدم مرتبط بالمشروع، أو مسؤول، أو شركة مصرح لها بمشاهدة المشاريع المتاحة
       const user = req.user as any;
-      if (user.role !== 'admin' && user.role !== 'company' && project.userId !== user.id) {
+      
+      // إذا كان المستخدم غير مسؤول وغير صاحب المشروع وهو ليس شركة
+      if (user.role !== 'admin' && project.userId !== user.id && user.role !== 'company') {
         console.log(`رفض وصول غير مصرح: المستخدم ${user.username} حاول الوصول إلى مشروع المستخدم ${project.userId}`);
         return res.status(403).json({ message: 'Forbidden: You are not authorized to view this project' });
+      }
+      
+      // إذا كان المستخدم شركة، تأكد من أن المشروع منشأ من قبل رائد أعمال
+      if (user.role === 'company') {
+        const projectOwner = await storage.getUser(project.userId);
+        if (!projectOwner || projectOwner.role !== 'entrepreneur') {
+          console.log(`رفض وصول شركة: المستخدم ${user.username} حاول الوصول إلى مشروع غير منشأ من رائد أعمال`);
+          return res.status(403).json({ message: 'Forbidden: This project is not available for companies' });
+        }
       }
       
       const projectUser = await storage.getUser(project.userId);
