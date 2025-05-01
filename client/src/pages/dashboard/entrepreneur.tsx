@@ -26,10 +26,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "wouter";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -461,6 +463,29 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                         )}
                       />
                       
+                      <FormField
+                        control={form.control}
+                        name="requiresNda"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2 space-x-reverse space-y-0 rounded-md border p-4">
+                            <FormControl>
+                              <Checkbox
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-1 leading-none">
+                              <FormLabel className="text-sm font-medium">
+                                طلب اتفاقية عدم إفصاح
+                              </FormLabel>
+                              <FormDescription className="text-xs">
+                                سيُطلب من الشركات توقيع اتفاقية عدم إفصاح قبل الاطلاع على تفاصيل المشروع الكاملة
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+
                       <div className="space-y-2">
                         <FormLabel>المرفقات (اختياري)</FormLabel>
                         <DropzoneUploader 
@@ -668,6 +693,7 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
       budget: "",
       duration: "",
       skills: "",
+      requiresNda: false,
       status: "open" // Default status
     },
   });
@@ -694,6 +720,7 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
         budget: project.budget,
         duration: project.duration,
         skills: project.skills.join(", "), // Convert array to comma-separated string
+        requiresNda: project.requiresNda || false,
         status: project.status
       });
     }
@@ -815,6 +842,29 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={editForm.control}
+          name="requiresNda"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center space-x-2 space-x-reverse space-y-0 rounded-md border p-4 mb-4">
+              <FormControl>
+                <Checkbox
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+              <div className="space-y-1 leading-none">
+                <FormLabel className="text-sm font-medium">
+                  طلب اتفاقية عدم إفصاح
+                </FormLabel>
+                <FormDescription className="text-xs">
+                  سيُطلب من الشركات توقيع اتفاقية عدم إفصاح قبل الاطلاع على تفاصيل المشروع الكاملة
+                </FormDescription>
+              </div>
             </FormItem>
           )}
         />
