@@ -8,7 +8,7 @@ type CTASectionProps = {
 
 const CTASection = ({ auth }: CTASectionProps) => {
   return (
-    <section className="py-16 bg-gradient-to-r from-[hsl(160,84%,39%)] to-[hsl(161,94%,30%)] text-white relative overflow-hidden">
+    <section className="py-16 bg-gradient-to-r from-primary to-primary-dark text-white relative overflow-hidden">
       {/* أشكال زخرفية متحركة في الخلفية */}
       <div className="absolute top-0 left-0 w-64 h-64 rounded-full bg-white/5 blur-3xl animate-blob"></div>
       <div className="absolute bottom-0 right-0 w-80 h-80 rounded-full bg-white/5 blur-3xl animate-blob animation-delay-2000"></div>
@@ -23,13 +23,13 @@ const CTASection = ({ auth }: CTASectionProps) => {
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
             <Link 
               href={auth.isAuthenticated ? "/projects" : "/auth/register"} 
-              className="bg-white text-[hsl(160,84%,39%)] hover:bg-neutral-100 font-medium rounded-lg px-8 py-3 text-center transition-all duration-300 hover:shadow-xl hover-button-scale floating-button"
+              className="bg-white text-primary hover:bg-neutral-100 font-medium rounded-lg px-8 py-3 text-center transition-all duration-300 hover:shadow-xl hover-button-scale floating-button"
             >
               {auth.isAuthenticated ? "استكشف المشاريع" : "أنشئ حسابك مجاناً"}
             </Link>
             <Link 
               href="/auth/register" 
-              className="bg-[hsla(160,84%,30%,0.3)] text-white hover:bg-[hsla(160,84%,30%,0.5)] font-medium rounded-lg px-8 py-3 text-center border border-white/30 transition-all duration-300 hover:border-white hover:shadow-lg hover-button-scale"
+              className="bg-primary-dark/30 text-white hover:bg-primary-dark/50 font-medium rounded-lg px-8 py-3 text-center border border-white/30 transition-all duration-300 hover:border-white hover:shadow-lg hover-button-scale"
             >
               ابدأ رحلتك التقنية اليوم
             </Link>
