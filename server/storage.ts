@@ -21,6 +21,11 @@ export interface IStorage {
   getUsers(): Promise<User[]>;
   updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined>;
   
+  // Password reset operations
+  createPasswordResetToken(email: string, token: string, expiresAt: Date): Promise<boolean>;
+  getPasswordResetToken(token: string): Promise<{userId: number, email: string, expiresAt: Date} | undefined>;
+  deletePasswordResetToken(token: string): Promise<boolean>;
+  
   // Company profile operations
   getCompanyProfile(id: number): Promise<CompanyProfile | undefined>;
   getCompanyProfileByUserId(userId: number): Promise<CompanyProfile | undefined>;

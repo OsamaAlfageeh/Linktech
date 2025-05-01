@@ -2,6 +2,8 @@ import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
+import crypto from "crypto";
+import { sendPasswordResetEmail, sendWelcomeEmail } from "./emailService";
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
