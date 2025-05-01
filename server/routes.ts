@@ -1468,6 +1468,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Newsletter subscription
+  app.post('/api/newsletter/subscribe', async (req: Request, res: Response) => {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'البريد الإلكتروني مطلوب' });
+      }
+      
+      // التحقق مما إذا كان البريد الإلكتروني موجودًا بالفعل
+      const existingSubscriber = await storage.getNewsletterSubscriberByEmail(email);
+      
+      if (existingSubscriber) {
+        // إذا كان مشترك بالفعل ولكن قد ألغى اشتراكه سابقًا
+        if (!existingSubscriber.subscribed) {
+          await storage.updateNewsletterSubscriber(existingSubscriber.id, { subscribed: true });
+          return res.status(200).json({ message: 'تم إعادة الاشتراك بنجاح' });
+        }
+        // إذا كان مشترك بالفعل
+        return res.status(200).json({ message: 'أنت مشترك بالفعل في القائمة البريدية' });
+      }
+      
+      // إنشاء اشتراك جديد
+      const subscriberData = insertNewsletterSubscriberSchema.parse({
+        email,
+        name: name || null,
+        subscribed: true
+      });
+      
+      await storage.createNewsletterSubscriber(subscriberData);
+      
+      // تسجيل نجاح الاشتراك في السجل
+      console.log(`تم اشتراك البريد الإلكتروني ${email} في النشرة البريدية`);
+      
+      res.status(201).json({ message: 'تم الاشتراك بنجاح' });
+    } catch (error) {
+      console.error('خطأ في الاشتراك بالنشرة البريدية:', error);
+      
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'بيانات غير صالحة', errors: error.errors });
+      }
+      
+      res.status(500).json({ message: 'حدث خطأ أثناء الاشتراك' });
+    }
+  });
+  
+  // Newsletter unsubscribe
+  app.post('/api/newsletter/unsubscribe', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'البريد الإلكتروني مطلوب' });
+      }
+      
+      // التحقق مما إذا كان البريد الإلكتروني موجودًا
+      const subscriber = await storage.getNewsletterSubscriberByEmail(email);
+      
+      if (!subscriber) {
+        return res.status(404).json({ message: 'البريد الإلكتروني غير مشترك في القائمة البريدية' });
+      }
+      
+      // تحديث حالة الاشتراك
+      await storage.updateNewsletterSubscriber(subscriber.id, { subscribed: false });
+      
+      res.status(200).json({ message: 'تم إلغاء الاشتراك بنجاح' });
+    } catch (error) {
+      console.error('خطأ في إلغاء الاشتراك من النشرة البريدية:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء إلغاء الاشتراك' });
+    }
+  });
+  
   // Set a site setting (admin only)
   app.post('/api/site-settings/:key', isAuthenticated, async (req: Request, res: Response) => {
     try {

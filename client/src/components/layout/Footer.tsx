@@ -1,6 +1,52 @@
 import { Link } from "wouter";
+import { useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 const Footer = () => {
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
+
+  const handleNewsletterSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email) {
+      toast({
+        title: "خطأ",
+        description: "يرجى إدخال البريد الإلكتروني",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      const response = await apiRequest("POST", "/api/newsletter/subscribe", { email });
+      const data = await response.json();
+      
+      toast({
+        title: "تم الاشتراك بنجاح",
+        description: data.message || "شكراً لاشتراكك في نشرتنا البريدية!",
+      });
+      
+      setEmail("");
+    } catch (error) {
+      console.error("خطأ في الاشتراك:", error);
+      toast({
+        title: "خطأ في الاشتراك",
+        description: "حدث خطأ أثناء محاولة الاشتراك في النشرة البريدية. يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const currentYear = new Date().getFullYear();
+
   return (
     <footer className="bg-neutral-800 text-neutral-300 pt-12 pb-6">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -33,8 +79,7 @@ const Footer = () => {
             <h3 className="font-heading text-white text-xl font-semibold mb-4">روابط سريعة</h3>
             <ul className="space-y-3">
               <li><Link href="/projects" className="hover:text-white transition-colors">المشاريع</Link></li>
-
-              <li><a href="#how-it-works" className="hover:text-white transition-colors">كيف يعمل</a></li>
+              <li><Link href="/how-it-works" className="hover:text-white transition-colors">كيف يعمل</Link></li>
               <li><Link href="/help-center" className="hover:text-white transition-colors">الأسئلة الشائعة</Link></li>
             </ul>
           </div>
@@ -54,26 +99,34 @@ const Footer = () => {
           <div>
             <h3 className="font-heading text-white text-xl font-semibold mb-4">النشرة الإخبارية</h3>
             <p className="mb-4">اشترك للحصول على آخر الأخبار والعروض الحصرية.</p>
-            <form className="flex">
+            <form className="flex" onSubmit={handleNewsletterSubmit}>
               <input 
                 type="email" 
                 placeholder="البريد الإلكتروني" 
                 className="bg-neutral-700 text-white px-4 py-2 rounded-r-lg w-full focus:outline-none focus:ring-2 focus:ring-primary"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isSubmitting}
               />
               <button 
                 type="submit" 
-                className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-l-lg"
+                className="bg-primary hover:bg-primary-dark text-white px-4 py-2 rounded-l-lg disabled:opacity-70"
+                disabled={isSubmitting}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 rtl-flip" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
+                {isSubmitting ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 rtl-flip" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                )}
               </button>
             </form>
           </div>
         </div>
 
         <div className="border-t border-neutral-700 pt-6 text-center text-sm">
-          <p>© 2023 لينكتك. جميع الحقوق محفوظة.</p>
+          <p>© {currentYear} لينكتك. جميع الحقوق محفوظة.</p>
         </div>
       </div>
     </footer>
