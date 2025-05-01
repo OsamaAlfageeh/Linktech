@@ -406,3 +406,10 @@ export type InsertNewsletterSubscriber = z.infer<typeof insertNewsletterSubscrib
 
 export type NdaAgreement = typeof ndaAgreements.$inferSelect;
 export type InsertNdaAgreement = z.infer<typeof insertNdaAgreementSchema>;
+
+export const ndaAgreementsRelations = relations(ndaAgreements, ({ one }) => ({
+  project: one(projects, {
+    fields: [ndaAgreements.projectId],
+    references: [projects.id],
+  }),
+}));

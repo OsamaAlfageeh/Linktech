@@ -11,7 +11,9 @@ import {
   passwordResetTokens,
   InsertPasswordResetToken,
   NewsletterSubscriber, InsertNewsletterSubscriber,
-  newsletterSubscribers
+  newsletterSubscribers,
+  NdaAgreement, InsertNdaAgreement,
+  ndaAgreements
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
@@ -77,6 +79,15 @@ export interface IStorage {
   createNewsletterSubscriber(subscriber: InsertNewsletterSubscriber): Promise<NewsletterSubscriber>;
   getNewsletterSubscribers(): Promise<NewsletterSubscriber[]>;
   updateNewsletterSubscriber(id: number, updates: Partial<NewsletterSubscriber>): Promise<NewsletterSubscriber | undefined>;
+  
+  // NDA Agreement operations
+  getNdaAgreement(id: number): Promise<NdaAgreement | undefined>;
+  getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined>;
+  createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement>;
+  updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined>;
+  signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined>;
+  getNdaAgreements(): Promise<NdaAgreement[]>;
+  setNdaPdfUrl(id: number, pdfUrl: string): Promise<NdaAgreement | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -89,6 +100,7 @@ export class MemStorage implements IStorage {
   private siteSettings: Map<string, SiteSetting>;
   private passwordResetTokens: Map<string, {userId: number, email: string, expiresAt: Date}>;
   private newsletterSubscribers: Map<number, NewsletterSubscriber>;
+  private ndaAgreements: Map<number, NdaAgreement>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -98,6 +110,7 @@ export class MemStorage implements IStorage {
   private projectOfferIdCounter: number = 1;
   private siteSettingsIdCounter: number = 1;
   private newsletterSubscriberIdCounter: number = 1;
+  private ndaAgreementIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -109,6 +122,7 @@ export class MemStorage implements IStorage {
     this.siteSettings = new Map();
     this.passwordResetTokens = new Map();
     this.newsletterSubscribers = new Map();
+    this.ndaAgreements = new Map();
     
     this.seedData();
   }
