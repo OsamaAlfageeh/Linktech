@@ -103,12 +103,15 @@ const Login = ({ auth }: LoginProps) => {
       window.scrollTo(0, 0);
       
       // توجيه المستخدم حسب دوره
+      // ننتظر قليلاً لضمان اكتمال تحديث حالة المستخدم في سياق المصادقة
       setTimeout(() => {
         const role = userData.role;
         console.log("توجيه المستخدم بدور:", role);
         
         if (role === "admin") {
-          navigate("/dashboard/admin");
+          console.log("بدء التوجيه للوحة المسؤول...");
+          // نستخدم أسلوب آخر للتوجيه لتجنب مشاكل التزامن
+          window.location.href = "/dashboard/admin";
         } else if (role === "entrepreneur") {
           navigate("/dashboard/entrepreneur");
         } else if (role === "company") {
@@ -118,7 +121,7 @@ const Login = ({ auth }: LoginProps) => {
           console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
           navigate("/");
         }
-      }, 800);
+      }, 1500);
     },
     onError: (error: any) => {
       console.error("خطأ تسجيل الدخول:", error);
