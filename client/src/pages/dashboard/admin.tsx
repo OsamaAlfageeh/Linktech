@@ -518,31 +518,46 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
 
     setConversationLoading(true);
     setConversationError(null);
+    console.log(`جاري تحميل المحادثة بين المستخدمين: ${selectedUser1Id} و ${selectedUser2Id}`);
     
     try {
+      // استخدام طريقة المسؤول لعرض المحادثات بواسطة معلمات الاستعلام otherUserId
       const response = await fetch(`/api/messages/conversation/${selectedUser1Id}?otherUserId=${selectedUser2Id}`);
       
       if (!response.ok) {
-        throw new Error("فشل تحميل المحادثة");
+        const errorData = await response.json();
+        throw new Error(errorData.message || "فشل تحميل المحادثة");
       }
       
       const messages = await response.json();
+      console.log(`تم تحميل ${messages.length} رسالة بين المستخدمين`);
       
       // إضافة أسماء المستخدمين للعرض
       const user1 = users?.find((u: any) => u.id === selectedUser1Id);
       const user2 = users?.find((u: any) => u.id === selectedUser2Id);
       
+      if (!user1 || !user2) {
+        throw new Error("لم يتم العثور على معلومات أحد المستخدمين");
+      }
+      
       const enhancedMessages = messages.map((msg: any) => ({
         ...msg,
         fromUserName: msg.fromUserId === selectedUser1Id ? user1?.name : user2?.name,
         toUserName: msg.toUserId === selectedUser1Id ? user1?.name : user2?.name,
+        // تحويل التاريخ إلى كائن Date إذا كان نصيًا
+        createdAt: typeof msg.createdAt === 'string' ? new Date(msg.createdAt) : msg.createdAt
       }));
       
-      setConversation(enhancedMessages);
+      // ترتيب الرسائل تصاعديًا حسب التاريخ
+      const sortedMessages = enhancedMessages.sort((a: any, b: any) => {
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      });
+      
+      setConversation(sortedMessages);
       setConversationLoaded(true);
     } catch (error) {
       console.error("Error loading conversation:", error);
-      setConversationError("حدث خطأ أثناء تحميل المحادثة");
+      setConversationError(error instanceof Error ? error.message : "حدث خطأ أثناء تحميل المحادثة");
     } finally {
       setConversationLoading(false);
     }
@@ -1114,8 +1129,38 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
 
                 {conversation && conversation.length > 0 ? (
                   <div className="border rounded-md">
-                    <div className="p-4 border-b bg-muted/30">
+                    <div className="p-4 border-b bg-muted/30 flex justify-between items-center">
                       <h3 className="font-medium">المحادثة بين {conversation[0]?.fromUserName} و {conversation[0]?.toUserName}</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // تنزيل المحادثة كملف نصي
+                          const conversationText = conversation.map(msg => 
+                            `[${new Date(msg.createdAt).toLocaleString('ar-SA')}] ${msg.fromUserName}: ${msg.content}`
+                          ).join('\n\n');
+                          
+                          const blob = new Blob([conversationText], { type: 'text/plain;charset=utf-8' });
+                          const url = URL.createObjectURL(blob);
+                          const a = document.createElement('a');
+                          a.href = url;
+                          a.download = `محادثة-${selectedUser1Id}-${selectedUser2Id}-${new Date().toISOString().slice(0, 10)}.txt`;
+                          document.body.appendChild(a);
+                          a.click();
+                          document.body.removeChild(a);
+                          URL.revokeObjectURL(url);
+                          
+                          toast({
+                            title: "تم التنزيل",
+                            description: "تم تنزيل نسخة من المحادثة بنجاح",
+                          });
+                        }}
+                      >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                        </svg>
+                        تنزيل المحادثة
+                      </Button>
                     </div>
                     <div className="p-4 max-h-[400px] overflow-y-auto space-y-3">
                       {conversation.map((message: any) => (
@@ -1134,7 +1179,17 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                               {message.fromUserId === selectedUser1Id ? 'من: ' : 'من: '}
                               <strong>{message.fromUserName}</strong> - {new Date(message.createdAt).toLocaleString('ar-SA')}
                             </div>
-                            <div>{message.content}</div>
+                            {/* التحقق مما إذا كانت الرسالة محظورة */}
+                            {message.content.includes('[تم حظر هذه الرسالة') ? (
+                              <div className="text-red-500 italic">
+                                {message.content}
+                                <div className="mt-1 text-xs bg-red-50 p-1 rounded">
+                                  <strong>ملاحظة للمسؤول:</strong> تم رصد محتوى محظور في هذه الرسالة
+                                </div>
+                              </div>
+                            ) : (
+                              <div>{message.content}</div>
+                            )}
                           </div>
                         </div>
                       ))}
