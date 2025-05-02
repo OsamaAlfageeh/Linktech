@@ -236,11 +236,11 @@ const Login = ({ auth }: LoginProps) => {
 
           <div className="mt-4 text-center text-sm text-neutral-500">
             بتسجيل الدخول، فإنك توافق على{" "}
-            <Link href="#" className="text-primary hover:text-primary-dark">
+            <Link href="/terms" className="text-primary hover:text-primary-dark">
               شروط الخدمة
             </Link>{" "}
             و{" "}
-            <Link href="#" className="text-primary hover:text-primary-dark">
+            <Link href="/privacy" className="text-primary hover:text-primary-dark">
               سياسة الخصوصية
             </Link>
           </div>

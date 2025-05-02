@@ -433,11 +433,11 @@ const Register = ({ auth }: RegisterProps) => {
 
           <div className="mt-4 text-center text-sm text-neutral-500">
             بإنشاء حساب، فإنك توافق على{" "}
-            <Link href="#" className="text-primary hover:text-primary-dark link-underline">
+            <Link href="/terms" className="text-primary hover:text-primary-dark link-underline">
               شروط الخدمة
             </Link>{" "}
             و{" "}
-            <Link href="#" className="text-primary hover:text-primary-dark link-underline">
+            <Link href="/privacy" className="text-primary hover:text-primary-dark link-underline">
               سياسة الخصوصية
             </Link>
           </div>
