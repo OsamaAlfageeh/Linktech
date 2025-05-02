@@ -1018,12 +1018,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/messages/conversation/:userId', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
-      const otherUserId = parseInt(req.params.userId);
+      const userId = parseInt(req.params.userId);
+      const otherUserId = req.query.otherUserId ? parseInt(req.query.otherUserId as string) : undefined;
       const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
       
-      const messages = await storage.getConversation(user.id, otherUserId, projectId);
+      // إذا كان المستخدم مسؤول ويوجد معرف مستخدم آخر محدد، اسمح له بعرض أي محادثة
+      if (user.role === 'admin' && otherUserId) {
+        console.log(`طلب المسؤول لعرض المحادثة بين المستخدمين: ${userId} و ${otherUserId}`);
+        const messages = await storage.getConversation(userId, otherUserId, projectId);
+        return res.json(messages);
+      }
+      
+      // إذا لم يكن مسؤول أو طلب العرض لمحادثته الشخصية
+      if (user.id !== userId && user.role !== 'admin') {
+        return res.status(403).json({ message: 'غير مصرح لك بعرض هذه المحادثة' });
+      }
+      
+      const messages = await storage.getConversation(user.id, userId, projectId);
       res.json(messages);
     } catch (error) {
+      console.error('خطأ في الحصول على المحادثة:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
