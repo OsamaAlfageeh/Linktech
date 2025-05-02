@@ -1895,8 +1895,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
         
+        // حالة تحديث قراءة الرسالة
+        if (data.type === 'read_messages' && userId) {
+          console.log(`تحديث حالة قراءة الرسائل للمستخدم ${userId}, المرسل: ${data.fromUserId}`);
+          
+          try {
+            if (data.messageIds && Array.isArray(data.messageIds) && data.messageIds.length > 0) {
+              // تحديث حالة قراءة عدة رسائل محددة
+              const updatedMessages = await Promise.all(
+                data.messageIds.map(id => storage.markMessageAsRead(id))
+              );
+              
+              console.log(`تم تحديث ${updatedMessages.filter(Boolean).length} رسالة كمقروءة`);
+              
+              // إعلام المرسل بأن رسائله قد تمت قراءتها
+              if (data.fromUserId && clients.has(data.fromUserId)) {
+                const recipientClients = clients.get(data.fromUserId) || [];
+                
+                for (const client of recipientClients) {
+                  if (client.readyState === 1) { // WebSocket.OPEN = 1
+                    client.send(JSON.stringify({
+                      type: 'messages_read',
+                      messageIds: data.messageIds,
+                      readByUserId: userId
+                    }));
+                  }
+                }
+              }
+            } else if (data.fromUserId) {
+              // تحديث جميع الرسائل غير المقروءة من مرسل معين
+              const updatedCount = await storage.markAllMessagesAsRead(data.fromUserId, userId);
+              
+              console.log(`تم تحديث ${updatedCount} رسالة كمقروءة من المستخدم ${data.fromUserId}`);
+              
+              // إعلام المرسل بأن جميع رسائله قد تمت قراءتها
+              if (clients.has(data.fromUserId)) {
+                const recipientClients = clients.get(data.fromUserId) || [];
+                
+                for (const client of recipientClients) {
+                  if (client.readyState === 1) { // WebSocket.OPEN = 1
+                    client.send(JSON.stringify({
+                      type: 'all_messages_read',
+                      readByUserId: userId
+                    }));
+                  }
+                }
+              }
+            }
+            
+            // إرسال تأكيد للمستخدم الذي قام بتحديث حالة القراءة
+            ws.send(JSON.stringify({
+              type: 'read_confirmation',
+              success: true
+            }));
+          } catch (error) {
+            console.error('خطأ في تحديث حالة قراءة الرسائل:', error);
+            ws.send(JSON.stringify({
+              type: 'read_confirmation',
+              success: false,
+              error: 'حدث خطأ أثناء تحديث حالة قراءة الرسائل'
+            }));
+          }
+        }
+        
         // إذا كانت رسالة دردشة جديدة
-        if (data.type === 'message' && userId && typeof data.toUserId === 'number') {
+        else if (data.type === 'message' && userId && typeof data.toUserId === 'number') {
           console.log(`رسالة جديدة من المستخدم ${userId} إلى ${data.toUserId}`);
           
           // التحقق من محتوى الرسالة قبل الحفظ
@@ -1934,20 +1997,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
           // إرسال الرسالة للمستخدم المستقبل إذا كان متصلاً
-          if (clients.has(data.toUserId)) {
-            const recipientClients = clients.get(data.toUserId) || [];
-            const messageData = {
-              type: 'new_message',
-              message
-            };
+          let deliveryStatus = 'pending';
+          let deliveryAttempts = 0;
+          const maxAttempts = 3;
+          
+          const attemptDelivery = async () => {
+            deliveryAttempts++;
             
-            // إرسال الرسالة لجميع اتصالات المستخدم المستقبل
-            for (const client of recipientClients) {
-              if (client.readyState === 1) { // WebSocket.OPEN = 1
-                client.send(JSON.stringify(messageData));
+            if (clients.has(data.toUserId)) {
+              const recipientClients = clients.get(data.toUserId) || [];
+              const messageData = {
+                type: 'new_message',
+                message
+              };
+              
+              let deliveredToAtLeastOne = false;
+              
+              // إرسال الرسالة لجميع اتصالات المستخدم المستقبل
+              for (const client of recipientClients) {
+                if (client.readyState === 1) { // WebSocket.OPEN = 1
+                  try {
+                    client.send(JSON.stringify(messageData));
+                    deliveredToAtLeastOne = true;
+                  } catch (error) {
+                    console.error(`فشل إرسال الرسالة للمستقبل ${data.toUserId}:`, error);
+                  }
+                }
+              }
+              
+              if (deliveredToAtLeastOne) {
+                deliveryStatus = 'delivered';
+                // تسجيل حالة التسليم في قاعدة البيانات
+                await storage.updateMessageDeliveryStatus(message.id, 'delivered');
+                return true;
               }
             }
-          }
+            
+            // إذا وصلنا هنا، فإن الرسالة لم يتم تسليمها
+            if (deliveryAttempts < maxAttempts) {
+              // جدولة محاولة أخرى بعد فترة زمنية
+              console.log(`محاولة إرسال الرسالة ${message.id} مرة أخرى (${deliveryAttempts}/${maxAttempts})`);
+              setTimeout(attemptDelivery, 3000 * deliveryAttempts); // زيادة وقت الانتظار مع كل محاولة
+              return false;
+            } else {
+              // استنفدنا عدد المحاولات، تحديث الحالة إلى "فشل"
+              deliveryStatus = 'failed';
+              await storage.updateMessageDeliveryStatus(message.id, 'failed');
+              console.log(`فشل إرسال الرسالة ${message.id} بعد ${maxAttempts} محاولات`);
+              
+              // إبلاغ المرسل بالفشل النهائي
+              try {
+                ws.send(JSON.stringify({
+                  type: 'message_delivery_failed',
+                  messageId: message.id,
+                  reason: 'المستلم غير متصل بعد عدة محاولات'
+                }));
+              } catch (error) {
+                console.error('فشل في إرسال إشعار فشل التسليم للمرسل:', error);
+              }
+              
+              return false;
+            }
+          };
+          
+          // بدء محاولة الإرسال الأولى
+          attemptDelivery();
           
           // إرسال رد بنجاح إرسال الرسالة للمرسل
           ws.send(JSON.stringify({

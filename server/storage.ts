@@ -53,6 +53,8 @@ export interface IStorage {
   getConversation(user1Id: number, user2Id: number, projectId?: number): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   markMessageAsRead(id: number): Promise<Message | undefined>;
+  markAllMessagesAsRead(fromUserId: number, toUserId: number): Promise<number>; // عدد الرسائل التي تم تحديثها
+  updateMessageDeliveryStatus(id: number, status: 'pending' | 'delivered' | 'failed'): Promise<Message | undefined>;
   
   // Testimonial operations
   getTestimonial(id: number): Promise<Testimonial | undefined>;
@@ -332,6 +334,39 @@ export class MemStorage implements IStorage {
     if (!message) return undefined;
     
     const updatedMessage = { ...message, read: true };
+    this.messages.set(id, updatedMessage);
+    return updatedMessage;
+  }
+  
+  async markAllMessagesAsRead(fromUserId: number, toUserId: number): Promise<number> {
+    // تحديث جميع الرسائل غير المقروءة من مرسل معين إلى مستقبل معين
+    let updatedCount = 0;
+    
+    // الحصول على جميع الرسائل من المرسل إلى المستقبل
+    const messagesToUpdate = Array.from(this.messages.values())
+      .filter(message => message.fromUserId === fromUserId && message.toUserId === toUserId && !message.read);
+    
+    // تحديث كل رسالة
+    for (const message of messagesToUpdate) {
+      const updatedMessage = { ...message, read: true };
+      this.messages.set(message.id, updatedMessage);
+      updatedCount++;
+    }
+    
+    return updatedCount;
+  }
+  
+  async updateMessageDeliveryStatus(id: number, status: 'pending' | 'delivered' | 'failed'): Promise<Message | undefined> {
+    const message = this.messages.get(id);
+    if (!message) return undefined;
+    
+    // إضافة حالة التسليم كخاصية إضافية
+    const updatedMessage = { 
+      ...message, 
+      deliveryStatus: status,
+      updatedAt: new Date() 
+    };
+    
     this.messages.set(id, updatedMessage);
     return updatedMessage;
   }
