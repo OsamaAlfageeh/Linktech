@@ -622,31 +622,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'هذه العملية متاحة للمسؤولين فقط' });
       }
       
-      const companyId = parseInt(req.params.id);
+      // التحقق من صحة المعلمات
+      const companyIdStr = req.params.id;
+      if (!companyIdStr || isNaN(parseInt(companyIdStr))) {
+        return res.status(400).json({ message: 'معرف الشركة غير صالح' });
+      }
+      
+      const companyId = parseInt(companyIdStr);
+      if (companyId <= 0) {
+        return res.status(400).json({ message: 'معرف الشركة يجب أن يكون رقمًا موجبًا' });
+      }
+      
+      // التحقق من حالة التوثيق
+      if (req.body.verified === undefined) {
+        return res.status(400).json({ message: 'يجب تحديد حالة التوثيق (verified)' });
+      }
+      
       const verified = req.body.verified === true;
       
-      // جمع بيانات التحقق من طلب المستخدم
+      // التحقق من الملاحظات والمستندات
+      let verificationNotes = '';
+      if (req.body.verificationNotes) {
+        if (typeof req.body.verificationNotes !== 'string') {
+          return res.status(400).json({ message: 'يجب أن تكون ملاحظات التوثيق نص' });
+        }
+        
+        if (req.body.verificationNotes.length > 1000) {
+          return res.status(400).json({ message: 'ملاحظات التوثيق طويلة جداً (الحد الأقصى 1000 حرف)' });
+        }
+        
+        verificationNotes = req.body.verificationNotes;
+      }
+      
+      // التحقق من المستندات
+      let verificationDocuments = null;
+      if (req.body.verificationDocuments) {
+        if (!Array.isArray(req.body.verificationDocuments)) {
+          return res.status(400).json({ message: 'يجب أن تكون مستندات التوثيق مصفوفة' });
+        }
+        
+        // يمكن إضافة المزيد من التحقق من حجم المستندات وعددها هنا
+        if (req.body.verificationDocuments.length > 10) {
+          return res.status(400).json({ message: 'عدد مستندات التوثيق كبير جداً (الحد الأقصى 10 مستندات)' });
+        }
+        
+        verificationDocuments = req.body.verificationDocuments;
+      }
+      
+      // جمع بيانات التحقق
       const verificationData = {
         verifiedBy: user.id, // معرف المسؤول الذي قام بالتوثيق
-        verificationNotes: req.body.verificationNotes || '',
-        verificationDocuments: req.body.verificationDocuments || null
+        verificationDate: new Date(),
+        verificationNotes,
+        verificationDocuments
       };
       
       console.log(`توثيق شركة ${companyId} بواسطة المسؤول ${user.id} - الحالة: ${verified ? 'موثقة' : 'غير موثقة'}`);
       
+      // التحقق من وجود الشركة قبل محاولة التوثيق
+      const existingCompany = await storage.getCompanyProfile(companyId);
+      if (!existingCompany) {
+        return res.status(404).json({ message: 'الشركة غير موجودة' });
+      }
+      
       const companyProfile = await storage.verifyCompany(companyId, verified, verificationData);
       if (!companyProfile) {
-        return res.status(404).json({ message: 'الشركة غير موجودة' });
+        return res.status(404).json({ message: 'فشل في تحديث حالة توثيق الشركة' });
       }
       
       // إرسال إشعار بالبريد الإلكتروني (إذا كان التحقق صحيحاً)
       if (verified) {
         try {
+          const { sendCompanyVerificationEmail } = await import('./emailService');
+          
           // الحصول على معلومات المستخدم للشركة
           const companyUser = await storage.getUser(companyProfile.userId);
-          if (companyUser) {
-            // هنا يمكن إضافة إرسال إشعار بريد إلكتروني مع نتيجة التوثيق
-            console.log(`سيتم إرسال بريد إلكتروني لإشعار الشركة بنتيجة التوثيق: ${companyUser.email}`);
+          if (companyUser && companyUser.email) {
+            console.log(`جاري إرسال بريد إلكتروني لإشعار الشركة بنتيجة التوثيق: ${companyUser.email}`);
+            
+            // استدعاء دالة إرسال بريد التوثيق
+            const emailSent = await sendCompanyVerificationEmail(
+              companyUser.email,
+              companyUser.name || companyUser.username,
+              companyProfile.name,
+              req.body.verificationNotes || ''
+            );
+            
+            if (emailSent) {
+              console.log(`تم إرسال بريد إشعار التوثيق بنجاح إلى: ${companyUser.email}`);
+            } else {
+              console.warn(`فشل في إرسال بريد إشعار التوثيق إلى: ${companyUser.email}`);
+            }
+          } else {
+            console.warn('لم يتم العثور على معلومات المستخدم أو البريد الإلكتروني للشركة');
           }
         } catch (emailError) {
           console.error('خطأ في إرسال إشعار التوثيق:', emailError);
