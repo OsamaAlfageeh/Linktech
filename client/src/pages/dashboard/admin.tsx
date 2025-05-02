@@ -1486,10 +1486,78 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
             <div className="grid w-full gap-1.5">
               <Label>المستندات المرفقة</Label>
               <div className="border rounded-md p-3 bg-muted/50">
-                <p className="text-sm text-muted-foreground mb-2">
-                  ستتم إضافة ميزة تحميل المستندات في تحديث قادم
-                </p>
+                <div className="flex flex-col space-y-3">
+                  {verificationDocuments.length > 0 ? (
+                    <div className="space-y-2">
+                      {verificationDocuments.map((doc, index) => (
+                        <div key={index} className="flex items-center justify-between bg-background rounded p-2">
+                          <div className="flex items-center">
+                            <FileText className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0 text-primary" />
+                            <span className="text-sm font-medium truncate max-w-[200px]">
+                              {doc.name}
+                            </span>
+                          </div>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => {
+                              setVerificationDocuments(
+                                verificationDocuments.filter((_, i) => i !== index)
+                              );
+                            }}
+                          >
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      لم يتم إضافة أي مستندات بعد
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center">
+                    <input
+                      type="file"
+                      id="document-upload"
+                      className="hidden"
+                      onChange={(e) => {
+                        if (e.target.files && e.target.files[0]) {
+                          const file = e.target.files[0];
+                          // تحويل الملف إلى Base64 لتخزينه
+                          const reader = new FileReader();
+                          reader.onload = () => {
+                            const newDoc = {
+                              name: file.name,
+                              type: file.type,
+                              size: file.size,
+                              content: reader.result as string
+                            };
+                            setVerificationDocuments([...verificationDocuments, newDoc]);
+                          };
+                          reader.readAsDataURL(file);
+                        }
+                        // إعادة تعيين حقل الإدخال
+                        e.target.value = '';
+                      }}
+                      accept=".pdf,.jpg,.jpeg,.png"
+                    />
+                    <Button
+                      variant="outline"
+                      type="button"
+                      onClick={() => document.getElementById('document-upload')?.click()}
+                      className="w-full"
+                    >
+                      <Upload className="h-4 w-4 mr-2 rtl:ml-2 rtl:mr-0" />
+                      إضافة مستند
+                    </Button>
+                  </div>
+                </div>
               </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                يمكنك تحميل مستندات بصيغة PDF أو صور (JPG، PNG) بحجم أقصى 5MB لكل ملف.
+              </p>
             </div>
           </div>
           <DialogFooter className="sm:justify-between">
