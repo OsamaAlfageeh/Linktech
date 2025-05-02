@@ -43,6 +43,8 @@ import bcrypt from "bcryptjs";
 
 const SessionStore = MemoryStore(session);
 
+// تم تعريف استيراد WebSocket واستخدامها في مكان آخر من الملف
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize session and passport
   // تكوين الجلسة بشكل صحيح
@@ -1863,6 +1865,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // استخدام ثوابت WebSocket من مكتبة ws
+  const OPEN = WebSocket.OPEN; // تعريف ثابت الاتصال المفتوح
   
   // تخزين اتصالات المستخدمين النشطة
   const clients = new Map<number, WebSocket[]>();
@@ -1940,7 +1943,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // إرسال الرسالة لجميع اتصالات المستخدم المستقبل
             for (const client of recipientClients) {
-              if (client.readyState === WebSocket.OPEN) {
+              if (client.readyState === 1) { // WebSocket.OPEN = 1
                 client.send(JSON.stringify(messageData));
               }
             }
