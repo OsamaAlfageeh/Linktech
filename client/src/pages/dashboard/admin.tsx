@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
-  DollarSign, Clock, Award, MessageSquare } from "lucide-react";
+  DollarSign, Clock, Award, MessageSquare, FileText, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -112,6 +112,13 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   
   // متغيرات لتوثيق الشركات
   const [processingVerification, setProcessingVerification] = useState(false);
+  const [verificationNotes, setVerificationNotes] = useState("");
+  const [verificationDocuments, setVerificationDocuments] = useState<Array<{
+    name: string;
+    type: string;
+    size: number;
+    content: string;
+  }>>([]);
 
   // ملاحظة: تم نقل التحقق من صلاحية المستخدم إلى فوق
 
@@ -455,8 +462,6 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     name: string,
     verified: boolean
   } | null>(null);
-  const [verificationNotes, setVerificationNotes] = useState('');
-  const [verificationDocuments, setVerificationDocuments] = useState<any[]>([]);
   
   // عرض حوار التوثيق
   const openVerificationDialog = (company: any) => {
@@ -491,13 +496,18 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   };
   
   // معالجة التوثيق مع التفاصيل
-  const processVerification = async (companyId: number, verified: boolean, notes: string = '', documents: any[] = []) => {
+  const processVerification = async (companyId: number, verified: boolean, notes: string = '') => {
     try {
+      setProcessingVerification(true);
+      
+      // تحضير بيانات التوثيق
       const verificationData = {
         verified,
         verificationNotes: notes,
-        verificationDocuments: documents.length > 0 ? documents : null
+        verificationDocuments: verificationDocuments.length > 0 ? verificationDocuments : null
       };
+      
+      console.log('إرسال طلب توثيق الشركة:', verificationData);
       
       const response = await fetch(`/api/companies/${companyId}/verify`, {
         method: 'PATCH',
@@ -508,7 +518,8 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update company verification status');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'فشل تحديث حالة توثيق الشركة');
       }
 
       toast({
@@ -518,14 +529,18 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       
       // إغلاق الحوار وتحديث قائمة الشركات
       setVerificationDialogOpen(false);
+      setVerificationNotes('');
+      setVerificationDocuments([]);
       refetchCompanies();
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "خطأ",
-        description: "حدث خطأ أثناء تحديث حالة توثيق الشركة",
+        description: error.message || "حدث خطأ أثناء تحديث حالة توثيق الشركة",
         variant: "destructive",
       });
-      console.error(error);
+      console.error('خطأ في عملية التوثيق:', error);
+    } finally {
+      setProcessingVerification(false);
     }
   };
 
@@ -1579,6 +1594,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   );
                 }
               }}
+              disabled={processingVerification}
             >
               تأكيد التوثيق
             </Button>
