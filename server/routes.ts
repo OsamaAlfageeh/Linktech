@@ -1136,30 +1136,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log(`طلب المشاريع الرائجة - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
       
-      // فقط المستخدمين المسجلين يمكنهم مشاهدة المشاريع الرائجة
-      if (!req.isAuthenticated()) {
-        console.log(`رفض طلب غير مصرح للوصول إلى المشاريع الرائجة`);
-        return res.json([]); // إرجاع مصفوفة فارغة للمستخدمين غير المسجلين
-      }
+      // تم تعديل الشروط للسماح بعرض المشاريع الرائجة في الواجهة العامة
+      // لا نحتاج للتحقق من تسجيل الدخول لهذا المسار لأنه يستخدم في الصفحة الرئيسية
       
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 5;
-      const user = req.user as any;
-      console.log(`جلب المشاريع الرائجة للمستخدم ${user.username} (الدور: ${user.role})`);
       
       const trendingProjects = await getTrendingProjects(limit);
       
-      // المسؤولون يمكنهم مشاهدة جميع المشاريع الرائجة
-      // المستخدمون العاديون يمكنهم مشاهدة مشاريعهم الرائجة فقط
-      // الشركات يمكنها مشاهدة المشاريع الرائجة المتاحة
-      let filteredProjects = trendingProjects;
-      
-      if (user.role === 'entrepreneur') {
-        // رواد الأعمال يشاهدون فقط مشاريعهم الرائجة
-        filteredProjects = trendingProjects.filter(project => project.userId === user.id);
+      // التعامل مع المستخدمين المسجلين
+      if (req.isAuthenticated()) {
+        const user = req.user as any;
+        console.log(`جلب المشاريع الرائجة للمستخدم ${user.username} (الدور: ${user.role})`);
+        
+        // المسؤولون يمكنهم مشاهدة جميع المشاريع الرائجة
+        // المستخدمون العاديون يمكنهم مشاهدة مشاريعهم الرائجة فقط
+        // الشركات يمكنها مشاهدة المشاريع الرائجة المتاحة
+        let filteredProjects = trendingProjects;
+        
+        if (user.role === 'entrepreneur') {
+          // رواد الأعمال يشاهدون فقط مشاريعهم الرائجة
+          filteredProjects = trendingProjects.filter(project => project.userId === user.id);
+        }
+        
+        console.log(`إرسال ${filteredProjects.length} مشروع رائج للمستخدم ${user.username}`);
+        return res.json(filteredProjects);
+      } else {
+        // للزوار والمستخدمين غير المسجلين - إظهار كافة المشاريع الرائجة العامة
+        console.log(`إرسال ${trendingProjects.length} مشروع رائج للزائر غير المسجل`);
+        return res.json(trendingProjects);
       }
-      
-      console.log(`إرسال ${filteredProjects.length} مشروع رائج للمستخدم ${user.username}`);
-      res.json(filteredProjects);
     } catch (error) {
       console.error('Error in trending projects:', error);
       res.status(500).json({ message: 'Internal server error' });
