@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
+import { formatDate as formatDateWithHijri } from "@/lib/dateFormatter";
 import { 
   AIProjectAnalysis
 } from "@/components/recommendations";
@@ -66,14 +67,9 @@ const ProjectDetails = () => {
       navigate("/not-found");
     }
   }, [id, navigate]);
-
+  
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat('ar-SA', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    }).format(date);
+    return formatDateWithHijri(dateString);
   };
 
   return (
