@@ -2006,9 +2006,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             if (clients.has(data.toUserId)) {
               const recipientClients = clients.get(data.toUserId) || [];
+              // الحصول على معلومات المرسل لإضافتها إلى الإشعار
+              const sender = await storage.getUser(userId);
+              const senderName = sender ? sender.name : undefined;
+              
               const messageData = {
                 type: 'new_message',
-                message
+                message: {
+                  ...message,
+                  senderName  // إضافة اسم المرسل إلى الرسالة
+                }
               };
               
               let deliveredToAtLeastOne = false;
