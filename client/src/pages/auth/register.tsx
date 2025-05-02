@@ -131,7 +131,7 @@ const Register = ({ auth }: RegisterProps) => {
       auth.login(data.user);
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "مرحباً بك في منصة لينكتك!",
+        description: "مرحباً بك في منصة لينكتك",
       });
 
       // Redirect based on role
