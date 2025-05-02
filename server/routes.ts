@@ -625,9 +625,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyId = parseInt(req.params.id);
       const verified = req.body.verified === true;
       
-      const companyProfile = await storage.verifyCompany(companyId, verified);
+      // جمع بيانات التحقق من طلب المستخدم
+      const verificationData = {
+        verifiedBy: user.id, // معرف المسؤول الذي قام بالتوثيق
+        verificationNotes: req.body.verificationNotes || '',
+        verificationDocuments: req.body.verificationDocuments || null
+      };
+      
+      console.log(`توثيق شركة ${companyId} بواسطة المسؤول ${user.id} - الحالة: ${verified ? 'موثقة' : 'غير موثقة'}`);
+      
+      const companyProfile = await storage.verifyCompany(companyId, verified, verificationData);
       if (!companyProfile) {
         return res.status(404).json({ message: 'الشركة غير موجودة' });
+      }
+      
+      // إرسال إشعار بالبريد الإلكتروني (إذا كان التحقق صحيحاً)
+      if (verified) {
+        try {
+          // الحصول على معلومات المستخدم للشركة
+          const companyUser = await storage.getUser(companyProfile.userId);
+          if (companyUser) {
+            // هنا يمكن إضافة إرسال إشعار بريد إلكتروني مع نتيجة التوثيق
+            console.log(`سيتم إرسال بريد إلكتروني لإشعار الشركة بنتيجة التوثيق: ${companyUser.email}`);
+          }
+        } catch (emailError) {
+          console.error('خطأ في إرسال إشعار التوثيق:', emailError);
+          // لا نريد إيقاف العملية إذا فشل إرسال البريد الإلكتروني
+        }
       }
       
       res.json(companyProfile);

@@ -43,7 +43,14 @@ export const companyProfiles = pgTable("company_profiles", {
   skills: text("skills").array(),
   rating: integer("rating"),
   reviewCount: integer("review_count").default(0),
-  verified: boolean("verified").default(false), // إضافة حقل للتوثيق
+  verified: boolean("verified").default(false), // حقل للتوثيق
+  verificationDate: timestamp("verification_date"), // تاريخ التوثيق
+  verifiedBy: integer("verified_by"), // معرف المسؤول الذي قام بالتوثيق
+  verificationDocuments: jsonb("verification_documents"), // مستندات التحقق
+  verificationNotes: text("verification_notes"), // ملاحظات المراجع عن التوثيق
+  legalName: text("legal_name"), // الاسم القانوني للشركة
+  commercialRegistration: text("commercial_registration"), // رقم السجل التجاري
+  vatRegistration: text("vat_registration"), // رقم التسجيل الضريبي
 });
 
 // Project schema

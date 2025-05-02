@@ -443,15 +443,63 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     }
   };
 
+  // حالة حوار تفاصيل التوثيق
+  const [verificationDialogOpen, setVerificationDialogOpen] = useState(false);
+  const [selectedCompanyForVerification, setSelectedCompanyForVerification] = useState<{
+    id: number,
+    name: string,
+    verified: boolean
+  } | null>(null);
+  const [verificationNotes, setVerificationNotes] = useState('');
+  const [verificationDocuments, setVerificationDocuments] = useState<any[]>([]);
+  
+  // عرض حوار التوثيق
+  const openVerificationDialog = (company: any) => {
+    setSelectedCompanyForVerification({
+      id: company.id,
+      name: company.name,
+      verified: company.verified
+    });
+    setVerificationNotes('');
+    setVerificationDocuments([]);
+    setVerificationDialogOpen(true);
+  };
+  
   // توثيق أو إلغاء توثيق شركة
   const handleToggleCompanyVerification = async (companyId: number, currentVerified: boolean) => {
+    // للإلغاء التوثيق، لا نحتاج لحوار
+    if (currentVerified) {
+      await processVerification(companyId, false);
+    } else {
+      // للتوثيق، نعرض حوار تفاصيل التوثيق
+      const company = companies?.find((c: any) => c.id === companyId);
+      if (company) {
+        openVerificationDialog(company);
+      } else {
+        toast({
+          title: "خطأ",
+          description: "لم يتم العثور على الشركة",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+  
+  // معالجة التوثيق مع التفاصيل
+  const processVerification = async (companyId: number, verified: boolean, notes: string = '', documents: any[] = []) => {
     try {
+      const verificationData = {
+        verified,
+        verificationNotes: notes,
+        verificationDocuments: documents.length > 0 ? documents : null
+      };
+      
       const response = await fetch(`/api/companies/${companyId}/verify`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ verified: !currentVerified }),
+        body: JSON.stringify(verificationData),
       });
 
       if (!response.ok) {
@@ -459,11 +507,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       }
 
       toast({
-        title: `تم ${currentVerified ? "إلغاء توثيق" : "توثيق"} الشركة`,
-        description: `تم ${currentVerified ? "إلغاء توثيق" : "توثيق"} الشركة بنجاح`,
+        title: `تم ${verified ? "توثيق" : "إلغاء توثيق"} الشركة`,
+        description: `تم ${verified ? "توثيق" : "إلغاء توثيق"} الشركة بنجاح`,
       });
       
-      // تحديث قائمة الشركات
+      // إغلاق الحوار وتحديث قائمة الشركات
+      setVerificationDialogOpen(false);
       refetchCompanies();
     } catch (error) {
       toast({

@@ -910,9 +910,31 @@ export class DatabaseStorage implements IStorage {
     return await db.query.companyProfiles.findMany();
   }
 
-  async verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined> {
+  async verifyCompany(
+    id: number, 
+    verified: boolean, 
+    verificationData: {
+      verifiedBy?: number;
+      verificationNotes?: string;
+      verificationDocuments?: any;
+    } = {}
+  ): Promise<CompanyProfile | undefined> {
+    const updateData: any = { verified };
+    
+    if (verified) {
+      updateData.verificationDate = new Date();
+      if (verificationData.verifiedBy) updateData.verifiedBy = verificationData.verifiedBy;
+      if (verificationData.verificationNotes) updateData.verificationNotes = verificationData.verificationNotes;
+      if (verificationData.verificationDocuments) updateData.verificationDocuments = verificationData.verificationDocuments;
+    } else {
+      // إذا كان إلغاء التوثيق، نحتفظ بالمستندات ولكن نمسح البيانات الأخرى
+      updateData.verificationDate = null;
+      updateData.verifiedBy = null;
+      updateData.verificationNotes = null;
+    }
+    
     const [updatedProfile] = await db.update(schema.companyProfiles)
-      .set({ verified })
+      .set(updateData)
       .where(eq(schema.companyProfiles.id, id))
       .returning();
     return updatedProfile;
