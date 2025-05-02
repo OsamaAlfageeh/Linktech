@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
   DollarSign, Clock, Award, MessageSquare } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
@@ -107,6 +109,9 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   const [sideImageFile, setSideImageFile] = useState<File | null>(null);
   const [uploadingSideImage, setUploadingSideImage] = useState(false);
   const sideImageInputRef = useRef<HTMLInputElement>(null);
+  
+  // متغيرات لتوثيق الشركات
+  const [processingVerification, setProcessingVerification] = useState(false);
 
   // ملاحظة: تم نقل التحقق من صلاحية المستخدم إلى فوق
 
@@ -1432,6 +1437,82 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
             </Button>
             <Button variant="destructive" onClick={handleDeleteUser}>
               حذف
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* حوار تفاصيل التوثيق */}
+      <Dialog open={verificationDialogOpen} onOpenChange={setVerificationDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>توثيق الشركة: {selectedCompanyForVerification?.name}</DialogTitle>
+            <DialogDescription>
+              أدخل ملاحظات التوثيق ومعلومات KYC
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col space-y-4 py-4">
+            <div className="grid w-full gap-1.5">
+              <Label htmlFor="verification-notes">ملاحظات التوثيق</Label>
+              <Textarea
+                id="verification-notes"
+                placeholder="أدخل أي ملاحظات متعلقة بعملية التوثيق"
+                value={verificationNotes}
+                onChange={(e) => setVerificationNotes(e.target.value)}
+                className="h-24"
+              />
+            </div>
+            
+            <div className="grid w-full gap-1.5">
+              <Label>معلومات KYC</Label>
+              <div className="border rounded-md p-3 bg-muted/50">
+                <div className="flex flex-col space-y-2">
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">تم التحقق من هوية الشركة</span>
+                  </div>
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">تم التحقق من السجل التجاري</span>
+                  </div>
+                  <div className="flex items-center space-x-2 rtl:space-x-reverse">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    <span className="text-sm">تم التحقق من المعلومات الضريبية</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid w-full gap-1.5">
+              <Label>المستندات المرفقة</Label>
+              <div className="border rounded-md p-3 bg-muted/50">
+                <p className="text-sm text-muted-foreground mb-2">
+                  ستتم إضافة ميزة تحميل المستندات في تحديث قادم
+                </p>
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="sm:justify-between">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setVerificationDialogOpen(false)}
+            >
+              إلغاء
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                if (selectedCompanyForVerification) {
+                  processVerification(
+                    selectedCompanyForVerification.id,
+                    true,
+                    verificationNotes
+                  );
+                }
+              }}
+            >
+              تأكيد التوثيق
             </Button>
           </DialogFooter>
         </DialogContent>
