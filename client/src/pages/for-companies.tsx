@@ -27,7 +27,7 @@ export default function ForCompanies({ auth }: ForCompaniesProps) {
   return (
     <div className="flex flex-col min-h-screen">
       <Helmet>
-        <title>للشركات - منصة تيك لينك</title>
+        <title>للشركات - منصة لينكتك</title>
       </Helmet>
 
       <div className="container mx-auto py-8 px-4 md:px-6">
@@ -42,7 +42,7 @@ export default function ForCompanies({ auth }: ForCompaniesProps) {
 
         <div className="mb-12 text-center">
           <h1 className="text-3xl md:text-4xl font-bold mb-4 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
-            انضم إلى شبكة شركات البرمجة في تيك لينك
+            انضم إلى شبكة شركات البرمجة في لينكتك
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             اكتشف كيف يمكن لمنصتنا أن تساعد شركتك على الوصول لمشاريع جديدة وفرص أعمال حقيقية
@@ -57,7 +57,7 @@ export default function ForCompanies({ auth }: ForCompaniesProps) {
                 <span>كيف تعمل المنصة</span>
               </CardTitle>
               <CardDescription>
-                دليل شامل لآلية عمل منصة تيك لينك للشركات
+                دليل شامل لآلية عمل منصة لينكتك للشركات
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -98,7 +98,7 @@ export default function ForCompanies({ auth }: ForCompaniesProps) {
                 <span>نظام العمولات والمدفوعات</span>
               </CardTitle>
               <CardDescription>
-                تفاصيل نظام العمولات والمدفوعات في منصة تيك لينك
+                تفاصيل نظام العمولات والمدفوعات في منصة لينكتك
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -141,7 +141,7 @@ export default function ForCompanies({ auth }: ForCompaniesProps) {
                 <span>حماية خصوصية الشركات</span>
               </CardTitle>
               <CardDescription>
-                كيف نحمي هوية شركتك وبياناتك في منصة تيك لينك
+                كيف نحمي هوية شركتك وبياناتك في منصة لينكتك
               </CardDescription>
             </CardHeader>
             <CardContent>
