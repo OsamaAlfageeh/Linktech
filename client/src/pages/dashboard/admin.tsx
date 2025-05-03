@@ -907,7 +907,10 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <TableBody>
                     {companies?.map((company: any) => (
                       <TableRow key={company.id}>
-                        <TableCell className="font-medium">{company.name}</TableCell>
+                        <TableCell className="font-medium">
+                          {/* جلب اسم الشركة من user أو عرض معرف المستخدم */}
+                          {users?.find(u => u.id === company.userId)?.name || `شركة #${company.id}`}
+                        </TableCell>
                         <TableCell>{company.location || "غير محدد"}</TableCell>
                         <TableCell>{company.rating || "لا يوجد"}</TableCell>
                         <TableCell>
