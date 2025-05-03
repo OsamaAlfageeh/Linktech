@@ -110,8 +110,8 @@ const Login = ({ auth }: LoginProps) => {
         
         if (role === "admin") {
           console.log("بدء التوجيه للوحة المسؤول...");
-          // نستخدم أسلوب آخر للتوجيه لتجنب مشاكل التزامن
-          window.location.href = "/dashboard/admin";
+          // استخدام نظام التوجيه الموحد
+          navigate("/dashboard/admin");
         } else if (role === "entrepreneur") {
           navigate("/dashboard/entrepreneur");
         } else if (role === "company") {
@@ -176,12 +176,12 @@ const Login = ({ auth }: LoginProps) => {
             {data?.user && data.user.role === "admin" && (
               <div className="mt-2">
                 <p className="text-xs text-blue-700 mb-1">تم تسجيل دخولك كمسؤول، اضغط هنا للوصول إلى لوحة التحكم:</p>
-                <a 
-                  href="/admin" 
+                <Link 
+                  href="/dashboard/admin" 
                   className="block w-full text-center bg-primary text-white text-xs py-2 px-3 rounded-lg hover:bg-primary-dark"
                 >
                   لوحة تحكم المسؤول
-                </a>
+                </Link>
               </div>
             )}
           </div>
