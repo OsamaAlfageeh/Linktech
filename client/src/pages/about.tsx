@@ -1,18 +1,47 @@
-import { Helmet } from "react-helmet";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Users, Target, Shield, Sparkles, Code, Gem } from "lucide-react";
+import { Users, Target, Shield, Sparkles, Code, Gem, ArrowLeft } from "lucide-react";
+import SEO from "@/components/seo/SEO";
+import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
+import LazyImage from "@/components/ui/lazy-image";
 
 const AboutPage = () => {
   return (
     <>
-      <Helmet>
-        <title>من نحن | لينكتك</title>
-        <meta name="description" content="تعرف على قصة لينكتك ورؤيتنا ورسالتنا في ربط أصحاب المشاريع مع الشركات التقنية في المملكة العربية السعودية" />
-      </Helmet>
+      <SEO
+        title="من نحن | لينكتك"
+        description="تعرف على قصة لينكتك ورؤيتنا ورسالتنا في ربط أصحاب المشاريع مع الشركات التقنية في المملكة العربية السعودية"
+        keywords="من نحن, لينكتك, رؤيتنا, قيمنا, منصة تقنية, ربط رواد الأعمال, ربط الشركات التقنية, المشاريع التقنية"
+      >
+        <WebpageStructuredData
+          name="من نحن | لينكتك"
+          description="تعرف على قصة لينكتك ورؤيتنا ورسالتنا في ربط أصحاب المشاريع مع الشركات التقنية"
+          url="https://linktech.app/about"
+        />
+        <BreadcrumbStructuredData
+          items={[
+            { name: "الرئيسية", url: "https://linktech.app/" },
+            { name: "من نحن", url: "https://linktech.app/about" }
+          ]}
+        />
+      </SEO>
 
       <div className="container mx-auto px-4 py-12">
+        <div className="mb-6">
+          <Link href="/" className="text-primary hover:text-primary-dark inline-flex items-center">
+            <ArrowLeft className="ml-1 h-4 w-4 rtl-flip" />
+            العودة إلى الرئيسية
+          </Link>
+        </div>
+
         <div className="max-w-4xl mx-auto">
+          <nav className="flex text-sm text-neutral-600 mb-6" aria-label="التنقل التسلسلي">
+            <ol className="flex rtl space-x-2 space-x-reverse">
+              <li><Link href="/" className="hover:text-primary hover:underline">الرئيسية</Link></li>
+              <li className="before:content-['/'] before:mx-2 font-semibold">من نحن</li>
+            </ol>
+          </nav>
+
           <h1 className="text-3xl md:text-4xl font-bold text-center mb-4">من نحن</h1>
           <p className="text-neutral-600 text-center mb-12 text-lg">
             نقوم ببناء جسر التواصل بين أصحاب الأفكار والشركات التقنية
@@ -124,25 +153,53 @@ const AboutPage = () => {
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
               <div>
-                <div className="bg-neutral-100 rounded-full h-24 w-24 mx-auto mb-4"></div>
+                <div className="rounded-full h-24 w-24 mx-auto mb-4 overflow-hidden">
+                  <LazyImage
+                    src={`https://ui-avatars.com/api/?name=أحمد+الغامدي&background=eefffc&color=0e8a65&size=96`}
+                    alt="أحمد الغامدي"
+                    className="w-full h-full object-cover"
+                    loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
+                  />
+                </div>
                 <h3 className="font-bold">أحمد الغامدي</h3>
                 <p className="text-neutral-600 text-sm">المؤسس والرئيس التنفيذي</p>
               </div>
               
               <div>
-                <div className="bg-neutral-100 rounded-full h-24 w-24 mx-auto mb-4"></div>
+                <div className="rounded-full h-24 w-24 mx-auto mb-4 overflow-hidden">
+                  <LazyImage
+                    src={`https://ui-avatars.com/api/?name=سارة+العتيبي&background=eefffc&color=0e8a65&size=96`}
+                    alt="سارة العتيبي"
+                    className="w-full h-full object-cover"
+                    loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
+                  />
+                </div>
                 <h3 className="font-bold">سارة العتيبي</h3>
                 <p className="text-neutral-600 text-sm">مديرة العمليات</p>
               </div>
               
               <div>
-                <div className="bg-neutral-100 rounded-full h-24 w-24 mx-auto mb-4"></div>
+                <div className="rounded-full h-24 w-24 mx-auto mb-4 overflow-hidden">
+                  <LazyImage
+                    src={`https://ui-avatars.com/api/?name=فهد+الشمري&background=eefffc&color=0e8a65&size=96`}
+                    alt="فهد الشمري"
+                    className="w-full h-full object-cover"
+                    loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
+                  />
+                </div>
                 <h3 className="font-bold">فهد الشمري</h3>
                 <p className="text-neutral-600 text-sm">مدير تقني</p>
               </div>
               
               <div>
-                <div className="bg-neutral-100 rounded-full h-24 w-24 mx-auto mb-4"></div>
+                <div className="rounded-full h-24 w-24 mx-auto mb-4 overflow-hidden">
+                  <LazyImage
+                    src={`https://ui-avatars.com/api/?name=نورة+القحطاني&background=eefffc&color=0e8a65&size=96`}
+                    alt="نورة القحطاني"
+                    className="w-full h-full object-cover"
+                    loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
+                  />
+                </div>
                 <h3 className="font-bold">نورة القحطاني</h3>
                 <p className="text-neutral-600 text-sm">مديرة تسويق</p>
               </div>
