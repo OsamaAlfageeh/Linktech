@@ -17,7 +17,10 @@ import {
   insertTestimonialSchema,
   insertProjectOfferSchema,
   insertNewsletterSubscriberSchema,
-  insertNdaAgreementSchema
+  insertNdaAgreementSchema,
+  insertBlogCategorySchema,
+  insertBlogPostSchema,
+  insertBlogCommentSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
