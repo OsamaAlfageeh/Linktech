@@ -16,6 +16,7 @@ import {
   ndaAgreements,
   blogCategories, blogPosts, blogComments
 } from "@shared/schema";
+import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
 
@@ -1360,8 +1361,47 @@ export class DatabaseStorage implements IStorage {
     return categories.length > 0 ? categories[0] : undefined;
   }
   
-  async getBlogPosts() {
-    return await db.query.blogPosts.findMany();
+  async createBlogCategory(category: any) {
+    const [newCategory] = await db.insert(schema.blogCategories)
+      .values({
+        ...category,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newCategory;
+  }
+  
+  async updateBlogCategory(id: number, category: any) {
+    const [updatedCategory] = await db.update(schema.blogCategories)
+      .set({
+        ...category,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.blogCategories.id, id))
+      .returning();
+    return updatedCategory;
+  }
+  
+  async deleteBlogCategory(id: number): Promise<boolean> {
+    try {
+      await db.delete(schema.blogCategories)
+        .where(eq(schema.blogCategories.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting blog category:', error);
+      return false;
+    }
+  }
+  
+  async getBlogPosts(categoryId?: number) {
+    let query = db.select().from(schema.blogPosts);
+    
+    if (categoryId) {
+      query = query.where(eq(schema.blogPosts.categoryId, categoryId));
+    }
+    
+    return await query.orderBy(desc(schema.blogPosts.createdAt));
   }
   
   async getPublishedBlogPosts() {
@@ -1387,6 +1427,110 @@ export class DatabaseStorage implements IStorage {
       limit: 1
     });
     return posts.length > 0 ? posts[0] : undefined;
+  }
+  
+  async createBlogPost(post: any) {
+    const [newPost] = await db.insert(schema.blogPosts)
+      .values({
+        ...post,
+        publishedAt: post.status === 'published' ? new Date() : null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newPost;
+  }
+  
+  async updateBlogPost(id: number, post: any) {
+    // If changing status to published and it wasn't published before, set publishedAt
+    let updateData = { ...post, updatedAt: new Date() };
+    
+    if (post.status === 'published' && post.published) {
+      const currentPost = await this.getBlogPost(id);
+      if (currentPost && (!currentPost.publishedAt || currentPost.status !== 'published')) {
+        updateData.publishedAt = new Date();
+      }
+    }
+    
+    const [updatedPost] = await db.update(schema.blogPosts)
+      .set(updateData)
+      .where(eq(schema.blogPosts.id, id))
+      .returning();
+    return updatedPost;
+  }
+  
+  async deleteBlogPost(id: number): Promise<boolean> {
+    try {
+      await db.delete(schema.blogPosts)
+        .where(eq(schema.blogPosts.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting blog post:', error);
+      return false;
+    }
+  }
+  
+  async incrementBlogPostViewCount(id: number): Promise<boolean> {
+    try {
+      await db.update(schema.blogPosts)
+        .set({ 
+          views: sql`${schema.blogPosts.views} + 1`,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.blogPosts.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error incrementing blog post view count:', error);
+      return false;
+    }
+  }
+  
+  async getBlogCommentsByPost(postId: number) {
+    return await db.select()
+      .from(schema.blogComments)
+      .where(eq(schema.blogComments.postId, postId))
+      .orderBy(asc(schema.blogComments.createdAt));
+  }
+  
+  async getBlogComment(id: number) {
+    const comments = await db.select()
+      .from(schema.blogComments)
+      .where(eq(schema.blogComments.id, id))
+      .limit(1);
+    return comments.length > 0 ? comments[0] : undefined;
+  }
+  
+  async createBlogComment(comment: any) {
+    const [newComment] = await db.insert(schema.blogComments)
+      .values({
+        ...comment,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning();
+    return newComment;
+  }
+  
+  async updateBlogCommentStatus(id: number, status: string) {
+    const [updatedComment] = await db.update(schema.blogComments)
+      .set({ 
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(schema.blogComments.id, id))
+      .returning();
+    return updatedComment;
+  }
+  
+  async deleteBlogComment(id: number): Promise<boolean> {
+    try {
+      await db.delete(schema.blogComments)
+        .where(eq(schema.blogComments.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting blog comment:', error);
+      return false;
+    }
   }
   
   // أساليب وظيفية مطلوبة
