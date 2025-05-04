@@ -459,3 +459,134 @@ export const usersPersonalInfoRelation = relations(users, ({ one }) => ({
     references: [personalInformation.userId],
   }),
 }));
+
+// مخطط نظام المدونة
+
+// فئات المدونة
+export const blogCategories = pgTable("blog_categories", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  slug: text("slug").notNull().unique(),
+  description: text("description"),
+  image: text("image"),
+  parentId: integer("parent_id"),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// المقالات
+export const blogPosts = pgTable("blog_posts", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  slug: text("slug").notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("draft"), // draft, published, archived
+  featuredImage: text("featured_image"),
+  authorId: integer("author_id").notNull().references(() => users.id),
+  categoryId: integer("category_id").references(() => blogCategories.id),
+  tags: text("tags").array(),
+  metaTitle: text("meta_title"),
+  metaDescription: text("meta_description"),
+  metaKeywords: text("meta_keywords"),
+  published: boolean("published").default(false),
+  views: integer("views").default(0),
+  publishedAt: timestamp("published_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// تعليقات المدونة
+export const blogComments = pgTable("blog_comments", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => blogPosts.id),
+  userId: integer("user_id").references(() => users.id),
+  parentId: integer("parent_id").references(() => blogComments.id),
+  authorName: text("author_name"),
+  authorEmail: text("author_email"),
+  content: text("content").notNull(),
+  status: text("status").notNull().default("pending"), // pending, approved, spam
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// مخططات Insert لنظام المدونة
+export const insertBlogCategorySchema = createInsertSchema(blogCategories).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true 
+});
+
+export const insertBlogPostSchema = createInsertSchema(blogPosts).omit({ 
+  id: true,
+  views: true,
+  createdAt: true,
+  updatedAt: true 
+});
+
+export const insertBlogCommentSchema = createInsertSchema(blogComments).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true 
+});
+
+// العلاقات لنظام المدونة
+export const blogCategoriesRelations = relations(blogCategories, ({ one, many }) => ({
+  parent: one(blogCategories, {
+    fields: [blogCategories.parentId],
+    references: [blogCategories.id],
+    relationName: "parentCategory",
+  }),
+  children: many(blogCategories, {
+    relationName: "parentCategory",
+  }),
+  posts: many(blogPosts),
+}));
+
+export const blogPostsRelations = relations(blogPosts, ({ one, many }) => ({
+  author: one(users, {
+    fields: [blogPosts.authorId],
+    references: [users.id],
+  }),
+  category: one(blogCategories, {
+    fields: [blogPosts.categoryId],
+    references: [blogCategories.id],
+  }),
+  comments: many(blogComments),
+}));
+
+export const blogCommentsRelations = relations(blogComments, ({ one, many }) => ({
+  post: one(blogPosts, {
+    fields: [blogComments.postId],
+    references: [blogPosts.id],
+  }),
+  user: one(users, {
+    fields: [blogComments.userId],
+    references: [users.id],
+  }),
+  parent: one(blogComments, {
+    fields: [blogComments.parentId],
+    references: [blogComments.id],
+    relationName: "parentComment",
+  }),
+  replies: many(blogComments, {
+    relationName: "parentComment",
+  }),
+}));
+
+// تحديث علاقات المستخدم لإضافة المقالات
+export const usersBlogRelations = relations(users, ({ many }) => ({
+  blogPosts: many(blogPosts),
+  blogComments: many(blogComments),
+}));
+
+// أنواع البيانات لنظام المدونة
+export type BlogCategory = typeof blogCategories.$inferSelect;
+export type InsertBlogCategory = z.infer<typeof insertBlogCategorySchema>;
+
+export type BlogPost = typeof blogPosts.$inferSelect;
+export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
+
+export type BlogComment = typeof blogComments.$inferSelect;
+export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;

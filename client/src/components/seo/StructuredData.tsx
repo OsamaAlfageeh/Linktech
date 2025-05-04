@@ -25,6 +25,13 @@ interface BreadcrumbStructuredDataProps {
   items: Array<{name: string; url: string}>;
 }
 
+interface FAQStructuredDataProps {
+  questions: Array<{
+    question: string;
+    answer: string;
+  }>;
+}
+
 /**
  * مكون لإضافة البيانات المنظمة للمنظمة/الشركة
  * يساعد محركات البحث في فهم معلومات المنصة
@@ -160,6 +167,32 @@ export const ContactPageStructuredData: React.FC<{url: string}> = ({ url }) => {
         addressRegion: 'الرياض'
       }
     }
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
+};
+
+/**
+ * مكون لإضافة بيانات منظمة للأسئلة الشائعة
+ * يساعد محركات البحث في فهم الأسئلة والأجوبة المتوفرة
+ */
+export const FAQStructuredData: React.FC<FAQStructuredDataProps> = ({ questions }) => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: questions.map(q => ({
+      '@type': 'Question',
+      name: q.question,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: q.answer
+      }
+    }))
   };
 
   return (
