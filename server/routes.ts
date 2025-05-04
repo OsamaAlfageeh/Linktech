@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
+import { generateSitemap } from "./sitemap";
 
 // Track active connections
 const connections = new Map<number, WebSocket>();

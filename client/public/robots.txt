@@ -1,0 +1,14 @@
+# www.robotstxt.org/
+
+User-agent: *
+Allow: /
+
+# مسارات محظورة على robots
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /messages/
+Disallow: /api/
+Disallow: /redirect
+
+# ملفات sitemap للموقع
+Sitemap: https://linktech.app/sitemap.xml
