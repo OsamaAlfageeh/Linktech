@@ -33,6 +33,7 @@ import About from "@/pages/about";
 import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
+import Sitemap from "@/pages/sitemap";
 
 export type User = {
   id: number;
@@ -233,6 +234,7 @@ function App() {
           <Route path="/how-it-works" component={HowItWorks} />
           <Route path="/about" component={About} />
           <Route path="/contact" component={Contact} />
+          <Route path="/sitemap" component={Sitemap} />
           
           <Route path="/terms" component={Terms} />
           
