@@ -19,7 +19,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import LazyImage from "@/components/ui/lazy-image";
+import { LazyImage } from "@/components/ui/lazy-image";
 import SEO from "@/components/seo/SEO";
 import ArticleSchema from "@/components/seo/ArticleSchema";
 import { BreadcrumbStructuredData } from "@/components/seo/StructuredData";

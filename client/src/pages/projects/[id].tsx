@@ -16,7 +16,7 @@ import { NdaSection } from "@/components/nda/NdaSection";
 import { useAuth } from "@/App";
 import SEO from "@/components/seo/SEO";
 import { ProjectStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
-import LazyImage from "@/components/ui/lazy-image";
+import { LazyImage } from "@/components/ui/lazy-image";
 import { 
   Calendar, 
   Clock, 

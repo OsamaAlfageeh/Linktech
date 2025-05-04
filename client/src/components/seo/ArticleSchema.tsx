@@ -1,74 +1,81 @@
 import { Helmet } from "react-helmet";
 
+/**
+ * مكون ArticleSchema لإضافة البيانات المنظمة للمقالات
+ * يحسن ظهور المقالات في نتائج محركات البحث عن طريق إضافة الوصف الهيكلي
+ * مع معلومات المؤلف وتواريخ النشر والتعديل
+ */
 interface ArticleSchemaProps {
   title: string;
   description: string;
+  image?: string;
   url: string;
-  imageUrl: string;
-  datePublished: string;
-  dateModified?: string;
   authorName: string;
-  authorUrl?: string;
-  publisherName: string;
-  publisherLogo: string;
-  keywords?: string[];
+  publishDate: string; // ISO format date string: YYYY-MM-DD
+  modifiedDate?: string; // ISO format date string: YYYY-MM-DD
   categoryName?: string;
+  tags?: string[];
+  siteUrl?: string;
+  siteName?: string;
+  logoUrl?: string;
 }
 
-/**
- * مكون ArticleSchema 
- * ينشئ بيانات منظمة لنوع Article حسب معايير schema.org
- * لتحسين ظهور المقالات في نتائج البحث
- */
 const ArticleSchema = ({
   title,
   description,
+  image,
   url,
-  imageUrl,
-  datePublished,
-  dateModified,
   authorName,
-  authorUrl,
-  publisherName,
-  publisherLogo,
-  keywords,
-  categoryName
+  publishDate,
+  modifiedDate,
+  categoryName,
+  tags = [],
+  siteUrl = "https://linktech.app",
+  siteName = "لينكتك - منصة لربط رواد الأعمال بشركات التطوير التقني",
+  logoUrl = "https://linktech.app/logo.png"
 }: ArticleSchemaProps) => {
-  const schemaData = {
+  // إنشاء الوصف الهيكلي للمقال وفق معايير Schema.org
+  const articleSchema: Record<string, any> = {
     "@context": "https://schema.org",
     "@type": "Article",
+    "headline": title,
+    "description": description,
+    "image": image,
+    "datePublished": publishDate,
+    "dateModified": modifiedDate || publishDate,
+    "author": {
+      "@type": "Person",
+      "name": authorName
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": siteName,
+      "logo": {
+        "@type": "ImageObject",
+        "url": logoUrl
+      }
+    },
     "mainEntityOfPage": {
       "@type": "WebPage",
       "@id": url
     },
-    "headline": title,
-    "description": description,
-    "image": imageUrl,
-    "author": {
-      "@type": "Person",
-      "name": authorName,
-      ...(authorUrl && { "url": authorUrl })
-    },
-    "publisher": {
-      "@type": "Organization",
-      "name": publisherName,
-      "logo": {
-        "@type": "ImageObject",
-        "url": publisherLogo
-      }
-    },
-    "datePublished": datePublished,
-    "dateModified": dateModified || datePublished,
-    ...(keywords && { "keywords": keywords.join(", ") }),
-    ...(categoryName && { 
-      "articleSection": categoryName
-    })
+    "url": url
   };
+
+  // إضافة الفئة إذا كانت متوفرة
+  if (categoryName) {
+    articleSchema.articleSection = categoryName;
+  }
+
+  // إضافة الوسوم إذا كانت متوفرة
+  if (tags.length > 0) {
+    articleSchema.keywords = tags.join(",");
+  }
 
   return (
     <Helmet>
       <script type="application/ld+json">
-        {JSON.stringify(schemaData)}
+        {JSON.stringify(articleSchema)}
       </script>
     </Helmet>
   );

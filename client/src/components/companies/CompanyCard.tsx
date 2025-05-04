@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Star, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { truncateText } from "@/lib/utils";
-import LazyImage from "@/components/ui/lazy-image";
+import { LazyImage } from "@/components/ui/lazy-image";
 
 type CompanyProps = {
   company: {

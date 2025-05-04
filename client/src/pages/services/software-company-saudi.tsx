@@ -1,6 +1,6 @@
 import StaticPageLayout from "@/components/seo/StaticPageLayout";
 import ServiceSchema from "@/components/seo/ServiceSchema";
-import LazyImage from "@/components/ui/lazy-image";
+import { LazyImage } from "@/components/ui/lazy-image";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import {

@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Pagination } from "@/components/ui/pagination";
-import LazyImage from "@/components/ui/lazy-image";
+import { LazyImage } from "@/components/ui/lazy-image";
 import SEO from "@/components/seo/SEO";
 import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
 

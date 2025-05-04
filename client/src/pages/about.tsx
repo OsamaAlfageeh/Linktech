@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { Users, Target, Shield, Sparkles, Code, Gem, ArrowLeft } from "lucide-react";
 import SEO from "@/components/seo/SEO";
 import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
-import LazyImage from "@/components/ui/lazy-image";
+import { LazyImage } from "@/components/ui/lazy-image";
 
 const AboutPage = () => {
   return (
