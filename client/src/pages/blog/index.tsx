@@ -80,7 +80,7 @@ export default function BlogPage() {
   
   // وظيفة تغيير الفئة المحددة
   const handleCategoryChange = (value: string) => {
-    setSelectedCategory(value);
+    setSelectedCategory(value === "all" ? "" : value);
   };
   
   // وظيفة التوجه إلى مقال
@@ -128,7 +128,7 @@ export default function BlogPage() {
                 <SelectValue placeholder="جميع الفئات" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">جميع الفئات</SelectItem>
+                <SelectItem value="all">جميع الفئات</SelectItem>
                 {Array.isArray(categories) ? categories.map((category: BlogCategory) => (
                   <SelectItem key={category.id} value={category.id.toString()}>
                     {category.name}
