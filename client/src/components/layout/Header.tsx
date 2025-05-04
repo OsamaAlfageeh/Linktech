@@ -105,6 +105,14 @@ const Header = ({ auth }: HeaderProps) => {
               </li>
               <li>
                 <Link 
+                  href="/blog" 
+                  className={`px-3 py-2 font-medium ${isActive("/blog") || location.startsWith("/blog/") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                >
+                  المدونة
+                </Link>
+              </li>
+              <li>
+                <Link 
                   href="/about" 
                   className={`px-3 py-2 font-medium ${isActive("/about") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
                 >
@@ -219,6 +227,10 @@ const Header = ({ auth }: HeaderProps) => {
                     
                     <Link href="/how-it-works" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                       كيف يعمل
+                    </Link>
+                    
+                    <Link href="/blog" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                      المدونة
                     </Link>
                     
                     <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
