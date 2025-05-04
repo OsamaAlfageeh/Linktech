@@ -47,9 +47,8 @@ export async function generateSitemap(req: Request, res: Response) {
     projects
       .filter((project: Project) => project.status === 'open')
       .forEach((project: Project) => {
-        const lastmod = project.createdAt 
-          ? new Date(project.createdAt).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0];
+        // نستخدم التاريخ الحالي في حالة عدم وجود تاريخ الإنشاء
+        const lastmod = new Date().toISOString().split('T')[0];
           
         xml += '  <url>\n';
         xml += `    <loc>${baseUrl}/projects/${project.id}</loc>\n`;
@@ -63,9 +62,8 @@ export async function generateSitemap(req: Request, res: Response) {
     companies
       .filter((company: CompanyProfile) => company.verified)
       .forEach((company: CompanyProfile) => {
-        const lastmod = company.updatedAt
-          ? new Date(company.updatedAt).toISOString().split('T')[0]
-          : new Date().toISOString().split('T')[0];
+        // بما أننا لا نملك حقل createdAt في نموذج الشركة، نستخدم التاريخ الحالي
+        const lastmod = new Date().toISOString().split('T')[0];
           
         xml += '  <url>\n';
         xml += `    <loc>${baseUrl}/companies/${company.id}</loc>\n`;

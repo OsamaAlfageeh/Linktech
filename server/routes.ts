@@ -2102,5 +2102,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // إضافة مسار خريطة الموقع (sitemap.xml)
+  app.get('/sitemap.xml', generateSitemap);
+
   return httpServer;
 }

@@ -10,7 +10,7 @@ interface SEOProps {
   twitterCard?: "summary" | "summary_large_image" | "app" | "player";
   keywords?: string;
   noIndex?: boolean;
-  structuredData?: object;
+  structuredData?: object | object[];
   langDirection?: "rtl" | "ltr";
   langCode?: string;
 }
