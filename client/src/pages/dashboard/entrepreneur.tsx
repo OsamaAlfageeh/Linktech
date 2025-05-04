@@ -58,6 +58,7 @@ import {
   Clock,
   Banknote,
   Loader2,
+  Edit,
 } from "lucide-react";
 
 type Project = {
