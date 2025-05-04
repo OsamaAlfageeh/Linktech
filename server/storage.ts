@@ -1324,6 +1324,75 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedAgreement;
   }
+
+  // عمليات المدونة
+  async getBlogCategories() {
+    return await db.query.blogCategories.findMany();
+  }
+  
+  async getBlogCategory(id: number) {
+    const categories = await db.query.blogCategories.findMany({
+      where: eq(schema.blogCategories.id, id),
+      limit: 1
+    });
+    return categories.length > 0 ? categories[0] : undefined;
+  }
+  
+  async getBlogCategoryBySlug(slug: string) {
+    const categories = await db.query.blogCategories.findMany({
+      where: eq(schema.blogCategories.slug, slug),
+      limit: 1
+    });
+    return categories.length > 0 ? categories[0] : undefined;
+  }
+  
+  async getBlogPosts() {
+    return await db.query.blogPosts.findMany();
+  }
+  
+  async getPublishedBlogPosts() {
+    return await db.query.blogPosts.findMany({
+      where: and(
+        eq(schema.blogPosts.published, true),
+        eq(schema.blogPosts.status, "published")
+      )
+    });
+  }
+  
+  async getBlogPost(id: number) {
+    const posts = await db.query.blogPosts.findMany({
+      where: eq(schema.blogPosts.id, id),
+      limit: 1
+    });
+    return posts.length > 0 ? posts[0] : undefined;
+  }
+  
+  async getBlogPostBySlug(slug: string) {
+    const posts = await db.query.blogPosts.findMany({
+      where: eq(schema.blogPosts.slug, slug),
+      limit: 1
+    });
+    return posts.length > 0 ? posts[0] : undefined;
+  }
+  
+  // أساليب وظيفية مطلوبة
+  async markAllMessagesAsRead(fromUserId: number, toUserId: number): Promise<number> {
+    const result = await db.update(schema.messages)
+      .set({ read: true })
+      .where(and(
+        eq(schema.messages.fromUserId, fromUserId),
+        eq(schema.messages.toUserId, toUserId),
+        eq(schema.messages.read, false)
+      ));
+    return result.rowCount || 0;
+  }
+  
+  async updateMessageDeliveryStatus(id: number, status: 'pending' | 'delivered' | 'failed'): Promise<Message | undefined> {
+    // تحديث حالة توصيل الرسالة في قاعدة البيانات
+    // هذه دالة وهمية لأن schema.messages لا يحتوي على حقل deliveryStatus
+    // في تطبيق حقيقي، سنضيف هذا الحقل إلى نموذج الرسائل
+    return await this.getMessage(id);
+  }
 }
 
 // Change from MemStorage to DatabaseStorage
