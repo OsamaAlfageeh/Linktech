@@ -61,15 +61,15 @@ export default function BlogPage() {
   });
   
   // تصفية المقالات حسب كلمة البحث
-  const filteredPosts = posts ? posts.filter((post: BlogPost) => {
+  const filteredPosts = Array.isArray(posts) ? posts.filter((post: BlogPost) => {
     const searchLower = searchTerm.toLowerCase();
     return (post.title.toLowerCase().includes(searchLower) || 
-           post.excerpt.toLowerCase().includes(searchLower) ||
-           post.tags?.toLowerCase().includes(searchLower));
+           (post.excerpt ? post.excerpt.toLowerCase().includes(searchLower) : false) ||
+           (post.tags && typeof post.tags === 'string' ? post.tags.toLowerCase().includes(searchLower) : false));
   }) : [];
   
   // تنسيق التاريخ
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string | Date) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('ar-SA', {
       year: 'numeric',
@@ -129,11 +129,11 @@ export default function BlogPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="">جميع الفئات</SelectItem>
-                {categories?.map((category: BlogCategory) => (
+                {Array.isArray(categories) ? categories.map((category: BlogCategory) => (
                   <SelectItem key={category.id} value={category.id.toString()}>
                     {category.name}
                   </SelectItem>
-                ))}
+                )) : null}
               </SelectContent>
             </Select>
             <Button 
@@ -193,7 +193,9 @@ export default function BlogPage() {
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant="secondary">
-                      {categories?.find((c: BlogCategory) => c.id === post.categoryId)?.name || 'عام'}
+                      {Array.isArray(categories) ? 
+                        categories.find((c: BlogCategory) => c.id === post.categoryId)?.name || 'عام'
+                        : 'عام'}
                     </Badge>
                     <div className="flex items-center text-xs text-muted-foreground">
                       <Calendar className="h-3 w-3 ml-1" />
