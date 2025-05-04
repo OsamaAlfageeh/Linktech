@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
-import { generateSitemap } from "./sitemap";
+import { generateSitemap, generateRobotsTxt } from "./sitemap";
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
@@ -2104,6 +2104,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // إضافة مسار خريطة الموقع (sitemap.xml)
   app.get('/sitemap.xml', generateSitemap);
+  
+  // إضافة مسار ملف robots.txt
+  app.get('/robots.txt', generateRobotsTxt);
 
   return httpServer;
 }
