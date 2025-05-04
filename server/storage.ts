@@ -13,7 +13,8 @@ import {
   NewsletterSubscriber, InsertNewsletterSubscriber,
   newsletterSubscribers,
   NdaAgreement, InsertNdaAgreement,
-  ndaAgreements
+  ndaAgreements,
+  blogCategories, blogPosts, blogComments
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
@@ -91,6 +92,15 @@ export interface IStorage {
   signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined>;
   getNdaAgreements(): Promise<NdaAgreement[]>;
   setNdaPdfUrl(id: number, pdfUrl: string): Promise<NdaAgreement | undefined>;
+  
+  // Blog operations
+  getBlogCategories(): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; }[]>;
+  getBlogCategory(id: number): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; } | undefined>;
+  getBlogCategoryBySlug(slug: string): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; } | undefined>;
+  getBlogPosts(): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; }[]>;
+  getPublishedBlogPosts(): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; }[]>;
+  getBlogPost(id: number): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
+  getBlogPostBySlug(slug: string): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
 }
 
 export class MemStorage implements IStorage {

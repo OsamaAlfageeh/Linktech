@@ -80,17 +80,35 @@ export async function generateSitemap(req: Request, res: Response) {
       xml += `  </url>\n`;
     });
     
-    // إضافة صفحات المدونة (في تطبيق حقيقي ستكون هذه البيانات من قاعدة البيانات)
-    // إضافة فئات المدونة
-    const blogCategories = ['tech-tips', 'tech-trends', 'ecommerce', 'mobile-apps', 'web-development', 'digital-marketing'];
-    blogCategories.forEach((category: string) => {
-      xml += `  <url>\n`;
-      xml += `    <loc>${baseUrl}/blog/category/${category}</loc>\n`;
-      xml += `    <lastmod>${date}</lastmod>\n`;
-      xml += `    <changefreq>weekly</changefreq>\n`;
-      xml += `    <priority>0.6</priority>\n`;
-      xml += `  </url>\n`;
-    });
+    // جلب فئات المدونة وإضافتها إلى السايت ماب
+    try {
+      const blogCategories = await storage.getBlogCategories();
+      blogCategories.forEach((category) => {
+        xml += `  <url>\n`;
+        xml += `    <loc>${baseUrl}/blog/category/${category.slug}</loc>\n`;
+        xml += `    <lastmod>${category.updatedAt?.toISOString() || date}</lastmod>\n`;
+        xml += `    <changefreq>weekly</changefreq>\n`;
+        xml += `    <priority>0.6</priority>\n`;
+        xml += `  </url>\n`;
+      });
+    } catch (error) {
+      console.error('Error fetching blog categories:', error);
+    }
+    
+    // جلب مقالات المدونة المنشورة وإضافتها إلى السايت ماب
+    try {
+      const blogPosts = await storage.getPublishedBlogPosts();
+      blogPosts.forEach((post) => {
+        xml += `  <url>\n`;
+        xml += `    <loc>${baseUrl}/blog/${post.slug}</loc>\n`;
+        xml += `    <lastmod>${post.updatedAt?.toISOString() || date}</lastmod>\n`;
+        xml += `    <changefreq>weekly</changefreq>\n`;
+        xml += `    <priority>0.8</priority>\n`;
+        xml += `  </url>\n`;
+      });
+    } catch (error) {
+      console.error('Error fetching blog posts:', error);
+    }
     
     // نهاية ملف XML
     xml += '</urlset>';
