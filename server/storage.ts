@@ -38,6 +38,7 @@ export interface IStorage {
   createCompanyProfile(profile: InsertCompanyProfile): Promise<CompanyProfile>;
   updateCompanyProfile(id: number, profile: Partial<CompanyProfile>): Promise<CompanyProfile | undefined>;
   getCompanyProfiles(): Promise<CompanyProfile[]>;
+  getVerifiedCompanies(): Promise<CompanyProfile[]>;
   verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined>;
   
   // Project operations
@@ -244,6 +245,12 @@ export class MemStorage implements IStorage {
   
   async getCompanyProfiles(): Promise<CompanyProfile[]> {
     return Array.from(this.companyProfiles.values());
+  }
+  
+  async getVerifiedCompanies(): Promise<CompanyProfile[]> {
+    return Array.from(this.companyProfiles.values()).filter(
+      (profile) => profile.verified === true
+    );
   }
   
   async verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined> {
@@ -943,6 +950,12 @@ export class DatabaseStorage implements IStorage {
 
   async getCompanyProfiles(): Promise<CompanyProfile[]> {
     return await db.query.companyProfiles.findMany();
+  }
+  
+  async getVerifiedCompanies(): Promise<CompanyProfile[]> {
+    return await db.query.companyProfiles.findMany({
+      where: eq(schema.companyProfiles.verified, true)
+    });
   }
 
   async verifyCompany(
