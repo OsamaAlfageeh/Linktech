@@ -2103,6 +2103,345 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // مسارات API للمدونة
+  
+  // الحصول على جميع فئات المدونة
+  app.get('/api/blog/categories', async (req: Request, res: Response) => {
+    try {
+      const categories = await storage.getBlogCategories();
+      res.json(categories);
+    } catch (error) {
+      console.error('Error fetching blog categories:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على فئة محددة
+  app.get('/api/blog/categories/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const category = await storage.getBlogCategory(id);
+      
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      
+      res.json(category);
+    } catch (error) {
+      console.error('Error fetching blog category:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على فئة بواسطة الرابط المخصص
+  app.get('/api/blog/categories/slug/:slug', async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const category = await storage.getBlogCategoryBySlug(slug);
+      
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      
+      res.json(category);
+    } catch (error) {
+      console.error('Error fetching blog category by slug:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // إنشاء فئة جديدة
+  app.post('/api/blog/categories', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const category = await storage.createBlogCategory(req.body);
+      res.status(201).json(category);
+    } catch (error) {
+      console.error('Error creating blog category:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // تحديث فئة
+  app.patch('/api/blog/categories/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const category = await storage.updateBlogCategory(id, req.body);
+      res.json(category);
+    } catch (error) {
+      console.error('Error updating blog category:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // حذف فئة
+  app.delete('/api/blog/categories/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteBlogCategory(id);
+      
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: 'Category not found or could not be deleted' });
+      }
+    } catch (error) {
+      console.error('Error deleting blog category:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على المقالات (للمسؤولين - جميع المقالات بما في ذلك المسودات)
+  app.get('/api/blog/posts/all', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const { limit, offset, categoryId } = req.query;
+      const options: { limit?: number; offset?: number; categoryId?: number } = {};
+      
+      if (limit) options.limit = parseInt(limit as string);
+      if (offset) options.offset = parseInt(offset as string);
+      if (categoryId) options.categoryId = parseInt(categoryId as string);
+      
+      const posts = await storage.getBlogPosts(options);
+      res.json(posts);
+    } catch (error) {
+      console.error('Error fetching all blog posts:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على المقالات المنشورة (للعامة)
+  app.get('/api/blog/posts', async (req: Request, res: Response) => {
+    try {
+      const { limit, offset, categoryId } = req.query;
+      const options: { limit?: number; offset?: number; categoryId?: number } = {};
+      
+      if (limit) options.limit = parseInt(limit as string);
+      if (offset) options.offset = parseInt(offset as string);
+      if (categoryId) options.categoryId = parseInt(categoryId as string);
+      
+      const posts = await storage.getPublishedBlogPosts(options);
+      res.json(posts);
+    } catch (error) {
+      console.error('Error fetching published blog posts:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على مقال محدد
+  app.get('/api/blog/posts/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const post = await storage.getBlogPost(id);
+      
+      if (!post) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+      
+      // التحقق من صلاحيات المستخدم للمقالات غير المنشورة
+      if (post.status !== 'published') {
+        if (!req.isAuthenticated() || req.user.role !== 'admin') {
+          return res.status(403).json({ message: 'Forbidden - Post is not published' });
+        }
+      }
+      
+      // زيادة عدد المشاهدات للمقالات المنشورة
+      if (post.status === 'published') {
+        await storage.incrementBlogPostViewCount(id);
+      }
+      
+      res.json(post);
+    } catch (error) {
+      console.error('Error fetching blog post:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على مقال بواسطة الرابط المخصص
+  app.get('/api/blog/posts/slug/:slug', async (req: Request, res: Response) => {
+    try {
+      const { slug } = req.params;
+      const post = await storage.getBlogPostBySlug(slug);
+      
+      if (!post) {
+        return res.status(404).json({ message: 'Post not found' });
+      }
+      
+      // التحقق من صلاحيات المستخدم للمقالات غير المنشورة
+      if (post.status !== 'published') {
+        if (!req.isAuthenticated() || req.user.role !== 'admin') {
+          return res.status(403).json({ message: 'Forbidden - Post is not published' });
+        }
+      }
+      
+      // زيادة عدد المشاهدات للمقالات المنشورة
+      if (post.status === 'published') {
+        await storage.incrementBlogPostViewCount(post.id);
+      }
+      
+      res.json(post);
+    } catch (error) {
+      console.error('Error fetching blog post by slug:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // إنشاء مقال جديد
+  app.post('/api/blog/posts', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      // إضافة معرف المؤلف
+      const postData = { ...req.body, authorId: req.user.id };
+      
+      const post = await storage.createBlogPost(postData);
+      res.status(201).json(post);
+    } catch (error) {
+      console.error('Error creating blog post:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // تحديث مقال
+  app.patch('/api/blog/posts/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const post = await storage.updateBlogPost(id, req.body);
+      res.json(post);
+    } catch (error) {
+      console.error('Error updating blog post:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // حذف مقال
+  app.delete('/api/blog/posts/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteBlogPost(id);
+      
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: 'Post not found or could not be deleted' });
+      }
+    } catch (error) {
+      console.error('Error deleting blog post:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على تعليقات المقال
+  app.get('/api/blog/posts/:postId/comments', async (req: Request, res: Response) => {
+    try {
+      const postId = parseInt(req.params.postId);
+      const comments = await storage.getBlogCommentsByPost(postId);
+      res.json(comments);
+    } catch (error) {
+      console.error('Error fetching blog comments:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // إضافة تعليق جديد
+  app.post('/api/blog/comments', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const commentData = { ...req.body, userId: req.user.id };
+      const comment = await storage.createBlogComment(commentData);
+      res.status(201).json(comment);
+    } catch (error) {
+      console.error('Error creating blog comment:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // تغيير حالة تعليق (للمسؤولين فقط)
+  app.patch('/api/blog/comments/:id/status', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      // التحقق من صلاحيات المستخدم (يجب أن يكون مسؤولاً)
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!status) {
+        return res.status(400).json({ message: 'Status is required' });
+      }
+      
+      const success = await storage.updateBlogCommentStatus(id, status);
+      
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(404).json({ message: 'Comment not found or could not be updated' });
+      }
+    } catch (error) {
+      console.error('Error updating blog comment status:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // حذف تعليق
+  app.delete('/api/blog/comments/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      const comment = await storage.getBlogComment(id);
+      
+      if (!comment) {
+        return res.status(404).json({ message: 'Comment not found' });
+      }
+      
+      // التحقق من صلاحيات المستخدم (يجب أن يكون صاحب التعليق أو مسؤولاً)
+      if (comment.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Not authorized to delete this comment' });
+      }
+      
+      const success = await storage.deleteBlogComment(id);
+      
+      if (success) {
+        res.json({ success: true });
+      } else {
+        res.status(500).json({ message: 'Comment could not be deleted' });
+      }
+    } catch (error) {
+      console.error('Error deleting blog comment:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
   // استخدام مسارات Sitemap و robots.txt من ملف منفصل
   app.use(sitemapRoutes);
 

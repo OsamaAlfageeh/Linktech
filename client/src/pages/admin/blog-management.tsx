@@ -9,7 +9,7 @@ import { Helmet } from 'react-helmet';
 import { Loader2, FileText, FolderTree, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
-import { Navigate } from 'wouter';
+import { useLocation } from 'wouter';
 
 /**
  * صفحة إدارة المدونة
@@ -26,9 +26,12 @@ export default function BlogManagement() {
     queryKey: ['/api/blog/posts/all'],
   });
 
+  const [_, navigate] = useLocation();
+  
   // تحقق من صلاحيات المستخدم
   if (!isAuthenticated || user?.role !== 'admin') {
-    return <Navigate to="/auth/login" />;
+    navigate("/auth/login");
+    return null;
   }
 
   // إرسال إشعار تحديث sitemap إلى محركات البحث
