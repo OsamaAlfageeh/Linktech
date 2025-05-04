@@ -621,6 +621,18 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                               الرسائل
                             </Link>
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-primary text-primary"
+                            onClick={() => {
+                              setEditProjectId(project.id);
+                              setIsEditDialogOpen(true);
+                            }}
+                          >
+                            <Edit className="ml-1 h-3 w-3" />
+                            تعديل
+                          </Button>
                         </div>
                       </div>
                     </CardContent>
