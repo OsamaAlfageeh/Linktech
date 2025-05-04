@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "./db";
-import { projects, companyProfiles } from "@shared/schema";
+import { projects, companyProfiles, CompanyProfile } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { storage } from "./storage";
 
@@ -51,7 +51,7 @@ export async function generateSitemap(req: Request, res: Response) {
     xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
     
     // إضافة الصفحات الثابتة
-    staticPages.forEach(page => {
+    staticPages.forEach((page: { url: string; priority: string; changefreq: string }) => {
       xml += `  <url>\n`;
       xml += `    <loc>${baseUrl}/${page.url}</loc>\n`;
       xml += `    <lastmod>${date}</lastmod>\n`;
@@ -61,7 +61,7 @@ export async function generateSitemap(req: Request, res: Response) {
     });
     
     // إضافة صفحات الخدمات
-    servicePages.forEach(page => {
+    servicePages.forEach((page: { url: string; priority: string; changefreq: string }) => {
       xml += `  <url>\n`;
       xml += `    <loc>${baseUrl}/${page.url}</loc>\n`;
       xml += `    <lastmod>${date}</lastmod>\n`;
@@ -71,7 +71,7 @@ export async function generateSitemap(req: Request, res: Response) {
     });
     
     // إضافة صفحات الشركات الموثقة
-    companies.forEach(company => {
+    companies.forEach((company: CompanyProfile) => {
       xml += `  <url>\n`;
       xml += `    <loc>${baseUrl}/companies/${company.id}</loc>\n`;
       xml += `    <lastmod>${date}</lastmod>\n`;
@@ -83,7 +83,7 @@ export async function generateSitemap(req: Request, res: Response) {
     // إضافة صفحات المدونة (في تطبيق حقيقي ستكون هذه البيانات من قاعدة البيانات)
     // إضافة فئات المدونة
     const blogCategories = ['tech-tips', 'tech-trends', 'ecommerce', 'mobile-apps', 'web-development', 'digital-marketing'];
-    blogCategories.forEach(category => {
+    blogCategories.forEach((category: string) => {
       xml += `  <url>\n`;
       xml += `    <loc>${baseUrl}/blog/category/${category}</loc>\n`;
       xml += `    <lastmod>${date}</lastmod>\n`;
