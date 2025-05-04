@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { db } from "./db";
-import { projects } from "@shared/schema";
+import { projects, companyProfiles } from "@shared/schema";
 import { eq } from "drizzle-orm";
+import { storage } from "./storage";
 
 /**
  * وظيفة لتوليد خريطة موقع XML ديناميكية
@@ -43,9 +44,7 @@ export async function generateSitemap(req: Request, res: Response) {
     ];
     
     // جلب الشركات الموثقة من قاعدة البيانات
-    const companies = await db.query.companyProfiles.findMany({
-      where: eq(db.schema.companyProfiles.verified, true),
-    });
+    const companies = await storage.getVerifiedCompanies();
     
     // بداية ملف XML
     let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
