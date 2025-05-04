@@ -1,95 +1,79 @@
-import { Helmet } from "react-helmet";
+import React from 'react';
+import { Helmet } from 'react-helmet';
 
 interface SEOProps {
   title: string;
   description: string;
-  canonicalUrl?: string;
-  ogType?: string;
-  ogImage?: string;
-  ogImageAlt?: string;
-  twitterCard?: "summary" | "summary_large_image" | "app" | "player";
   keywords?: string;
+  ogImage?: string;
+  ogType?: 'website' | 'article' | 'profile' | 'book';
+  ogUrl?: string;
   noIndex?: boolean;
-  structuredData?: object | object[];
-  langDirection?: "rtl" | "ltr";
-  langCode?: string;
+  noFollow?: boolean;
+  canonicalUrl?: string;
+  children?: React.ReactNode;
 }
 
 /**
- * مكون موحد لتحسين SEO يستخدم في جميع صفحات الموقع
- * 
- * هذا المكون يتيح توحيد إعدادات علامات meta وتحسين الفهرسة من محركات البحث
+ * مكون لإدارة العلامات الوصفية لمحسنات محركات البحث (SEO)
+ * مهم: استخدم هذا المكون في جميع الصفحات لضمان تحسين الظهور في نتائج البحث
  */
-const SEO = ({
+const SEO: React.FC<SEOProps> = ({
   title,
   description,
-  canonicalUrl,
-  ogType = "website",
-  ogImage,
-  ogImageAlt,
-  twitterCard = "summary_large_image",
   keywords,
+  ogImage = 'https://linktech.app/images/og-image.jpg',
+  ogType = 'website',
+  ogUrl,
   noIndex = false,
-  structuredData,
-  langDirection = "rtl",
-  langCode = "ar",
-}: SEOProps) => {
-  const siteUrl = "https://linktech.app";
-  const fullTitle = `${title} | لينكتك`;
-  const defaultImage = `${siteUrl}/images/linktech-social-share.png`;
-  const imageUrl = ogImage || defaultImage;
-  const defaultCanonical = typeof window !== "undefined" ? window.location.href : "";
-  const canonical = canonicalUrl || defaultCanonical;
+  noFollow = false,
+  canonicalUrl,
+  children
+}) => {
+  const fullTitle = `${title} | لينكتك - منصة ربط رواد الأعمال بشركات البرمجة`;
+  const robots = `${noIndex ? 'noindex' : 'index'}, ${noFollow ? 'nofollow' : 'follow'}`;
+  const currentUrl = ogUrl || (typeof window !== 'undefined' ? window.location.href : '');
 
   return (
     <Helmet>
-      {/* العنوان الأساسي */}
+      {/* العلامات الأساسية */}
       <title>{fullTitle}</title>
       <meta name="description" content={description} />
-      
-      {/* علامات للروبوتات */}
-      {noIndex ? (
-        <meta name="robots" content="noindex, nofollow" />
-      ) : (
-        <meta name="robots" content="index, follow" />
-      )}
-      
-      {/* الكلمات المفتاحية */}
       {keywords && <meta name="keywords" content={keywords} />}
+      <meta name="robots" content={robots} />
       
-      {/* علامات الكانونيكال */}
-      <link rel="canonical" href={canonical} />
-      
-      {/* علامات Open Graph */}
+      {/* علامات Open Graph للمشاركة على وسائل التواصل الاجتماعي */}
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
-      <meta property="og:url" content={canonical} />
       <meta property="og:type" content={ogType} />
-      <meta property="og:site_name" content="لينكتك" />
+      <meta property="og:url" content={currentUrl} />
+      <meta property="og:image" content={ogImage} />
       <meta property="og:locale" content="ar_SA" />
-      <meta property="og:image" content={imageUrl} />
-      {ogImageAlt && <meta property="og:image:alt" content={ogImageAlt} />}
-      
-      {/* علامات تويتر */}
-      <meta name="twitter:card" content={twitterCard} />
+      <meta property="og:site_name" content="لينكتك" />
+
+      {/* علامات Twitter Card */}
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:site" content="@linktech_sa" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={imageUrl} />
-      {ogImageAlt && <meta name="twitter:image:alt" content={ogImageAlt} />}
-      
-      {/* إعدادات اللغة */}
-      <html lang={langCode} dir={langDirection} />
-      
-      {/* البيانات المنظمة */}
-      {structuredData && (
-        <script type="application/ld+json">
-          {JSON.stringify(structuredData)}
-        </script>
-      )}
-      
-      {/* إضافة تلميحات للروبوتات للتنقل السريع باللغة العربية */}
-      <meta name="format-detection" content="telephone=no" />
-      <meta name="theme-color" content="#007A5A" />
+      <meta name="twitter:image" content={ogImage} />
+
+      {/* علامات أخرى مهمة */}
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta httpEquiv="Content-Type" content="text/html; charset=utf-8" />
+      <meta name="language" content="Arabic" />
+      <meta name="revisit-after" content="7 days" />
+      <meta name="author" content="لينكتك" />
+
+      {/* الرابط القانوني (Canonical URL) لتجنب محتوى مكرر */}
+      {canonicalUrl && <link rel="canonical" href={canonicalUrl} />}
+
+      {/* روابط بديلة متعددة اللغات */}
+      <link rel="alternate" href={currentUrl} hrefLang="ar-sa" />
+      <link rel="alternate" href={currentUrl} hrefLang="x-default" />
+
+      {/* هيكلة إضافية من المستدعي */}
+      {children}
     </Helmet>
   );
 };

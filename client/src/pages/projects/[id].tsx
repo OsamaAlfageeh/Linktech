@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
-import { Helmet } from "react-helmet";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +14,9 @@ import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
 import { OffersList } from "@/components/offers/OffersList";
 import { NdaSection } from "@/components/nda/NdaSection";
 import { useAuth } from "@/App";
+import SEO from "@/components/seo/SEO";
+import { ProjectStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
+import LazyImage from "@/components/ui/lazy-image";
 import { 
   Calendar, 
   Clock, 
@@ -74,10 +76,29 @@ const ProjectDetails = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{project ? `${project.title} | لينكتك` : 'تفاصيل المشروع | لينكتك'}</title>
-        <meta name="description" content={"تفاصيل المشروع متاحة للمستخدمين المسجلين فقط"} />
-      </Helmet>
+      <SEO
+        title={project ? `${project.title} | لينكتك` : 'تفاصيل المشروع | لينكتك'}
+        description={project ? `${project.description.substring(0, 160)}...` : 'تفاصيل المشروع متاحة للمستخدمين المسجلين فقط'}
+        keywords={project ? project.skills.join(', ') + ', لينكتك, مشاريع تقنية, شركات برمجة' : 'لينكتك, مشاريع تقنية, شركات برمجة'}
+        ogType="article"
+        noindex={true} // تجنب فهرسة صفحات المشاريع للخصوصية
+        nofollow={true}
+      >
+        {project && (
+          <ProjectStructuredData
+            name={project.title}
+            description={project.description}
+            datePublished={project.createdAt}
+            author={project.name || "صاحب المشروع"}
+            category={project.skills?.[0]}
+          />
+        )}
+        <WebpageStructuredData
+          name={project ? `${project.title} | لينكتك` : 'تفاصيل المشروع | لينكتك'}
+          description={project ? `${project.description.substring(0, 160)}...` : 'تفاصيل المشروع متاحة للمستخدمين المسجلين فقط'}
+          url={`https://linktech.app/projects/${id}`}
+        />
+      </SEO>
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
@@ -245,10 +266,11 @@ const ProjectDetails = () => {
                       >
                         {attachment.type.startsWith('image/') ? (
                           <div className="h-40 overflow-hidden bg-white">
-                            <img 
+                            <LazyImage 
                               src={attachment.url} 
                               alt={attachment.name} 
                               className="w-full h-full object-contain"
+                              loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
                             />
                           </div>
                         ) : (

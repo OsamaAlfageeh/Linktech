@@ -1,17 +1,45 @@
 import SEO from "@/components/seo/SEO";
 import { Link } from "wouter";
+import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
+import { ArrowLeft } from "lucide-react";
 
 const SitemapPage = () => {
   return (
     <>
       <SEO 
-        title="خريطة الموقع"
+        title="خريطة الموقع | لينكتك"
         description="استعرض جميع صفحات موقع لينكتك - المنصة الرائدة لربط رواد الأعمال بشركات البرمجة في المملكة العربية السعودية"
         keywords="خريطة الموقع, لينكتك, منصة برمجية, شركات برمجة, خدمات تقنية, تطوير برمجيات"
-      />
+      >
+        <WebpageStructuredData
+          name="خريطة موقع لينكتك"
+          description="استعرض جميع صفحات موقع لينكتك - المنصة الرائدة لربط رواد الأعمال بشركات البرمجة"
+          url="https://linktech.app/sitemap"
+        />
+        <BreadcrumbStructuredData
+          items={[
+            { name: "الرئيسية", url: "https://linktech.app/" },
+            { name: "خريطة الموقع", url: "https://linktech.app/sitemap" }
+          ]}
+        />
+      </SEO>
 
       <div className="container mx-auto px-4 py-12">
+        <div className="mb-6">
+          <Link href="/" className="text-primary hover:text-primary-dark inline-flex items-center">
+            <ArrowLeft className="ml-1 h-4 w-4 rtl-flip" />
+            العودة إلى الرئيسية
+          </Link>
+        </div>
+
         <div className="max-w-4xl mx-auto">
+          <nav className="flex text-sm text-neutral-600 mb-6" aria-label="التنقل التسلسلي">
+            <ol className="flex rtl space-x-2 space-x-reverse">
+              <li><Link href="/" className="hover:text-primary hover:underline">الرئيسية</Link></li>
+              <li className="before:content-['/'] before:mx-2 font-semibold">خريطة الموقع</li>
+            </ol>
+          </nav>
+
           <h1 className="text-3xl md:text-4xl font-bold mb-8 text-center">خريطة الموقع</h1>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

@@ -14,7 +14,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, PlusCircle } from "lucide-react";
 import SEO from "@/components/seo/SEO";
-import StructuredData, { createBreadcrumbSchema } from "@/components/seo/StructuredData";
+import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
 
 type Project = {
   id: number;
@@ -128,23 +128,26 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
     ? Array.from(new Set(projects.flatMap(project => project.skills || [])))
     : [];
 
-  // إنشاء بيانات التنقل المتسلسل (Breadcrumbs)
-  const breadcrumbSchema = createBreadcrumbSchema({
-    items: [
-      { name: "الرئيسية", url: "https://linktech.app/" },
-      { name: "المشاريع", url: "https://linktech.app/projects" }
-    ]
-  });
-
   return (
     <>
       <SEO 
-        title="المشاريع"
+        title="المشاريع | لينكتك"
         description="استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة والمطورين المحترفين في المملكة العربية السعودية. فرص متنوعة للشركات من مختلف التخصصات التقنية."
         keywords="مشاريع برمجية, مشاريع تقنية, تطوير مواقع, تطوير تطبيقات, برمجة تطبيقات, برمجة مواقع, مطورين, شركات برمجة"
         ogType="website"
-        structuredData={breadcrumbSchema}
-      />
+      >
+        <WebpageStructuredData
+          name="قائمة المشاريع التقنية | لينكتك"
+          description="استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة والمطورين المحترفين"
+          url="https://linktech.app/projects"
+        />
+        <BreadcrumbStructuredData
+          items={[
+            { name: "الرئيسية", url: "https://linktech.app/" },
+            { name: "المشاريع", url: "https://linktech.app/projects" }
+          ]}
+        />
+      </SEO>
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}

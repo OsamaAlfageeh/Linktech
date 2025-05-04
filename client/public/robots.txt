@@ -28,6 +28,8 @@ Disallow: /*?*
 Disallow: /dashboard$
 Disallow: /admin
 Disallow: /*.json$
+Disallow: /projects/*
+Disallow: /companies/*
 
 # إرشادات خاصة بمحرك بحث جوجل
 User-agent: Googlebot

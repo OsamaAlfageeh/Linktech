@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { CalendarIcon, Banknote } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { truncateText } from "@/lib/utils";
+import LazyImage from "@/components/ui/lazy-image";
 
 type ProjectProps = {
   project: {
@@ -33,7 +34,17 @@ const ProjectCard = ({ project }: ProjectProps) => {
     <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden hover-card-lift fade-in transform transition-all duration-300 hover:shadow-md">
       <div className="p-3 sm:p-4 md:p-6">
         <div className="flex justify-between items-start mb-3 md:mb-4">
-          <h3 className="font-heading font-semibold text-base sm:text-lg md:text-xl transition-all duration-300 hover:text-primary hover:translate-x-1 leading-tight">{project.title}</h3>
+          <div className="flex items-start">
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary-light/20 rounded-lg flex items-center justify-center mr-3 shadow-sm overflow-hidden">
+              <LazyImage
+                src={`https://ui-avatars.com/api/?name=${encodeURIComponent(project.title)}&background=eefffc&color=0e8a65&size=60&font-size=0.33`}
+                alt={project.title}
+                className="w-full h-full object-cover"
+                loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
+              />
+            </div>
+            <h3 className="font-heading font-semibold text-base sm:text-lg md:text-xl transition-all duration-300 hover:text-primary hover:translate-x-1 leading-tight">{project.title}</h3>
+          </div>
           {project.highlightStatus && (
             <span className={`text-xs sm:text-sm font-medium px-2 py-0.5 rounded-full ${getHighlightBadgeColor(project.highlightStatus)} transition-all duration-300 hover:shadow-md hover:scale-105 pulse-effect whitespace-nowrap mr-1`}>
               {project.highlightStatus}

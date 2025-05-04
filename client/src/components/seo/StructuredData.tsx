@@ -1,320 +1,171 @@
-import { Helmet } from "react-helmet";
+import React from 'react';
 
-interface StructuredDataProps {
-  data: object;
-}
-
-/**
- * مكون لإضافة البيانات المنظمة (Structured Data) للصفحات
- * 
- * هذا المكون يستخدم لإضافة JSON-LD لصفحات الموقع لتحسين فهرسة محركات البحث للمحتوى
- */
-const StructuredData = ({ data }: StructuredDataProps) => {
-  return (
-    <Helmet>
-      <script type="application/ld+json">
-        {JSON.stringify(data)}
-      </script>
-    </Helmet>
-  );
-};
-
-export default StructuredData;
-
-// مولدات البيانات المنظمة للأنواع المختلفة
-
-/**
- * إنشاء بيانات منظمة لصفحة الشركة
- */
-export const createOrganizationSchema = (companyData: {
+interface OrganizationStructuredDataProps {
   name: string;
   url: string;
   logo: string;
   description: string;
-  email?: string;
-  phone?: string;
-  address?: {
-    streetAddress?: string;
-    addressLocality: string;
-    addressRegion?: string;
-    postalCode?: string;
-    addressCountry: string;
-  };
-  socialProfiles?: {
-    platform: string;
-    url: string;
-  }[];
-}) => {
-  const schema: any = {
-    "@context": "https://schema.org",
-    "@type": "Organization",
-    "name": companyData.name,
-    "url": companyData.url,
-    "logo": companyData.logo,
-    "description": companyData.description,
-  };
+}
 
-  if (companyData.email) {
-    schema.email = companyData.email;
-  }
+interface ProjectStructuredDataProps {
+  name: string;
+  description: string;
+  datePublished: string;
+  author: string;
+  category?: string;
+}
 
-  if (companyData.phone) {
-    schema.telephone = companyData.phone;
-  }
-
-  if (companyData.address) {
-    schema.address = {
-      "@type": "PostalAddress",
-      "addressLocality": companyData.address.addressLocality,
-      "addressCountry": companyData.address.addressCountry,
-    };
-
-    if (companyData.address.streetAddress) {
-      schema.address.streetAddress = companyData.address.streetAddress;
-    }
-
-    if (companyData.address.addressRegion) {
-      schema.address.addressRegion = companyData.address.addressRegion;
-    }
-
-    if (companyData.address.postalCode) {
-      schema.address.postalCode = companyData.address.postalCode;
-    }
-  }
-
-  if (companyData.socialProfiles && companyData.socialProfiles.length > 0) {
-    schema.sameAs = companyData.socialProfiles.map(profile => profile.url);
-  }
-
-  return schema;
-};
-
-/**
- * إنشاء بيانات منظمة لصفحة المشروع
- */
-export const createProjectSchema = (projectData: {
+interface WebpageStructuredDataProps {
   name: string;
   description: string;
   url: string;
-  dateCreated: string;
-  author: {
-    name: string;
-    url: string;
-  };
-  skills: string[];
-  status: string;
+}
+
+interface BreadcrumbStructuredDataProps {
+  items: Array<{name: string; url: string}>;
+}
+
+/**
+ * مكون لإضافة البيانات المنظمة للمنظمة/الشركة
+ * يساعد محركات البحث في فهم معلومات المنصة
+ */
+export const OrganizationStructuredData: React.FC<OrganizationStructuredDataProps> = ({ 
+  name, 
+  url, 
+  logo, 
+  description 
 }) => {
-  return {
-    "@context": "https://schema.org",
-    "@type": "CreativeWork",
-    "name": projectData.name,
-    "description": projectData.description,
-    "url": projectData.url,
-    "dateCreated": projectData.dateCreated,
-    "author": {
-      "@type": "Person",
-      "name": projectData.author.name,
-      "url": projectData.author.url
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    name,
+    url,
+    logo,
+    description,
+    sameAs: [
+      'https://twitter.com/linktech_sa',
+      'https://facebook.com/linktech_sa',
+      'https://linkedin.com/company/linktech_sa'
+    ]
+  };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
+};
+
+/**
+ * مكون لإضافة البيانات المنظمة للمشاريع
+ * يساعد محركات البحث في فهم محتوى المشروع
+ */
+export const ProjectStructuredData: React.FC<ProjectStructuredDataProps> = ({ 
+  name, 
+  description, 
+  datePublished, 
+  author,
+  category
+}) => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'Project',
+    name,
+    description,
+    datePublished,
+    author: {
+      '@type': 'Person',
+      name: author
     },
-    "keywords": projectData.skills.join(", "),
-    "creativeWorkStatus": projectData.status
+    ...(category && { category })
   };
+
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
 };
 
 /**
- * إنشاء بيانات منظمة لصفحة الملف الشخصي للمستخدم
+ * مكون لإضافة البيانات المنظمة للصفحة
+ * يساعد محركات البحث في فهم محتوى الصفحة
  */
-export const createPersonSchema = (personData: {
-  name: string;
-  url: string;
-  image?: string;
-  description?: string;
-  jobTitle?: string;
-  worksFor?: {
-    name: string;
-    url?: string;
-  };
-  location?: {
-    addressLocality: string;
-    addressCountry: string;
-  };
-  socialProfiles?: {
-    platform: string;
-    url: string;
-  }[];
+export const WebpageStructuredData: React.FC<WebpageStructuredDataProps> = ({ 
+  name, 
+  description, 
+  url 
 }) => {
-  const schema: any = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    "name": personData.name,
-    "url": personData.url,
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'WebPage',
+    name,
+    description,
+    url
   };
 
-  if (personData.image) {
-    schema.image = personData.image;
-  }
-
-  if (personData.description) {
-    schema.description = personData.description;
-  }
-
-  if (personData.jobTitle) {
-    schema.jobTitle = personData.jobTitle;
-  }
-
-  if (personData.worksFor) {
-    schema.worksFor = {
-      "@type": "Organization",
-      "name": personData.worksFor.name,
-    };
-
-    if (personData.worksFor.url) {
-      schema.worksFor.url = personData.worksFor.url;
-    }
-  }
-
-  if (personData.location) {
-    schema.address = {
-      "@type": "PostalAddress",
-      "addressLocality": personData.location.addressLocality,
-      "addressCountry": personData.location.addressCountry,
-    };
-  }
-
-  if (personData.socialProfiles && personData.socialProfiles.length > 0) {
-    schema.sameAs = personData.socialProfiles.map(profile => profile.url);
-  }
-
-  return schema;
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
 };
 
 /**
- * إنشاء بيانات منظمة لصفحة جهة الاتصال
+ * مكون لإضافة بيانات منظمة لمسار التنقل
+ * يساعد محركات البحث في فهم تسلسل التنقل في الموقع
  */
-export const createContactPageSchema = (contactData: {
-  url: string;
-  name: string;
-  email?: string;
-  phone?: string;
-  address?: {
-    streetAddress?: string;
-    addressLocality: string;
-    addressRegion?: string;
-    postalCode?: string;
-    addressCountry: string;
-  };
-}) => {
-  const schema: any = {
-    "@context": "https://schema.org",
-    "@type": "ContactPage",
-    "url": contactData.url,
-    "name": contactData.name,
+export const BreadcrumbStructuredData: React.FC<BreadcrumbStructuredDataProps> = ({ items }) => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: items.map((item, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: item.name,
+      item: item.url
+    }))
   };
 
-  if (contactData.email) {
-    schema.email = contactData.email;
-  }
-
-  if (contactData.phone) {
-    schema.telephone = contactData.phone;
-  }
-
-  if (contactData.address) {
-    schema.address = {
-      "@type": "PostalAddress",
-      "addressLocality": contactData.address.addressLocality,
-      "addressCountry": contactData.address.addressCountry,
-    };
-
-    if (contactData.address.streetAddress) {
-      schema.address.streetAddress = contactData.address.streetAddress;
-    }
-
-    if (contactData.address.addressRegion) {
-      schema.address.addressRegion = contactData.address.addressRegion;
-    }
-
-    if (contactData.address.postalCode) {
-      schema.address.postalCode = contactData.address.postalCode;
-    }
-  }
-
-  return schema;
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
 };
 
 /**
- * إنشاء بيانات منظمة لموقع الويب بالكامل (للصفحة الرئيسية)
+ * مكون لإضافة بيانات منظمة لصفحة الاتصال
+ * يساعد محركات البحث في فهم معلومات الاتصال
  */
-export const createWebsiteSchema = (websiteData: {
-  url: string;
-  name: string;
-  description: string;
-  inLanguage: string;
-  organization: {
-    name: string;
-    url: string;
-    logo: string;
-  };
-}) => {
-  return {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "url": websiteData.url,
-    "name": websiteData.name,
-    "description": websiteData.description,
-    "inLanguage": websiteData.inLanguage,
-    "publisher": {
-      "@type": "Organization",
-      "name": websiteData.organization.name,
-      "url": websiteData.organization.url,
-      "logo": {
-        "@type": "ImageObject",
-        "url": websiteData.organization.logo
+export const ContactPageStructuredData: React.FC<{url: string}> = ({ url }) => {
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    url,
+    description: 'صفحة الاتصال بمنصة لينكتك - تواصل معنا لأي استفسارات',
+    mainEntity: {
+      '@type': 'Organization',
+      name: 'لينكتك',
+      email: 'contact@linktech.app',
+      telephone: '+966000000000',
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'SA',
+        addressLocality: 'الرياض',
+        addressRegion: 'الرياض'
       }
     }
   };
-};
 
-/**
- * إنشاء بيانات منظمة للأسئلة الشائعة
- */
-export const createFAQSchema = (faqData: {
-  questions: {
-    question: string;
-    answer: string;
-  }[];
-}) => {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    "mainEntity": faqData.questions.map(item => ({
-      "@type": "Question",
-      "name": item.question,
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": item.answer
-      }
-    }))
-  };
-};
-
-/**
- * إنشاء بيانات منظمة لروابط التنقل (BreadcrumbList)
- */
-export const createBreadcrumbSchema = (breadcrumbData: {
-  items: {
-    name: string;
-    url: string;
-  }[];
-}) => {
-  return {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    "itemListElement": breadcrumbData.items.map((item, index) => ({
-      "@type": "ListItem",
-      "position": index + 1,
-      "name": item.name,
-      "item": item.url
-    }))
-  };
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+    />
+  );
 };

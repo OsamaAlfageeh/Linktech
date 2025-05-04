@@ -2,6 +2,7 @@ import { Link } from "wouter";
 import { Star, MessageSquare } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { truncateText } from "@/lib/utils";
+import LazyImage from "@/components/ui/lazy-image";
 
 type CompanyProps = {
   company: {
@@ -71,10 +72,11 @@ const CompanyCard = ({ company }: CompanyProps) => {
       <div className="relative">
         <div className={`h-24 sm:h-28 md:h-32 ${company.coverPhoto ? '' : getCoverGradient(company.id)} overflow-hidden`}>
           {company.coverPhoto ? (
-            <img 
+            <LazyImage 
               src={company.coverPhoto} 
-              alt={company.name || ''} 
+              alt={company.name || 'صورة غلاف الشركة'} 
               className="w-full h-full object-cover transition-transform duration-700 hover:scale-110"
+              loadingClassname="animate-pulse bg-neutral-200 w-full h-full"
             />
           ) : (
             <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-transparent z-10"></div>
@@ -83,10 +85,11 @@ const CompanyCard = ({ company }: CompanyProps) => {
         <div className="absolute -bottom-12 sm:-bottom-14 right-4 sm:right-6 z-10">
           <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-lg bg-white shadow-md flex items-center justify-center overflow-hidden p-1 transition-all duration-300 hover:shadow-lg hover:scale-105">
             {company.logo ? (
-              <img 
+              <LazyImage 
                 src={company.logo} 
-                alt={company.name || ''} 
+                alt={company.name || 'شعار الشركة'} 
                 className="w-full h-full object-cover rounded hover:scale-105 transition-transform duration-300"
+                loadingClassname="animate-pulse bg-neutral-200 w-full h-full rounded"
               />
             ) : (
               <div className={`w-full h-full flex items-center justify-center rounded ${getCoverGradient(company.id)} text-white text-xl sm:text-2xl font-bold transition-all duration-300 hover:opacity-90`}>
