@@ -137,9 +137,9 @@ function App() {
             )}
           </Route>
           {/* Main auth route redirects to login */}
-          <Route path="/auth">
-            <Redirect to="/auth/login" />
-          </Route>
+          <Route path="/auth" component={() => 
+            <Redirect to="auth/login" />
+          } />
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
           <Route path="/auth/forgot-password" component={ForgotPassword} />
@@ -167,15 +167,15 @@ function App() {
             auth.isAuthenticated && auth.isAdmin ? (
               <AdminDashboard auth={auth} />
             ) : (
-              <Redirect to="/auth/login" />
+              <Route path="/auth/login" component={Login} />
             )
           )} />
           {/* صفحة المسؤول المبسطة للوصول المباشر - تحويل مباشر إلى لوحة المسؤول الكاملة */}
           <Route path="/admin" component={() => (
             auth.isAuthenticated && auth.isAdmin ? (
-              <Redirect to="/dashboard/admin" />
+              <AdminDashboard auth={auth} />
             ) : (
-              <Redirect to="/auth/login" />
+              <Route path="/auth/login" component={Login} />
             )
           )} />
           {/* نهاية التعديل المؤقت */}
@@ -184,14 +184,14 @@ function App() {
             auth.isAuthenticated ? (
               <Messages auth={auth} />
             ) : (
-              <Redirect to="/auth/login" />
+              <Route path="/auth/login" component={Login} />
             )
           )} />
           <Route path="/messages/:userId" component={() => (
             auth.isAuthenticated ? (
               <Messages auth={auth} />
             ) : (
-              <Redirect to="/auth/login" />
+              <Route path="/auth/login" component={Login} />
             )
           )} />
           

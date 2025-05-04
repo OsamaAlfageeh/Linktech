@@ -2,45 +2,49 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { Loader2 } from "lucide-react";
 
+type Props = {
+  to?: string;
+};
+
 // صفحة وسيطة للتوجيه المباشر
-export default function Redirect() {
-  // إزالة setLocation لتجنب التداخل مع إعادة التوجيه
-  const [location] = useLocation();
+export default function Redirect({ to }: Props) {
+  // استخدام useLocation للتنقل
+  const [_, navigate] = useLocation();
 
   useEffect(() => {
     // إضافة تأخير قبل إعادة التوجيه
     const redirectTimeout = setTimeout(() => {
-      // استخراج المسار المطلوب من المعلمات (params)
+      // إذا تم تمرير الوجهة كخاصية، استخدمها، وإلا فاستخراج من المعلمات (params)
       const params = new URLSearchParams(window.location.search);
-      const to = params.get("to");
+      const destination = to || params.get("to");
       
-      console.log("صفحة التوجيه: الوجهة المطلوبة هي", to);
+      console.log("صفحة التوجيه: الوجهة المطلوبة هي", destination);
 
       try {
         // معالجة مختلف المسارات المحتملة باستخدام التوجيه المباشر
-        if (to === "admin") {
+        if (destination === "admin") {
           console.log("جاري التوجيه إلى لوحة المسؤول");
-          window.location.replace("/dashboard/admin");
-        } else if (to === "entrepreneur") {
+          navigate("/dashboard/admin");
+        } else if (destination === "entrepreneur") {
           console.log("جاري التوجيه إلى لوحة رائد الأعمال");
-          window.location.replace("/dashboard/entrepreneur");
-        } else if (to === "company") {
+          navigate("/dashboard/entrepreneur");
+        } else if (destination === "company") {
           console.log("جاري التوجيه إلى لوحة الشركة");
-          window.location.replace("/dashboard/company");
+          navigate("/dashboard/company");
         } else {
           console.log("توجيه إلى الصفحة الرئيسية (المسار غير معروف)");
-          window.location.replace("/");
+          navigate("/");
         }
       } catch (error) {
         console.error("حدث خطأ أثناء التوجيه:", error);
         // في حالة الخطأ، توجيه إلى الصفحة الرئيسية
-        window.location.replace("/");
+        navigate("/");
       }
     }, 1500); // تأخير 1.5 ثانية
     
     // تنظيف المؤقت عند إلغاء تحميل المكون
     return () => clearTimeout(redirectTimeout);
-  }, []);
+  }, [navigate, to]);
 
   return (
     <div dir="rtl" className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
