@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Helmet } from "react-helmet";
 import { Link } from "wouter";
 import ProjectCard from "@/components/projects/ProjectCard";
 import { Button } from "@/components/ui/button";
@@ -14,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, PlusCircle } from "lucide-react";
+import SEO from "@/components/seo/SEO";
+import StructuredData, { createBreadcrumbSchema } from "@/components/seo/StructuredData";
 
 type Project = {
   id: number;
@@ -127,12 +128,23 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
     ? Array.from(new Set(projects.flatMap(project => project.skills || [])))
     : [];
 
+  // إنشاء بيانات التنقل المتسلسل (Breadcrumbs)
+  const breadcrumbSchema = createBreadcrumbSchema({
+    items: [
+      { name: "الرئيسية", url: "https://linktech.app/" },
+      { name: "المشاريع", url: "https://linktech.app/projects" }
+    ]
+  });
+
   return (
     <>
-      <Helmet>
-        <title>المشاريع | لينكتك</title>
-        <meta name="description" content="استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة" />
-      </Helmet>
+      <SEO 
+        title="المشاريع"
+        description="استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة والمطورين المحترفين في المملكة العربية السعودية. فرص متنوعة للشركات من مختلف التخصصات التقنية."
+        keywords="مشاريع برمجية, مشاريع تقنية, تطوير مواقع, تطوير تطبيقات, برمجة تطبيقات, برمجة مواقع, مطورين, شركات برمجة"
+        ogType="website"
+        structuredData={breadcrumbSchema}
+      />
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
