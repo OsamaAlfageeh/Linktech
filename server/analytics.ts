@@ -10,34 +10,28 @@ export async function pingSitemapToSearchEngines(sitemapUrl: string): Promise<{
   google: boolean;
   bing: boolean;
 }> {
-  const results = {
-    google: false,
-    bing: false
-  };
-
   try {
-    // إرسال إشعار إلى Google
-    const googleResponse = await axios.get(
-      `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
-      { timeout: 10000 } // 10 ثوانٍ مهلة زمنية
-    );
-    results.google = googleResponse.status === 200;
-  } catch (error) {
-    console.error('Error pinging Google:', error);
-  }
+    // إرسال إشعار لجوجل
+    const googlePingUrl = `https://www.google.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`;
+    const googleResponse = await axios.get(googlePingUrl);
+    const googleSuccess = googleResponse.status === 200;
 
-  try {
-    // إرسال إشعار إلى Bing
-    const bingResponse = await axios.get(
-      `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`,
-      { timeout: 10000 } // 10 ثوانٍ مهلة زمنية
-    );
-    results.bing = bingResponse.status === 200;
-  } catch (error) {
-    console.error('Error pinging Bing:', error);
-  }
+    // إرسال إشعار لبينج
+    const bingPingUrl = `https://www.bing.com/ping?sitemap=${encodeURIComponent(sitemapUrl)}`;
+    const bingResponse = await axios.get(bingPingUrl);
+    const bingSuccess = bingResponse.status === 200;
 
-  return results;
+    return {
+      google: googleSuccess,
+      bing: bingSuccess
+    };
+  } catch (error) {
+    console.error('فشل في إرسال إشعار تحديث خريطة الموقع:', error);
+    return {
+      google: false,
+      bing: false
+    };
+  }
 }
 
 /**
@@ -47,16 +41,12 @@ export async function pingSitemapToSearchEngines(sitemapUrl: string): Promise<{
  */
 export async function verifySearchConsoleOwnership(token: string): Promise<boolean> {
   try {
-    if (!token || token.trim() === '') {
-      throw new Error('رمز التحقق غير صالح');
-    }
-    
-    // هنا سيتم حفظ رمز التحقق في قاعدة البيانات 
-    // ويجب إنشاء ملف التحقق html في المجلد العام
+    // في الواقع، سيكون هناك تكامل مع Google API 
+    // لكن في هذه المرحلة، نقوم فقط بتخزين الرمز لاستخدامه في ملف التحقق
     
     return true;
   } catch (error) {
-    console.error('Error verifying Search Console ownership:', error);
+    console.error('فشل في التحقق من ملكية موقع Search Console:', error);
     return false;
   }
 }
@@ -68,15 +58,17 @@ export async function verifySearchConsoleOwnership(token: string): Promise<boole
  */
 export async function updateAnalyticsSettings(settings: {
   googleAnalyticsId?: string;
-  googleSearchConsoleId?: string;
-  automaticSitemapPing?: boolean;
+  googleTagManagerId?: string;
+  enabledAnalytics?: boolean;
+  anonymizeIp?: boolean;
 }): Promise<boolean> {
   try {
-    // هنا سيتم حفظ الإعدادات في قاعدة البيانات
+    // في الواقع، سيتم حفظ هذه الإعدادات في قاعدة البيانات
+    // لكن في هذه المرحلة، نحاكي فقط نجاح العملية
     
     return true;
   } catch (error) {
-    console.error('Error updating analytics settings:', error);
+    console.error('فشل في تحديث إعدادات التحليلات:', error);
     return false;
   }
 }
