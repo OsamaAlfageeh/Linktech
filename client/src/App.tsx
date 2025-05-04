@@ -35,6 +35,10 @@ import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Sitemap from "@/pages/sitemap";
 
+// استيراد صفحات المدونة (فقط الموجودة منها حاليًا)
+import BlogIndexPage from "@/pages/blog/index";
+import BlogPostPage from "@/pages/blog/[slug]";
+
 export type User = {
   id: number;
   username: string;
@@ -239,6 +243,10 @@ function App() {
           <Route path="/terms" component={Terms} />
           
           <Route path="/privacy" component={Privacy} />
+          
+          {/* صفحات المدونة */}
+          <Route path="/blog" component={BlogIndexPage} />
+          <Route path="/blog/:slug" component={BlogPostPage} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
