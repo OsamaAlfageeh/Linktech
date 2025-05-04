@@ -18,10 +18,10 @@ const CompanyPromotionSection = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto mb-12">
           <h2 className="font-heading text-3xl font-bold text-neutral-800">
-            شركات البرمجة والمطورين
+            شركات البرمجة
           </h2>
           <p className="mt-4 text-lg text-neutral-600 leading-relaxed">
-            انضم إلى منصة لينكتك واحصل على عملاء جدد لشركتك أو فريق التطوير الخاص بك. نحن نوفر فرصًا مميزة لتنمية أعمالك وزيادة إيراداتك.
+            انضم إلى منصة لينكتك واحصل على عملاء جدد لشركتك. نحن نوفر فرصًا مميزة لتنمية أعمالك وزيادة إيراداتك.
           </p>
         </div>
 
@@ -83,7 +83,7 @@ const CompanyPromotionSection = () => {
                 <span className="absolute -top-2 -right-2 bg-primary text-white rounded-full w-8 h-8 flex items-center justify-center font-bold">١</span>
               </div>
               <h4 className="text-lg font-semibold mb-2">أنشئ حساب شركة</h4>
-              <p className="text-neutral-600">سجل كشركة أو مطور مستقل وأكمل ملفك الشخصي بالمهارات والخبرات.</p>
+              <p className="text-neutral-600">سجل كشركة وأكمل ملفك الشخصي بالمهارات والخبرات.</p>
             </div>
             
             <div className="flex flex-col items-center text-center">
