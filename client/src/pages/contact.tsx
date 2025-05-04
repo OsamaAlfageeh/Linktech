@@ -1,4 +1,3 @@
-import { Helmet } from "react-helmet";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, MapPin, Send, Loader2 } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Loader2, ArrowLeft } from "lucide-react";
+import SEO from "@/components/seo/SEO";
+import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
+import { Link } from "wouter";
 
 // نموذج التحقق
 const contactFormSchema = z.object({
@@ -77,13 +79,40 @@ const ContactPage = () => {
   
   return (
     <>
-      <Helmet>
-        <title>تواصل معنا | لينكتك</title>
-        <meta name="description" content="تواصل مع فريق لينكتك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا" />
-      </Helmet>
+      <SEO
+        title="تواصل معنا | لينكتك"
+        description="تواصل مع فريق لينكتك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا"
+        keywords="تواصل معنا, دعم فني, اتصل بنا, لينكتك, المساعدة, استفسارات"
+      >
+        <WebpageStructuredData
+          name="تواصل معنا | لينكتك"
+          description="تواصل مع فريق لينكتك للاستفسارات والدعم الفني وأي أسئلة متعلقة بمنصتنا"
+          url="https://linktech.app/contact"
+        />
+        <BreadcrumbStructuredData
+          items={[
+            { name: "الرئيسية", url: "https://linktech.app/" },
+            { name: "تواصل معنا", url: "https://linktech.app/contact" }
+          ]}
+        />
+      </SEO>
 
       <div className="container mx-auto px-4 py-12">
+        <div className="mb-6">
+          <Link href="/" className="text-primary hover:text-primary-dark inline-flex items-center">
+            <ArrowLeft className="ml-1 h-4 w-4 rtl-flip" />
+            العودة إلى الرئيسية
+          </Link>
+        </div>
+        
         <div className="max-w-5xl mx-auto">
+          <nav className="flex text-sm text-neutral-600 mb-6" aria-label="التنقل التسلسلي">
+            <ol className="flex rtl space-x-2 space-x-reverse">
+              <li><Link href="/" className="hover:text-primary hover:underline">الرئيسية</Link></li>
+              <li className="before:content-['/'] before:mx-2 font-semibold">تواصل معنا</li>
+            </ol>
+          </nav>
+          
           <h1 className="text-3xl md:text-4xl font-bold text-center mb-4">تواصل معنا</h1>
           <p className="text-neutral-600 text-center mb-12 text-lg">
             نحن هنا للإجابة على جميع استفساراتك ومساعدتك في أي وقت
