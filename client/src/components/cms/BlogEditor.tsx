@@ -157,7 +157,11 @@ export default function BlogEditor({ postId, onSuccess }: BlogEditorProps) {
       
       // تعبئة الوسوم
       if (post.tags) {
-        setTags(post.tags.split(',').map(tag => tag.trim()));
+        if (Array.isArray(post.tags)) {
+          setTags(post.tags);
+        } else if (typeof post.tags === 'string') {
+          setTags(post.tags.split(',').map(tag => tag.trim()));
+        }
       }
     }
   }, [post, form]);
