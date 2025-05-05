@@ -53,7 +53,7 @@ import {
 const categorySchema = z.object({
   name: z.string().min(2, { message: 'اسم الفئة يجب أن يحتوي على حرفين على الأقل' }),
   slug: z.string().min(2, { message: 'الرابط المخصص يجب أن يحتوي على حرفين على الأقل' })
-    .regex(/^[a-z0-9-]+$/, { message: 'الرابط المخصص يجب أن يحتوي فقط على أحرف إنجليزية صغيرة وأرقام وشرطات' }),
+    .regex(/^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\w-]+$/, { message: 'الرابط المخصص يجب أن يحتوي فقط على أحرف عربية أو إنجليزية وأرقام وشرطات' }),
   description: z.string().optional(),
 });
 
@@ -185,10 +185,10 @@ export default function CategoryManager({ onSuccess }: CategoryManagerProps) {
   const generateSlug = () => {
     const name = form.watch('name');
     if (name) {
+      // التعامل مع الأحرف العربية وأحرف أخرى
       const slug = name
-        .toLowerCase()
         .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
+        .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\w\-]+/g, '')
         .replace(/\-\-+/g, '-')
         .replace(/^-+/, '')
         .replace(/-+$/, '');
