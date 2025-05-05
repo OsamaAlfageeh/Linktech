@@ -8,7 +8,6 @@ import { z } from "zod";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { formatDate } from "@/lib/utils";
-import { DropzoneUploader, type UploadedFile } from "@/components/ui/dropzone-uploader";
 
 import {
   Tabs,
@@ -72,7 +71,6 @@ type Project = {
   highlightStatus?: string;
   userId: number;
   createdAt: string;
-  attachments?: UploadedFile[];
   requiresNda?: boolean;
   ndaId?: number;
 };
@@ -112,8 +110,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editProjectId, setEditProjectId] = useState<number | null>(null);
-  // تم إزالة متغير المرفقات
-  const [editProjectAttachments, setEditProjectAttachments] = useState<UploadedFile[]>([]);
+  // تم إزالة متغير المرفقات وكذلك متغير مرفقات التعديل
 
   // Check URL query parameters for actions (create or edit project)
   useEffect(() => {
@@ -174,7 +171,6 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
       const projectData = {
         ...data,
         skills,
-        attachments: projectAttachments.length > 0 ? projectAttachments : undefined,
       };
       
       const response = await apiRequest("POST", "/api/projects", projectData);
@@ -187,7 +183,6 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
         description: "تم نشر مشروعك وأصبح متاحاً للشركات للاطلاع عليه.",
       });
       form.reset();
-      setProjectAttachments([]);
       setIsCreateDialogOpen(false);
     },
     onError: (error) => {
@@ -201,10 +196,6 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
 
   const onSubmit = (data: ProjectFormValues) => {
     createProjectMutation.mutate(data);
-  };
-  
-  const handleAttachmentsChange = (files: UploadedFile[]) => {
-    setProjectAttachments(files);
   };
 
   // If user is not authenticated or not an entrepreneur, redirect to home
@@ -675,7 +666,7 @@ interface EditProjectFormProps {
 
 const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps) => {
   const { toast } = useToast();
-  const [editAttachments, setEditAttachments] = useState<UploadedFile[]>([]);
+  // تم إزالة متغير مرفقات التعديل
   const [loadingProject, setLoadingProject] = useState(true);
   
   // Edit form
@@ -702,10 +693,6 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
   useEffect(() => {
     if (project) {
       setLoadingProject(false);
-      // If project has attachments, set them
-      if (project.attachments) {
-        setEditAttachments(project.attachments as UploadedFile[]);
-      }
       
       // Set form default values from project data
       editForm.reset({
