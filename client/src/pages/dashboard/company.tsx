@@ -143,8 +143,13 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       console.log('Server response:', JSON.stringify(result));
       return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // تحديث الكاش للاستعلام مباشرة لتجنب الحاجة إلى إعادة تحميل الصفحة
+      queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], data);
+      
+      // تحديث الاستعلام في الخلفية للتأكد من وجود بيانات محدثة
       queryClient.invalidateQueries({queryKey: [`/api/companies/user/${auth.user?.id}`]});
+      
       toast({
         title: "تم تحديث الملف بنجاح",
         description: "تم تحديث بيانات شركتك بنجاح.",
