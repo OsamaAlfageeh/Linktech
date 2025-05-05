@@ -693,6 +693,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
               <TabsTrigger value="projects">المشاريع</TabsTrigger>
               <TabsTrigger value="offers">العروض</TabsTrigger>
               <TabsTrigger value="messages">المحادثات</TabsTrigger>
+              <TabsTrigger value="blog">المدونة</TabsTrigger>
               <TabsTrigger value="settings">الإعدادات</TabsTrigger>
             </TabsList>
           </div>
@@ -1433,6 +1434,31 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   </div>
                   
                   {/* يمكن إضافة إعدادات أخرى هنا في المستقبل */}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* قسم إدارة المدونة */}
+          <TabsContent value="blog" className="space-y-4">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>إدارة المدونة</CardTitle>
+                <Button className="mr-2" onClick={() => {
+                  // توجيه إلى صفحة إدارة المدونة
+                  navigate("/admin/blog-management");
+                }}>
+                  <FileText className="h-4 w-4 ml-2" />
+                  فتح نظام إدارة المدونة
+                </Button>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="text-center p-6">
+                    <p className="text-muted-foreground">
+                      اضغط على الزر أعلاه للوصول إلى نظام إدارة المدونة الكامل مع إمكانية إضافة وتحرير المقالات والفئات.
+                    </p>
+                  </div>
                 </div>
               </CardContent>
             </Card>

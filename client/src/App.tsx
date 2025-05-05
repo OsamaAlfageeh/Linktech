@@ -247,6 +247,14 @@ function App() {
           {/* صفحات المدونة */}
           <Route path="/blog" component={BlogIndexPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
+          <Route path="/admin/blog-management" component={() => (
+            auth.isAuthenticated && auth.isAdmin ? (
+              // توجيه إلى صفحة إدارة المدونة للمسؤول
+              <Route path="/admin/blog-management" component={() => import("@/pages/admin/blog-management").then(module => ({ default: module.default }))} />
+            ) : (
+              <Route path="/auth/login" component={Login} />
+            )
+          )} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
