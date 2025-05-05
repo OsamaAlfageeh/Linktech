@@ -88,6 +88,11 @@ export default function BlogPage() {
     navigate(`/blog/${slug}`);
   };
   
+  // وظيفة التوجه إلى صفحة فئة
+  const goToCategory = (category: BlogCategory) => {
+    navigate(`/blog/category/${category.slug}`);
+  };
+  
   return (
     <>
       <Helmet>
