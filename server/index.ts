@@ -4,8 +4,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import { seedDatabase } from "./seedDatabase";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: true })); // استخدام extended: true للتعامل مع البيانات المركبة في الـ URL
+app.use(express.json({ limit: '50mb' })); // زيادة الحد المسموح به للطلبات
+app.use(express.urlencoded({ extended: true, limit: '50mb' })); // استخدام extended: true للتعامل مع البيانات المركبة في الـ URL
 
 // تكوين التطبيق للتعامل مع الأحرف العربية في عناوين URL
 app.use((req, res, next) => {
