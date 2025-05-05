@@ -1394,14 +1394,24 @@ export class DatabaseStorage implements IStorage {
     }
   }
   
-  async getBlogPosts(categoryId?: number) {
+  async getBlogPosts(options?: { categoryId?: number, limit?: number, offset?: number }) {
     let query = db.select().from(schema.blogPosts);
     
-    if (categoryId) {
-      query = query.where(eq(schema.blogPosts.categoryId, categoryId));
+    if (options?.categoryId) {
+      query = query.where(eq(schema.blogPosts.categoryId, options.categoryId));
     }
     
-    return await query.orderBy(desc(schema.blogPosts.createdAt));
+    query = query.orderBy(desc(schema.blogPosts.createdAt));
+    
+    if (options?.limit) {
+      query = query.limit(options.limit);
+    }
+    
+    if (options?.offset) {
+      query = query.offset(options.offset);
+    }
+    
+    return await query;
   }
   
   async getPublishedBlogPosts() {

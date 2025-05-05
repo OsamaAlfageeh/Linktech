@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import BlogEditor from '@/components/cms/BlogEditor';
 import CategoryManager from '@/components/cms/CategoryManager';
@@ -28,11 +28,12 @@ export default function BlogManagement() {
 
   const [_, navigate] = useLocation();
   
-  // تحقق من صلاحيات المستخدم
-  if (!isAuthenticated || user?.role !== 'admin') {
-    navigate("/auth/login");
-    return null;
-  }
+  // تحقق من صلاحيات المستخدم - استخدام useEffect لتجنب التحديث أثناء الرندر
+  useEffect(() => {
+    if (!isAuthenticated || user?.role !== 'admin') {
+      navigate("/auth/login");
+    }
+  }, [isAuthenticated, user, navigate]);
 
   // إرسال إشعار تحديث sitemap إلى محركات البحث
   const handlePingSitemap = async () => {
@@ -53,10 +54,10 @@ export default function BlogManagement() {
       } else {
         throw new Error(data.message || 'حدث خطأ أثناء إرسال الإشعار');
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'فشل إرسال الإشعار',
-        description: error.message,
+        description: error.message || 'حدث خطأ غير معروف',
         variant: 'destructive',
       });
     }
