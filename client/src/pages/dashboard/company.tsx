@@ -401,8 +401,8 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                         variant="outline" 
                         size="sm" 
                         onClick={() => {
-                          // استخدام نافذة الصفحة مباشرة لفتح الرابط في نفس النافذة
-                          window.location.href = `/companies/${profile.id}`;
+                          // استخدام نظام التنقل wouter للحفاظ على حالة التطبيق وتجنب تحميل الصفحة بالكامل
+                          navigate(`/companies/${profile.id}`);
                         }}
                       >
                         عرض الملف العام
@@ -623,7 +623,8 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                   <p className="text-neutral-600 mb-4">لمتابعة محادثاتك مع العملاء وأصحاب المشاريع</p>
                   <Button 
                     onClick={() => {
-                      window.location.href = "/messages";
+                      // استخدام نظام التنقل wouter للحفاظ على حالة التطبيق وتجنب تحميل الصفحة بالكامل
+                      navigate("/messages");
                     }}
                   >
                     <MessagesSquare className="ml-2 h-4 w-4" />
