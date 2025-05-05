@@ -397,10 +397,15 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                     </div>
                     
                     <div className="pt-4 border-t flex justify-between">
-                      <Button variant="outline" size="sm" asChild>
-                        <Link href={`/companies/${profile.id}`}>
-                          عرض الملف العام
-                        </Link>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => {
+                          // استخدام نافذة الصفحة مباشرة لفتح الرابط في نفس النافذة
+                          window.location.href = `/companies/${profile.id}`;
+                        }}
+                      >
+                        عرض الملف العام
                       </Button>
                       <Button 
                         size="sm" 
@@ -616,11 +621,13 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
               <CardContent>
                 <div className="text-center p-8">
                   <p className="text-neutral-600 mb-4">لمتابعة محادثاتك مع العملاء وأصحاب المشاريع</p>
-                  <Button asChild>
-                    <Link href="/messages">
-                      <MessagesSquare className="ml-2 h-4 w-4" />
-                      الانتقال إلى صفحة الرسائل
-                    </Link>
+                  <Button 
+                    onClick={() => {
+                      window.location.href = "/messages";
+                    }}
+                  >
+                    <MessagesSquare className="ml-2 h-4 w-4" />
+                    الانتقال إلى صفحة الرسائل
                   </Button>
                 </div>
               </CardContent>
