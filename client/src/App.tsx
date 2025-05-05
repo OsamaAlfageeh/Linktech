@@ -39,6 +39,7 @@ import Sitemap from "@/pages/sitemap";
 import BlogIndexPage from "@/pages/blog/index";
 import BlogPostPage from "@/pages/blog/[slug]";
 import BlogManagement from "@/pages/admin/blog-management";
+import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export type User = {
   id: number;
@@ -148,53 +149,25 @@ function App() {
           <Route path="/redirect" component={Redirect} />
           {/* Removed separate admin login route */}
           
-          {/* Protected routes */}
-          <Route path="/dashboard/entrepreneur">
-            {auth.isAuthenticated && auth.isEntrepreneur ? (
-              <EntrepreneurDashboard auth={auth} />
-            ) : (
-              <NotFound />
-            )}
-          </Route>
-          <Route path="/dashboard/company">
-            {auth.isAuthenticated && auth.isCompany ? (
-              <CompanyDashboard auth={auth} />
-            ) : (
-              <NotFound />
-            )}
-          </Route>
-          {/* صفحة المسؤول مع تحقق */}
-          <Route path="/dashboard/admin" component={() => (
-            auth.isAuthenticated && auth.isAdmin ? (
-              <AdminDashboard auth={auth} />
-            ) : (
-              <Route path="/auth/login" component={Login} />
-            )
-          )} />
+          {/* Protected routes - using ProtectedRoute component */}
+          <ProtectedRoute 
+            path="/dashboard/entrepreneur" 
+            component={() => <EntrepreneurDashboard auth={auth} />} 
+            requiredRole="entrepreneur" 
+          />
+          <ProtectedRoute 
+            path="/dashboard/company" 
+            component={() => <CompanyDashboard auth={auth} />} 
+            requiredRole="company" 
+          />
+          {/* صفحة المسؤول مع تحقق - باستخدام ProtectedRoute */}
+          <ProtectedRoute path="/dashboard/admin" component={() => <AdminDashboard auth={auth} />} requiredRole="admin" />
           {/* صفحة المسؤول المبسطة للوصول المباشر - تحويل مباشر إلى لوحة المسؤول الكاملة */}
-          <Route path="/admin" component={() => (
-            auth.isAuthenticated && auth.isAdmin ? (
-              <AdminDashboard auth={auth} />
-            ) : (
-              <Route path="/auth/login" component={Login} />
-            )
-          )} />
+          <ProtectedRoute path="/admin" component={() => <AdminDashboard auth={auth} />} requiredRole="admin" />
           {/* نهاية التعديل المؤقت */}
-          {/* صفحة الرسائل: تدعم المسار الأساسي والمسار مع معلمة userId */}
-          <Route path="/messages" component={() => (
-            auth.isAuthenticated ? (
-              <Messages auth={auth} />
-            ) : (
-              <Route path="/auth/login" component={Login} />
-            )
-          )} />
-          <Route path="/messages/:userId" component={() => (
-            auth.isAuthenticated ? (
-              <Messages auth={auth} />
-            ) : (
-              <Route path="/auth/login" component={Login} />
-            )
-          )} />
+          {/* صفحة الرسائل: تدعم المسار الأساسي والمسار مع معلمة userId - باستخدام ProtectedRoute */}
+          <ProtectedRoute path="/messages" component={() => <Messages auth={auth} />} />
+          <ProtectedRoute path="/messages/:userId" component={() => <Messages auth={auth} />} />
           
           {/* مسار صفحة المستخدم */}
           <Route path="/users/:id" component={UserProfile} />
@@ -248,7 +221,7 @@ function App() {
           {/* صفحات المدونة */}
           <Route path="/blog" component={BlogIndexPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
-          <Route path="/admin/blog-management" component={BlogManagement} />
+          <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />

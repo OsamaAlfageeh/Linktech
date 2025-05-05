@@ -26,14 +26,10 @@ export default function BlogManagement() {
     queryKey: ['/api/blog/posts/all'],
   });
 
-  const [_, navigate] = useLocation();
+  // Ya no necesitamos el navigate porque ProtectedRoute maneja la autenticación
+  const [_] = useLocation();
   
-  // تحقق من صلاحيات المستخدم - استخدام useEffect لتجنب التحديث أثناء الرندر
-  useEffect(() => {
-    if (!isAuthenticated || user?.role !== 'admin') {
-      navigate("/auth/login");
-    }
-  }, [isAuthenticated, user, navigate]);
+  // لا نحتاج إلى التحقق من الصلاحيات هنا، فقد تم التحقق من خلال مكون ProtectedRoute
 
   // إرسال إشعار تحديث sitemap إلى محركات البحث
   const handlePingSitemap = async () => {
