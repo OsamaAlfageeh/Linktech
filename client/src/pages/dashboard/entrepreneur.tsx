@@ -112,7 +112,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editProjectId, setEditProjectId] = useState<number | null>(null);
-  const [projectAttachments, setProjectAttachments] = useState<UploadedFile[]>([]);
+  // تم إزالة متغير المرفقات
   const [editProjectAttachments, setEditProjectAttachments] = useState<UploadedFile[]>([]);
 
   // Check URL query parameters for actions (create or edit project)
@@ -487,26 +487,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                         )}
                       />
 
-                      <div className="space-y-2">
-                        <FormLabel>المرفقات (اختياري)</FormLabel>
-                        <DropzoneUploader 
-                          onChange={handleAttachmentsChange}
-                          onFilesChange={handleAttachmentsChange}
-                          initialFiles={projectAttachments}
-                          maxFiles={5}
-                          acceptedFileTypes={{
-                            'image/jpeg': ['.jpg', '.jpeg'],
-                            'image/png': ['.png'],
-                            'image/gif': ['.gif'],
-                            'application/pdf': ['.pdf'],
-                            'application/msword': ['.doc', '.docx'],
-                            'application/vnd.ms-excel': ['.xls', '.xlsx'],
-                          }}
-                        />
-                        <p className="text-xs text-neutral-500">
-                          يمكنك إرفاق صور توضيحية أو مستندات لتوضيح متطلبات المشروع بشكل أفضل.
-                        </p>
-                      </div>
+                      {/* تم إزالة قسم المرفقات بناءًا على طلب المستخدم */}
                       
                       <div className="flex justify-end space-x-4 space-x-reverse">
                         <Button
