@@ -156,86 +156,141 @@ export default function BlogPage() {
           </div>
         </div>
 
-        {loadingPosts ? (
-          <div className="flex items-center justify-center min-h-[300px]">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <span className="mr-2">جاري تحميل المقالات...</span>
-          </div>
-        ) : postsError ? (
-          <div className="text-center py-12 bg-red-50 rounded-md">
-            <p className="text-red-500 mb-4">حدث خطأ أثناء تحميل المقالات</p>
-            <Button onClick={() => refetchPosts()}>إعادة المحاولة</Button>
-          </div>
-        ) : filteredPosts.length === 0 ? (
-          <div className="text-center py-12 bg-muted/40 rounded-md">
-            <p className="text-muted-foreground mb-4">لا توجد مقالات تطابق معايير البحث</p>
-            {searchTerm && (
-              <Button 
-                variant="outline" 
-                onClick={() => setSearchTerm('')}
-              >
-                إلغاء البحث
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {filteredPosts.map((post: BlogPost) => (
-              <Card 
-                key={post.id} 
-                className="overflow-hidden flex flex-col cursor-pointer transition-all duration-300 hover:shadow-md"
-                onClick={() => goToPost(post.slug)}
-              >
-                {post.featuredImage && (
-                  <div className="h-48 overflow-hidden">
-                    <img
-                      src={post.featuredImage}
-                      alt={post.title}
-                      className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
-                    />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+          {/* القائمة الجانبية */}
+          <div className="order-2 md:order-1">
+            <Card>
+              <CardHeader>
+                <CardTitle>فئات المدونة</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  variant={selectedCategory === "" ? "secondary" : "ghost"}
+                  className="w-full justify-start"
+                  onClick={() => handleCategoryChange("all")}
+                >
+                  جميع المقالات
+                </Button>
+                <Separator className="my-2" />
+                {loadingCategories ? (
+                  <div className="flex justify-center py-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
                   </div>
+                ) : Array.isArray(categories) && categories.length > 0 ? (
+                  categories.map((category: BlogCategory) => (
+                    <Button
+                      key={category.id}
+                      variant={selectedCategory === category.id.toString() ? "secondary" : "ghost"}
+                      className="w-full justify-start"
+                      onClick={() => goToCategory(category)}
+                    >
+                      {category.name}
+                    </Button>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">
+                    لا توجد فئات
+                  </p>
                 )}
-                <CardHeader>
-                  <div className="flex items-center justify-between mb-2">
-                    <Badge variant="secondary">
-                      {Array.isArray(categories) ? 
-                        categories.find((c: BlogCategory) => c.id === post.categoryId)?.name || 'عام'
-                        : 'عام'}
-                    </Badge>
-                    <div className="flex items-center text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 ml-1" />
-                      {formatDate(post.createdAt)}
-                    </div>
-                  </div>
-                  <CardTitle className="line-clamp-2">{post.title}</CardTitle>
-                  <CardDescription className="line-clamp-3 mt-2">
-                    {post.excerpt}
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter className="pt-0 mt-auto">
-                  <div className="w-full flex justify-between items-center">
-                    {post.tags && (
-                      <div className="flex items-center">
-                        <Tag className="h-3 w-3 ml-1" />
-                        <span className="text-xs text-muted-foreground truncate max-w-[150px]">
-                          {post.tags}
-                        </span>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* محتوى المقالات */}
+          <div className="order-1 md:order-2 md:col-span-3">
+            {loadingPosts ? (
+              <div className="flex items-center justify-center min-h-[300px]">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <span className="mr-2">جاري تحميل المقالات...</span>
+              </div>
+            ) : postsError ? (
+              <div className="text-center py-12 bg-red-50 rounded-md">
+                <p className="text-red-500 mb-4">حدث خطأ أثناء تحميل المقالات</p>
+                <Button onClick={() => refetchPosts()}>إعادة المحاولة</Button>
+              </div>
+            ) : filteredPosts.length === 0 ? (
+              <div className="text-center py-12 bg-muted/40 rounded-md">
+                <p className="text-muted-foreground mb-4">لا توجد مقالات تطابق معايير البحث</p>
+                {searchTerm && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setSearchTerm('')}
+                  >
+                    إلغاء البحث
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {filteredPosts.map((post: BlogPost) => (
+                  <Card 
+                    key={post.id} 
+                    className="overflow-hidden flex flex-col cursor-pointer transition-all duration-300 hover:shadow-md"
+                    onClick={() => goToPost(post.slug)}
+                  >
+                    {post.featuredImage && (
+                      <div className="h-48 overflow-hidden">
+                        <img
+                          src={post.featuredImage}
+                          alt={post.title}
+                          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+                        />
                       </div>
                     )}
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-primary"
-                    >
-                      اقرأ المزيد
-                      <ArrowRight className="mr-1 h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            ))}
+                    <CardHeader>
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge 
+                          variant="secondary"
+                          className="cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const category = Array.isArray(categories) ? 
+                              categories.find((c: BlogCategory) => c.id === post.categoryId) : null;
+                            if (category) {
+                              goToCategory(category);
+                            }
+                          }}
+                        >
+                          {Array.isArray(categories) ? 
+                            categories.find((c: BlogCategory) => c.id === post.categoryId)?.name || 'عام'
+                            : 'عام'}
+                        </Badge>
+                        <div className="flex items-center text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3 ml-1" />
+                          {formatDate(post.createdAt)}
+                        </div>
+                      </div>
+                      <CardTitle className="line-clamp-2">{post.title}</CardTitle>
+                      <CardDescription className="line-clamp-3 mt-2">
+                        {post.excerpt}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardFooter className="pt-0 mt-auto">
+                      <div className="w-full flex justify-between items-center">
+                        {post.tags && (
+                          <div className="flex items-center">
+                            <Tag className="h-3 w-3 ml-1" />
+                            <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                              {post.tags}
+                            </span>
+                          </div>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-primary"
+                        >
+                          اقرأ المزيد
+                          <ArrowRight className="mr-1 h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </>
   );
