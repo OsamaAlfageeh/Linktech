@@ -238,11 +238,19 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
                     {post.categoryId ? getCategoryName(post.categoryId) : 'عام'}
                   </Badge>
                   
-                  {post.tags && post.tags.split(',').map((tag, index) => (
-                    <Badge key={index} variant="outline">
-                      {tag.trim()}
-                    </Badge>
-                  ))}
+                  {post.tags && Array.isArray(post.tags) ? (
+                    post.tags.map((tag, index) => (
+                      <Badge key={index} variant="outline">
+                        {tag}
+                      </Badge>
+                    ))
+                  ) : (
+                    post.tags && typeof post.tags === 'string' && post.tags.split(',').map((tag, index) => (
+                      <Badge key={index} variant="outline">
+                        {tag.trim()}
+                      </Badge>
+                    ))
+                  )}
                 </div>
                 
                 <h1 className="text-3xl md:text-4xl font-bold mb-6">{post.title}</h1>
