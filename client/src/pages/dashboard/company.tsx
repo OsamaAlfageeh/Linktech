@@ -98,9 +98,11 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     data: profile,
     isLoading: isLoadingProfile,
     error: profileError,
+    refetch: refetchProfile
   } = useQuery<CompanyProfile>({
     queryKey: [`/api/companies/user/${auth.user?.id}`],
     enabled: !!auth.user?.id,
+    staleTime: 0, // دائماً اعتبر البيانات قديمة لضمان التحديث عند الطلب
   });
 
   // Form for updating the profile
@@ -143,17 +145,25 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       console.log('Server response:', JSON.stringify(result));
       return result;
     },
-    onSuccess: (data) => {
-      // تحديث الكاش للاستعلام مباشرة لتجنب الحاجة إلى إعادة تحميل الصفحة
+    onSuccess: async (data) => {
+      console.log('تم استلام بيانات محدثة من الخادم:', JSON.stringify(data));
+      
+      // 1. تحديث البيانات في الكاش مباشرة
       queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], data);
       
-      // تحديث الاستعلام في الخلفية للتأكد من وجود بيانات محدثة
-      queryClient.invalidateQueries({queryKey: [`/api/companies/user/${auth.user?.id}`]});
+      // 2. إعادة تحميل البيانات من الخادم مباشرة للتأكد من تحديث الواجهة
+      try {
+        await refetchProfile();
+        console.log('تم إعادة تحميل بيانات الملف بنجاح');
+      } catch (error) {
+        console.error('خطأ في إعادة تحميل بيانات الملف:', error);
+      }
       
       toast({
         title: "تم تحديث الملف بنجاح",
         description: "تم تحديث بيانات شركتك بنجاح.",
       });
+      
       setIsEditMode(false);
     },
     onError: (error) => {
