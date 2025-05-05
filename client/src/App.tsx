@@ -140,7 +140,7 @@ function App() {
           </Route>
           {/* Main auth route redirects to login */}
           <Route path="/auth" component={() => 
-            <Redirect to="auth/login" />
+            <Redirect to="/auth/login" />
           } />
           <Route path="/auth/register" component={() => <Register auth={auth} />} />
           <Route path="/auth/login" component={() => <Login auth={auth} />} />

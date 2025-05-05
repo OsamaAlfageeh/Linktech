@@ -16,7 +16,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 }) => {
   const auth = useAuth();
   
-  // Función para verificar si el usuario tiene el rol requerido
+  // Function to check if user has the required role
   const hasRequiredRole = (): boolean => {
     if (!requiredRole) return true;
     
@@ -30,19 +30,31 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return (
     <Route path={path}>
       {() => {
-        // Verificar si el usuario está autenticado
+        // Show loading indicator while fetching authentication data
+        if (auth.user === null) {
+          console.log("Loading user info...");
+          return (
+            <div className="flex items-center justify-center min-h-screen">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              <span className="mr-2">جاري تحميل البيانات...</span>
+            </div>
+          );
+        }
+        
+        // Check if user is authenticated (auth.user is not null here)
         if (!auth.isAuthenticated) {
-          console.log("Usuario no autenticado, redirigiendo a login");
+          console.log("User not authenticated, redirecting to login");
           return <Redirect to="/auth/login" />;
         }
         
-        // Verificar si tiene el rol requerido
+        // Check if user has required role
         if (requiredRole && !hasRequiredRole()) {
-          console.log(`Rol requerido: ${requiredRole}, rol actual: ${auth.user?.role}`);
+          console.log(`Required role: ${requiredRole}, current role: ${auth.user?.role}`);
           return <Redirect to="/auth/login" />;
         }
 
-        // Si pasa todas las verificaciones, renderizar el componente
+        // If all checks pass, render the component
+        console.log("Authentication successful, rendering protected component");
         return <Component />;
       }}
     </Route>
