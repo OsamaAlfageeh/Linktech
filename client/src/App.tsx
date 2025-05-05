@@ -35,9 +35,10 @@ import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Sitemap from "@/pages/sitemap";
 
-// استيراد صفحات المدونة (فقط الموجودة منها حاليًا)
+// استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
 import BlogPostPage from "@/pages/blog/[slug]";
+import BlogManagement from "@/pages/admin/blog-management";
 
 export type User = {
   id: number;
@@ -247,14 +248,7 @@ function App() {
           {/* صفحات المدونة */}
           <Route path="/blog" component={BlogIndexPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
-          <Route path="/admin/blog-management" component={() => (
-            auth.isAuthenticated && auth.isAdmin ? (
-              // توجيه إلى صفحة إدارة المدونة للمسؤول
-              <Route path="/admin/blog-management" component={() => import("@/pages/admin/blog-management").then(module => ({ default: module.default }))} />
-            ) : (
-              <Route path="/auth/login" component={Login} />
-            )
-          )} />
+          <Route path="/admin/blog-management" component={BlogManagement} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
