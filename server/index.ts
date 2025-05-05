@@ -5,7 +5,25 @@ import { seedDatabase } from "./seedDatabase";
 
 const app = express();
 app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ extended: true })); // استخدام extended: true للتعامل مع البيانات المركبة في الـ URL
+
+// تكوين التطبيق للتعامل مع الأحرف العربية في عناوين URL
+app.use((req, res, next) => {
+  // ضمان أن الحروف العربية سيتم استقبالها بشكل صحيح في params
+  if (req.params) {
+    for (let key in req.params) {
+      try {
+        // فك تشفير سلاسل URL إذا لزم الأمر (تم تشفيرها من قبل المتصفح)
+        if (req.params[key] && req.params[key].includes('%')) {
+          req.params[key] = decodeURIComponent(req.params[key]);
+        }
+      } catch (e) {
+        console.error(`Error decoding URL param ${key}:`, e);
+      }
+    }
+  }
+  next();
+});
 
 app.use((req, res, next) => {
   const start = Date.now();

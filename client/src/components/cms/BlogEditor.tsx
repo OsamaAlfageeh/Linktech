@@ -36,7 +36,7 @@ import { Separator } from '@/components/ui/separator';
 const blogPostSchema = z.object({
   title: z.string().min(5, { message: 'عنوان المقال يجب أن يحتوي على 5 أحرف على الأقل' }),
   slug: z.string().min(3, { message: 'الرابط المخصص يجب أن يحتوي على 3 أحرف على الأقل' })
-    .regex(/^[a-z0-9-]+$/, { message: 'الرابط المخصص يجب أن يحتوي فقط على أحرف إنجليزية صغيرة وأرقام وشرطات' }),
+    .regex(/^[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\w-]+$/, { message: 'الرابط المخصص يجب أن يحتوي فقط على أحرف عربية أو إنجليزية وأرقام وشرطات' }),
   excerpt: z.string().min(10, { message: 'ملخص المقال يجب أن يحتوي على 10 أحرف على الأقل' }),
   content: z.string().min(50, { message: 'محتوى المقال يجب أن يحتوي على 50 حرفًا على الأقل' }),
   categoryId: z.string().min(1, { message: 'اختر فئة للمقال' }),
@@ -184,13 +184,15 @@ export default function BlogEditor({ postId, onSuccess }: BlogEditorProps) {
   const generateSlug = () => {
     const title = form.watch('title');
     if (title) {
+      // تحويل الفراغات إلى شرطات والتأكد من أن الرابط صالح
+      // نحتفظ بالأحرف العربية والإنجليزية والأرقام والشرطات فقط
       const slug = title
-        .toLowerCase()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w\-]+/g, '')
-        .replace(/\-\-+/g, '-')
-        .replace(/^-+/, '')
-        .replace(/-+$/, '');
+        .replace(/\s+/g, '-') // تحويل الفراغات إلى شرطات
+        .replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF\w\-]+/g, '') // الاحتفاظ بالأحرف العربية والإنجليزية والأرقام والشرطات فقط
+        .replace(/\-\-+/g, '-') // حذف الشرطات المتكررة
+        .replace(/^-+/, '') // حذف الشرطات في بداية النص
+        .replace(/-+$/, ''); // حذف الشرطات في نهاية النص
+        
       form.setValue('slug', slug);
     }
   };

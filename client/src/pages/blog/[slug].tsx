@@ -59,9 +59,12 @@ export default function BlogPostPage({ params }: { params: { slug: string } }) {
     refetch: refetchPost
   } = useQuery({
     queryKey: ['/api/blog/posts/slug', slug],
-    queryFn: () => 
-      apiRequest('GET', `/api/blog/posts/slug/${slug}`)
-        .then(res => res.json()),
+    queryFn: () => {
+      // تشفير الـ slug في حالة أنه يحتوي على أحرف عربية أو خاصة
+      const encodedSlug = encodeURIComponent(slug);
+      return apiRequest('GET', `/api/blog/posts/slug/${encodedSlug}`)
+        .then(res => res.json());
+    },
   });
   
   // استعلام لجلب فئات المدونة
