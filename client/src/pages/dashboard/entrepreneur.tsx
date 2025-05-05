@@ -714,7 +714,6 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
       const projectData = {
         ...data,
         skills,
-        attachments: editAttachments.length > 0 ? editAttachments : undefined,
       };
       
       const response = await apiRequest("PATCH", `/api/projects/${projectId}`, projectData);
@@ -734,10 +733,6 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
 
   const handleEditSubmit = (data: ProjectFormValues) => {
     updateProjectMutation.mutate(data);
-  };
-  
-  const handleEditAttachmentsChange = (files: UploadedFile[]) => {
-    setEditAttachments(files);
   };
 
   if (loadingProject) {
@@ -885,27 +880,7 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
           )}
         />
         
-        <div>
-          <div className="mb-2">
-            <FormLabel>مرفقات المشروع (اختياري)</FormLabel>
-            <p className="text-sm text-neutral-500 mb-2">
-              يمكنك إرفاق صور، وثائق، أو أي ملفات أخرى متعلقة بمشروعك
-            </p>
-          </div>
-          <DropzoneUploader 
-            onFilesChange={handleEditAttachmentsChange} 
-            maxFiles={5}
-            initialFiles={editAttachments}
-            acceptedFileTypes={{
-              'image/jpeg': ['.jpg', '.jpeg'],
-              'image/png': ['.png'],
-              'image/gif': ['.gif'],
-              'application/pdf': ['.pdf'],
-              'application/msword': ['.doc', '.docx'],
-              'application/vnd.ms-excel': ['.xls', '.xlsx'],
-            }}
-          />
-        </div>
+        {/* تم إزالة قسم المرفقات بناءًا على طلب المستخدم */}
         <div className="flex justify-end space-x-2 space-x-reverse">
           <Button
             type="button"
