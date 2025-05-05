@@ -20,6 +20,11 @@ export default function BlogManagement() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState('posts');
   const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  
+  // وظيفة تمرير الصفحة إلى الأعلى
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   // استعلام لجلب مقالات المدونة
   const { data: posts, isLoading: loadingPosts, refetch: refetchPosts } = useQuery({
@@ -30,6 +35,11 @@ export default function BlogManagement() {
   const [_] = useLocation();
   
   // لا نحتاج إلى التحقق من الصلاحيات هنا، فقد تم التحقق من خلال مكون ProtectedRoute
+  
+  // تمرير الصفحة إلى الأعلى عند تغيير التبويب
+  useEffect(() => {
+    scrollToTop();
+  }, [activeTab]);
 
   // إرسال إشعار تحديث sitemap إلى محركات البحث
   const handlePingSitemap = async () => {
@@ -137,7 +147,10 @@ export default function BlogManagement() {
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-2xl font-bold">مقالات المدونة</h2>
                   <Button
-                    onClick={() => setActiveTab('new-post')}
+                    onClick={() => {
+                      setActiveTab('new-post'); 
+                      scrollToTop();
+                    }}
                   >
                     إضافة مقال جديد
                   </Button>
@@ -148,7 +161,10 @@ export default function BlogManagement() {
                       <div className="text-muted-foreground mb-4">
                         لا توجد مقالات في المدونة حتى الآن
                       </div>
-                      <Button onClick={() => setActiveTab('new-post')}>
+                      <Button onClick={() => {
+                        setActiveTab('new-post');
+                        scrollToTop();
+                      }}>
                         إضافة أول مقال
                       </Button>
                     </CardContent>
@@ -203,7 +219,10 @@ export default function BlogManagement() {
                             </Button>
                             <Button
                               size="sm"
-                              onClick={() => setEditingPostId(post.id)}
+                              onClick={() => {
+                                setEditingPostId(post.id);
+                                scrollToTop();
+                              }}
                             >
                               تحرير
                             </Button>
