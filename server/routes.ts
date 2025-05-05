@@ -604,18 +604,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = req.user as any;
       const profileId = parseInt(req.params.id);
       
+      console.log(`طلب تحديث ملف الشركة برقم ${profileId} - المستخدم: ${user.username}`);
+      console.log('بيانات التحديث:', JSON.stringify(req.body));
+      
       const profile = await storage.getCompanyProfile(profileId);
       if (!profile) {
+        console.log(`خطأ: لم يتم العثور على ملف الشركة برقم ${profileId}`);
         return res.status(404).json({ message: 'Company profile not found' });
       }
       
       if (profile.userId !== user.id && user.role !== 'admin') {
+        console.log(`خطأ: المستخدم ${user.username} غير مصرح له بتحديث ملف الشركة ${profileId}`);
         return res.status(403).json({ message: 'Not authorized to update this profile' });
       }
       
       const updatedProfile = await storage.updateCompanyProfile(profileId, req.body);
+      console.log('تم تحديث ملف الشركة بنجاح:', JSON.stringify(updatedProfile));
       res.json(updatedProfile);
     } catch (error) {
+      console.error('خطأ في تحديث ملف الشركة:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
