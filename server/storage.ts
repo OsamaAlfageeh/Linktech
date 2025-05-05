@@ -966,11 +966,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateCompanyProfile(id: number, updates: Partial<CompanyProfile>): Promise<CompanyProfile | undefined> {
-    const [updatedProfile] = await db.update(schema.companyProfiles)
-      .set(updates)
-      .where(eq(schema.companyProfiles.id, id))
-      .returning();
-    return updatedProfile;
+    try {
+      console.log(`تحديث ملف الشركة في قاعدة البيانات - الهوية: ${id}`);
+      console.log('البيانات المراد تحديثها:', JSON.stringify(updates));
+      
+      // تحقق من وجود الملف قبل التحديث
+      const existingProfile = await this.getCompanyProfile(id);
+      if (!existingProfile) {
+        console.log(`خطأ: لم يتم العثور على ملف الشركة برقم ${id} في قاعدة البيانات`);
+        return undefined;
+      }
+      
+      console.log('بيانات الملف الحالي قبل التحديث:', JSON.stringify(existingProfile));
+      
+      // تنفيذ التحديث
+      const [updatedProfile] = await db.update(schema.companyProfiles)
+        .set(updates)
+        .where(eq(schema.companyProfiles.id, id))
+        .returning();
+      
+      if (!updatedProfile) {
+        console.log(`تحذير: لم يتم العثور على نتائج بعد تحديث الملف برقم ${id}`);
+        return undefined;
+      }
+      
+      console.log('نجاح تحديث ملف الشركة. البيانات المحدثة:', JSON.stringify(updatedProfile));
+      return updatedProfile;
+    } catch (error) {
+      console.error('خطأ في تحديث ملف الشركة في قاعدة البيانات:', error);
+      throw error;
+    }
   }
 
   async getCompanyProfiles(): Promise<CompanyProfile[]> {

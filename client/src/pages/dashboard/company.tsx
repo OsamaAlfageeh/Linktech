@@ -129,14 +129,19 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     mutationFn: async (data: ProfileFormValues) => {
       if (!profile?.id) throw new Error("Profile ID is missing");
       
-      const skills = data.skills.split(",").map((skill) => skill.trim());
+      const skills = data.skills.split(",").map((skill) => skill.trim()).filter(skill => skill !== "");
       const profileData = {
         ...data,
         skills,
       };
       
+      console.log('Sending update to server:', JSON.stringify(profileData));
+      console.log('Profile ID:', profile.id);
+      
       const response = await apiRequest("PATCH", `/api/companies/${profile.id}`, profileData);
-      return response.json();
+      const result = await response.json();
+      console.log('Server response:', JSON.stringify(result));
+      return result;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: [`/api/companies/user/${auth.user?.id}`]});
