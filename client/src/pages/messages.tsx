@@ -538,6 +538,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         projectId: projectId,
         read: false,
         createdAt: new Date().toISOString(),
+        // إضافة حالة "جاري المعالجة" للرسالة المؤقتة
+        deliveryStatus: 'processing',
         fromUser: {
           name: auth.user.name || auth.user.username,
           avatar: auth.user.avatar || null

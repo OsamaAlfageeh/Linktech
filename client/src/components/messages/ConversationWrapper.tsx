@@ -1,5 +1,5 @@
 import React from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Check, CheckCheck, Clock, AlertCircle } from 'lucide-react';
 import { Message } from '../../interfaces/messageTypes';
 
 interface ConversationWrapperProps {
@@ -125,9 +125,26 @@ export const ConversationWrapper: React.FC<ConversationWrapperProps> = ({
                 }`}
               >
                 <p className="text-xs md:text-sm break-words">{message.content}</p>
-                <p className="text-[10px] md:text-xs mt-1 opacity-70 text-left">
-                  {new Date(message.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
-                </p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-[10px] md:text-xs opacity-70">
+                    {new Date(message.createdAt).toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}
+                  </p>
+                  
+                  {/* عرض حالة تسليم الرسالة فقط للرسائل المرسلة من المستخدم الحالي */}
+                  {message.fromUserId === userId && (
+                    <div className="flex items-center mr-1">
+                      {message.deliveryStatus === 'delivered' ? (
+                        <CheckCheck className="h-3 w-3 opacity-70" />
+                      ) : message.deliveryStatus === 'sent' || message.read ? (
+                        <Check className="h-3 w-3 opacity-70" />
+                      ) : message.deliveryStatus === 'failed' ? (
+                        <AlertCircle className="h-3 w-3 text-red-400" />
+                      ) : message.deliveryStatus === 'processing' || !message.deliveryStatus ? (
+                        <Clock className="h-3 w-3 opacity-50" />
+                      ) : null}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

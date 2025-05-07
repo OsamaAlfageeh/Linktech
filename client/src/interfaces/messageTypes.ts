@@ -6,6 +6,12 @@ export interface Message {
   projectId: number | null;
   read: boolean;
   createdAt: string;
+  // حالة توصيل الرسالة: 
+  // processing = جاري المعالجة، 
+  // sent = تم الإرسال للخادم، 
+  // delivered = تم التوصيل للمستلم، 
+  // failed = فشل التوصيل
+  deliveryStatus?: 'processing' | 'sent' | 'delivered' | 'failed';
   fromUser?: {
     name: string;
     avatar: string | null;
@@ -30,6 +36,10 @@ export interface WebSocketMessage {
   type: string;
   message?: Message;
   error?: ContentError;
+  messageId?: number;
+  tempMessageId?: string;
+  deliveryStatus?: 'processing' | 'sent' | 'delivered' | 'failed';
+  reason?: string;
 }
 
 export interface ContentError {
