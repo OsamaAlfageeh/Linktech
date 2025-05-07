@@ -40,6 +40,8 @@ interface Offer {
   companyLogo?: string;
   companyVerified?: boolean;
   companyRating?: number;
+  companyEmail?: string;
+  companyUsername?: string;
 }
 
 interface PaymentDialogProps {
@@ -195,14 +197,27 @@ export function PaymentDialog({
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // إرسال معلومات الدفع إلى الخادم
+      console.log("إرسال طلب دفع العربون للعرض رقم:", offer.id);
       const res = await apiRequest("POST", `/api/offers/${offer.id}/pay-deposit`, {
         paymentId: `test-${Date.now()}`,
         depositAmount
       });
       
+      // التأكد من أن الاستجابة ناجحة
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.message || "فشل تأكيد الدفع");
+        const errorData = await res.json();
+        throw new Error(errorData.message || "فشل تأكيد الدفع");
+      }
+      
+      const data = await res.json().catch(() => ({}));
+      console.log("استجابة دفع العربون:", data);
+      
+      // تحديث الواجهة بناءً على الاستجابة
+      if (data.companyContact) {
+        console.log("تم استلام معلومات الشركة:", data.companyContact);
+        // تحديث بيانات العرض مع معلومات الشركة الجديدة
+        offer.companyEmail = data.companyContact.email;
+        offer.companyUsername = data.companyContact.username;
       }
       
       setPaymentSuccess(true);
