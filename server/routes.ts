@@ -1028,10 +1028,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'ملف تعريف الشركة غير موجود' });
       }
       
-      // إنشاء بيانات اتفاقية عدم الإفصاح
+      // إنشاء بيانات اتفاقية عدم الإفصاح - تعيين الحالة مباشرة كـ "active" بدلاً من "pending"
       const ndaData = insertNdaAgreementSchema.parse({
         projectId,
-        status: 'pending',
+        status: 'active', // تغيير الحالة لتكون سارية فوراً بدون الحاجة لمراجعة
         companySignatureInfo: {
           companyId: companyProfile.id,
           companyName: user.name,
@@ -1145,8 +1145,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'فقط المسؤولون يمكنهم تحديث اتفاقيات عدم الإفصاح' });
       }
       
-      const updatedNda = await storage.updateNdaAgreement(ndaId, req.body);
-      res.json(updatedNda);
+      // تحديث حالة اتفاقية عدم الإفصاح
+      if (req.body.status) {
+        const updatedNda = await storage.updateNdaAgreementStatus(ndaId, req.body.status);
+        return res.json(updatedNda);
+      }
+      
+      // تحديث رابط ملف PDF
+      if (req.body.pdfUrl) {
+        const updatedNda = await storage.setNdaPdfUrl(ndaId, req.body.pdfUrl);
+        return res.json(updatedNda);
+      }
+      
+      res.status(400).json({ message: 'لم يتم تحديد حقول للتحديث (status أو pdfUrl)' });
     } catch (error) {
       console.error('خطأ في تحديث اتفاقية عدم الإفصاح:', error);
       res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
