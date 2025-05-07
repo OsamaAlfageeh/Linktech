@@ -59,7 +59,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
 
   // جلب العروض الخاصة بالمشروع
-  const { data: offers, isLoading, error } = useQuery({
+  const { data: offers, isLoading, error, refetch } = useQuery({
     queryKey: [`/api/projects/${projectId}/offers`],
     queryFn: async () => {
       const res = await fetch(`/api/projects/${projectId}/offers`);
@@ -69,6 +69,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       return res.json();
     },
     enabled: Boolean(projectId), // تفعيل الاستعلام فقط عندما يكون هناك معرف للمشروع
+    staleTime: 0, // جعل البيانات سريعة التقادم للحصول على أحدث البيانات دائماً
   });
 
   // قبول العرض
@@ -325,10 +326,18 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       {selectedOffer && (
         <PaymentDialog
           isOpen={showPaymentDialog}
-          onClose={() => setShowPaymentDialog(false)}
+          onClose={() => {
+            setShowPaymentDialog(false);
+            // إعادة تحميل البيانات عند إغلاق النافذة أيضاً للتأكد من تحديث البيانات
+            refetch();
+          }}
           offer={selectedOffer}
           onPaymentSuccess={() => {
+            // إلغاء التخزين المؤقت وإعادة تحميل البيانات فوراً
             queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/offers`] });
+            setTimeout(() => {
+              refetch();
+            }, 500);
           }}
         />
       )}

@@ -201,10 +201,12 @@ export function PaymentDialog({
         description: "تم دفع العربون وكشف معلومات التواصل مع الشركة",
       });
       
+      // إعادة تحميل البيانات قبل إغلاق النافذة
+      onPaymentSuccess();
+      
       // انتظار فترة لعرض رسالة النجاح ثم إغلاق النافذة
       setTimeout(() => {
         onClose();
-        onPaymentSuccess();
       }, 2000);
       
     } catch (error) {
