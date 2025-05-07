@@ -26,9 +26,20 @@ import {
 interface Offer {
   id: number;
   projectId: number;
+  companyId: number;
   amount: string;
-  depositAmount?: string;
+  duration: string;
+  description: string;
   status: string;
+  depositPaid: boolean;
+  depositAmount: string | null;
+  depositDate: string | null;
+  contactRevealed: boolean;
+  createdAt: string;
+  companyName?: string;
+  companyLogo?: string;
+  companyVerified?: boolean;
+  companyRating?: number;
 }
 
 interface PaymentDialogProps {
