@@ -422,10 +422,28 @@ const ProjectDetails = () => {
               </div>
             )}
             
-            {project.status !== "open" && (
+            {/* عرض رسالة إغلاق المشروع فقط للمستخدمين من غير صاحب المشروع */}
+            {project.status !== "open" && auth.user?.id !== project.userId && (
               <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden p-6 md:p-8 text-center">
                 <h2 className="text-xl font-semibold text-neutral-700 mb-3">هذا المشروع مغلق للعروض الجديدة</h2>
                 <p className="text-neutral-600">تم إغلاق هذا المشروع أو تعيينه إلى إحدى الشركات بالفعل.</p>
+              </div>
+            )}
+            
+            {/* عرض معلومات لصاحب المشروع فقط */}
+            {project.status !== "open" && auth.user?.id === project.userId && (
+              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden p-6 md:p-8">
+                <h2 className="text-xl font-semibold text-primary mb-3">حالة المشروع: {project.status === "in-progress" ? "قيد التنفيذ" : "مكتمل"}</h2>
+                <p className="text-neutral-700">
+                  {project.status === "in-progress" 
+                    ? "المشروع قيد التنفيذ حالياً. يمكنك متابعة التقدم وإدارة المشروع من لوحة التحكم الخاصة بك." 
+                    : "المشروع مكتمل. يمكنك الاطلاع على سجل المشروع من لوحة التحكم الخاصة بك."}
+                </p>
+                <div className="mt-4">
+                  <Link href="/dashboard/entrepreneur?tab=projects">
+                    <Button variant="outline">الذهاب للوحة التحكم</Button>
+                  </Link>
+                </div>
               </div>
             )}
           </div>

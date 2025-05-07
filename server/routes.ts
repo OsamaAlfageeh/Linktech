@@ -1774,13 +1774,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تحديث حالة المشروع إلى 'in-progress'
       await storage.updateProject(project.id, { status: 'in-progress' });
       
+      // إرسال إشعار بتحديث العرض عبر WebSocket
+      if (company && companyUser) {
+        // إشعار صاحب المشروع
+        const projectOwnerConnections = clients.get(project.userId);
+        if (projectOwnerConnections) {
+          const notification = JSON.stringify({
+            type: "offer_updated",
+            offerId: offerId,
+            message: "تم تحديث العرض وكشف معلومات الشركة بعد دفع العربون"
+          });
+          
+          projectOwnerConnections.forEach(client => {
+            if (client.readyState === OPEN) {
+              client.send(notification);
+            }
+          });
+        }
+        
+        // إشعار الشركة
+        const companyConnections = clients.get(companyUser.id);
+        if (companyConnections) {
+          const notification = JSON.stringify({
+            type: "offer_accepted_paid",
+            offerId: offerId,
+            projectId: project.id,
+            message: `تم قبول عرضك على المشروع "${project.title}" ودفع العربون`
+          });
+          
+          companyConnections.forEach(client => {
+            if (client.readyState === OPEN) {
+              client.send(notification);
+            }
+          });
+        }
+      }
+      
       // إرجاع معلومات العرض المحدثة
       res.json({
         success: true,
         offer: revealedOffer,
         companyContact: companyUser ? {
           name: companyUser.name,
-          email: companyUser.email
+          email: companyUser.email,
+          username: companyUser.username
         } : null
       });
       

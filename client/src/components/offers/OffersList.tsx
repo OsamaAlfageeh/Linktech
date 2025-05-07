@@ -46,6 +46,9 @@ interface Offer {
   companyLogo?: string;
   companyVerified?: boolean;
   companyRating?: number;
+  companyEmail?: string;
+  companyUsername?: string;
+  companyContactRevealed?: boolean;
 }
 
 interface OffersListProps {
@@ -293,9 +296,40 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
               <CardFooter className="p-4 bg-green-50">
                 <div className="w-full">
                   <h4 className="font-bold text-green-700 mb-2">تم قبول هذا العرض</h4>
-                  <p>
-                    تم دفع العربون وكشف معلومات التواصل. يمكنك الآن التواصل مباشرة مع الشركة عبر الرسائل.
+                  <p className="mb-4">
+                    تم دفع العربون وكشف معلومات التواصل. يمكنك الآن التواصل مباشرة مع الشركة.
                   </p>
+                  
+                  {/* عرض معلومات التواصل مع الشركة */}
+                  {offer.companyEmail && (
+                    <div className="p-4 rounded-lg bg-white border border-green-200 mt-2">
+                      <div className="flex items-center mb-2">
+                        <h5 className="font-bold text-green-800">معلومات التواصل:</h5>
+                      </div>
+                      <div className="grid gap-2">
+                        <div className="flex items-center">
+                          <span className="font-semibold ml-2">الشركة:</span>
+                          <span>{offer.companyName}</span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="font-semibold ml-2">البريد الإلكتروني:</span>
+                          <a href={`mailto:${offer.companyEmail}`} className="text-primary hover:underline">
+                            {offer.companyEmail}
+                          </a>
+                        </div>
+                        <div className="mt-2">
+                          <Button 
+                            variant="outline" 
+                            className="w-full" 
+                            onClick={() => window.location.href = `/messages?userId=${offer.companyUsername}`}
+                          >
+                            <MessageSquare className="ml-2 h-4 w-4" />
+                            التواصل عبر الرسائل
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardFooter>
             )}
