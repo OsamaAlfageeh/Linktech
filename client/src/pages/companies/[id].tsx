@@ -26,7 +26,9 @@ import {
   AlertCircle,
   Lock,
   CreditCard,
-  CheckCircle2
+  CheckCircle2,
+  Info,
+  Loader2
 } from "lucide-react";
 
 type CompanyProfile = {
