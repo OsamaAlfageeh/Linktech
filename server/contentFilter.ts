@@ -59,6 +59,20 @@ const arabicWordsToDigits: Record<string, string> = {
   تسعه: '9'
 };
 
+// قاموس تحويل الأرقام العربية إلى الأرقام الإنجليزية
+const arabicDigitsMap: Record<string, string> = {
+  '٠': '0',
+  '١': '1',
+  '٢': '2',
+  '٣': '3',
+  '٤': '4',
+  '٥': '5',
+  '٦': '6',
+  '٧': '7',
+  '٨': '8',
+  '٩': '9'
+};
+
 const contentFilters = {
   // أرقام الهواتف بصيغ مختلفة
   phoneNumbers: [
@@ -110,14 +124,31 @@ const contentFilters = {
 };
 
 /**
+ * تحويل الأرقام العربية (٠١٢٣٤٥٦٧٨٩) إلى أرقام إنجليزية (0123456789)
+ * @param text النص المراد تحويله
+ * @returns النص بعد تحويل الأرقام العربية إلى إنجليزية
+ */
+function convertArabicDigitsToEnglish(text: string): string {
+  if (!text) return '';
+  
+  // تحويل كل رقم عربي إلى ما يقابله بالإنجليزية
+  return text.replace(/[٠١٢٣٤٥٦٧٨٩]/g, (match) => {
+    return arabicDigitsMap[match] || match;
+  });
+}
+
+/**
  * تحويل الكلمات العربية التي تمثل أرقامًا إلى أرقام
  * @param text النص المراد فحصه
  * @returns نص بعد تحويل كلمات الأرقام العربية إلى أرقام فعلية
  */
 function convertArabicWordsToDigits(text: string): string {
+  // تحويل الأرقام العربية إلى إنجليزية أولاً
+  const textWithEnglishDigits = convertArabicDigitsToEnglish(text);
+  
   // تعديل النص لتسهيل التعرف على الكلمات
   // إزالة علامات الترقيم والمسافات المتعددة
-  const processedText = text.replace(/[.\-,،+\/\\]/g, ' ').replace(/\s+/g, ' ');
+  const processedText = textWithEnglishDigits.replace(/[.\-,،+\/\\]/g, ' ').replace(/\s+/g, ' ');
   
   // تقسيم النص إلى كلمات
   const words = processedText.split(/\s+/);
@@ -189,20 +220,44 @@ function convertArabicWordsToDigits(text: string): string {
  * @returns هل يحتوي النص على نمط يشبه رقم هاتف سعودي
  */
 function detectSaudiPhoneNumberPatterns(text: string): boolean {
+  // التأكد من تحويل الأرقام العربية إلى إنجليزية
+  const convertedText = convertArabicDigitsToEnglish(text);
+  
   // أنماط مختلفة لأرقام الهواتف السعودية
   const patterns = [
-    /\b0?5\d{8}\b/g, // 05xxxxxxxx or 5xxxxxxxx
-    /\b0?5[\s-]?\d{4}[\s-]?\d{4}\b/g, // 05-xxxx-xxxx or 5 xxxx xxxx
+    /\b[0٠]?[5٥]\d{8}\b/g, // 05xxxxxxxx or 5xxxxxxxx (يدعم الرقم 0 أو ٠ والرقم 5 أو ٥)
+    /\b[0٠]?[5٥][\s-]?\d{4}[\s-]?\d{4}\b/g, // 05-xxxx-xxxx or 5 xxxx xxxx
     /\b\+9665\d{8}\b/g, // +9665xxxxxxxx
-    /\b\+966[\s-]?5[\s-]?\d{8}\b/g, // +966-5-xxxxxxxx or +966 5 xxxxxxxx
+    /\b\+966[\s-]?[5٥][\s-]?\d{8}\b/g, // +966-5-xxxxxxxx or +966 5 xxxxxxxx
     /\b9665\d{8}\b/g, // 9665xxxxxxxx
-    /\b966[\s-]?5[\s-]?\d{8}\b/g, // 966-5-xxxxxxxx or 966 5 xxxxxxxx
+    /\b966[\s-]?[5٥][\s-]?\d{8}\b/g, // 966-5-xxxxxxxx or 966 5 xxxxxxxx
+    // أنماط تتضمن الأرقام العربية
+    /\b[0٠]?[5٥][٠١٢٣٤٥٦٧٨٩]{8}\b/g, // ٠٥xxxxxxxx أو ٥xxxxxxxx بالأرقام العربية
+    /\b[0٠]?[5٥][\s-]?[٠١٢٣٤٥٦٧٨٩]{4}[\s-]?[٠١٢٣٤٥٦٧٨٩]{4}\b/g, // ٠٥-xxxx-xxxx أو ٥ xxxx xxxx بالأرقام العربية
   ];
   
-  // فحص جميع الأنماط
+  // فحص النص الأصلي (قد يحتوي على أرقام عربية)
   for (const pattern of patterns) {
     if (pattern.test(text)) {
       return true;
+    }
+  }
+  
+  // فحص النص بعد تحويل الأرقام العربية إلى إنجليزية
+  if (convertedText !== text) {
+    const englishPatterns = [
+      /\b0?5\d{8}\b/g, // 05xxxxxxxx or 5xxxxxxxx
+      /\b0?5[\s-]?\d{4}[\s-]?\d{4}\b/g, // 05-xxxx-xxxx or 5 xxxx xxxx
+      /\b\+9665\d{8}\b/g, // +9665xxxxxxxx
+      /\b\+966[\s-]?5[\s-]?\d{8}\b/g, // +966-5-xxxxxxxx or +966 5 xxxxxxxx
+      /\b9665\d{8}\b/g, // 9665xxxxxxxx
+      /\b966[\s-]?5[\s-]?\d{8}\b/g // 966-5-xxxxxxxx or 966 5 xxxxxxxx
+    ];
+    
+    for (const pattern of englishPatterns) {
+      if (pattern.test(convertedText)) {
+        return true;
+      }
     }
   }
   
@@ -215,21 +270,29 @@ function detectSaudiPhoneNumberPatterns(text: string): boolean {
  * مثل النصوص التي تحتوي على عدد كبير من الأرقام أو كلمات تمثل أرقام
  */
 function detectSuspiciousNumberPatterns(text: string): boolean {
+  // التأكد من تحويل الأرقام العربية إلى إنجليزية
+  const convertedText = convertArabicDigitsToEnglish(text);
+  
   // عدد الأرقام المتتالية الذي يعتبر مشبوهًا
   const SUSPICIOUS_DIGIT_COUNT = 5;
   
-  // فحص إذا كان النص يحتوي على كلمات دالة على أرقام متبوعة بأرقام
-  const phoneKeywordsPattern = /\b(رقم|جوال|موبايل|هاتف|تلفون|اتصال|واتس|واتساب|whatsapp)[\s:]*\d+/gi;
+  // فحص إذا كان النص يحتوي على كلمات دالة على أرقام متبوعة بأرقام (عربية أو إنجليزية)
+  const phoneKeywordsPattern = /\b(رقم|جوال|موبايل|هاتف|تلفون|اتصال|واتس|واتساب|whatsapp)[\s:]*[\d٠١٢٣٤٥٦٧٨٩]+/gi;
   if (phoneKeywordsPattern.test(text)) {
     return true;
   }
   
-  // فحص إذا كان النص يحتوي على أكثر من خمسة أرقام بأي شكل
-  const digitCount = (text.match(/\d/g) || []).length;
-  if (digitCount >= SUSPICIOUS_DIGIT_COUNT) {
+  // فحص إذا كان النص الأصلي يحتوي على أرقام عربية
+  const arabicDigitCount = (text.match(/[٠١٢٣٤٥٦٧٨٩]/g) || []).length;
+  
+  // فحص إذا كان النص المحول يحتوي على أكثر من خمسة أرقام إنجليزية
+  const englishDigitCount = (convertedText.match(/\d/g) || []).length;
+  const totalDigitCount = englishDigitCount + arabicDigitCount - englishDigitCount; // نتجنب العد المزدوج
+  
+  if (totalDigitCount >= SUSPICIOUS_DIGIT_COUNT) {
     // فحص إضافي: إذا كانت هذه الأرقام تشكل نسبة كبيرة من النص
     const textLength = text.length;
-    const digitRatio = digitCount / textLength;
+    const digitRatio = totalDigitCount / textLength;
     
     // إذا كانت نسبة الأرقام أكثر من 15% من النص، فهذا مشبوه
     if (digitRatio > 0.15) {
@@ -362,37 +425,63 @@ export function checkMessageForProhibitedContent(
 
   const violations: string[] = [];
   
+  // تحويل الأرقام العربية إلى أرقام إنجليزية
+  const textWithEnglishDigits = convertArabicDigitsToEnglish(text);
+  
   // تحويل كلمات الأرقام العربية إلى أرقام
   const convertedText = convertArabicWordsToDigits(text);
   
-  // طباعة النص المحول للتأكد من عمل الدالة (يمكن إزالة هذا في الإنتاج)
+  // طباعة النص المحول للتأكد من عمل الدالة
   console.log('النص المحول من الكلمات العربية:', convertedText);
   
-  // التحقق من أرقام الهواتف في النص الأصلي
-  for (const pattern of contentFilters.phoneNumbers) {
-    if (pattern.test(text)) {
-      violations.push('رقم_هاتف');
-      break;
+  // التحقق من وجود أرقام عربية في النص الأصلي
+  if (text !== textWithEnglishDigits) {
+    console.log('النص يحتوي على أرقام عربية:', textWithEnglishDigits);
+    
+    // التحقق مباشرة إذا كان النص الأصلي يحتوي على أرقام عربية تشكل رقم هاتف
+    if (detectSaudiPhoneNumberPatterns(text)) {
+      violations.push('رقم_هاتف_عربي');
     }
   }
   
-  // التحقق من أرقام الهواتف في النص المحول (إذا تم تكوين رقم من كلمات عربية)
-  if (violations.length === 0 && convertedText.trim().length > 0) {
-    // التحقق من أنماط أرقام الهواتف السعودية
-    if (detectSaudiPhoneNumberPatterns(convertedText)) {
-      violations.push('رقم_هاتف_مكتوب_نصياً');
+  // التحقق من أرقام الهواتف في النص الأصلي والنص المحول
+  if (violations.length === 0) {
+    // فحص النص الأصلي
+    for (const pattern of contentFilters.phoneNumbers) {
+      if (pattern.test(text)) {
+        violations.push('رقم_هاتف');
+        break;
+      }
     }
     
-    // نمط عام للأرقام الطويلة (5+ أرقام متتالية)
-    const longNumberPattern = /\b\d{5,}\b/g;
-    if (longNumberPattern.test(convertedText)) {
-      violations.push('رقم_محتمل_مكتوب_نصياً');
+    // فحص النص بعد تحويل الأرقام العربية إلى إنجليزية
+    if (violations.length === 0 && text !== textWithEnglishDigits) {
+      for (const pattern of contentFilters.phoneNumbers) {
+        if (pattern.test(textWithEnglishDigits)) {
+          violations.push('رقم_هاتف_أرقام_عربية');
+          break;
+        }
+      }
+    }
+    
+    // التحقق من أنماط أرقام الهواتف السعودية في النص المحول من كلمات عربية
+    if (violations.length === 0 && convertedText.trim().length > 0) {
+      if (detectSaudiPhoneNumberPatterns(convertedText)) {
+        violations.push('رقم_هاتف_مكتوب_نصياً');
+      }
+      
+      // نمط عام للأرقام الطويلة (5+ أرقام متتالية)
+      const longNumberPattern = /\b\d{5,}\b/g;
+      if (longNumberPattern.test(convertedText)) {
+        violations.push('رقم_محتمل_مكتوب_نصياً');
+      }
     }
   }
   
   // فحص إضافي للأنماط المشبوهة إذا لم نجد انتهاكات سابقة
   if (violations.length === 0) {
     if (detectSuspiciousNumberPatterns(text) || 
+        detectSuspiciousNumberPatterns(textWithEnglishDigits) || 
         (convertedText.trim().length > 0 && detectSuspiciousNumberPatterns(convertedText))) {
       violations.push('نمط_مشبوه_محتمل_مشاركة_رقم');
     }
