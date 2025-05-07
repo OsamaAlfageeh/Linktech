@@ -50,6 +50,21 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         // Check if user has required role
         if (requiredRole && !hasRequiredRole()) {
           console.log(`Required role: ${requiredRole}, current role: ${auth.user?.role}`);
+          
+          // إذا كان المستخدم مسجل ولكن ليس لديه الدور المطلوب، فقم بتسجيل الخروج وإعادة التوجيه
+          if (auth.isAuthenticated) {
+            // تنظيف ذاكرة التخزين المؤقت أولاً
+            import("@/lib/queryClient").then(({ queryClient }) => {
+              queryClient.clear();
+              
+              // تسجيل الخروج
+              auth.logout();
+              
+              // إعادة التوجيه إلى صفحة تسجيل الدخول
+              return <Redirect to="/auth/login" />;
+            });
+          }
+          
           return <Redirect to="/auth/login" />;
         }
 

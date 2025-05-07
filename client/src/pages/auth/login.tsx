@@ -90,21 +90,25 @@ const Login = ({ auth }: LoginProps) => {
       
       console.log("بيانات المستخدم المستخرجة:", userData);
       
-      // تحديث حالة تسجيل الدخول
-      auth.login(userData);
-      
-      // عرض رسالة نجاح
-      toast({
-        title: "تم تسجيل الدخول بنجاح",
-        description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
-      });
-      
-      // التمرير إلى أعلى الصفحة قبل التوجيه
-      window.scrollTo(0, 0);
-      
-      // توجيه المستخدم حسب دوره
-      // ننتظر قليلاً لضمان اكتمال تحديث حالة المستخدم في سياق المصادقة
-      setTimeout(() => {
+      // تنظيف ذاكرة التخزين المؤقت قبل تحديث حالة تسجيل الدخول
+      // هذا يضمن إعادة تحميل بيانات المستخدم الجديدة
+      import("@/lib/queryClient").then(({ queryClient }) => {
+        // إزالة جميع الاستعلامات السابقة
+        queryClient.clear();
+        
+        // تحديث حالة تسجيل الدخول بعد تنظيف ذاكرة التخزين المؤقت
+        auth.login(userData);
+        
+        // عرض رسالة نجاح
+        toast({
+          title: "تم تسجيل الدخول بنجاح",
+          description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
+        });
+        
+        // التمرير إلى أعلى الصفحة قبل التوجيه
+        window.scrollTo(0, 0);
+        
+        // توجيه المستخدم حسب دوره فوراً بدون تأخير
         const role = userData.role;
         console.log("توجيه المستخدم بدور:", role);
         
@@ -121,7 +125,7 @@ const Login = ({ auth }: LoginProps) => {
           console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
           navigate("/");
         }
-      }, 1500);
+      });
     },
     onError: (error: any) => {
       console.error("خطأ تسجيل الدخول:", error);

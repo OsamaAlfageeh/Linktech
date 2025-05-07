@@ -69,7 +69,7 @@ export const useAuth = (): AuthContextType => {
   const { data, isLoading } = useQuery<{user: User}>({
     queryKey: ['/api/auth/user'],
     retry: false,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 0, // عدم تخزين النتائج مؤقتًا - دائمًا الحصول على بيانات المستخدم الحديثة
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
