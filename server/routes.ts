@@ -570,6 +570,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // كشف معلومات التواصل للشركة بعد دفع الرسوم
+  app.post('/api/companies/:id/reveal-contact', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      console.log(`طلب كشف معلومات التواصل للشركة رقم ${req.params.id}`);
+      const companyId = parseInt(req.params.id);
+      
+      if (isNaN(companyId)) {
+        return res.status(400).json({ message: 'معرف الشركة غير صالح' });
+      }
+      
+      const { paymentId, amount } = req.body;
+      
+      if (!paymentId) {
+        return res.status(400).json({ message: 'معرف الدفع مطلوب' });
+      }
+      
+      // في البيئة الحقيقية، هنا يمكن التحقق من صحة عملية الدفع مع ميسر
+      console.log(`تم استلام معلومات الدفع: معرف الدفع=${paymentId}، المبلغ=${amount}`);
+      
+      // للتبسيط، سنعتبر أن جميع عمليات الدفع ناجحة في بيئة التطوير
+      
+      // إنشاء سجل للدفع في قاعدة البيانات
+      // يمكن إضافة هذه الوظيفة لاحقاً للتتبع الكامل لعمليات الدفع
+      
+      console.log(`تم كشف معلومات التواصل للشركة رقم ${companyId} بنجاح`);
+      
+      // الرد بنجاح
+      res.status(200).json({ 
+        success: true, 
+        message: 'تم كشف معلومات التواصل بنجاح',
+        companyId 
+      });
+    } catch (error) {
+      console.error(`خطأ في معالجة طلب كشف معلومات التواصل:`, error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+
   app.post('/api/companies', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;

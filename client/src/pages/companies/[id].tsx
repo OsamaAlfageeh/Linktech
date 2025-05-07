@@ -178,6 +178,23 @@ const CompanyDetails = () => {
       // محاكاة تأخير شبكة لمدة ثانية
       await new Promise(resolve => setTimeout(resolve, 1000));
       
+      // إرسال طلب API لإعلام الخادم بأن الدفع قد اكتمل
+      try {
+        const res = await apiRequest("POST", `/api/companies/${companyId}/reveal-contact`, {
+          paymentId: `test-${Date.now()}`,
+          amount: "100" // مبلغ افتراضي لكشف معلومات الشركة
+        });
+        
+        if (!res.ok) {
+          throw new Error("فشل تسجيل الدفع على الخادم");
+        }
+        
+        console.log("تم تسجيل الدفع بنجاح على الخادم");
+      } catch (apiError) {
+        console.error("خطأ في تسجيل الدفع على الخادم:", apiError);
+        // حتى لو فشل الطلب، سنستمر في عرض المعلومات
+      }
+      
       // تحديث حالة الدفع للشركة في التخزين المحلي
       savePaymentStatus(companyId, true);
       
@@ -189,6 +206,9 @@ const CompanyDetails = () => {
         title: "تم الدفع بنجاح",
         description: "يمكنك الآن الوصول إلى معلومات التواصل كاملة",
       });
+      
+      // إعادة تحميل بيانات الشركة
+      queryClient.invalidateQueries({ queryKey: [`/api/companies/${companyId}`] });
       
       // إغلاق نافذة الدفع بعد ثانيتين
       setTimeout(() => {
@@ -474,13 +494,18 @@ const CompanyDetails = () => {
                           
                           <div className="border rounded-lg p-4">
                             <div className="text-center">
-                              <img src="https://moyasar.com/static/moyasar-sticker.png" alt="Moyasar logo" className="h-6 mx-auto mb-4" />
+                              <div className="bg-amber-50 p-3 rounded-lg border border-amber-200 mb-4">
+                                <p className="text-sm text-amber-700 flex gap-2 items-center">
+                                  <Info className="h-4 w-4 shrink-0" />
+                                  <span>هذا نموذج اختباري للدفع. اضغط على "إتمام الدفع" لمحاكاة عملية دفع ناجحة.</span>
+                                </p>
+                              </div>
                               
                               <div className="bg-neutral-50 rounded-lg p-3 border flex items-center mb-4">
                                 <div className="w-12 h-8 bg-[#1A1F71] rounded flex items-center justify-center ml-2">
                                   <span className="text-white font-bold text-xs">VISA</span>
                                 </div>
-                                <span className="text-neutral-600">**** **** **** 4242</span>
+                                <span className="text-neutral-600">4111 1111 1111 1111</span>
                               </div>
                               
                               <Button 
