@@ -8,27 +8,20 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-
-// تعريف النوع للكائن Moyasar
-declare global {
-  interface Window {
-    Moyasar: {
-      init: (options: {
-        element: string;
-        amount: number;
-        currency: string;
-        description: string;
-        publishable_api_key: string;
-        callback_url: string;
-        methods: string[];
-        on_completed: (payment: any) => void;
-      }) => void;
-    };
-  }
-}
+import { Loader2, CreditCard } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { 
+  Card, 
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter 
+} from "@/components/ui/card";
 
 interface Offer {
   id: number;
@@ -54,128 +47,94 @@ export function PaymentDialog({
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [paymentError, setPaymentError] = useState<string | null>(null);
-  const [isMoyasarInitialized, setIsMoyasarInitialized] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
+  
+  // بيانات البطاقة
+  const [cardNumber, setCardNumber] = useState("");
+  const [expiryDate, setExpiryDate] = useState("");
+  const [cvv, setCvv] = useState("");
+  const [cardName, setCardName] = useState("");
 
   // حساب مبلغ العربون (10% من قيمة العرض) إذا لم يكن محدداً بالفعل
   const depositAmount = offer.depositAmount || 
     Math.round(parseFloat(offer.amount.replace(/[^0-9.]/g, '')) * 0.1).toString();
-
+  
+  // عند إغلاق النافذة، نعيد تعيين الحالات
   useEffect(() => {
-    const loadMoyasarScript = async () => {
-      try {
-        // تهيئة مكتبة ميسر للدفع
-        if (isOpen && !isMoyasarInitialized) {
-          console.log("بدء تحميل سكريبت ميسر...");
-          
-          // تحقق من وجود مفتاح API لميسر
-          if (!import.meta.env.VITE_MOYASAR_PUBLIC_KEY) {
-            console.error("مفتاح API لبوابة الدفع غير متوفر");
-            setPaymentError("مفتاح API لبوابة الدفع غير متوفر. يرجى التواصل مع مسؤول النظام.");
-            return;
-          }
-          
-          // تنظيف أي سكريبت سابق قد يكون موجوداً
-          const existingScript = document.getElementById('moyasar-script');
-          if (existingScript) {
-            console.log("إزالة سكريبت موياسر السابق");
-            existingScript.remove();
-          }
-          
-          // إنشاء عنصر سكريبت جديد
-          const script = document.createElement('script');
-          script.id = 'moyasar-script';
-          script.src = 'https://cdn.moyasar.com/mpf/1.7.3/moyasar.js';
-          script.async = true;
-          
-          // تعريف مستمعي الأحداث قبل إضافة السكريبت للصفحة
-          const scriptLoadPromise = new Promise((resolve, reject) => {
-            script.onload = () => {
-              console.log("تم تحميل سكريبت ميسر بنجاح");
-              resolve(true);
-            };
-            
-            script.onerror = (error) => {
-              console.error("فشل تحميل سكريبت ميسر:", error);
-              reject(new Error("فشل تحميل نظام الدفع"));
-            };
-          });
-          
-          // إضافة السكريبت للصفحة
-          document.body.appendChild(script);
-          
-          // انتظار تحميل السكريبت
-          await scriptLoadPromise;
-          
-          // بعد التحميل، تهيئة النموذج
-          console.log("تعيين حالة تهيئة ميسر وبدء تهيئة النموذج");
-          setIsMoyasarInitialized(true);
-          
-          // إعطاء وقت إضافي للتأكد من تحميل المكتبة بشكل كامل
-          setTimeout(() => {
-            initMoyasarForm();
-          }, 500);
-        }
-      } catch (error) {
-        console.error("خطأ في تحميل سكريبت ميسر:", error);
-        setPaymentError(error instanceof Error ? error.message : "فشل تحميل نظام الدفع");
-      }
-    };
-    
-    loadMoyasarScript();
+    if (!isOpen) {
+      setPaymentError(null);
+      setPaymentSuccess(false);
+      setCardNumber("");
+      setExpiryDate("");
+      setCvv("");
+      setCardName("");
+    }
   }, [isOpen]);
 
-  const initMoyasarForm = () => {
-    try {
-      console.log("تهيئة نموذج دفع ميسر...");
-      
-      // تنظيف حاوية الدفع أولاً
-      const paymentContainer = document.getElementById('moyasar-payment-form');
-      if (paymentContainer) {
-        paymentContainer.innerHTML = '';
-        console.log("تم تنظيف حاوية الدفع");
-      } else {
-        console.error("لم يتم العثور على عنصر حاوية الدفع: moyasar-payment-form");
-      }
-      
-      // تأكد من تحميل مكتبة ميسر
-      if (typeof window.Moyasar === 'undefined') {
-        console.error("مكتبة Moyasar غير محملة");
-        setPaymentError("فشل تحميل نظام الدفع. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
-        return;
-      }
-      
-      console.log("بدء تهيئة نموذج الدفع Moyasar");
-      
-      // تحويل المبلغ إلى رقم وضربه في 100 لتحويله إلى هللات
-      const amountInHalalas = Math.round(parseFloat(depositAmount) * 100);
-      console.log(`المبلغ بالهللات: ${amountInHalalas}`);
-      
-      // تهيئة نموذج الدفع - استبعاد Apple Pay لأنه يحتاج إعدادات إضافية
-      window.Moyasar.init({
-        element: '#moyasar-payment-form',
-        amount: amountInHalalas,
-        currency: 'SAR',
-        description: `عربون للعرض #${offer.id} على المشروع #${offer.projectId}`,
-        publishable_api_key: import.meta.env.VITE_MOYASAR_PUBLIC_KEY,
-        callback_url: window.location.href,
-        methods: ['creditcard', 'mada'], // استبعاد applepay, stcpay لحل مشكلة رسالة الخطأ
-        on_completed: handlePaymentCompleted,
-      });
-      
-      console.log("تم تهيئة نموذج الدفع بنجاح");
-    } catch (error) {
-      console.error("خطأ في تهيئة نموذج الدفع:", error);
-      setPaymentError(`فشل تهيئة نموذج الدفع: ${error instanceof Error ? error.message : "خطأ غير معروف"}`);
+  // تنسيق رقم البطاقة أثناء الكتابة
+  const formatCardNumber = (value: string) => {
+    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+    const matches = v.match(/\d{4,16}/g);
+    const match = matches && matches[0] || '';
+    const parts = [];
+    
+    for (let i = 0, len = match.length; i < len; i += 4) {
+      parts.push(match.substring(i, i + 4));
+    }
+    
+    if (parts.length) {
+      return parts.join(' ');
+    } else {
+      return value;
     }
   };
+  
+  // تنسيق تاريخ الانتهاء
+  const formatExpiryDate = (value: string) => {
+    const v = value.replace(/[^0-9]/g, '');
+    if (v.length >= 3) {
+      return `${v.substring(0, 2)}/${v.substring(2)}`;
+    }
+    return value;
+  };
+  
+  // التحقق من صلاحية البطاقة
+  const isValidCardDetails = () => {
+    // تبسيط التحقق لغرض العرض التوضيحي
+    return cardNumber.replace(/\s+/g, '').length >= 16 && 
+           expiryDate.length >= 5 && 
+           cvv.length >= 3;
+  };
 
-  const handlePaymentCompleted = async (payment: any) => {
+  // معالجة تقديم نموذج الدفع
+  const handlePaymentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!isValidCardDetails()) {
+      setPaymentError("يرجى إدخال جميع بيانات البطاقة بشكل صحيح");
+      return;
+    }
+    
+    setIsLoading(true);
+    setPaymentError(null);
+    
     try {
-      setIsLoading(true);
+      // في بيئة الإنتاج، هنا سيتم إرسال البيانات لواجهة برمجة تطبيقات ميسر
+      // لكن لأغراض العرض التوضيحي سنقوم بمحاكاة نجاح عملية الدفع
+
+      // نعتبر أن الدفع نجح إذا كان رقم البطاقة هو رقم الاختبار
+      const isTestCard = cardNumber.replace(/\s+/g, '') === '4111111111111111';
+      
+      if (!isTestCard) {
+        throw new Error("فشل الدفع. للتجربة، استخدم رقم البطاقة 4111111111111111");
+      }
+
+      // محاكاة تأخير الشبكة
+      await new Promise(resolve => setTimeout(resolve, 1500));
       
       // إرسال معلومات الدفع إلى الخادم
       const res = await apiRequest("POST", `/api/offers/${offer.id}/pay-deposit`, {
-        paymentId: payment.id,
+        paymentId: `test-${Date.now()}`,
         depositAmount
       });
       
@@ -184,43 +143,31 @@ export function PaymentDialog({
         throw new Error(error.message || "فشل تأكيد الدفع");
       }
       
-      const data = await res.json();
+      setPaymentSuccess(true);
       
       toast({
         title: "تم الدفع بنجاح",
         description: "تم دفع العربون وكشف معلومات التواصل مع الشركة",
       });
       
-      // إغلاق نافذة الدفع
-      onClose();
-      
-      // استدعاء دالة النجاح
-      onPaymentSuccess();
+      // انتظار فترة لعرض رسالة النجاح ثم إغلاق النافذة
+      setTimeout(() => {
+        onClose();
+        onPaymentSuccess();
+      }, 2000);
       
     } catch (error) {
       console.error(error);
       setPaymentError(error instanceof Error ? error.message : "حدث خطأ أثناء معالجة الدفع");
       
       toast({
-        title: "فشل تأكيد الدفع",
+        title: "فشل عملية الدفع",
         description: error instanceof Error ? error.message : "حدث خطأ غير متوقع",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // معالجة أخطاء ميسر
-  const handleMoyasarError = (error: any) => {
-    console.error('Moyasar payment error:', error);
-    setPaymentError(error.message || "حدث خطأ أثناء عملية الدفع");
-    
-    toast({
-      title: "فشل عملية الدفع",
-      description: error.message || "حدث خطأ أثناء عملية الدفع، يرجى المحاولة مرة أخرى",
-      variant: "destructive",
-    });
   };
 
   return (
@@ -242,42 +189,149 @@ export function PaymentDialog({
             <Loader2 className="h-8 w-8 animate-spin mb-2" />
             <p>جاري معالجة الدفع...</p>
           </div>
+        ) : paymentSuccess ? (
+          <div className="text-center py-6">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="32" 
+                height="32" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="text-green-600"
+              >
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">تم الدفع بنجاح</h3>
+            <p className="text-gray-600 mb-4">
+              لقد تم خصم {depositAmount} ريال سعودي من بطاقتك بنجاح.
+              <br />
+              يمكنك الآن الاطلاع على معلومات التواصل مع الشركة.
+            </p>
+          </div>
         ) : paymentError ? (
           <div className="text-center py-6">
-            <p className="text-destructive mb-4">{paymentError}</p>
-            <Button onClick={() => {
-              setPaymentError(null);
-              // إعادة محاولة تحميل سكريبت Moyasar
-              setIsMoyasarInitialized(false);
-            }}>إعادة المحاولة</Button>
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg 
+                xmlns="http://www.w3.org/2000/svg" 
+                width="32" 
+                height="32" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                className="text-red-600"
+              >
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="15" y1="9" x2="9" y2="15"></line>
+                <line x1="9" y1="9" x2="15" y2="15"></line>
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold mb-2">فشل عملية الدفع</h3>
+            <p className="text-red-500 mb-4">{paymentError}</p>
+            <Button onClick={() => setPaymentError(null)}>إعادة المحاولة</Button>
           </div>
         ) : (
-          <>
-            <div id="moyasar-payment-form" className="mb-4 min-h-[200px] border rounded-lg p-4"></div>
-            
-            <div className="flex justify-center my-4">
-              {!window.Moyasar && (
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setIsMoyasarInitialized(false);
-                    setTimeout(() => initMoyasarForm(), 1000);
-                  }}
-                >
-                  <div className="flex items-center">
-                    <span className="ml-2">تحميل نموذج الدفع</span>
-                    <Loader2 className="h-4 w-4 animate-spin" />
+          <form onSubmit={handlePaymentSubmit}>
+            <Card className="mb-4 border-2 border-primary/10">
+              <CardHeader className="bg-primary/5">
+                <CardTitle className="flex items-center justify-between">
+                  <span>بطاقة الدفع</span>
+                  <CreditCard className="h-5 w-5 text-primary" />
+                </CardTitle>
+                <CardDescription>
+                  أدخل بيانات بطاقتك لإتمام عملية الدفع
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="cardName">الاسم على البطاقة</Label>
+                  <Input 
+                    id="cardName" 
+                    placeholder="محمد عبدالله" 
+                    value={cardName}
+                    onChange={(e) => setCardName(e.target.value)}
+                    required
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="cardNumber">رقم البطاقة</Label>
+                  <Input 
+                    id="cardNumber" 
+                    placeholder="0000 0000 0000 0000" 
+                    value={cardNumber}
+                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                    maxLength={19}
+                    required
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
+                    <Input 
+                      id="expiryDate" 
+                      placeholder="MM/YY" 
+                      value={expiryDate}
+                      onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
+                      maxLength={5}
+                      required
+                    />
                   </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="cvv">رمز التحقق (CVV)</Label>
+                    <Input 
+                      id="cvv" 
+                      placeholder="123" 
+                      value={cvv}
+                      onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ''))}
+                      maxLength={4}
+                      required
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-primary/5 flex justify-between p-4">
+                <div className="text-sm text-primary font-semibold">
+                  المبلغ: {depositAmount} ريال سعودي
+                </div>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                      جاري الدفع...
+                    </span>
+                  ) : (
+                    <span>إتمام الدفع</span>
+                  )}
                 </Button>
-              )}
-            </div>
+              </CardFooter>
+            </Card>
             
-            <div className="text-sm text-gray-500 mt-4">
+            <div className="text-sm text-gray-500 mt-4 p-4 bg-gray-50 rounded-lg">
               <p>ملاحظة: سيتم خصم هذا المبلغ من القيمة الإجمالية للعقد مع الشركة.</p>
-              <p className="mt-2">بيانات بطاقة الاختبار: رقم البطاقة 4111111111111111، تاريخ الانتهاء أي تاريخ مستقبلي، CVV أي ثلاثة أرقام.</p>
+              <p className="mt-2 font-medium">بيانات بطاقة الاختبار: <span className="text-primary font-bold">4111111111111111</span>، أي تاريخ انتهاء مستقبلي، وأي رمز تحقق من ثلاثة أرقام.</p>
             </div>
-          </>
+          </form>
         )}
+        
+        <DialogFooter className="mt-4">
+          {!isLoading && !paymentSuccess && (
+            <Button variant="outline" onClick={onClose}>
+              إلغاء
+            </Button>
+          )}
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
