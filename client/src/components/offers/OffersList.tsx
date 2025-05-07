@@ -292,7 +292,8 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
               </CardFooter>
             )}
             
-            {offer.status === 'accepted' && offer.depositPaid && offer.contactRevealed && (
+            {/* قسم العروض المقبولة مع الدفع - تم تعديله لتبسيط شرط العرض وضمان ظهور معلومات الشركة */}
+            {offer.status === 'accepted' && offer.depositPaid && (
               <CardFooter className="p-4 bg-green-50">
                 <div className="w-full">
                   <h4 className="font-bold text-green-700 mb-2">تم قبول هذا العرض</h4>
@@ -300,23 +301,25 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                     تم دفع العربون وكشف معلومات التواصل. يمكنك الآن التواصل مباشرة مع الشركة.
                   </p>
                   
-                  {/* عرض معلومات التواصل مع الشركة */}
-                  {offer.companyEmail && (
-                    <div className="p-4 rounded-lg bg-white border border-green-200 mt-2">
-                      <div className="flex items-center mb-2">
-                        <h5 className="font-bold text-green-800">معلومات التواصل:</h5>
+                  {/* عرض معلومات التواصل مع الشركة - تم تحسين طريقة عرض المعلومات */}
+                  <div className="p-4 rounded-lg bg-white border border-green-200 mt-2">
+                    <div className="flex items-center mb-2">
+                      <h5 className="font-bold text-green-800">معلومات التواصل:</h5>
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="flex items-center">
+                        <span className="font-semibold ml-2">الشركة:</span>
+                        <span>{offer.companyName}</span>
                       </div>
-                      <div className="grid gap-2">
-                        <div className="flex items-center">
-                          <span className="font-semibold ml-2">الشركة:</span>
-                          <span>{offer.companyName}</span>
-                        </div>
+                      {offer.companyEmail && (
                         <div className="flex items-center">
                           <span className="font-semibold ml-2">البريد الإلكتروني:</span>
                           <a href={`mailto:${offer.companyEmail}`} className="text-primary hover:underline">
                             {offer.companyEmail}
                           </a>
                         </div>
+                      )}
+                      {offer.companyUsername && (
                         <div className="mt-2">
                           <Button 
                             variant="outline" 
@@ -327,9 +330,9 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                             التواصل عبر الرسائل
                           </Button>
                         </div>
-                      </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </CardFooter>
             )}
