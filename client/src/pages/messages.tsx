@@ -204,6 +204,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
             
             // إذا كانت رسالة مرسلة بنجاح
             if (data.type === 'message_sent' || data.type === 'message_ack') {
+              console.log('تأكيد استلام الرسالة من الخادم:', data);
+              
               // تحديث المحادثات
               queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
               
@@ -212,11 +214,68 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   queryKey: ['/api/messages/conversation', selectedConversation] 
                 });
               }
+              
+              // حفظ المعرف الحقيقي للرسالة المرسلة مؤخرًا
+              if (data.tempMessageId) {
+                console.log('تحديث معرف الرسالة المؤقتة:', data.tempMessageId, 'إلى المعرف الدائم:', data.message?.id);
+                
+                // تحديث الرسائل المحلية المؤقتة
+                setLocalMessages(prev => prev.map(msg => {
+                  // إذا كان هناك معرف مؤقت وتم العثور على تطابق
+                  if (data.tempMessageId && msg.id === data.tempMessageId) {
+                    return { ...data.message, fromUser: msg.fromUser }; // استخدام معلومات المرسل من الرسالة المؤقتة
+                  }
+                  return msg;
+                }));
+              }
+            }
+            
+            // إذا تم توصيل الرسالة للمستلم
+            if (data.type === 'message_delivered') {
+              console.log('تم توصيل الرسالة للمستلم:', data);
+              
+              // تحديث حالة الرسالة في الواجهة إلى "تم التوصيل"
+              if (data.tempMessageId) {
+                setLocalMessages(prev => prev.map(msg => {
+                  if (msg.id === data.tempMessageId || msg.id === data.messageId) {
+                    return { ...msg, deliveryStatus: 'delivered' };
+                  }
+                  return msg;
+                }));
+              }
+            }
+            
+            // إذا فشل تسليم الرسالة
+            if (data.type === 'message_delivery_failed') {
+              console.log('فشل تسليم الرسالة:', data);
+              
+              // تحديث حالة الرسالة في الواجهة إلى "فشل"
+              if (data.messageId) {
+                setLocalMessages(prev => prev.map(msg => {
+                  if (msg.id === data.messageId || msg.id === data.tempMessageId) {
+                    return { ...msg, deliveryStatus: 'failed' };
+                  }
+                  return msg;
+                }));
+                
+                // إظهار إشعار للمستخدم
+                toast({
+                  title: 'لم يتم تسليم الرسالة',
+                  description: 'المستلم غير متصل حاليًا. سيتم تسليم الرسالة عندما يتصل المستلم.',
+                  variant: "default"
+                });
+              }
             }
             
             // إذا كان هناك خطأ في محتوى الرسالة (وجود معلومات اتصال محظورة)
             if (data.type === 'message_error' && data.error) {
               console.log('خطأ في محتوى الرسالة:', data.error);
+              
+              // تحديث الرسائل المحلية المؤقتة لإزالة الرسالة المرفوضة
+              const tempId = data.tempMessageId;
+              if (tempId) {
+                setLocalMessages(prev => prev.filter(msg => msg.id !== tempId));
+              }
               
               // إظهار رسالة خطأ للمستخدم
               toast({
@@ -491,12 +550,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       // تفريغ حقل الرسالة
       setNewMessage('');
       
-      // إرسال الرسالة عبر WebSocket
+      // إرسال الرسالة عبر WebSocket مع معرف مؤقت للتتبع
       wsRef.current.send(JSON.stringify({
         type: 'message',
         content: newMessage,
         toUserId: selectedConversation,
-        projectId: projectId
+        projectId: projectId,
+        tempMessageId: tempId
       }));
       
       console.log('تم إرسال الرسالة عبر WebSocket');

@@ -2008,10 +2008,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             projectId: data.projectId || null
           });
           
+          // التعرف على رسائل العميل ذات المعرف المؤقت
+          const clientMessageId = data.tempMessageId || null;
+          
           // إرسال الرسالة للمستخدم المستقبل إذا كان متصلاً
           let deliveryStatus = 'pending';
           let deliveryAttempts = 0;
-          const maxAttempts = 3;
+          const maxAttempts = 5; // زيادة عدد المحاولات من 3 إلى 5
           
           const attemptDelivery = async () => {
             deliveryAttempts++;
@@ -2048,6 +2051,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 deliveryStatus = 'delivered';
                 // تسجيل حالة التسليم في قاعدة البيانات
                 await storage.updateMessageDeliveryStatus(message.id, 'delivered');
+                
+                // إبلاغ المرسل بنجاح تسليم الرسالة
+                try {
+                  if (clients.has(userId)) {
+                    const senderClients = clients.get(userId) || [];
+                    for (const client of senderClients) {
+                      if (client.readyState === WebSocket.OPEN) {
+                        client.send(JSON.stringify({
+                          type: 'message_delivered',
+                          messageId: message.id,
+                          tempMessageId: clientMessageId
+                        }));
+                      }
+                    }
+                  }
+                } catch (error) {
+                  console.error('خطأ في إرسال إشعار نجاح التسليم للمرسل:', error);
+                }
+                
                 return true;
               }
             }
@@ -2082,10 +2104,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // بدء محاولة الإرسال الأولى
           attemptDelivery();
           
-          // إرسال رد بنجاح إرسال الرسالة للمرسل
+          // إرسال رد بنجاح إرسال الرسالة للمرسل مع معرف الرسالة المؤقت للتتبع
           ws.send(JSON.stringify({
             type: 'message_sent',
-            message
+            message,
+            tempMessageId: clientMessageId,
+            deliveryStatus: 'processing'
           }));
         }
       } catch (error) {
