@@ -150,7 +150,7 @@ export function PaymentDialog({
       const amountInHalalas = Math.round(parseFloat(depositAmount) * 100);
       console.log(`المبلغ بالهللات: ${amountInHalalas}`);
       
-      // تهيئة نموذج الدفع
+      // تهيئة نموذج الدفع - استبعاد Apple Pay لأنه يحتاج إعدادات إضافية
       window.Moyasar.init({
         element: '#moyasar-payment-form',
         amount: amountInHalalas,
@@ -158,7 +158,7 @@ export function PaymentDialog({
         description: `عربون للعرض #${offer.id} على المشروع #${offer.projectId}`,
         publishable_api_key: import.meta.env.VITE_MOYASAR_PUBLIC_KEY,
         callback_url: window.location.href,
-        methods: ['creditcard', 'applepay', 'stcpay', 'mada'],
+        methods: ['creditcard', 'mada'], // استبعاد applepay, stcpay لحل مشكلة رسالة الخطأ
         on_completed: handlePaymentCompleted,
       });
       
