@@ -472,12 +472,53 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       // تعيين متغير لتجنب إرسال رسائل متكررة
       setSentWelcomeMessage(true);
       
+      // إنشاء معرّف مؤقت للرسالة الترحيبية
+      const welcomeTempId = Date.now();
+      
+      // إنشاء رسالة ترحيبية مؤقتة للعرض المباشر
+      const welcomeTempMessage: Message = {
+        id: welcomeTempId as unknown as number,
+        content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
+        fromUserId: auth.user.id,
+        toUserId: selectedConversation,
+        projectId: projectId,
+        read: false,
+        createdAt: new Date().toISOString(),
+        deliveryStatus: 'processing',
+        fromUser: {
+          name: auth.user.name || auth.user.username,
+          avatar: auth.user.avatar || null
+        }
+      };
+      
+      // إضافة الرسالة الترحيبية المؤقتة للعرض المباشر
+      setLocalMessages(prev => [...prev, welcomeTempMessage]);
+      
       // إرسال الرسالة بعد تأخير قصير
       setTimeout(() => {
         sendMessageMutation.mutate({
           content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
           toUserId: selectedConversation,
           projectId: projectId
+        }, {
+          onSuccess: () => {
+            // تحديث حالة الرسالة الترحيبية المؤقتة إلى "تم الإرسال"
+            setLocalMessages(prev => prev.map(msg => {
+              if (msg.id === welcomeTempId) {
+                return { ...msg, deliveryStatus: 'sent' };
+              }
+              return msg;
+            }));
+          },
+          onError: () => {
+            // تحديث حالة الرسالة الترحيبية المؤقتة إلى "فشل الإرسال"
+            setLocalMessages(prev => prev.map(msg => {
+              if (msg.id === welcomeTempId) {
+                return { ...msg, deliveryStatus: 'failed' };
+              }
+              return msg;
+            }));
+          }
         });
       }, 1000);
     } else {
@@ -531,7 +572,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       
       // إنشاء رسالة مؤقتة للعرض المباشر
       const tempMessage: Message = {
-        id: tempId,
+        id: tempId as unknown as number,
         content: newMessage,
         fromUserId: auth.user.id,
         toUserId: selectedConversation,
@@ -565,10 +606,67 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     } else {
       // استخدام الطريقة التقليدية كنسخة احتياطية
       console.log('استخدام الطريقة التقليدية لإرسال الرسالة (WebSocket غير متصل)');
+      
+      // إنشاء معرّف مؤقت للرسالة عند استخدام الطريقة التقليدية
+      const fallbackTempId = Date.now();
+      
+      // إنشاء رسالة مؤقتة للعرض المباشر
+      const fallbackTempMessage: Message = {
+        id: fallbackTempId as unknown as number,
+        content: newMessage,
+        fromUserId: auth.user.id,
+        toUserId: selectedConversation,
+        projectId: projectId,
+        read: false,
+        createdAt: new Date().toISOString(),
+        // إضافة حالة "جاري المعالجة" للرسالة المؤقتة
+        deliveryStatus: 'processing',
+        fromUser: {
+          name: auth.user.name || auth.user.username,
+          avatar: auth.user.avatar || null
+        }
+      };
+      
+      // إضافة الرسالة المؤقتة للعرض المباشر
+      setLocalMessages(prev => [...prev, fallbackTempMessage]);
+      
+      // تفريغ حقل الرسالة
+      setNewMessage('');
+      
+      // إرسال الرسالة باستخدام API التقليدي
       sendMessageMutation.mutate({
         content: newMessage,
         toUserId: selectedConversation,
         projectId: projectId
+      }, {
+        onSuccess: () => {
+          // تحديث حالة الرسالة المؤقتة إلى "تم الإرسال"
+          setLocalMessages(prev => prev.map(msg => {
+            if (msg.id === fallbackTempId) {
+              return { ...msg, deliveryStatus: 'sent' };
+            }
+            return msg;
+          }));
+          
+          // تحديث قائمة المحادثات
+          queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+          queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+        },
+        onError: () => {
+          // تحديث حالة الرسالة المؤقتة إلى "فشل الإرسال"
+          setLocalMessages(prev => prev.map(msg => {
+            if (msg.id === fallbackTempId) {
+              return { ...msg, deliveryStatus: 'failed' };
+            }
+            return msg;
+          }));
+          
+          toast({
+            title: "فشل إرسال الرسالة",
+            description: "حدث خطأ أثناء إرسال رسالتك، يرجى المحاولة مرة أخرى",
+            variant: "destructive",
+          });
+        }
       });
     }
   };
