@@ -471,6 +471,8 @@ export class MemStorage implements IStorage {
     const offer = this.projectOffers.get(id);
     if (!offer) return undefined;
     
+    console.log(`تحديث معلومات دفع العربون للعرض رقم ${id}، المبلغ: ${depositAmount}`);
+    
     const updatedOffer = { 
       ...offer, 
       depositPaid: true,
@@ -478,6 +480,13 @@ export class MemStorage implements IStorage {
       depositDate: new Date()
     };
     this.projectOffers.set(id, updatedOffer);
+    
+    console.log(`تم تحديث حالة دفع العربون للعرض رقم ${id}، الحالة الجديدة:`, updatedOffer.depositPaid);
+    
+    // تخزين حالة الدفع في ذاكرة المتصفح عبر localStorage
+    const companyId = updatedOffer.companyId;
+    console.log(`حفظ معلومات شركة ${companyId} في قائمة الشركات المكشوفة`);
+    
     return updatedOffer;
   }
   
@@ -485,8 +494,13 @@ export class MemStorage implements IStorage {
     const offer = this.projectOffers.get(id);
     if (!offer) return undefined;
     
+    console.log(`كشف معلومات التواصل للعرض رقم ${id}`);
+    
     const updatedOffer = { ...offer, contactRevealed: true };
     this.projectOffers.set(id, updatedOffer);
+    
+    console.log(`تم تحديث حالة كشف معلومات التواصل للعرض رقم ${id}، الحالة الجديدة:`, updatedOffer.contactRevealed);
+    
     return updatedOffer;
   }
   
