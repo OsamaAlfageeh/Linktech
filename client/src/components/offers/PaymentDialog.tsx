@@ -61,51 +61,99 @@ export function PaymentDialog({
     Math.round(parseFloat(offer.amount.replace(/[^0-9.]/g, '')) * 0.1).toString();
 
   useEffect(() => {
-    // تهيئة مكتبة ميسر للدفع
-    if (isOpen && !isMoyasarInitialized) {
-      // تحقق من وجود مفتاح API لميسر
-      if (!import.meta.env.VITE_MOYASAR_PUBLIC_KEY) {
-        setPaymentError("مفتاح API لبوابة الدفع غير متوفر");
-        return;
-      }
-
-      // تحميل سكريبت ميسر إذا لم يكن موجوداً بالفعل
-      if (!document.getElementById('moyasar-script')) {
-        const script = document.createElement('script');
-        script.id = 'moyasar-script';
-        script.src = 'https://cdn.moyasar.com/mpf/1.7.3/moyasar.js';
-        script.async = true;
-        
-        script.onload = () => {
+    const loadMoyasarScript = async () => {
+      try {
+        // تهيئة مكتبة ميسر للدفع
+        if (isOpen && !isMoyasarInitialized) {
+          console.log("بدء تحميل سكريبت ميسر...");
+          
+          // تحقق من وجود مفتاح API لميسر
+          if (!import.meta.env.VITE_MOYASAR_PUBLIC_KEY) {
+            console.error("مفتاح API لبوابة الدفع غير متوفر");
+            setPaymentError("مفتاح API لبوابة الدفع غير متوفر. يرجى التواصل مع مسؤول النظام.");
+            return;
+          }
+          
+          // تنظيف أي سكريبت سابق قد يكون موجوداً
+          const existingScript = document.getElementById('moyasar-script');
+          if (existingScript) {
+            console.log("إزالة سكريبت موياسر السابق");
+            existingScript.remove();
+          }
+          
+          // إنشاء عنصر سكريبت جديد
+          const script = document.createElement('script');
+          script.id = 'moyasar-script';
+          script.src = 'https://cdn.moyasar.com/mpf/1.7.3/moyasar.js';
+          script.async = true;
+          
+          // تعريف مستمعي الأحداث قبل إضافة السكريبت للصفحة
+          const scriptLoadPromise = new Promise((resolve, reject) => {
+            script.onload = () => {
+              console.log("تم تحميل سكريبت ميسر بنجاح");
+              resolve(true);
+            };
+            
+            script.onerror = (error) => {
+              console.error("فشل تحميل سكريبت ميسر:", error);
+              reject(new Error("فشل تحميل نظام الدفع"));
+            };
+          });
+          
+          // إضافة السكريبت للصفحة
+          document.body.appendChild(script);
+          
+          // انتظار تحميل السكريبت
+          await scriptLoadPromise;
+          
+          // بعد التحميل، تهيئة النموذج
+          console.log("تعيين حالة تهيئة ميسر وبدء تهيئة النموذج");
           setIsMoyasarInitialized(true);
-          initMoyasarForm();
-        };
-        
-        script.onerror = () => {
-          setPaymentError("فشل تحميل نظام الدفع");
-        };
-        
-        document.body.appendChild(script);
-      } else {
-        // سكريبت ميسر موجود بالفعل
-        setIsMoyasarInitialized(true);
-        initMoyasarForm();
+          
+          // إعطاء وقت إضافي للتأكد من تحميل المكتبة بشكل كامل
+          setTimeout(() => {
+            initMoyasarForm();
+          }, 500);
+        }
+      } catch (error) {
+        console.error("خطأ في تحميل سكريبت ميسر:", error);
+        setPaymentError(error instanceof Error ? error.message : "فشل تحميل نظام الدفع");
       }
-    }
+    };
+    
+    loadMoyasarScript();
   }, [isOpen]);
 
   const initMoyasarForm = () => {
-    // تنظيف حاوية الدفع أولاً
-    const paymentContainer = document.getElementById('moyasar-payment-form');
-    if (paymentContainer) {
-      paymentContainer.innerHTML = '';
-    }
-    
-    // تهيئة نموذج الدفع
-    if (window.Moyasar) {
+    try {
+      console.log("تهيئة نموذج دفع ميسر...");
+      
+      // تنظيف حاوية الدفع أولاً
+      const paymentContainer = document.getElementById('moyasar-payment-form');
+      if (paymentContainer) {
+        paymentContainer.innerHTML = '';
+        console.log("تم تنظيف حاوية الدفع");
+      } else {
+        console.error("لم يتم العثور على عنصر حاوية الدفع: moyasar-payment-form");
+      }
+      
+      // تأكد من تحميل مكتبة ميسر
+      if (typeof window.Moyasar === 'undefined') {
+        console.error("مكتبة Moyasar غير محملة");
+        setPaymentError("فشل تحميل نظام الدفع. يرجى تحديث الصفحة والمحاولة مرة أخرى.");
+        return;
+      }
+      
+      console.log("بدء تهيئة نموذج الدفع Moyasar");
+      
+      // تحويل المبلغ إلى رقم وضربه في 100 لتحويله إلى هللات
+      const amountInHalalas = Math.round(parseFloat(depositAmount) * 100);
+      console.log(`المبلغ بالهللات: ${amountInHalalas}`);
+      
+      // تهيئة نموذج الدفع
       window.Moyasar.init({
         element: '#moyasar-payment-form',
-        amount: parseInt(depositAmount) * 100, // تحويل المبلغ إلى هللات
+        amount: amountInHalalas,
         currency: 'SAR',
         description: `عربون للعرض #${offer.id} على المشروع #${offer.projectId}`,
         publishable_api_key: import.meta.env.VITE_MOYASAR_PUBLIC_KEY,
@@ -113,6 +161,11 @@ export function PaymentDialog({
         methods: ['creditcard', 'applepay', 'stcpay', 'mada'],
         on_completed: handlePaymentCompleted,
       });
+      
+      console.log("تم تهيئة نموذج الدفع بنجاح");
+    } catch (error) {
+      console.error("خطأ في تهيئة نموذج الدفع:", error);
+      setPaymentError(`فشل تهيئة نموذج الدفع: ${error instanceof Error ? error.message : "خطأ غير معروف"}`);
     }
   };
 
@@ -192,14 +245,36 @@ export function PaymentDialog({
         ) : paymentError ? (
           <div className="text-center py-6">
             <p className="text-destructive mb-4">{paymentError}</p>
-            <Button onClick={() => setPaymentError(null)}>إعادة المحاولة</Button>
+            <Button onClick={() => {
+              setPaymentError(null);
+              // إعادة محاولة تحميل سكريبت Moyasar
+              setIsMoyasarInitialized(false);
+            }}>إعادة المحاولة</Button>
           </div>
         ) : (
           <>
-            <div id="moyasar-payment-form" className="mb-4"></div>
+            <div id="moyasar-payment-form" className="mb-4 min-h-[200px] border rounded-lg p-4"></div>
+            
+            <div className="flex justify-center my-4">
+              {!window.Moyasar && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsMoyasarInitialized(false);
+                    setTimeout(() => initMoyasarForm(), 1000);
+                  }}
+                >
+                  <div className="flex items-center">
+                    <span className="ml-2">تحميل نموذج الدفع</span>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  </div>
+                </Button>
+              )}
+            </div>
             
             <div className="text-sm text-gray-500 mt-4">
               <p>ملاحظة: سيتم خصم هذا المبلغ من القيمة الإجمالية للعقد مع الشركة.</p>
+              <p className="mt-2">بيانات بطاقة الاختبار: رقم البطاقة 4111111111111111، تاريخ الانتهاء أي تاريخ مستقبلي، CVV أي ثلاثة أرقام.</p>
             </div>
           </>
         )}
