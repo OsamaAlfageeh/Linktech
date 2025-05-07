@@ -1115,7 +1115,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'غير مصرح بالوصول إلى اتفاقيات عدم الإفصاح لهذا المشروع' });
       }
       
-      const ndaAgreements = await storage.getNdaAgreementsByProjectId(projectId);
+      // الحصول على اتفاقية عدم الإفصاح الخاصة بالمشروع
+      const ndaAgreement = await storage.getNdaAgreementByProjectId(projectId);
+      
+      // إذا وجدت اتفاقية، نرسلها كمصفوفة تحتوي على عنصر واحد
+      // إذا لم توجد، نرسل مصفوفة فارغة
+      const ndaAgreements = ndaAgreement ? [ndaAgreement] : [];
       res.json(ndaAgreements);
     } catch (error) {
       console.error('خطأ في استرجاع اتفاقيات عدم الإفصاح للمشروع:', error);

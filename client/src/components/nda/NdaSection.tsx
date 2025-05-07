@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Shield, Lock, Info, ExternalLink } from "lucide-react";
@@ -111,7 +112,7 @@ export function NdaSection({
                       تم التوقيع بواسطة: {nda.companySignatureInfo.signerName} ({nda.companySignatureInfo.signerTitle})
                     </div>
                     <div className="text-xs text-neutral-500">
-                      تاريخ التوقيع: {new Date(nda.signedAt).toLocaleDateString('ar-SA')}
+                      تاريخ التوقيع: {nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : 'غير متوفر'}
                     </div>
                   </div>
                   <Badge variant={nda.status === 'active' ? 'secondary' : 'outline'} 
