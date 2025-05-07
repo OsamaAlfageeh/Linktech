@@ -92,10 +92,20 @@ type EntrepreneurDashboardProps = {
 
 // Create project form schema
 const projectSchema = z.object({
-  title: z.string().min(5, "عنوان المشروع مطلوب ويجب أن يكون أكثر من 5 أحرف"),
-  description: z.string().min(20, "وصف المشروع مطلوب ويجب أن يكون مفصلاً (20 حرف على الأقل)"),
-  budget: z.string().min(1, "الميزانية المتوقعة مطلوبة"),
-  duration: z.string().min(1, "المدة المتوقعة مطلوبة"),
+  title: z.string()
+    .min(5, "عنوان المشروع مطلوب ويجب أن يكون أكثر من 5 أحرف")
+    .max(100, "عنوان المشروع طويل جداً، الحد الأقصى 100 حرف"),
+  description: z.string()
+    .min(20, "وصف المشروع مطلوب ويجب أن يكون مفصلاً (20 حرف على الأقل)")
+    .max(10000, "وصف المشروع طويل جداً، الحد الأقصى 10000 حرف"),
+  budget: z.string()
+    .min(1, "الميزانية المتوقعة مطلوبة")
+    .refine((val) => /^[0-9,\s\-]+(\s*ريال)?$/i.test(val), {
+      message: "يجب أن تحتوي الميزانية على أرقام فقط (يسمح بالفواصل والشرطات والمسافات وكلمة ريال)"
+    }),
+  duration: z.string()
+    .min(1, "المدة المتوقعة مطلوبة")
+    .max(100, "المدة المتوقعة طويلة جداً"),
   skills: z.string().min(1, "المهارات المطلوبة مطلوبة"),
   requiresNda: z.boolean().optional().default(false),
   status: z.string().optional(),

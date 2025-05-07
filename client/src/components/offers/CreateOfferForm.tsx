@@ -21,9 +21,18 @@ import { Loader2 } from "lucide-react";
 
 // تعريف نموذج التحقق من صحة البيانات
 const offerSchema = z.object({
-  amount: z.string().min(1, "مبلغ العرض مطلوب"),
-  duration: z.string().min(1, "مدة التنفيذ مطلوبة"),
-  description: z.string().min(20, "وصف العرض يجب أن يحتوي على 20 حرف على الأقل"),
+  amount: z.string()
+    .min(1, "مبلغ العرض مطلوب")
+    .refine((val) => /^[0-9,]+$/.test(val), {
+      message: "يجب أن يحتوي مبلغ العرض على أرقام فقط (يسمح بالفواصل)"
+    })
+    .transform((val) => val.replace(/,/g, "")), // إزالة الفواصل للتخزين
+  duration: z.string()
+    .min(1, "مدة التنفيذ مطلوبة")
+    .max(100, "مدة التنفيذ طويلة جداً"),
+  description: z.string()
+    .min(20, "وصف العرض يجب أن يحتوي على 20 حرف على الأقل")
+    .max(5000, "الوصف طويل جداً، الحد الأقصى 5000 حرف"),
 });
 
 type OfferFormValues = z.infer<typeof offerSchema>;

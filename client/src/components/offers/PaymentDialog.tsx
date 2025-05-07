@@ -91,32 +91,83 @@ export function PaymentDialog({
   
   // تنسيق تاريخ الانتهاء
   const formatExpiryDate = (value: string) => {
+    // إزالة أي شيء ما عدا الأرقام
     const v = value.replace(/[^0-9]/g, '');
-    if (v.length >= 3) {
-      return `${v.substring(0, 2)}/${v.substring(2)}`;
+    
+    // إذا كان المستخدم قام بحذف آخر رقم عند "/"، نعود للنص دون "/"
+    if (value.endsWith('/')) {
+      return value.substring(0, value.length - 1);
     }
+    
+    // تنسيق MM/YY
+    if (v.length >= 1 && v.length <= 2) {
+      return v;
+    } else if (v.length > 2) {
+      // إضافة "/" بعد أول رقمين
+      return `${v.substring(0, 2)}/${v.substring(2, 4)}`;
+    }
+    
     return value;
   };
   
   // التحقق من صلاحية البطاقة
   const isValidCardDetails = () => {
-    // تبسيط التحقق لغرض العرض التوضيحي
-    return cardNumber.replace(/\s+/g, '').length >= 16 && 
-           expiryDate.length >= 5 && 
-           cvv.length >= 3;
+    const cleanCardNumber = cardNumber.replace(/\s+/g, '');
+    
+    // التحقق من رقم البطاقة (يجب أن يكون 16 رقم)
+    if (!/^\d{16}$/.test(cleanCardNumber)) {
+      setPaymentError("رقم البطاقة يجب أن يكون 16 رقم");
+      return false;
+    }
+    
+    // التحقق من تاريخ الانتهاء (MM/YY)
+    if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
+      setPaymentError("صيغة تاريخ الانتهاء غير صحيحة، يجب أن تكون MM/YY");
+      return false;
+    }
+    
+    // التحقق من الشهر (01-12)
+    const month = parseInt(expiryDate.substring(0, 2));
+    if (month < 1 || month > 12) {
+      setPaymentError("الشهر يجب أن يكون بين 01 و 12");
+      return false;
+    }
+    
+    // التحقق من السنة (مقارنة بالسنة الحالية)
+    const currentYear = new Date().getFullYear() % 100; // آخر رقمين من السنة الحالية
+    const year = parseInt(expiryDate.substring(3, 5));
+    
+    if (year < currentYear) {
+      setPaymentError("البطاقة منتهية الصلاحية");
+      return false;
+    }
+    
+    // التحقق من رمز التحقق CVV (3-4 أرقام)
+    if (!/^\d{3,4}$/.test(cvv)) {
+      setPaymentError("رمز التحقق يجب أن يكون 3 أو 4 أرقام");
+      return false;
+    }
+    
+    // التحقق من اسم حامل البطاقة
+    if (cardName.trim().length < 3) {
+      setPaymentError("يرجى إدخال اسم حامل البطاقة بشكل صحيح");
+      return false;
+    }
+    
+    return true;
   };
 
   // معالجة تقديم نموذج الدفع
   const handlePaymentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPaymentError(null);
     
+    // التحقق من البيانات سيقوم بتعيين رسالة الخطأ تلقائياً
     if (!isValidCardDetails()) {
-      setPaymentError("يرجى إدخال جميع بيانات البطاقة بشكل صحيح");
       return;
     }
     
     setIsLoading(true);
-    setPaymentError(null);
     
     try {
       // في بيئة الإنتاج، هنا سيتم إرسال البيانات لواجهة برمجة تطبيقات ميسر
