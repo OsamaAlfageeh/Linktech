@@ -1124,24 +1124,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/messages/conversation/:userId', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
-      const userId = parseInt(req.params.userId);
-      const otherUserId = req.query.otherUserId ? parseInt(req.query.otherUserId as string) : undefined;
+      const otherUserId = parseInt(req.params.userId); // معرف المستخدم الآخر في المحادثة
       const projectId = req.query.projectId ? parseInt(req.query.projectId as string) : undefined;
       
-      // إذا كان المستخدم مسؤول ويوجد معرف مستخدم آخر محدد، اسمح له بعرض أي محادثة
-      if (user.role === 'admin' && otherUserId) {
-        console.log(`طلب المسؤول لعرض المحادثة بين المستخدمين: ${userId} و ${otherUserId}`);
-        const messages = await storage.getConversation(userId, otherUserId, projectId);
-        return res.json(messages);
+      console.log(`طلب المحادثة مع المستخدم: ${otherUserId} من المستخدم: ${user.id}, بخصوص المشروع: ${projectId || 'غير محدد'}`);
+      
+      // إذا كان المستخدم مسؤول، اسمح له بعرض أي محادثة
+      if (user.role === 'admin') {
+        // إذا تم تحديد معرفين مختلفين من قبل المسؤول
+        const adminRequestedOtherUserId = req.query.otherUserId ? parseInt(req.query.otherUserId as string) : undefined;
+        if (adminRequestedOtherUserId) {
+          console.log(`طلب المسؤول لعرض المحادثة بين المستخدمين: ${otherUserId} و ${adminRequestedOtherUserId}`);
+          const messages = await storage.getConversation(otherUserId, adminRequestedOtherUserId, projectId);
+          return res.json(messages);
+        }
       }
       
-      // إذا لم يكن مسؤول أو طلب العرض لمحادثته الشخصية
-      if (user.id !== userId && user.role !== 'admin') {
-        return res.status(403).json({ message: 'غير مصرح لك بعرض هذه المحادثة' });
-      }
+      // الحصول على المحادثة بين المستخدم الحالي والمستخدم الآخر
+      const messages = await storage.getConversation(user.id, otherUserId, projectId);
       
-      const messages = await storage.getConversation(user.id, userId, projectId);
-      res.json(messages);
+      // لوغ عدد الرسائل المسترجعة
+      console.log(`تم استرجاع ${messages.length} رسالة في المحادثة بين ${user.id} و ${otherUserId}`);
+      
+      // إضافة معلومات المستخدمين إلى الرسائل
+      const messagesWithUserDetails = await Promise.all(
+        messages.map(async (message) => {
+          const fromUser = await storage.getUser(message.fromUserId);
+          const toUser = await storage.getUser(message.toUserId);
+          
+          return {
+            ...message,
+            fromUser: fromUser ? {
+              name: fromUser.name || fromUser.username,
+              avatar: fromUser.avatar || null
+            } : null,
+            toUser: toUser ? {
+              name: toUser.name || toUser.username,
+              avatar: toUser.avatar || null
+            } : null
+          };
+        })
+      );
+      
+      res.json(messagesWithUserDetails);
     } catch (error) {
       console.error('خطأ في الحصول على المحادثة:', error);
       res.status(500).json({ message: 'Internal server error' });
