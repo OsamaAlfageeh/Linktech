@@ -270,7 +270,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                     <AlertDialogHeader>
                       <AlertDialogTitle>تأكيد قبول العرض</AlertDialogTitle>
                       <AlertDialogDescription>
-                        هل أنت متأكد من قبول هذا العرض؟ سيتطلب ذلك دفع عربون قدره 10% من قيمة العرض ({parseInt(offer.amount.replace(/[^0-9]/g, '')) * 0.1} ريال).
+                        هل أنت متأكد من قبول هذا العرض؟ سيتطلب ذلك دفع عربون قدره 2.5% من قيمة العرض ({parseInt(offer.amount.replace(/[^0-9]/g, '')) * 0.025} ريال).
                         <br />
                         <br />
                         بعد قبول العرض ودفع العربون، ستتمكن من رؤية معلومات التواصل مع الشركة.

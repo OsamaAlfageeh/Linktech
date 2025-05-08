@@ -68,9 +68,9 @@ export function PaymentDialog({
   const [cvv, setCvv] = useState("");
   const [cardName, setCardName] = useState("");
 
-  // حساب مبلغ العربون (10% من قيمة العرض) إذا لم يكن محدداً بالفعل
+  // حساب مبلغ العربون (2.5% من قيمة العرض) إذا لم يكن محدداً بالفعل
   const depositAmount = offer.depositAmount || 
-    Math.round(parseFloat(offer.amount.replace(/[^0-9.]/g, '')) * 0.1).toString();
+    Math.round(parseFloat(offer.amount.replace(/[^0-9.]/g, '')) * 0.025).toString();
   
   // عند إغلاق النافذة، نعيد تعيين الحالات
   useEffect(() => {
@@ -255,7 +255,7 @@ export function PaymentDialog({
         <DialogHeader>
           <DialogTitle>دفع العربون</DialogTitle>
           <DialogDescription>
-            يرجى دفع مبلغ العربون (10% من قيمة العرض) لاستكمال عملية قبول العرض وكشف معلومات التواصل مع الشركة.
+            يرجى دفع مبلغ العربون (2.5% من قيمة العرض) لاستكمال عملية قبول العرض وكشف معلومات التواصل مع الشركة.
             <br />
             <strong className="block mt-2">
               المبلغ المطلوب: {depositAmount} ريال سعودي
