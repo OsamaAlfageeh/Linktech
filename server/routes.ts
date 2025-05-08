@@ -1698,9 +1698,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Only the project owner can accept offers' });
       }
       
-      // حساب قيمة العربون (10% من قيمة العرض)
+      // حساب قيمة العربون (2.5% من قيمة العرض)
       const amount = parseInt(offer.amount.replace(/[^0-9]/g, ''));
-      const depositAmount = Math.round(amount * 0.1).toString();
+      const depositAmount = Math.round(amount * 0.025).toString();
       
       // تحديث حالة العرض إلى 'accepted'
       const updatedOffer = await storage.updateProjectOfferStatus(offerId, 'accepted');
