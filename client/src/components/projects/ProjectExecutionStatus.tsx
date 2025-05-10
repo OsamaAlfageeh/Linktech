@@ -144,7 +144,7 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
               <div className="flex items-center">
                 <Avatar className="h-12 w-12 ml-3">
                   <AvatarImage src={acceptedOffer.companyLogo} alt={acceptedOffer.companyName || ""} />
-                  <AvatarFallback>{acceptedOffer.companyName?.charAt(0) || "C"}</AvatarFallback>
+                  <AvatarFallback>{acceptedOffer.companyName?.charAt(0) || "ش"}</AvatarFallback>
                 </Avatar>
                 <div>
                   <div className="flex items-center">
@@ -168,15 +168,19 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
                 <div className="p-3 bg-white rounded-lg border border-green-100">
                   <div className="flex items-center">
                     <Banknote className="h-5 w-5 ml-2 text-green-600" />
-                    <span className="font-bold">قيمة العقد:</span>
-                    <span className="mr-2">{acceptedOffer.amount} ريال</span>
+                    <span className="font-bold ml-1">قيمة العقد:</span>
+                  </div>
+                  <div className="mt-1 text-center font-medium">
+                    {acceptedOffer.amount} ريال
                   </div>
                 </div>
                 <div className="p-3 bg-white rounded-lg border border-green-100">
                   <div className="flex items-center">
                     <CalendarDays className="h-5 w-5 ml-2 text-green-600" />
-                    <span className="font-bold">مدة التنفيذ:</span>
-                    <span className="mr-2">{acceptedOffer.duration}</span>
+                    <span className="font-bold ml-1">مدة التنفيذ:</span>
+                  </div>
+                  <div className="mt-1 text-center font-medium">
+                    {acceptedOffer.duration}
                   </div>
                 </div>
               </div>
@@ -185,15 +189,19 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
                 <h5 className="font-bold text-green-800 mb-2">معلومات التواصل:</h5>
                 <div className="grid gap-2">
                   {acceptedOffer.companyEmail && (
-                    <div className="flex items-center">
-                      <span className="font-semibold ml-2">البريد الإلكتروني:</span>
-                      <a href={`mailto:${acceptedOffer.companyEmail}`} className="text-primary hover:underline">
-                        {acceptedOffer.companyEmail}
-                      </a>
+                    <div className="flex flex-col">
+                      <div className="flex items-center">
+                        <span className="font-semibold ml-2">البريد الإلكتروني:</span>
+                      </div>
+                      <div className="mt-1 w-full overflow-hidden text-ellipsis">
+                        <a href={`mailto:${acceptedOffer.companyEmail}`} className="text-primary hover:underline break-all">
+                          {acceptedOffer.companyEmail}
+                        </a>
+                      </div>
                     </div>
                   )}
                   {acceptedOffer.companyUsername && (
-                    <div className="mt-2">
+                    <div className="mt-3 w-full">
                       <Button 
                         variant="outline" 
                         className="w-full" 
