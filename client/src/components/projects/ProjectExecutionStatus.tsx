@@ -40,10 +40,19 @@ interface Offer {
   companyContactRevealed?: boolean;
 }
 
-interface Project {
+type Project = {
   id: number;
   title: string;
+  description: string;
+  budget: string;
+  duration: string;
+  skills: string[];
   status: string;
+  highlightStatus?: string;
+  userId: number;
+  createdAt: string;
+  requiresNda?: boolean;
+  ndaId?: number;
   selectedOfferId?: number | null;
 }
 
@@ -55,7 +64,7 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
   const { toast } = useToast();
 
   // جلب تفاصيل المشروع
-  const { data: project, isLoading: isProjectLoading } = useQuery({
+  const { data: project, isLoading: isProjectLoading } = useQuery<Project>({
     queryKey: [`/api/projects/${projectId}`],
     enabled: Boolean(projectId),
   });
@@ -91,9 +100,9 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
     return (
       <Card>
         <CardHeader>
-          <CardTitle>حالة المشروع: {project?.status === "in-progress" ? "قيد التنفيذ" : "مكتمل"}</CardTitle>
+          <CardTitle>حالة المشروع: {project && project.status === "in-progress" ? "قيد التنفيذ" : "مكتمل"}</CardTitle>
           <CardDescription>
-            {project?.status === "in-progress" 
+            {project && project.status === "in-progress" 
               ? "المشروع قيد التنفيذ حالياً. يمكنك متابعة التقدم وإدارة المشروع من لوحة التحكم الخاصة بك." 
               : "المشروع مكتمل. يمكنك الاطلاع على سجل المشروع من لوحة التحكم الخاصة بك."}
           </CardDescription>
@@ -112,9 +121,10 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
     offer.status === 'accepted' && offer.depositPaid === true
   );
 
-  // الحصول على العروض المرفوضة
-  const rejectedOffers = offers.filter(offer => 
-    offer.status === 'rejected' || (offer.status !== 'accepted' && acceptedOffer)
+  // الحصول على العروض المرفوضة أو غير المختارة
+  const otherOffers = offers.filter(offer => 
+    offer.status === 'rejected' || 
+    (acceptedOffer ? offer.id !== acceptedOffer.id : offer.status !== 'accepted')
   );
 
   return (
@@ -206,16 +216,16 @@ export function ProjectExecutionStatus({ projectId }: ProjectExecutionStatusProp
           </div>
         )}
         
-        {rejectedOffers.length > 0 && (
+        {otherOffers.length > 0 && (
           <div className="mt-8">
             <Accordion type="single" collapsible>
-              <AccordionItem value="rejected-offers">
+              <AccordionItem value="other-offers">
                 <AccordionTrigger className="text-lg font-semibold">
-                  العروض الأخرى ({rejectedOffers.length})
+                  العروض الأخرى ({otherOffers.length})
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="grid gap-4 mt-2">
-                    {rejectedOffers.map((offer) => (
+                    {otherOffers.map((offer: Offer) => (
                       <div key={offer.id} className="bg-neutral-50 rounded-lg p-4 border border-neutral-200">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center">
