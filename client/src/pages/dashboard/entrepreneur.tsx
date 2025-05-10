@@ -593,30 +593,30 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                             {project.duration}
                           </span>
                         </div>
-                        <div className="flex space-x-2 space-x-reverse">
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/projects/${project.id}`}>
-                              عرض التفاصيل
-                            </Link>
-                          </Button>
-                          <Button variant="outline" size="sm" asChild>
-                            <Link href={`/messages?projectId=${project.id}`}>
-                              الرسائل
-                            </Link>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-primary text-primary"
-                            onClick={() => {
-                              setEditProjectId(project.id);
-                              setIsEditDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="ml-1 h-3 w-3" />
-                            تعديل
-                          </Button>
-                        </div>
+                      </div>
+                      <div className="flex space-x-2 space-x-reverse mt-3">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/projects/${project.id}`}>
+                            عرض التفاصيل
+                          </Link>
+                        </Button>
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/messages?projectId=${project.id}`}>
+                            الرسائل
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-primary text-primary"
+                          onClick={() => {
+                            setEditProjectId(project.id);
+                            setIsEditDialogOpen(true);
+                          }}
+                        >
+                          <Edit className="ml-1 h-3 w-3" />
+                          تعديل
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
