@@ -12,6 +12,7 @@ import {
 } from "@/components/recommendations";
 import { CreateOfferForm } from "@/components/offers/CreateOfferForm";
 import { OffersList } from "@/components/offers/OffersList";
+import { ProjectExecutionStatus } from "@/components/projects/ProjectExecutionStatus";
 import { NdaSection } from "@/components/nda/NdaSection";
 import { useAuth } from "@/App";
 import SEO from "@/components/seo/SEO";
@@ -430,20 +431,10 @@ const ProjectDetails = () => {
               </div>
             )}
             
-            {/* عرض معلومات لصاحب المشروع فقط */}
+            {/* عرض معلومات لصاحب المشروع فقط مع حالة التنفيذ */}
             {project.status !== "open" && auth.user?.id === project.userId && (
-              <div className="bg-white rounded-xl shadow-sm border border-neutral-200 overflow-hidden p-6 md:p-8">
-                <h2 className="text-xl font-semibold text-primary mb-3">حالة المشروع: {project.status === "in-progress" ? "قيد التنفيذ" : "مكتمل"}</h2>
-                <p className="text-neutral-700">
-                  {project.status === "in-progress" 
-                    ? "المشروع قيد التنفيذ حالياً. يمكنك متابعة التقدم وإدارة المشروع من لوحة التحكم الخاصة بك." 
-                    : "المشروع مكتمل. يمكنك الاطلاع على سجل المشروع من لوحة التحكم الخاصة بك."}
-                </p>
-                <div className="mt-4">
-                  <Link href="/dashboard/entrepreneur?tab=projects">
-                    <Button variant="outline">الذهاب للوحة التحكم</Button>
-                  </Link>
-                </div>
+              <div className="mb-8">
+                <ProjectExecutionStatus projectId={project.id} />
               </div>
             )}
           </div>
