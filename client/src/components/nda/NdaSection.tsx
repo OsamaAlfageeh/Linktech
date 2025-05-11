@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Lock, Info, ExternalLink } from "lucide-react";
+import { Shield, Lock, Info, ExternalLink, FileText, Download } from "lucide-react";
 import { NdaDialog } from "./NdaDialog";
 
 // تعريف نوع البيانات الخاص باتفاقية عدم الإفصاح
@@ -100,7 +100,7 @@ export function NdaSection({
               {projectNdas?.map((nda: NdaAgreement) => (
                 <div 
                   key={nda.id} 
-                  className="border border-neutral-200 rounded p-3 bg-neutral-50 flex justify-between items-center"
+                  className="border border-neutral-200 rounded p-3 bg-neutral-50 flex justify-between items-start"
                 >
                   <div>
                     <div className="font-medium">
@@ -113,6 +113,17 @@ export function NdaSection({
                     </div>
                     <div className="text-xs text-neutral-500">
                       تاريخ التوقيع: {nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : 'غير متوفر'}
+                    </div>
+                    <div className="mt-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-primary text-xs border-primary/30 hover:bg-primary/5"
+                        onClick={() => window.open(`/api/nda/${nda.id}/download-pdf`, '_blank')}
+                      >
+                        <FileText className="h-3 w-3 ml-1" />
+                        تنزيل الاتفاقية (PDF)
+                      </Button>
                     </div>
                   </div>
                   <Badge variant={nda.status === 'active' ? 'secondary' : 'outline'} 
@@ -156,17 +167,28 @@ export function NdaSection({
                         {ndaData?.status === 'active' ? 'سارية' : 'معلقة'}
                       </Badge>
                     </div>
-                    {ndaData?.pdfUrl && (
-                      <a 
-                        href={ndaData.pdfUrl} 
-                        target="_blank" 
-                        rel="noopener noreferrer"
-                        className="text-primary hover:text-primary-dark flex items-center mt-2"
+                    <div className="flex items-center mt-2 space-x-3 space-x-reverse">
+                      {ndaData?.pdfUrl && (
+                        <a 
+                          href={ndaData.pdfUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-primary hover:text-primary-dark flex items-center"
+                        >
+                          <ExternalLink className="h-4 w-4 ml-1" />
+                          عرض نسخة PDF
+                        </a>
+                      )}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-primary text-xs hover:bg-primary/5 h-7 px-2"
+                        onClick={() => window.open(`/api/nda/${ndaData?.id}/download-pdf`, '_blank')}
                       >
-                        <ExternalLink className="h-4 w-4 ml-1" />
-                        عرض نسخة PDF من الاتفاقية
-                      </a>
-                    )}
+                        <Download className="h-3 w-3 ml-1" />
+                        تنزيل الاتفاقية
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ) : (
