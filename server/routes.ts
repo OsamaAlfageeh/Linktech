@@ -63,7 +63,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secure: false, // تغيير إلى true في بيئة الإنتاج مع HTTPS
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: 'lax',
+      path: '/'
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
@@ -1238,7 +1239,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // تنزيل اتفاقية عدم الإفصاح بصيغة PDF
-  app.get('/api/nda/:id/download-pdf', isAuthenticated, async (req: Request, res: Response) => {
+  // لاحظ: لا نستخدم isAuthenticated هنا بل سنتحقق يدويًا لتسهيل التنزيل
+  app.get('/api/nda/:id/download-pdf', async (req: Request, res: Response) => {
+    // التحقق من المصادقة - يدويًا بدون middleware
+    if (!req.isAuthenticated()) {
+      console.log('محاولة تنزيل PDF بدون مصادقة، sessionID:', req.sessionID);
+      return res.status(401).json({ message: 'يرجى تسجيل الدخول أولاً' });
+    }
+    
+    console.log('محاولة تنزيل PDF من المستخدم:', (req.user as any).username);
+    
     try {
       const ndaId = parseInt(req.params.id);
       const nda = await storage.getNdaAgreement(ndaId);

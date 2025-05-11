@@ -119,7 +119,40 @@ export function NdaSection({
                         variant="outline" 
                         size="sm" 
                         className="text-primary text-xs border-primary/30 hover:bg-primary/5"
-                        onClick={() => window.open(`/api/nda/${nda.id}/download-pdf`, '_blank')}
+                        onClick={() => {
+                          // استخدام apiRequest بدلاً من window.open المباشر للحفاظ على رمز الجلسة
+                          const handlePdfDownload = async () => {
+                            try {
+                              const response = await fetch(`/api/nda/${nda.id}/download-pdf`, {
+                                method: 'GET',
+                                credentials: 'include',
+                              });
+                              
+                              if (!response.ok) {
+                                throw new Error(`خطأ في التنزيل: ${response.statusText}`);
+                              }
+                              
+                              // تحويل الاستجابة إلى blob
+                              const blob = await response.blob();
+                              // إنشاء URL للبلوب
+                              const url = window.URL.createObjectURL(blob);
+                              // إنشاء رابط مؤقت لتنزيل الملف
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `اتفاقية-عدم-إفصاح-${nda.id}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              // تنظيف بعد التنزيل
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            } catch (error) {
+                              console.error('خطأ في تنزيل ملف PDF:', error);
+                              alert('حدث خطأ أثناء محاولة تنزيل ملف الاتفاقية. يرجى المحاولة مرة أخرى.');
+                            }
+                          };
+                          
+                          handlePdfDownload();
+                        }}
                       >
                         <FileText className="h-3 w-3 ml-1" />
                         تنزيل الاتفاقية (PDF)
@@ -183,7 +216,42 @@ export function NdaSection({
                         variant="ghost" 
                         size="sm" 
                         className="text-primary text-xs hover:bg-primary/5 h-7 px-2"
-                        onClick={() => window.open(`/api/nda/${ndaData?.id}/download-pdf`, '_blank')}
+                        onClick={() => {
+                          if (!ndaData?.id) return;
+                          
+                          // استخدام fetch مع credentials للحفاظ على رمز الجلسة
+                          const handlePdfDownload = async () => {
+                            try {
+                              const response = await fetch(`/api/nda/${ndaData.id}/download-pdf`, {
+                                method: 'GET',
+                                credentials: 'include',
+                              });
+                              
+                              if (!response.ok) {
+                                throw new Error(`خطأ في التنزيل: ${response.statusText}`);
+                              }
+                              
+                              // تحويل الاستجابة إلى blob
+                              const blob = await response.blob();
+                              // إنشاء URL للبلوب
+                              const url = window.URL.createObjectURL(blob);
+                              // إنشاء رابط مؤقت لتنزيل الملف
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `اتفاقية-عدم-إفصاح-${ndaData.id}.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              // تنظيف بعد التنزيل
+                              window.URL.revokeObjectURL(url);
+                              document.body.removeChild(a);
+                            } catch (error) {
+                              console.error('خطأ في تنزيل ملف PDF:', error);
+                              alert('حدث خطأ أثناء محاولة تنزيل ملف الاتفاقية. يرجى المحاولة مرة أخرى.');
+                            }
+                          };
+                          
+                          handlePdfDownload();
+                        }}
                       >
                         <Download className="h-3 w-3 ml-1" />
                         تنزيل الاتفاقية
