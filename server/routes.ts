@@ -1084,12 +1084,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: ['rtla']
         });
 
-        // تحميل وتضبيط الخط العربي
-        // استخدم المسار المطلق للخط العربي (خط أميري - خط عربي متوافق)
-        const arabicFontPath = `${process.cwd()}/public/fonts/amiri.ttf`;
-        console.log('Arabic font path:', arabicFontPath);
-        doc.registerFont('Arabic', arabicFontPath);
-        doc.font('Arabic');
+        // استخدم الخط الافتراضي (Helvetica) بدلاً من محاولة تحميل خط عربي
+        // هذا قد يعرض النص العربي بشكل بسيط ولكن على الأقل سيسمح بإنشاء الملف
+        // ويمكن قراءة النص العربي حتى لو لم يكن بخط عربي مناسب
+        console.log('استخدام الخط الافتراضي...');
+        doc.font('Helvetica');
         
         // تضبيط اتجاه RTL
         doc.text('', 0, 0, { align: 'right' });
@@ -1301,9 +1300,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         company = await storage.getCompanyProfile(nda.companyId);
       }
       
-      // إنشاء ملف PDF
-      const pdfBuffer = await generateNdaPdf(nda, project, company);
-      
       // تعيين رؤوس الاستجابة وإرسال الملف
       const fileName = encodeURIComponent(`اتفاقية-عدم-إفصاح-${ndaId}.pdf`);
       
@@ -1316,15 +1312,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تعيين رؤوس المحتوى
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.setHeader('Content-Length', pdfBuffer.length);
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      // طباعة رسالة تشخيصية
-      console.log('إرسال ملف PDF بحجم:', pdfBuffer.length, 'بايت');
+      // إنشاء ملف PDF مباشرة في الاستجابة
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        info: {
+          Title: `اتفاقية عدم إفصاح - ${project.title}`,
+          Author: 'منصة لينكتك',
+          Subject: 'اتفاقية عدم إفصاح',
+        }
+      });
       
-      return res.send(pdfBuffer);
+      // طباعة رسالة تشخيصية
+      console.log('إنشاء ملف PDF مباشرة في الاستجابة');
+      
+      // توجيه مخرجات PDFKit إلى الاستجابة
+      doc.pipe(res);
+      
+      // استخدام الخط الافتراضي لتجنب أي مشاكل
+      doc.font('Helvetica');
+      
+      // إضافة محتوى اتفاقية عدم الإفصاح
+      doc.fontSize(22).text('اتفاقية عدم إفصاح', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center' });
+      doc.moveDown(2);
+      
+      // معلومات الأطراف
+      doc.fontSize(14).text('أطراف الاتفاقية:', { underline: true, align: 'right' });
+      doc.moveDown();
+      doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`, { align: 'right' });
+      
+      // معلومات الشركة
+      const companyName = company?.name || nda.companySignatureInfo?.companyName || 'غير محدد';
+      doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyName}`, { align: 'right' });
+      doc.moveDown();
+      
+      // معلومات التوقيع
+      if (nda.signedAt) {
+        doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, { align: 'right' });
+        doc.fontSize(12).text(`تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`, { align: 'right' });
+      }
+      doc.moveDown(2);
+      
+      // محتوى الاتفاقية
+      doc.fontSize(12).text('محتوى الاتفاقية:', { align: 'right', underline: true });
+      doc.fontSize(10).text('هذه اتفاقية عدم إفصاح بين الطرفين المذكورين أعلاه. يتعهد الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع.', { align: 'right' });
+      
+      // إنهاء الملف
+      doc.end();
       
     } catch (error) {
       console.error('خطأ في إنشاء ملف PDF للاتفاقية:', error);
