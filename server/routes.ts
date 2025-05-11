@@ -6,6 +6,8 @@ import crypto from "crypto";
 import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
 // استيراد مسارات Sitemap و robots.txt
 import sitemapRoutes from "./routes/sitemap";
+import PDFDocument from "pdfkit";
+import { Readable } from "stream";
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
@@ -1063,6 +1065,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // وظيفة إنشاء ملف PDF لاتفاقية عدم الإفصاح
+  async function generateNdaPdf(nda: any, project: any, company: any): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+      try {
+        const chunks: Buffer[] = [];
+        const doc = new PDFDocument({ 
+          size: 'A4',
+          margin: 50,
+          info: {
+            Title: `اتفاقية عدم إفصاح - ${project.title}`,
+            Author: 'منصة لينكتك',
+            Subject: 'اتفاقية عدم إفصاح',
+          }
+        });
+
+        // تضبيط اللغة العربية وإتجاه RTL
+        doc.font('Helvetica');
+        doc.text('', 0, 0, { align: 'right' });
+
+        // التقاط البيانات المكتوبة في الملف
+        doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+        doc.on('end', () => {
+          const result = Buffer.concat(chunks);
+          resolve(result);
+        });
+        doc.on('error', (err) => reject(err));
+
+        // إضافة الشعار والعنوان
+        doc.fontSize(22).text('اتفاقية عدم إفصاح', { align: 'center' });
+        doc.moveDown();
+        doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center' });
+        doc.moveDown(2);
+
+        // معلومات الأطراف
+        doc.fontSize(14).text('أطراف الاتفاقية:', { underline: true });
+        doc.moveDown();
+        doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`, { align: 'right' });
+        
+        // معلومات الشركة
+        const companyName = company?.name || nda.companySignatureInfo?.companyName || 'غير محدد';
+        doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyName}`, { align: 'right' });
+        doc.moveDown();
+
+        // معلومات التوقيع
+        if (nda.signedAt) {
+          doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, { align: 'right' });
+          doc.fontSize(12).text(`تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`, { align: 'right' });
+          doc.fontSize(11).text(`عنوان IP للتوقيع: ${nda.companySignatureInfo.signerIp}`, { align: 'right' });
+        }
+        doc.moveDown(2);
+
+        // نص الاتفاقية
+        doc.fontSize(14).text('نص اتفاقية عدم الإفصاح:', { underline: true });
+        doc.moveDown();
+        
+        // المقدمة
+        doc.fontSize(12).text("المقدمة:", { bold: true });
+        doc.fontSize(11).text("هذه الاتفاقية (\"الاتفاقية\") محررة ومبرمة بتاريخ التوقيع الإلكتروني بين الطرف الأول (صاحب المشروع) والطرف الثاني (الشركة).", { align: 'right' });
+        doc.moveDown();
+
+        // الغرض
+        doc.fontSize(12).text("الغرض:", { bold: true });
+        doc.fontSize(11).text("لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف الأول بالكشف عن معلومات سرية وملكية فكرية للطرف الثاني.", { align: 'right' });
+        doc.moveDown();
+
+        // المعلومات السرية
+        doc.fontSize(12).text("المعلومات السرية:", { bold: true });
+        doc.fontSize(11).text("تشمل \"المعلومات السرية\" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.", { align: 'right' });
+        doc.moveDown();
+
+        // التزامات الطرف المستلم
+        doc.fontSize(12).text("التزامات الطرف الثاني:", { bold: true });
+        doc.fontSize(11).text("يوافق الطرف الثاني على:", { align: 'right' });
+        
+        const obligations = [
+          "الحفاظ على سرية جميع المعلومات السرية وعدم الكشف عنها لأي طرف ثالث.",
+          "استخدام المعلومات السرية فقط لغرض تقييم إمكانية التعاون في تنفيذ المشروع.",
+          "عدم نسخ أو تصوير أو تخزين أي من المعلومات السرية إلا بقدر ما هو ضروري لتحقيق الغرض من هذه الاتفاقية.",
+          "اتخاذ جميع الإجراءات المعقولة للحفاظ على سرية المعلومات السرية بنفس مستوى العناية الذي يستخدمه لحماية معلوماته السرية الخاصة.",
+          "إبلاغ الطرف الأول فوراً في حالة علمه بأي استخدام أو كشف غير مصرح به للمعلومات السرية."
+        ];
+        
+        obligations.forEach((obligation, index) => {
+          doc.fontSize(11).text(`${index + 1}. ${obligation}`, { align: 'right' });
+        });
+        doc.moveDown();
+
+        // مدة الاتفاقية
+        doc.fontSize(12).text("مدة الاتفاقية:", { bold: true });
+        doc.fontSize(11).text("تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.", { align: 'right' });
+        doc.moveDown();
+
+        // القانون الحاكم
+        doc.fontSize(12).text("القانون الحاكم:", { bold: true });
+        doc.fontSize(11).text("تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.", { align: 'right' });
+        doc.moveDown();
+
+        // توقيع إلكتروني
+        doc.fontSize(12).text("توقيع إلكتروني:", { bold: true });
+        doc.fontSize(11).text("يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.", { align: 'right' });
+        doc.moveDown(2);
+
+        // مكان للتوقيعات
+        doc.fontSize(12).text("التوقيعات:", { underline: true });
+        doc.moveDown();
+        
+        doc.fontSize(11).text("الطرف الأول (صاحب المشروع):", { align: 'right' });
+        doc.moveDown();
+        doc.fontSize(11).text("الاسم: ___________________", { align: 'right' });
+        doc.fontSize(11).text("التاريخ: ___________________", { align: 'right' });
+        doc.moveDown();
+        
+        doc.fontSize(11).text("الطرف الثاني (الشركة):", { align: 'right' });
+        doc.moveDown();
+        doc.fontSize(11).text(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`, { align: 'right' });
+        doc.fontSize(11).text(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`, { align: 'right' });
+        
+        // إضافة الرقم التسلسلي والصفحات
+        const totalPages = doc.bufferedPageRange().count;
+        for (let i = 0; i < totalPages; i++) {
+          doc.switchToPage(i);
+          doc.fontSize(8).text(
+            `منصة لينكتك - اتفاقية عدم إفصاح - رقم الاتفاقية: ${nda.id} - الصفحة ${i + 1} من ${totalPages}`,
+            50,
+            doc.page.height - 50,
+            { align: 'center' }
+          );
+        }
+
+        // إنهاء الملف
+        doc.end();
+      } catch (error) {
+        reject(error);
+      }
+    });
+  }
+
   // الحصول على اتفاقية عدم إفصاح محددة بواسطة المعرف
   app.get('/api/nda/:id', isAuthenticated, async (req: Request, res: Response) => {
     try {
