@@ -1078,11 +1078,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             Title: `اتفاقية عدم إفصاح - ${project.title}`,
             Author: 'منصة لينكتك',
             Subject: 'اتفاقية عدم إفصاح',
-          }
+          },
+          // إضافة دعم اللغة العربية
+          lang: 'ar',
+          features: ['rtla']
         });
 
-        // تضبيط اللغة العربية وإتجاه RTL
-        doc.font('Helvetica');
+        // تحميل وتضبيط الخط العربي
+        const arabicFontPath = './public/fonts/arabic-font.ttf';
+        doc.registerFont('Arabic', arabicFontPath);
+        doc.font('Arabic');
+        
+        // تضبيط اتجاه RTL
         doc.text('', 0, 0, { align: 'right' });
 
         // التقاط البيانات المكتوبة في الملف
@@ -1093,52 +1100,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
         doc.on('error', (err) => reject(err));
 
+        // تعريف خيارات نص RTL
+        const rtlOptions = { 
+          align: 'right',
+          features: ['rtla']  // تفعيل الكتابة من اليمين لليسار
+        };
+        
         // إضافة الشعار والعنوان
-        doc.fontSize(22).text('اتفاقية عدم إفصاح', { align: 'center' });
+        doc.fontSize(22).text('اتفاقية عدم إفصاح', { align: 'center', features: ['rtla'] });
         doc.moveDown();
-        doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center' });
+        doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center', features: ['rtla'] });
         doc.moveDown(2);
 
         // معلومات الأطراف
-        doc.fontSize(14).text('أطراف الاتفاقية:', { underline: true });
+        doc.fontSize(14).text('أطراف الاتفاقية:', { ...rtlOptions, underline: true });
         doc.moveDown();
-        doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`, { align: 'right' });
+        doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`, rtlOptions);
         
         // معلومات الشركة
         const companyName = company?.name || nda.companySignatureInfo?.companyName || 'غير محدد';
-        doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyName}`, { align: 'right' });
+        doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyName}`, rtlOptions);
         doc.moveDown();
 
         // معلومات التوقيع
         if (nda.signedAt) {
-          doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, { align: 'right' });
-          doc.fontSize(12).text(`تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`, { align: 'right' });
-          doc.fontSize(11).text(`عنوان IP للتوقيع: ${nda.companySignatureInfo.signerIp}`, { align: 'right' });
+          doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, rtlOptions);
+          doc.fontSize(12).text(`تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`, rtlOptions);
+          doc.fontSize(11).text(`عنوان IP للتوقيع: ${nda.companySignatureInfo.signerIp}`, rtlOptions);
         }
         doc.moveDown(2);
 
         // نص الاتفاقية
-        doc.fontSize(14).text('نص اتفاقية عدم الإفصاح:', { underline: true });
+        doc.fontSize(14).text('نص اتفاقية عدم الإفصاح:', { ...rtlOptions, underline: true });
         doc.moveDown();
         
         // المقدمة
-        doc.fontSize(12).text("المقدمة:", { bold: true });
-        doc.fontSize(11).text("هذه الاتفاقية (\"الاتفاقية\") محررة ومبرمة بتاريخ التوقيع الإلكتروني بين الطرف الأول (صاحب المشروع) والطرف الثاني (الشركة).", { align: 'right' });
+        doc.fontSize(12).text("المقدمة:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("هذه الاتفاقية (\"الاتفاقية\") محررة ومبرمة بتاريخ التوقيع الإلكتروني بين الطرف الأول (صاحب المشروع) والطرف الثاني (الشركة).", rtlOptions);
         doc.moveDown();
 
         // الغرض
-        doc.fontSize(12).text("الغرض:", { bold: true });
-        doc.fontSize(11).text("لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف الأول بالكشف عن معلومات سرية وملكية فكرية للطرف الثاني.", { align: 'right' });
+        doc.fontSize(12).text("الغرض:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف الأول بالكشف عن معلومات سرية وملكية فكرية للطرف الثاني.", rtlOptions);
         doc.moveDown();
 
         // المعلومات السرية
-        doc.fontSize(12).text("المعلومات السرية:", { bold: true });
-        doc.fontSize(11).text("تشمل \"المعلومات السرية\" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.", { align: 'right' });
+        doc.fontSize(12).text("المعلومات السرية:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("تشمل \"المعلومات السرية\" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.", rtlOptions);
         doc.moveDown();
 
         // التزامات الطرف المستلم
-        doc.fontSize(12).text("التزامات الطرف الثاني:", { bold: true });
-        doc.fontSize(11).text("يوافق الطرف الثاني على:", { align: 'right' });
+        doc.fontSize(12).text("التزامات الطرف الثاني:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("يوافق الطرف الثاني على:", rtlOptions);
         
         const obligations = [
           "الحفاظ على سرية جميع المعلومات السرية وعدم الكشف عنها لأي طرف ثالث.",
