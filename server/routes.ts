@@ -1237,6 +1237,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // تنزيل اتفاقية عدم الإفصاح بصيغة PDF
+  app.get('/api/nda/:id/download-pdf', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const ndaId = parseInt(req.params.id);
+      const nda = await storage.getNdaAgreement(ndaId);
+      
+      if (!nda) {
+        return res.status(404).json({ message: 'اتفاقية عدم الإفصاح غير موجودة' });
+      }
+      
+      // التحقق من صلاحية الوصول - فقط صاحب المشروع أو الشركة الموقعة أو المسؤول
+      const user = req.user as any;
+      const project = await storage.getProject(nda.projectId);
+      
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // التحقق من صلاحية الوصول
+      const isProjectOwner = project.userId === user.id;
+      const isAdmin = user.role === 'admin';
+      const isCompanySigner = nda.companyId === user.id;
+      
+      if (!isProjectOwner && !isAdmin && !isCompanySigner) {
+        return res.status(403).json({ message: 'غير مصرح لك بالوصول إلى هذه الاتفاقية' });
+      }
+      
+      // الحصول على معلومات الشركة إذا كانت متاحة
+      let company = null;
+      if (nda.companyId) {
+        company = await storage.getCompanyProfile(nda.companyId);
+      }
+      
+      // إنشاء ملف PDF
+      const pdfBuffer = await generateNdaPdf(nda, project, company);
+      
+      // تعيين رؤوس الاستجابة وإرسال الملف
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="nda-agreement-${ndaId}.pdf"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      console.error('خطأ في إنشاء ملف PDF للاتفاقية:', error);
+      res.status(500).json({ message: 'خطأ في إنشاء ملف PDF للاتفاقية' });
+    }
+  });
+  
   // الحصول على جميع اتفاقيات عدم الإفصاح لمشروع محدد
   app.get('/api/projects/:projectId/nda', isAuthenticated, async (req: Request, res: Response) => {
     try {
