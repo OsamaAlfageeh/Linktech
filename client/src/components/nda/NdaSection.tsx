@@ -237,6 +237,14 @@ export function NdaSection({
                         {ndaData?.status === 'active' ? 'سارية' : 'معلقة'}
                       </Badge>
                     </div>
+                    
+                    {/* إشعار بدعم اللغة العربية في PDF */}
+                    <div className="bg-green-50 border border-green-200 rounded p-1.5 mb-2 flex items-center text-xs text-green-700">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 ml-1.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>ملفات PDF تدعم اللغة العربية بشكل كامل مع خط عربي واضح</span>
+                    </div>
                     <div className="flex items-center mt-2 space-x-3 space-x-reverse">
                       {ndaData?.pdfUrl && (
                         <a 
@@ -259,23 +267,38 @@ export function NdaSection({
                           console.log("تم النقر على زر تنزيل PDF للاتفاقية رقم:", ndaData.id);
                           
                           // استخدام طريقة مختلفة - تنزيل مباشر عن طريق iframe
-                          if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟')) {
+                          if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟\n\nملاحظة: يتم عرض النص العربي بشكل صحيح في الملف.')) {
+                            // إظهار إشعار للمستخدم
+                            const toast = document.createElement('div');
+                            toast.innerText = 'جاري تنزيل ملف PDF بدعم كامل للغة العربية...';
+                            toast.style.position = 'fixed';
+                            toast.style.bottom = '20px';
+                            toast.style.right = '20px';
+                            toast.style.backgroundColor = '#4CAF50';
+                            toast.style.color = 'white';
+                            toast.style.padding = '16px';
+                            toast.style.borderRadius = '4px';
+                            toast.style.zIndex = '1000';
+                            toast.style.direction = 'rtl';
+                            document.body.appendChild(toast);
+                            
                             // إنشاء iframe مؤقت للتنزيل
                             const iframe = document.createElement('iframe');
                             iframe.style.display = 'none';
                             iframe.src = `/api/nda/${ndaData.id}/download-pdf?t=${Date.now()}`;
                             document.body.appendChild(iframe);
                             
-                            // إزالة iframe بعد التنزيل
+                            // إزالة iframe والإشعار بعد التنزيل
                             setTimeout(() => {
                               document.body.removeChild(iframe);
-                              console.log('تمت إزالة iframe بعد التنزيل');
+                              document.body.removeChild(toast);
+                              console.log('تمت إزالة iframe والإشعار بعد التنزيل');
                             }, 5000);
                           }
                         }}
                       >
                         <Download className="h-3 w-3 ml-1" />
-                        تنزيل الاتفاقية
+                        تنزيل الاتفاقية (بدعم اللغة العربية)
                       </Button>
                     </div>
                   </div>
