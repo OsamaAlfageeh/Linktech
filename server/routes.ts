@@ -1085,7 +1085,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // تحميل وتضبيط الخط العربي
-        const arabicFontPath = './public/fonts/arabic-font.ttf';
+        // استخدم المسار المطلق للخط العربي
+        const arabicFontPath = `${process.cwd()}/public/fonts/arabic-font.ttf`;
+        console.log('Arabic font path:', arabicFontPath);
         doc.registerFont('Arabic', arabicFontPath);
         doc.font('Arabic');
         
@@ -1162,39 +1164,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
         
         obligations.forEach((obligation, index) => {
-          doc.fontSize(11).text(`${index + 1}. ${obligation}`, { align: 'right' });
+          doc.fontSize(11).text(`${index + 1}. ${obligation}`, { ...rtlOptions });
         });
         doc.moveDown();
 
         // مدة الاتفاقية
-        doc.fontSize(12).text("مدة الاتفاقية:", { bold: true });
-        doc.fontSize(11).text("تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.", { align: 'right' });
+        doc.fontSize(12).text("مدة الاتفاقية:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.", rtlOptions);
         doc.moveDown();
 
         // القانون الحاكم
-        doc.fontSize(12).text("القانون الحاكم:", { bold: true });
-        doc.fontSize(11).text("تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.", { align: 'right' });
+        doc.fontSize(12).text("القانون الحاكم:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.", rtlOptions);
         doc.moveDown();
 
         // توقيع إلكتروني
-        doc.fontSize(12).text("توقيع إلكتروني:", { bold: true });
-        doc.fontSize(11).text("يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.", { align: 'right' });
+        doc.fontSize(12).text("توقيع إلكتروني:", { ...rtlOptions, bold: true });
+        doc.fontSize(11).text("يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.", rtlOptions);
         doc.moveDown(2);
 
         // مكان للتوقيعات
-        doc.fontSize(12).text("التوقيعات:", { underline: true });
+        doc.fontSize(12).text("التوقيعات:", { ...rtlOptions, underline: true });
         doc.moveDown();
         
-        doc.fontSize(11).text("الطرف الأول (صاحب المشروع):", { align: 'right' });
+        doc.fontSize(11).text("الطرف الأول (صاحب المشروع):", rtlOptions);
         doc.moveDown();
-        doc.fontSize(11).text("الاسم: ___________________", { align: 'right' });
-        doc.fontSize(11).text("التاريخ: ___________________", { align: 'right' });
+        doc.fontSize(11).text("الاسم: ___________________", rtlOptions);
+        doc.fontSize(11).text("التاريخ: ___________________", rtlOptions);
         doc.moveDown();
         
-        doc.fontSize(11).text("الطرف الثاني (الشركة):", { align: 'right' });
+        doc.fontSize(11).text("الطرف الثاني (الشركة):", rtlOptions);
         doc.moveDown();
-        doc.fontSize(11).text(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`, { align: 'right' });
-        doc.fontSize(11).text(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`, { align: 'right' });
+        doc.fontSize(11).text(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`, rtlOptions);
+        doc.fontSize(11).text(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`, rtlOptions);
         
         // إضافة الرقم التسلسلي والصفحات
         const totalPages = doc.bufferedPageRange().count;
@@ -1204,7 +1206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             `منصة لينكتك - اتفاقية عدم إفصاح - رقم الاتفاقية: ${nda.id} - الصفحة ${i + 1} من ${totalPages}`,
             50,
             doc.page.height - 50,
-            { align: 'center' }
+            { align: 'center', features: ['rtla'] }
           );
         }
 
