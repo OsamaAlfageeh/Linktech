@@ -1085,8 +1085,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         // تحميل وتضبيط الخط العربي
-        // استخدم المسار المطلق للخط العربي
-        const arabicFontPath = `${process.cwd()}/public/fonts/arabic-font.ttf`;
+        // استخدم المسار المطلق للخط العربي (خط أميري - خط عربي متوافق)
+        const arabicFontPath = `${process.cwd()}/public/fonts/amiri.ttf`;
         console.log('Arabic font path:', arabicFontPath);
         doc.registerFont('Arabic', arabicFontPath);
         doc.font('Arabic');
