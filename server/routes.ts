@@ -1284,10 +1284,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const pdfBuffer = await generateNdaPdf(nda, project, company);
       
       // تعيين رؤوس الاستجابة وإرسال الملف
+      const fileName = encodeURIComponent(`اتفاقية-عدم-إفصاح-${ndaId}.pdf`);
+      
       res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="nda-agreement-${ndaId}.pdf"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Length', pdfBuffer.length);
-      res.send(pdfBuffer);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // طباعة رسالة تشخيصية
+      console.log('إرسال ملف PDF بحجم:', pdfBuffer.length, 'بايت');
+      
+      return res.send(pdfBuffer);
       
     } catch (error) {
       console.error('خطأ في إنشاء ملف PDF للاتفاقية:', error);

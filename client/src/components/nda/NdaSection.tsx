@@ -120,38 +120,67 @@ export function NdaSection({
                         size="sm" 
                         className="text-primary text-xs border-primary/30 hover:bg-primary/5"
                         onClick={() => {
+                          console.log("تم النقر على زر تنزيل PDF للاتفاقية رقم:", nda.id);
+                          
                           // استخدام apiRequest بدلاً من window.open المباشر للحفاظ على رمز الجلسة
                           const handlePdfDownload = async () => {
                             try {
+                              console.log("بدء طلب تنزيل PDF...");
                               const response = await fetch(`/api/nda/${nda.id}/download-pdf`, {
                                 method: 'GET',
                                 credentials: 'include',
                               });
+                              
+                              console.log("استجابة الخادم:", response.status, response.statusText);
+                              console.log("نوع المحتوى:", response.headers.get('content-type'));
                               
                               if (!response.ok) {
                                 throw new Error(`خطأ في التنزيل: ${response.statusText}`);
                               }
                               
                               // تحويل الاستجابة إلى blob
+                              console.log("تحويل الاستجابة إلى blob...");
                               const blob = await response.blob();
+                              console.log("نوع البلوب:", blob.type, "حجم البلوب:", blob.size);
+                              
                               // إنشاء URL للبلوب
                               const url = window.URL.createObjectURL(blob);
+                              console.log("تم إنشاء URL للبلوب:", url);
+                              
                               // إنشاء رابط مؤقت لتنزيل الملف
                               const a = document.createElement('a');
                               a.href = url;
                               a.download = `اتفاقية-عدم-إفصاح-${nda.id}.pdf`;
+                              console.log("تم تعيين اسم الملف للتنزيل:", a.download);
+                              
+                              // طريقة بديلة (1) - توفير خيارات إضافية
+                              a.target = '_blank';
+                              a.rel = 'noopener noreferrer';
+                              a.style.display = 'none';
+                              
+                              console.log("إضافة عنصر الرابط للصفحة والنقر عليه...");
                               document.body.appendChild(a);
                               a.click();
+                              
                               // تنظيف بعد التنزيل
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
+                              console.log("تنظيف الموارد بعد التنزيل...");
+                              setTimeout(() => {
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
+                                console.log("اكتمل التنزيل وتم تنظيف الموارد");
+                              }, 100);
                             } catch (error) {
                               console.error('خطأ في تنزيل ملف PDF:', error);
                               alert('حدث خطأ أثناء محاولة تنزيل ملف الاتفاقية. يرجى المحاولة مرة أخرى.');
                             }
                           };
                           
-                          handlePdfDownload();
+                          // طريقة بديلة (2) - تنزيل مباشر إلى نافذة جديدة
+                          if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟')) {
+                            window.open(`/api/nda/${nda.id}/download-pdf?t=${Date.now()}`, '_blank');
+                          } else {
+                            handlePdfDownload();
+                          }
                         }}
                       >
                         <FileText className="h-3 w-3 ml-1" />
@@ -219,38 +248,12 @@ export function NdaSection({
                         onClick={() => {
                           if (!ndaData?.id) return;
                           
-                          // استخدام fetch مع credentials للحفاظ على رمز الجلسة
-                          const handlePdfDownload = async () => {
-                            try {
-                              const response = await fetch(`/api/nda/${ndaData.id}/download-pdf`, {
-                                method: 'GET',
-                                credentials: 'include',
-                              });
-                              
-                              if (!response.ok) {
-                                throw new Error(`خطأ في التنزيل: ${response.statusText}`);
-                              }
-                              
-                              // تحويل الاستجابة إلى blob
-                              const blob = await response.blob();
-                              // إنشاء URL للبلوب
-                              const url = window.URL.createObjectURL(blob);
-                              // إنشاء رابط مؤقت لتنزيل الملف
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `اتفاقية-عدم-إفصاح-${ndaData.id}.pdf`;
-                              document.body.appendChild(a);
-                              a.click();
-                              // تنظيف بعد التنزيل
-                              window.URL.revokeObjectURL(url);
-                              document.body.removeChild(a);
-                            } catch (error) {
-                              console.error('خطأ في تنزيل ملف PDF:', error);
-                              alert('حدث خطأ أثناء محاولة تنزيل ملف الاتفاقية. يرجى المحاولة مرة أخرى.');
-                            }
-                          };
+                          console.log("تم النقر على زر تنزيل PDF للاتفاقية رقم:", ndaData.id);
                           
-                          handlePdfDownload();
+                          // طريقة بديلة - تنزيل مباشر إلى نافذة جديدة
+                          if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟')) {
+                            window.open(`/api/nda/${ndaData.id}/download-pdf?t=${Date.now()}`, '_blank');
+                          }
                         }}
                       >
                         <Download className="h-3 w-3 ml-1" />
