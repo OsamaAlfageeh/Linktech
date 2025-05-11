@@ -1244,10 +1244,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     // التحقق من المصادقة - يدويًا بدون middleware
     if (!req.isAuthenticated()) {
       console.log('محاولة تنزيل PDF بدون مصادقة، sessionID:', req.sessionID);
-      return res.status(401).json({ message: 'يرجى تسجيل الدخول أولاً' });
+      // في حالة الطلب عبر iframe أو مباشر، نستخدم إعادة التوجيه بدلاً من الخطأ
+      if (req.query.t) {
+        console.log('الطلب من iframe أو window.open، إعادة توجيه إلى صفحة تسجيل الدخول');
+        return res.redirect('/auth');
+      } else {
+        return res.status(401).json({ message: 'يرجى تسجيل الدخول أولاً' });
+      }
     }
     
-    console.log('محاولة تنزيل PDF من المستخدم:', (req.user as any).username);
+    console.log('محاولة تنزيل PDF من المستخدم:', (req.user as any).username, 'sessionID:', req.sessionID);
     
     try {
       const ndaId = parseInt(req.params.id);
@@ -1286,6 +1292,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تعيين رؤوس الاستجابة وإرسال الملف
       const fileName = encodeURIComponent(`اتفاقية-عدم-إفصاح-${ndaId}.pdf`);
       
+      // تعيين رؤوس CORS لدعم طلبات iframe
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Access-Control-Allow-Methods', 'GET');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+      
+      // تعيين رؤوس المحتوى
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Length', pdfBuffer.length);

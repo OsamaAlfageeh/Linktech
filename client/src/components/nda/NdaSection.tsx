@@ -175,11 +175,19 @@ export function NdaSection({
                             }
                           };
                           
-                          // طريقة بديلة (2) - تنزيل مباشر إلى نافذة جديدة
+                          // استخدام طريقة مختلفة - تنزيل مباشر عن طريق iframe
                           if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟')) {
-                            window.open(`/api/nda/${nda.id}/download-pdf?t=${Date.now()}`, '_blank');
-                          } else {
-                            handlePdfDownload();
+                            // إنشاء iframe مؤقت للتنزيل
+                            const iframe = document.createElement('iframe');
+                            iframe.style.display = 'none';
+                            iframe.src = `/api/nda/${nda.id}/download-pdf?t=${Date.now()}`;
+                            document.body.appendChild(iframe);
+                            
+                            // إزالة iframe بعد التنزيل
+                            setTimeout(() => {
+                              document.body.removeChild(iframe);
+                              console.log('تمت إزالة iframe بعد التنزيل');
+                            }, 5000);
                           }
                         }}
                       >
@@ -250,9 +258,19 @@ export function NdaSection({
                           
                           console.log("تم النقر على زر تنزيل PDF للاتفاقية رقم:", ndaData.id);
                           
-                          // طريقة بديلة - تنزيل مباشر إلى نافذة جديدة
+                          // استخدام طريقة مختلفة - تنزيل مباشر عن طريق iframe
                           if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟')) {
-                            window.open(`/api/nda/${ndaData.id}/download-pdf?t=${Date.now()}`, '_blank');
+                            // إنشاء iframe مؤقت للتنزيل
+                            const iframe = document.createElement('iframe');
+                            iframe.style.display = 'none';
+                            iframe.src = `/api/nda/${ndaData.id}/download-pdf?t=${Date.now()}`;
+                            document.body.appendChild(iframe);
+                            
+                            // إزالة iframe بعد التنزيل
+                            setTimeout(() => {
+                              document.body.removeChild(iframe);
+                              console.log('تمت إزالة iframe بعد التنزيل');
+                            }, 5000);
                           }
                         }}
                       >
