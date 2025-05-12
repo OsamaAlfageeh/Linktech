@@ -1316,195 +1316,94 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      // استخدام pdf-lib لإنشاء ملف PDF باللغة العربية
-      console.log('إنشاء ملف PDF باللغة العربية باستخدام pdf-lib');
-      
-      const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+      // تحديد بعض المعلومات
       const fs = require('fs');
       const path = require('path');
       
-      // إنشاء وثيقة PDF جديدة
-      const pdfDoc = await PDFDocument.create();
-      
-      // إضافة صفحة جديدة
-      const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
-      
-      // الحصول على خط قياسي (سنستخدم بدائل لدعم العربية لاحقاً)
-      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-      
-      // تحديد بعض المعلومات
+      // استخراج معلومات الشركة
       const companyInfo = nda.companySignatureInfo ? nda.companySignatureInfo : {};
       const companyNameStr = company ? (company.name || 'غير محدد') : 
                             (companyInfo && typeof companyInfo === 'object' && 'companyName' in companyInfo ? 
                              companyInfo.companyName : 'غير محدد');
       
-      // تحديد لون النص
-      const textColor = rgb(0, 0, 0);
-      
-      // تعريف أبعاد الصفحة
-      const { width, height } = page.getSize();
-      
-      // رسم العنوان (من اليمين إلى اليسار للعربية)
-      // ملاحظة: pdf-lib لا تدعم RTL بشكل مباشر، لذا سنتلاعب بالإحداثيات
-      page.drawText('اتفاقية عدم إفصاح', {
-        x: width / 2 - 50, // تقريبًا في وسط الصفحة
-        y: height - 50,
-        size: 24,
-        font,
-        color: textColor
-      });
-      
-      // رسم معلومات المشروع
-      page.drawText(`المشروع: ${project.title}`, {
-        x: width - 150, // من اليمين
-        y: height - 100,
-        size: 18,
-        font,
-        color: textColor
-      });
-      
-      // رسم بيانات الأطراف
-      page.drawText('الطرف الأول (صاحب المشروع):', {
-        x: width - 200,
-        y: height - 150,
-        size: 14,
-        font,
-        color: textColor
-      });
-      
-      // اسم صاحب المشروع - استخراجه من بيانات المشروع إذا كان متاحًا
+      // استخراج اسم صاحب المشروع
       const projectOwner = project.userId ? (await storage.getUser(project.userId))?.name || 'غير محدد' : 'غير محدد';
-      page.drawText(projectOwner, {
-        x: width - 220,
-        y: height - 170,
-        size: 12,
-        font,
-        color: textColor
-      });
       
-      // رسم بيانات الشركة
-      page.drawText('الطرف الثاني (الشركة):', {
-        x: width - 200,
-        y: height - 200,
-        size: 14,
-        font,
-        color: textColor
-      });
+      // استخدام Puppeteer لتحويل HTML إلى PDF
+      console.log('إنشاء ملف PDF باللغة العربية باستخدام HTML وPuppeteer');
       
-      // اسم الشركة
-      page.drawText(companyNameStr, {
-        x: width - 220,
-        y: height - 220,
-        size: 12,
-        font,
-        color: textColor
-      });
+      const puppeteer = require('puppeteer');
+      const fsExtra = require('fs-extra');
       
-      // رسم بنود الاتفاقية
-      page.drawText('بنود الاتفاقية:', {
-        x: width - 200,
-        y: height - 270,
-        size: 14,
-        font,
-        color: textColor
-      });
+      // تحضير قالب HTML للاتفاقية
+      const templatePath = path.join(__dirname, 'templates', 'nda-template.html');
+      let templateHtml = await fsExtra.readFile(templatePath, 'utf8');
       
-      // البنود
-      const terms = [
-        '1. يتعهد الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع.',
-        '2. يلتزم الطرف الثاني بعدم الإفصاح عن أي معلومات لأي طرف ثالث دون موافقة كتابية مسبقة من الطرف الأول.',
-        '3. يستخدم الطرف الثاني المعلومات السرية فقط لغرض تقييم والعمل على المشروع وليس لأي غرض آخر.',
-        '4. تبقى هذه الاتفاقية سارية المفعول لمدة سنة واحدة من تاريخ التوقيع.'
-      ];
+      // تاريخ اليوم بالتنسيق العربي
+      const currentDate = new Date().toLocaleDateString('ar-SA');
+      const generationTime = new Date().toLocaleString('ar-SA');
       
-      // رسم البنود
-      let yPos = height - 300;
-      for (const term of terms) {
-        page.drawText(term, {
-          x: width - 380, // من اليمين مع مساحة للنص
-          y: yPos,
-          size: 10,
-          font,
-          color: textColor
-        });
-        yPos -= 20; // تحريك للبند التالي
-      }
+      // إعداد معلومات التوقيع
+      let signatureStatus = 'الحالة: لم يتم التوقيع بعد. هذه نسخة مسودة فقط.';
+      let signatureInfo = '';
       
-      // إضافة معلومات التوقيع إذا كانت الاتفاقية موقعة
-      yPos -= 30;
-      page.drawText('التوقيعات:', {
-        x: width - 200,
-        y: yPos,
-        size: 14,
-        font,
-        color: textColor
-      });
-      
-      yPos -= 20;
       if (nda.signedAt) {
-        const companyInfo = nda.companySignatureInfo as any || {};
-        const signerName = typeof companyInfo === 'object' && companyInfo.signerName ? companyInfo.signerName : 'غير محدد';
-        const signerTitle = typeof companyInfo === 'object' && companyInfo.signerTitle ? companyInfo.signerTitle : 'غير محدد';
+        const companySignInfo = nda.companySignatureInfo as any || {};
+        const signerName = typeof companySignInfo === 'object' && companySignInfo.signerName ? companySignInfo.signerName : 'غير محدد';
+        const signerTitle = typeof companySignInfo === 'object' && companySignInfo.signerTitle ? companySignInfo.signerTitle : 'غير محدد';
         const signedDate = new Date(nda.signedAt).toLocaleDateString('ar-SA');
         
-        page.drawText(`تم التوقيع بواسطة: ${signerName}`, {
-          x: width - 250,
-          y: yPos,
-          size: 10,
-          font,
-          color: textColor
-        });
-        
-        yPos -= 20;
-        page.drawText(`المنصب: ${signerTitle}`, {
-          x: width - 250,
-          y: yPos,
-          size: 10,
-          font,
-          color: textColor
-        });
-        
-        yPos -= 20;
-        page.drawText(`التاريخ: ${signedDate}`, {
-          x: width - 250,
-          y: yPos,
-          size: 10,
-          font,
-          color: textColor
-        });
-      } else {
-        page.drawText('الحالة: لم يتم التوقيع بعد. هذه نسخة مسودة فقط.', {
-          x: width - 300,
-          y: yPos,
-          size: 10,
-          font,
-          color: textColor
-        });
+        signatureStatus = 'الحالة: تم التوقيع';
+        signatureInfo = `
+          <div class="signature-info">تم التوقيع بواسطة: ${signerName}</div>
+          <div class="signature-info">المنصب: ${signerTitle}</div>
+          <div class="signature-info">التاريخ: ${signedDate}</div>
+        `;
       }
       
-      // إضافة معلومات تذييل الصفحة
-      page.drawText('هذه الوثيقة تم إنشاؤها بواسطة منصة لينكتك.', {
-        x: width / 2 - 80, // تقريبًا في وسط الصفحة
-        y: 50,
-        size: 10,
-        font,
-        color: textColor
+      // استبدال القيم في القالب
+      templateHtml = templateHtml
+        .replace('{{PROJECT_TITLE}}', project.title)
+        .replace('{{PROJECT_OWNER_NAME}}', projectOwner)
+        .replace('{{COMPANY_NAME}}', companyNameStr)
+        .replace('{{CURRENT_DATE}}', currentDate)
+        .replace('{{SIGNATURE_STATUS}}', signatureStatus)
+        .replace('{{SIGNATURE_INFO}}', signatureInfo)
+        .replace('{{GENERATION_DATE}}', generationTime);
+      
+      // إنشاء ملف HTML مؤقت
+      const tempHtmlPath = path.join(__dirname, 'temp-nda.html');
+      await fsExtra.writeFile(tempHtmlPath, templateHtml, 'utf8');
+      
+      // استخدام Puppeteer لتحويل HTML إلى PDF
+      const browser = await puppeteer.launch({
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: true
+      });
+      const puppeteerPage = await browser.newPage();
+      
+      // فتح الملف المؤقت
+      await puppeteerPage.goto(`file://${tempHtmlPath}`, { waitUntil: 'networkidle0' });
+      
+      // إنشاء PDF
+      const pdfBuffer = await puppeteerPage.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: {
+          top: '1cm',
+          right: '1cm',
+          bottom: '1cm',
+          left: '1cm'
+        }
       });
       
-      page.drawText('وهي ملزمة قانونيًا بمجرد توقيعها من قبل الطرفين.', {
-        x: width / 2 - 80, // تقريبًا في وسط الصفحة
-        y: 30,
-        size: 10,
-        font,
-        color: textColor
-      });
-      
-      // تحويل الوثيقة إلى بيانات ثنائية
-      const pdfBytes = await pdfDoc.save();
+      // إغلاق المتصفح وحذف الملف المؤقت
+      await browser.close();
+      await fsExtra.remove(tempHtmlPath);
       
       // إرسال الملف مباشرة في الاستجابة
       res.contentType('application/pdf');
-      res.send(Buffer.from(pdfBytes));
+      res.send(pdfBuffer);
       
     } catch (error) {
       console.error('خطأ في إنشاء ملف PDF للاتفاقية:', error);
