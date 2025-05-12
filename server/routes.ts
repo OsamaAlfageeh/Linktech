@@ -8,6 +8,9 @@ import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./email
 import sitemapRoutes from "./routes/sitemap";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
+import fsExtra from "fs-extra";
+import puppeteer from "puppeteer";
+import path from "path";
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
@@ -1317,9 +1320,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Expires', '0');
       
       // تحديد بعض المعلومات
-      const fs = require('fs');
-      const path = require('path');
-      
       // استخراج معلومات الشركة
       const companyInfo = nda.companySignatureInfo ? nda.companySignatureInfo : {};
       const companyNameStr = company ? (company.name || 'غير محدد') : 
@@ -1331,9 +1331,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // استخدام Puppeteer لتحويل HTML إلى PDF
       console.log('إنشاء ملف PDF باللغة العربية باستخدام HTML وPuppeteer');
-      
-      const puppeteer = require('puppeteer');
-      const fsExtra = require('fs-extra');
       
       // تحضير قالب HTML للاتفاقية
       const templatePath = path.join(__dirname, 'templates', 'nda-template.html');
