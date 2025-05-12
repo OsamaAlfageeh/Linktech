@@ -1316,21 +1316,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      // إنشاء ملف PDF مباشرة في الاستجابة باستخدام إعدادات خاصة لدعم اللغة العربية
+      // إنشاء ملف PDF باللغة الإنجليزية فقط لتجنب مشكلة عرض النص العربي
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
         autoFirstPage: true,
         layout: 'portrait',
         info: {
-          Title: 'NDA Agreement',
+          Title: 'NDA Agreement - Linktech Platform',
           Author: 'Linktech Platform',
-          Subject: 'NDA Agreement',
+          Subject: 'Non-Disclosure Agreement',
+          Keywords: 'NDA, confidentiality, agreement, project'
         }
       });
       
       // طباعة رسالة تشخيصية
-      console.log('إنشاء ملف PDF باستخدام النص اللاتيني مع المقابل العربي');
+      console.log('إنشاء ملف PDF باللغة الإنجليزية فقط');
       
       // توجيه مخرجات PDFKit إلى الاستجابة
       doc.pipe(res);
@@ -1338,54 +1339,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخدام الخط الافتراضي
       doc.font('Helvetica');
       
-      // إضافة محتوى ثنائي اللغة
-      doc.fontSize(20).text('Non-Disclosure Agreement / اتفاقية عدم الإفصاح', { align: 'center' });
-      doc.moveDown();
+      // رأس المستند
+      doc.fontSize(10).text('Linktech Platform - www.linktech.app', { align: 'right' });
+      doc.moveDown(0.5);
+      doc.fontSize(10).text(`Document ID: NDA-${ndaId}-${new Date().toISOString().split('T')[0]}`, { align: 'right' });
+      doc.moveDown(1);
       
-      doc.fontSize(16).text(`Project / المشروع: ${project.title}`, { align: 'center' });
+      // عنوان المستند
+      doc.fontSize(22).text('NON-DISCLOSURE AGREEMENT', { align: 'center' });
+      doc.moveDown(0.5);
+      
+      // معلومات المشروع
+      doc.fontSize(16).text(`Project: ${project.title}`, { align: 'center' });
       doc.moveDown(2);
       
-      // ملخص الاتفاقية
-      doc.fontSize(14).text('Agreement Summary:', { align: 'left', continued: false });
+      // مقدمة
+      doc.fontSize(12).text('THIS AGREEMENT is entered into between:', { align: 'left' });
       doc.moveDown(0.5);
-      doc.fontSize(12).text(`This is a non-disclosure agreement between the project owner and the company. The company commits to maintaining the confidentiality of all information related to the project.`, { align: 'left' });
-      doc.moveDown();
+      doc.fontSize(12).text(`1. "${project.ownerName || 'Project Owner'}" (hereinafter referred to as "the First Party" or "the Disclosing Party")`, { align: 'left' });
+      doc.moveDown(0.2);
+      doc.fontSize(12).text(`2. "${companyName}" (hereinafter referred to as "the Second Party" or "the Receiving Party")`, { align: 'left' });
+      doc.moveDown(1);
       
-      // معلومات الأطراف
-      doc.fontSize(14).text('Parties / الأطراف:', { align: 'left', underline: true });
+      // الغرض من الاتفاقية
+      doc.fontSize(14).text('PURPOSE:', { align: 'left', underline: true });
       doc.moveDown(0.5);
-      doc.fontSize(12).text(`First Party (Project Owner) / صاحب المشروع: ${project.ownerName || 'Not specified / غير محدد'}`, { align: 'left' });
+      doc.fontSize(12).text('The purpose of this Agreement is to protect the confidential and proprietary information of the First Party that may be disclosed to the Second Party in relation to the above-mentioned project.', { align: 'left' });
+      doc.moveDown(1);
       
-      // معلومات الشركة
-      const companyName = company?.name || nda.companySignatureInfo?.companyName || 'Not specified / غير محدد';
-      doc.fontSize(12).text(`Second Party (Company) / الشركة: ${companyName}`, { align: 'left' });
-      doc.moveDown();
-      
-      // بنود الاتفاقية
-      doc.fontSize(14).text('Terms / البنود:', { align: 'left', underline: true });
+      // التعريفات
+      doc.fontSize(14).text('DEFINITIONS:', { align: 'left', underline: true });
       doc.moveDown(0.5);
-      doc.fontSize(12).text(`1. The Second Party shall maintain the confidentiality of all information related to the project.`, { align: 'left' });
-      doc.fontSize(12).text(`2. The Second Party shall not disclose any information to a third party without the written consent of the First Party.`, { align: 'left' });
-      doc.fontSize(12).text(`3. This agreement is valid for a period of one year from the date of signing.`, { align: 'left' });
-      doc.moveDown();
+      doc.fontSize(12).text('"Confidential Information" means any information disclosed by the First Party to the Second Party, either directly or indirectly, in writing, orally or by any other means, related to the Project.', { align: 'left' });
+      doc.moveDown(1);
+      
+      // البنود والالتزامات
+      doc.fontSize(14).text('TERMS AND OBLIGATIONS:', { align: 'left', underline: true });
+      doc.moveDown(0.5);
+      doc.fontSize(12).text('1. The Second Party agrees to hold all Confidential Information in strict confidence and shall not disclose such Confidential Information to any third party without the prior written consent of the First Party.', { align: 'left' });
+      doc.moveDown(0.3);
+      doc.fontSize(12).text('2. The Second Party shall use the Confidential Information solely for the purpose of evaluating and working on the Project and for no other purpose.', { align: 'left' });
+      doc.moveDown(0.3);
+      doc.fontSize(12).text('3. The Second Party shall protect the disclosed Confidential Information with the same degree of care as it uses to protect its own confidential information.', { align: 'left' });
+      doc.moveDown(0.3);
+      doc.fontSize(12).text('4. This Agreement shall remain in effect for a period of one (1) year from the date of signing.', { align: 'left' });
+      doc.moveDown(1);
+      
+      // التوقيعات
+      doc.fontSize(14).text('SIGNATURES:', { align: 'left', underline: true });
+      doc.moveDown(0.5);
       
       // معلومات التوقيع
-      doc.fontSize(14).text('Signatures / التوقيعات:', { align: 'left', underline: true });
-      doc.moveDown(0.5);
-      
       if (nda.signedAt) {
-        doc.fontSize(12).text(`Signed By / تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName}`, { align: 'left' });
-        doc.fontSize(12).text(`Title / المنصب: ${nda.companySignatureInfo.signerTitle || 'Not specified / غير محدد'}`, { align: 'left' });
-        doc.fontSize(12).text(`Date / التاريخ: ${new Date(nda.signedAt).toLocaleDateString()}`, { align: 'left' });
+        doc.fontSize(12).text(`Signed by: ${nda.companySignatureInfo.signerName}`, { align: 'left' });
+        doc.fontSize(12).text(`Title: ${nda.companySignatureInfo.signerTitle || 'Not specified'}`, { align: 'left' });
+        doc.fontSize(12).text(`Date: ${new Date(nda.signedAt).toLocaleDateString()}`, { align: 'left' });
+        doc.fontSize(12).text(`On behalf of: ${companyName}`, { align: 'left' });
       } else {
-        doc.fontSize(12).text(`Status: Not signed yet / الحالة: لم يتم التوقيع بعد`, { align: 'left' });
+        doc.fontSize(12).text('Status: This document has not been signed yet.', { align: 'left' });
+        doc.fontSize(12).text('This is a draft version for review purposes only.', { align: 'left' });
       }
       
       doc.moveDown(2);
       
-      // معلومات قانونية
-      doc.fontSize(10).text(`This document is generated by Linktech Platform. It is legally binding once signed by both parties.`, { align: 'center' });
-      doc.fontSize(10).text(`هذه الوثيقة مولدة بواسطة منصة لينكتك. وهي ملزمة قانونياً بمجرد توقيعها من قبل الطرفين.`, { align: 'center' });
+      // تذييل المستند
+      doc.fontSize(10).text('This document is generated by Linktech Platform.', { align: 'center' });
+      doc.fontSize(10).text('It is legally binding once signed by both parties.', { align: 'center' });
+      doc.moveDown(0.5);
+      doc.fontSize(8).text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
       
       // إنهاء الملف
       doc.end();
