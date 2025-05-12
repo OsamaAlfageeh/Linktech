@@ -1316,100 +1316,195 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       
-      // إنشاء ملف PDF باللغة الإنجليزية فقط لتجنب مشكلة عرض النص العربي
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50,
-        autoFirstPage: true,
-        layout: 'portrait',
-        info: {
-          Title: 'NDA Agreement - Linktech Platform',
-          Author: 'Linktech Platform',
-          Subject: 'Non-Disclosure Agreement',
-          Keywords: 'NDA, confidentiality, agreement, project'
-        }
+      // استخدام pdf-lib لإنشاء ملف PDF باللغة العربية
+      console.log('إنشاء ملف PDF باللغة العربية باستخدام pdf-lib');
+      
+      const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+      const fs = require('fs');
+      const path = require('path');
+      
+      // إنشاء وثيقة PDF جديدة
+      const pdfDoc = await PDFDocument.create();
+      
+      // إضافة صفحة جديدة
+      const page = pdfDoc.addPage([595.28, 841.89]); // A4 size
+      
+      // الحصول على خط قياسي (سنستخدم بدائل لدعم العربية لاحقاً)
+      const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+      
+      // تحديد بعض المعلومات
+      const companyInfo = nda.companySignatureInfo ? nda.companySignatureInfo : {};
+      const companyNameStr = company ? (company.name || 'غير محدد') : 
+                            (companyInfo && typeof companyInfo === 'object' && 'companyName' in companyInfo ? 
+                             companyInfo.companyName : 'غير محدد');
+      
+      // تحديد لون النص
+      const textColor = rgb(0, 0, 0);
+      
+      // تعريف أبعاد الصفحة
+      const { width, height } = page.getSize();
+      
+      // رسم العنوان (من اليمين إلى اليسار للعربية)
+      // ملاحظة: pdf-lib لا تدعم RTL بشكل مباشر، لذا سنتلاعب بالإحداثيات
+      page.drawText('اتفاقية عدم إفصاح', {
+        x: width / 2 - 50, // تقريبًا في وسط الصفحة
+        y: height - 50,
+        size: 24,
+        font,
+        color: textColor
       });
       
-      // طباعة رسالة تشخيصية
-      console.log('إنشاء ملف PDF باللغة الإنجليزية فقط');
+      // رسم معلومات المشروع
+      page.drawText(`المشروع: ${project.title}`, {
+        x: width - 150, // من اليمين
+        y: height - 100,
+        size: 18,
+        font,
+        color: textColor
+      });
       
-      // توجيه مخرجات PDFKit إلى الاستجابة
-      doc.pipe(res);
+      // رسم بيانات الأطراف
+      page.drawText('الطرف الأول (صاحب المشروع):', {
+        x: width - 200,
+        y: height - 150,
+        size: 14,
+        font,
+        color: textColor
+      });
       
-      // استخدام الخط الافتراضي
-      doc.font('Helvetica');
+      // اسم صاحب المشروع - استخراجه من بيانات المشروع إذا كان متاحًا
+      const projectOwner = project.userId ? (await storage.getUser(project.userId))?.name || 'غير محدد' : 'غير محدد';
+      page.drawText(projectOwner, {
+        x: width - 220,
+        y: height - 170,
+        size: 12,
+        font,
+        color: textColor
+      });
       
-      // رأس المستند
-      doc.fontSize(10).text('Linktech Platform - www.linktech.app', { align: 'right' });
-      doc.moveDown(0.5);
-      doc.fontSize(10).text(`Document ID: NDA-${ndaId}-${new Date().toISOString().split('T')[0]}`, { align: 'right' });
-      doc.moveDown(1);
+      // رسم بيانات الشركة
+      page.drawText('الطرف الثاني (الشركة):', {
+        x: width - 200,
+        y: height - 200,
+        size: 14,
+        font,
+        color: textColor
+      });
       
-      // عنوان المستند
-      doc.fontSize(22).text('NON-DISCLOSURE AGREEMENT', { align: 'center' });
-      doc.moveDown(0.5);
+      // اسم الشركة
+      page.drawText(companyNameStr, {
+        x: width - 220,
+        y: height - 220,
+        size: 12,
+        font,
+        color: textColor
+      });
       
-      // معلومات المشروع
-      doc.fontSize(16).text(`Project: ${project.title}`, { align: 'center' });
-      doc.moveDown(2);
+      // رسم بنود الاتفاقية
+      page.drawText('بنود الاتفاقية:', {
+        x: width - 200,
+        y: height - 270,
+        size: 14,
+        font,
+        color: textColor
+      });
       
-      // مقدمة
-      doc.fontSize(12).text('THIS AGREEMENT is entered into between:', { align: 'left' });
-      doc.moveDown(0.5);
-      doc.fontSize(12).text(`1. "${project.ownerName || 'Project Owner'}" (hereinafter referred to as "the First Party" or "the Disclosing Party")`, { align: 'left' });
-      doc.moveDown(0.2);
-      doc.fontSize(12).text(`2. "${companyName}" (hereinafter referred to as "the Second Party" or "the Receiving Party")`, { align: 'left' });
-      doc.moveDown(1);
+      // البنود
+      const terms = [
+        '1. يتعهد الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع.',
+        '2. يلتزم الطرف الثاني بعدم الإفصاح عن أي معلومات لأي طرف ثالث دون موافقة كتابية مسبقة من الطرف الأول.',
+        '3. يستخدم الطرف الثاني المعلومات السرية فقط لغرض تقييم والعمل على المشروع وليس لأي غرض آخر.',
+        '4. تبقى هذه الاتفاقية سارية المفعول لمدة سنة واحدة من تاريخ التوقيع.'
+      ];
       
-      // الغرض من الاتفاقية
-      doc.fontSize(14).text('PURPOSE:', { align: 'left', underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(12).text('The purpose of this Agreement is to protect the confidential and proprietary information of the First Party that may be disclosed to the Second Party in relation to the above-mentioned project.', { align: 'left' });
-      doc.moveDown(1);
-      
-      // التعريفات
-      doc.fontSize(14).text('DEFINITIONS:', { align: 'left', underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(12).text('"Confidential Information" means any information disclosed by the First Party to the Second Party, either directly or indirectly, in writing, orally or by any other means, related to the Project.', { align: 'left' });
-      doc.moveDown(1);
-      
-      // البنود والالتزامات
-      doc.fontSize(14).text('TERMS AND OBLIGATIONS:', { align: 'left', underline: true });
-      doc.moveDown(0.5);
-      doc.fontSize(12).text('1. The Second Party agrees to hold all Confidential Information in strict confidence and shall not disclose such Confidential Information to any third party without the prior written consent of the First Party.', { align: 'left' });
-      doc.moveDown(0.3);
-      doc.fontSize(12).text('2. The Second Party shall use the Confidential Information solely for the purpose of evaluating and working on the Project and for no other purpose.', { align: 'left' });
-      doc.moveDown(0.3);
-      doc.fontSize(12).text('3. The Second Party shall protect the disclosed Confidential Information with the same degree of care as it uses to protect its own confidential information.', { align: 'left' });
-      doc.moveDown(0.3);
-      doc.fontSize(12).text('4. This Agreement shall remain in effect for a period of one (1) year from the date of signing.', { align: 'left' });
-      doc.moveDown(1);
-      
-      // التوقيعات
-      doc.fontSize(14).text('SIGNATURES:', { align: 'left', underline: true });
-      doc.moveDown(0.5);
-      
-      // معلومات التوقيع
-      if (nda.signedAt) {
-        doc.fontSize(12).text(`Signed by: ${nda.companySignatureInfo.signerName}`, { align: 'left' });
-        doc.fontSize(12).text(`Title: ${nda.companySignatureInfo.signerTitle || 'Not specified'}`, { align: 'left' });
-        doc.fontSize(12).text(`Date: ${new Date(nda.signedAt).toLocaleDateString()}`, { align: 'left' });
-        doc.fontSize(12).text(`On behalf of: ${companyName}`, { align: 'left' });
-      } else {
-        doc.fontSize(12).text('Status: This document has not been signed yet.', { align: 'left' });
-        doc.fontSize(12).text('This is a draft version for review purposes only.', { align: 'left' });
+      // رسم البنود
+      let yPos = height - 300;
+      for (const term of terms) {
+        page.drawText(term, {
+          x: width - 380, // من اليمين مع مساحة للنص
+          y: yPos,
+          size: 10,
+          font,
+          color: textColor
+        });
+        yPos -= 20; // تحريك للبند التالي
       }
       
-      doc.moveDown(2);
+      // إضافة معلومات التوقيع إذا كانت الاتفاقية موقعة
+      yPos -= 30;
+      page.drawText('التوقيعات:', {
+        x: width - 200,
+        y: yPos,
+        size: 14,
+        font,
+        color: textColor
+      });
       
-      // تذييل المستند
-      doc.fontSize(10).text('This document is generated by Linktech Platform.', { align: 'center' });
-      doc.fontSize(10).text('It is legally binding once signed by both parties.', { align: 'center' });
-      doc.moveDown(0.5);
-      doc.fontSize(8).text(`Generated on: ${new Date().toLocaleString()}`, { align: 'center' });
+      yPos -= 20;
+      if (nda.signedAt) {
+        const companyInfo = nda.companySignatureInfo as any || {};
+        const signerName = typeof companyInfo === 'object' && companyInfo.signerName ? companyInfo.signerName : 'غير محدد';
+        const signerTitle = typeof companyInfo === 'object' && companyInfo.signerTitle ? companyInfo.signerTitle : 'غير محدد';
+        const signedDate = new Date(nda.signedAt).toLocaleDateString('ar-SA');
+        
+        page.drawText(`تم التوقيع بواسطة: ${signerName}`, {
+          x: width - 250,
+          y: yPos,
+          size: 10,
+          font,
+          color: textColor
+        });
+        
+        yPos -= 20;
+        page.drawText(`المنصب: ${signerTitle}`, {
+          x: width - 250,
+          y: yPos,
+          size: 10,
+          font,
+          color: textColor
+        });
+        
+        yPos -= 20;
+        page.drawText(`التاريخ: ${signedDate}`, {
+          x: width - 250,
+          y: yPos,
+          size: 10,
+          font,
+          color: textColor
+        });
+      } else {
+        page.drawText('الحالة: لم يتم التوقيع بعد. هذه نسخة مسودة فقط.', {
+          x: width - 300,
+          y: yPos,
+          size: 10,
+          font,
+          color: textColor
+        });
+      }
       
-      // إنهاء الملف
-      doc.end();
+      // إضافة معلومات تذييل الصفحة
+      page.drawText('هذه الوثيقة تم إنشاؤها بواسطة منصة لينكتك.', {
+        x: width / 2 - 80, // تقريبًا في وسط الصفحة
+        y: 50,
+        size: 10,
+        font,
+        color: textColor
+      });
+      
+      page.drawText('وهي ملزمة قانونيًا بمجرد توقيعها من قبل الطرفين.', {
+        x: width / 2 - 80, // تقريبًا في وسط الصفحة
+        y: 30,
+        size: 10,
+        font,
+        color: textColor
+      });
+      
+      // تحويل الوثيقة إلى بيانات ثنائية
+      const pdfBytes = await pdfDoc.save();
+      
+      // إرسال الملف مباشرة في الاستجابة
+      res.contentType('application/pdf');
+      res.send(Buffer.from(pdfBytes));
       
     } catch (error) {
       console.error('خطأ في إنشاء ملف PDF للاتفاقية:', error);
