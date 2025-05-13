@@ -1429,7 +1429,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخدام Puppeteer لتحويل HTML إلى PDF
       const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: 'new' // استخدام 'new' بدلاً من true لتجنب التحذيرات
+        headless: true // يجب استخدام true لأنها تتوافق مع أي إصدار
       });
       const puppeteerPage = await browser.newPage();
       
@@ -1449,9 +1449,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       });
       
-      // إغلاق المتصفح وحذف الملف المؤقت
+      // إغلاق المتصفح
       await browser.close();
-      await fsExtra.remove(tempHtmlPath);
       
       // إرسال الملف مباشرة في الاستجابة
       res.contentType('application/pdf');
