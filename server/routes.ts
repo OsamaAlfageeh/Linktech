@@ -11,6 +11,8 @@ import { Readable } from "stream";
 import fsExtra from "fs-extra";
 import puppeteer from "puppeteer";
 import path from "path";
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
@@ -1332,8 +1334,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخدام Puppeteer لتحويل HTML إلى PDF
       console.log('إنشاء ملف PDF باللغة العربية باستخدام HTML وPuppeteer');
       
-      // تحضير قالب HTML للاتفاقية
-      const templatePath = path.join(__dirname, 'templates', 'nda-template.html');
+      // تحديد مسار القالب باستخدام المسار المطلق
+      const currentDir = process.cwd(); // الحصول على المسار الحالي
+      
+      const templatePath = path.join(currentDir, 'server', 'templates', 'nda-template.html');
       let templateHtml = await fsExtra.readFile(templatePath, 'utf8');
       
       // تاريخ اليوم بالتنسيق العربي
@@ -1369,7 +1373,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace('{{GENERATION_DATE}}', generationTime);
       
       // إنشاء ملف HTML مؤقت
-      const tempHtmlPath = path.join(__dirname, 'temp-nda.html');
+      const tempHtmlPath = path.join(currentDir, 'server', 'temp-nda.html');
       await fsExtra.writeFile(tempHtmlPath, templateHtml, 'utf8');
       
       // استخدام Puppeteer لتحويل HTML إلى PDF
