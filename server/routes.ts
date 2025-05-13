@@ -1338,7 +1338,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const currentDir = process.cwd(); // الحصول على المسار الحالي
       
       const templatePath = path.join(currentDir, 'server', 'templates', 'nda-template.html');
-      let templateHtml = await fsExtra.readFile(templatePath, 'utf8');
+      console.log('مسار قالب الاتفاقية:', templatePath);
+      
+      // التحقق من وجود ملف القالب
+      const templateExists = await fsExtra.pathExists(templatePath);
+      console.log('هل يوجد ملف القالب؟', templateExists);
+      
+      // إذا لم يكن موجوداً، نستخدم قالب مضمن بدلاً من قراءة الملف
+      let templateHtml = '';
+      
+      if (templateExists) {
+        templateHtml = await fsExtra.readFile(templatePath, 'utf8');
+        console.log('تم قراءة القالب من الملف');
+      } else {
+        console.log('القالب غير موجود، استخدام قالب مضمن');
+        templateHtml = `
+        <!DOCTYPE html>
+        <html lang="ar" dir="rtl">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>اتفاقية عدم الإفصاح</title>
+          <style>
+            body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
+            .header { text-align: center; margin-bottom: 30px; }
+            .section { margin-bottom: 20px; }
+            .footer { margin-top: 50px; text-align: center; font-size: 12px; }
+            .signature { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>اتفاقية عدم الإفصاح</h1>
+            <h2>{{PROJECT_TITLE}}</h2>
+          </div>
+          <div class="section">
+            <p><strong>صاحب المشروع:</strong> {{PROJECT_OWNER_NAME}}</p>
+            <p><strong>الشركة:</strong> {{COMPANY_NAME}}</p>
+            <p><strong>التاريخ:</strong> {{CURRENT_DATE}}</p>
+          </div>
+          <div class="section">
+            <h3>نص الاتفاقية:</h3>
+            <p>يتعهد الطرف الثاني (الشركة) بالحفاظ على سرية المعلومات المتعلقة بالمشروع وعدم الإفصاح عنها لأي طرف ثالث.</p>
+            <p>تسري هذه الاتفاقية لمدة سنتين من تاريخ توقيعها.</p>
+          </div>
+          <div class="signature">
+            <p>{{SIGNATURE_STATUS}}</p>
+            {{SIGNATURE_INFO}}
+          </div>
+          <div class="footer">
+            <p>منصة لينكتك &copy; 2025 | {{GENERATION_DATE}}</p>
+          </div>
+        </body>
+        </html>
+        `;
+      }
       
       // تاريخ اليوم بالتنسيق العربي
       const currentDate = new Date().toLocaleDateString('ar-SA');
@@ -1372,19 +1426,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace('{{SIGNATURE_INFO}}', signatureInfo)
         .replace('{{GENERATION_DATE}}', generationTime);
       
-      // إنشاء ملف HTML مؤقت
-      const tempHtmlPath = path.join(currentDir, 'server', 'temp-nda.html');
-      await fsExtra.writeFile(tempHtmlPath, templateHtml, 'utf8');
-      
       // استخدام Puppeteer لتحويل HTML إلى PDF
       const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true
+        headless: 'new' // استخدام 'new' بدلاً من true لتجنب التحذيرات
       });
       const puppeteerPage = await browser.newPage();
       
-      // فتح الملف المؤقت
-      await puppeteerPage.goto(`file://${tempHtmlPath}`, { waitUntil: 'networkidle0' });
+      // تعيين محتوى HTML مباشرة بدلاً من استخدام ملف مؤقت
+      console.log('تعيين محتوى HTML مباشرة في puppeteer');
+      await puppeteerPage.setContent(templateHtml, { waitUntil: 'networkidle0' });
       
       // إنشاء PDF
       const pdfBuffer = await puppeteerPage.pdf({
