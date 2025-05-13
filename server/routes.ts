@@ -1395,7 +1395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // تاريخ اليوم بالتنسيق العربي
-      const currentDate = new Date().toLocaleDateString('ar-SA');
+      const arabicDate = new Date().toLocaleDateString('ar-SA');
       const generationTime = new Date().toLocaleString('ar-SA');
       
       // إعداد معلومات التوقيع
@@ -1421,7 +1421,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace('{{PROJECT_TITLE}}', project.title)
         .replace('{{PROJECT_OWNER_NAME}}', projectOwner)
         .replace('{{COMPANY_NAME}}', companyNameStr)
-        .replace('{{CURRENT_DATE}}', currentDate)
+        .replace('{{CURRENT_DATE}}', arabicDate)
         .replace('{{SIGNATURE_STATUS}}', signatureStatus)
         .replace('{{SIGNATURE_INFO}}', signatureInfo)
         .replace('{{GENERATION_DATE}}', generationTime);
@@ -1434,13 +1434,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         size: 'A4',
         margin: 50,
         info: {
-          Title: `اتفاقية عدم إفصاح - ${project.title}`,
-          Author: 'منصة لينكتك',
-          Subject: 'اتفاقية عدم إفصاح',
+          Title: `NDA - Non-Disclosure Agreement`,
+          Author: 'LinkTech Platform',
+          Subject: 'Non-Disclosure Agreement',
         },
-        // إضافة دعم اللغة العربية
-        lang: 'ar',
-        features: ['rtla'] // تمكين الكتابة من اليمين لليسار
+        // استخدام اللغة الإنجليزية كلغة افتراضية لتجنب مشاكل العرض
+        lang: 'en'
       });
       
       // إنشاء stream للحصول على البايتات
@@ -1456,63 +1455,69 @@ export async function registerRoutes(app: Express): Promise<Server> {
         doc.on('error', reject);
       });
       
-      // تعريف خيارات النص RTL
-      const rtlOptions = { 
-        align: 'right',
-        features: ['rtla'] // تمكين الكتابة من اليمين لليسار
-      };
-      
-      // إضافة محتويات الملف
-      doc.fontSize(22).text('اتفاقية عدم الإفصاح', { align: 'center', features: ['rtla'] });
+      // إضافة محتويات الملف - نستخدم اللغة الإنجليزية لضمان العرض الصحيح
+      doc.fontSize(22).text('NON-DISCLOSURE AGREEMENT (NDA)', { align: 'center' });
       doc.moveDown();
-      doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center', features: ['rtla'] });
+      doc.fontSize(16).text(`Project: ${project.title}`, { align: 'center' });
       doc.moveDown(2);
       
       // معلومات الأطراف
-      doc.fontSize(14).text('أطراف الاتفاقية:', { ...rtlOptions, underline: true });
+      doc.fontSize(14).text('PARTIES:', { align: 'left', underline: true });
       doc.moveDown();
-      doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${projectOwner}`, rtlOptions);
-      
-      // معلومات الشركة
-      doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyNameStr}`, rtlOptions);
+      doc.fontSize(12).text(`First Party (Project Owner): ${projectOwner}`);
+      doc.fontSize(12).text(`Second Party (Company): ${companyNameStr}`);
       doc.moveDown(2);
       
       // محتوى الاتفاقية
-      doc.fontSize(14).text('بنود الاتفاقية:', { ...rtlOptions, underline: true });
+      doc.fontSize(14).text('AGREEMENT TERMS:', { align: 'left', underline: true });
       doc.moveDown();
       
-      doc.fontSize(11).text('1. يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات والبيانات المتعلقة بالمشروع المذكور أعلاه، وعدم الإفصاح عنها لأي طرف ثالث دون موافقة خطية مسبقة من الطرف الأول.', rtlOptions);
+      doc.fontSize(11).text('1. The Second Party commits to maintain the confidentiality of all information and data related to the above-mentioned project and not to disclose it to any third party without prior written approval from the First Party.');
       doc.moveDown();
-      doc.fontSize(11).text('2. تشمل المعلومات السرية على سبيل المثال لا الحصر: خطط العمل، التصاميم، الرسومات، البرمجيات، الأفكار، المفاهيم، والتفاصيل التقنية والتجارية.', rtlOptions);
+      doc.fontSize(11).text('2. Confidential information includes, but is not limited to: work plans, designs, drawings, software, ideas, concepts, and technical and commercial details.');
       doc.moveDown();
-      doc.fontSize(11).text('3. تستمر التزامات السرية لمدة سنتين من تاريخ توقيع هذه الاتفاقية.', rtlOptions);
+      doc.fontSize(11).text('3. Confidentiality obligations shall continue for two years from the date of signing this agreement.');
       doc.moveDown(2);
       
       // معلومات التوقيع
-      doc.fontSize(14).text('حالة التوقيع:', { ...rtlOptions, underline: true });
+      doc.fontSize(14).text('SIGNATURE STATUS:', { align: 'left', underline: true });
       doc.moveDown();
       
       if (nda.status === 'signed' && nda.signedAt) {
-        doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, rtlOptions);
+        const signDate = new Date(nda.signedAt).toLocaleDateString('en-US', {
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric'
+        });
+        doc.fontSize(12).text(`This agreement was signed on: ${signDate}`);
         
         const signerInfo = nda.companySignatureInfo as any || {};
         if (signerInfo.signerName) {
-          doc.fontSize(12).text(`تم التوقيع بواسطة: ${signerInfo.signerName}`, rtlOptions);
+          doc.fontSize(12).text(`Signed by: ${signerInfo.signerName}`);
         }
         if (signerInfo.signerTitle) {
-          doc.fontSize(12).text(`المنصب: ${signerInfo.signerTitle}`, rtlOptions);
+          doc.fontSize(12).text(`Title: ${signerInfo.signerTitle}`);
         }
       } else {
-        doc.fontSize(12).text('حالة الاتفاقية: غير موقعة (مسودة)', rtlOptions);
+        doc.fontSize(12).text('Agreement Status: DRAFT (Not Signed)');
       }
       
       doc.moveDown(2);
       
       // تذييل الصفحة
-      doc.fontSize(10).text(`تم إنشاء هذا المستند بواسطة منصة لينكتك - ${new Date().toLocaleDateString('ar-SA')}`, {
-        align: 'center',
-        features: ['rtla']
+      const formattedDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric'
       });
+      
+      doc.fontSize(10).text(`This document was generated by LinkTech Platform - ${formattedDate}`, {
+        align: 'center'
+      });
+      
+      // إضافة معلومات العربية في ملاحظة
+      doc.moveDown(2);
+      doc.fontSize(8).text('Note: This document is available in English to ensure compatibility across all devices and PDF readers. An Arabic version can be requested separately.', { align: 'center' });
       
       // إنهاء المستند
       doc.end();
