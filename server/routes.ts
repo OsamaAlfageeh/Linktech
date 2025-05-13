@@ -1426,31 +1426,99 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace('{{SIGNATURE_INFO}}', signatureInfo)
         .replace('{{GENERATION_DATE}}', generationTime);
       
-      // استخدام Puppeteer لتحويل HTML إلى PDF
-      const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        headless: true // يجب استخدام true لأنها تتوافق مع أي إصدار
+      // استخدام PDFKit بدلاً من Puppeteer
+      console.log('استخدام PDFKit لإنشاء ملف PDF بدلاً من Puppeteer');
+      
+      // إنشاء وثيقة PDF جديدة
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        info: {
+          Title: `اتفاقية عدم إفصاح - ${project.title}`,
+          Author: 'منصة لينكتك',
+          Subject: 'اتفاقية عدم إفصاح',
+        },
+        // إضافة دعم اللغة العربية
+        lang: 'ar',
+        features: ['rtla'] // تمكين الكتابة من اليمين لليسار
       });
-      const puppeteerPage = await browser.newPage();
       
-      // تعيين محتوى HTML مباشرة بدلاً من استخدام ملف مؤقت
-      console.log('تعيين محتوى HTML مباشرة في puppeteer');
-      await puppeteerPage.setContent(templateHtml, { waitUntil: 'networkidle0' });
+      // إنشاء stream للحصول على البايتات
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
       
-      // إنشاء PDF
-      const pdfBuffer = await puppeteerPage.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: {
-          top: '1cm',
-          right: '1cm',
-          bottom: '1cm',
-          left: '1cm'
+      // وعد يتم تنفيذه عند اكتمال المستند
+      const pdfPromise = new Promise<Buffer>((resolve, reject) => {
+        doc.on('end', () => {
+          const pdfBuffer = Buffer.concat(chunks);
+          resolve(pdfBuffer);
+        });
+        doc.on('error', reject);
+      });
+      
+      // تعريف خيارات النص RTL
+      const rtlOptions = { 
+        align: 'right',
+        features: ['rtla'] // تمكين الكتابة من اليمين لليسار
+      };
+      
+      // إضافة محتويات الملف
+      doc.fontSize(22).text('اتفاقية عدم الإفصاح', { align: 'center', features: ['rtla'] });
+      doc.moveDown();
+      doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center', features: ['rtla'] });
+      doc.moveDown(2);
+      
+      // معلومات الأطراف
+      doc.fontSize(14).text('أطراف الاتفاقية:', { ...rtlOptions, underline: true });
+      doc.moveDown();
+      doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${projectOwner}`, rtlOptions);
+      
+      // معلومات الشركة
+      doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyNameStr}`, rtlOptions);
+      doc.moveDown(2);
+      
+      // محتوى الاتفاقية
+      doc.fontSize(14).text('بنود الاتفاقية:', { ...rtlOptions, underline: true });
+      doc.moveDown();
+      
+      doc.fontSize(11).text('1. يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات والبيانات المتعلقة بالمشروع المذكور أعلاه، وعدم الإفصاح عنها لأي طرف ثالث دون موافقة خطية مسبقة من الطرف الأول.', rtlOptions);
+      doc.moveDown();
+      doc.fontSize(11).text('2. تشمل المعلومات السرية على سبيل المثال لا الحصر: خطط العمل، التصاميم، الرسومات، البرمجيات، الأفكار، المفاهيم، والتفاصيل التقنية والتجارية.', rtlOptions);
+      doc.moveDown();
+      doc.fontSize(11).text('3. تستمر التزامات السرية لمدة سنتين من تاريخ توقيع هذه الاتفاقية.', rtlOptions);
+      doc.moveDown(2);
+      
+      // معلومات التوقيع
+      doc.fontSize(14).text('حالة التوقيع:', { ...rtlOptions, underline: true });
+      doc.moveDown();
+      
+      if (nda.status === 'signed' && nda.signedAt) {
+        doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, rtlOptions);
+        
+        const signerInfo = nda.companySignatureInfo as any || {};
+        if (signerInfo.signerName) {
+          doc.fontSize(12).text(`تم التوقيع بواسطة: ${signerInfo.signerName}`, rtlOptions);
         }
+        if (signerInfo.signerTitle) {
+          doc.fontSize(12).text(`المنصب: ${signerInfo.signerTitle}`, rtlOptions);
+        }
+      } else {
+        doc.fontSize(12).text('حالة الاتفاقية: غير موقعة (مسودة)', rtlOptions);
+      }
+      
+      doc.moveDown(2);
+      
+      // تذييل الصفحة
+      doc.fontSize(10).text(`تم إنشاء هذا المستند بواسطة منصة لينكتك - ${new Date().toLocaleDateString('ar-SA')}`, {
+        align: 'center',
+        features: ['rtla']
       });
       
-      // إغلاق المتصفح
-      await browser.close();
+      // إنهاء المستند
+      doc.end();
+      
+      // انتظار اكتمال إنشاء المستند
+      const pdfBuffer = await pdfPromise;
       
       // إرسال الملف مباشرة في الاستجابة
       res.contentType('application/pdf');
