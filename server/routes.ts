@@ -1331,8 +1331,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخراج اسم صاحب المشروع
       const projectOwner = project.userId ? (await storage.getUser(project.userId))?.name || 'غير محدد' : 'غير محدد';
       
-      // استخدام Puppeteer لتحويل HTML إلى PDF
-      console.log('إنشاء ملف PDF باللغة العربية باستخدام HTML وPuppeteer');
+      // استخدام PDFKit بدلاً من Puppeteer
+      console.log('استخدام PDFKit لإنشاء ملف PDF');
       
       // تحديد مسار القالب باستخدام المسار المطلق
       const currentDir = process.cwd(); // الحصول على المسار الحالي
