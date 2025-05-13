@@ -1458,14 +1458,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // إضافة محتويات الملف - نستخدم اللغة الإنجليزية لضمان العرض الصحيح
       doc.fontSize(22).text('NON-DISCLOSURE AGREEMENT (NDA)', { align: 'center' });
       doc.moveDown();
-      doc.fontSize(16).text(`Project: ${project.title}`, { align: 'center' });
+      
+      // تحويل البيانات العربية إلى صيغة ASCII للتوافق
+      const projectTitleSafe = project.title ? 'Project: ' + project.title.replace(/[^\x00-\x7F]/g, char => '[AR]') : 'Project: [Project name in Arabic]';
+      const projectOwnerSafe = projectOwner ? 'First Party (Project Owner): ' + projectOwner.replace(/[^\x00-\x7F]/g, char => '[AR]') : 'First Party: [Name in Arabic]';
+      const companyNameSafe = companyNameStr ? 'Second Party (Company): ' + companyNameStr.replace(/[^\x00-\x7F]/g, char => '[AR]') : 'Second Party: [Company name in Arabic]';
+      
+      doc.fontSize(16).text(projectTitleSafe, { align: 'center' });
       doc.moveDown(2);
       
       // معلومات الأطراف
       doc.fontSize(14).text('PARTIES:', { align: 'left', underline: true });
       doc.moveDown();
-      doc.fontSize(12).text(`First Party (Project Owner): ${projectOwner}`);
-      doc.fontSize(12).text(`Second Party (Company): ${companyNameStr}`);
+      doc.fontSize(12).text(projectOwnerSafe);
+      doc.fontSize(12).text(companyNameSafe);
       doc.moveDown(2);
       
       // محتوى الاتفاقية
