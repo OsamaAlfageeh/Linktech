@@ -12,31 +12,16 @@ import bidi from 'bidi-js';
 // إنشاء موجه للمسارات
 const router = Router();
 
-// مساعدة لإعادة تشكيل و bidi مع تحسين لمعالجة ترتيب الكلمات
+// مساعدة لإعادة تشكيل النص العربي باستخدام النهج المقترح
 function toArabic(text: string): string {
   try {
-    // نهج مختلف لمعالجة النص العربي
-    // بدلاً من استخدام bidi.getVisualString بعد التقسيم، سنقوم بتشكيل كل كلمة لوحدها ثم ترتيبها
+    // 1. إعادة تشكيل النص العربي (دمج الحروف بشكل صحيح)
+    const reshaped = arabicReshaper.reshape(text);
     
-    // 1. تقسيم النص إلى سطور
-    const lines = text.split('\n');
-    const processedLines = lines.map((line: string) => {
-      // 2. تقسيم السطر إلى كلمات
-      const words = line.split(' ');
-      
-      // 3. تشكيل كل كلمة وترتيبها من اليمين لليسار
-      const processedWords = words.map((word: string) => {
-        return arabicReshaper.reshape(word);
-      });
-      
-      // 4. عكس ترتيب الكلمات (ليظهر النص من اليمين لليسار)
-      return processedWords.reverse().join(' ');
-    });
+    // 2. تصحيح اتجاه النص من اليمين إلى اليسار
+    const bidiText = bidi.getDisplay(reshaped);
     
-    // 5. دمج السطور مرة أخرى
-    const finalText = processedLines.join('\n');
-    
-    return finalText;
+    return bidiText;
   } catch (error) {
     console.error('خطأ في معالجة النص العربي:', error);
     return text; // إرجاع النص الأصلي في حالة الخطأ
@@ -49,30 +34,71 @@ function createArabicPdf(doc: PDFDocument) {
   const fontPath = path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf');
   doc.font(fontPath);
   
-  // إضافة محتوى باللغة العربية للاختبار
-  doc.fontSize(24).text(toArabic('مرحبًا بكم في اختبار دعم اللغة العربية'), {
+  // حساب عرض الصفحة المتاح للكتابة
+  const pageWidth = doc.page.width - (doc.page.margins as any).left - (doc.page.margins as any).right;
+  
+  // إضافة العنوان
+  doc.fontSize(24);
+  doc.text(toArabic('اتفاقية عدم إفصاح'), {
+    width: pageWidth,
+    align: 'center'
+  });
+  doc.moveDown();
+  
+  // إضافة محتوى رئيسي
+  doc.fontSize(14);
+  
+  const content = `
+بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع،
+وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.
+
+تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع الإلكتروني عليها، وتشمل جميع المراسلات
+والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.
+
+في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية
+اللازمة لحماية مصالحه وحقوقه.
+  `;
+  
+  // معالجة كل سطر على حدة للحصول على أفضل نتيجة
+  const lines = content.trim().split('\n');
+  lines.forEach(line => {
+    if (line.trim()) {
+      doc.text(toArabic(line), {
+        width: pageWidth,
+        align: 'right',
+        lineGap: 5
+      });
+    } else {
+      doc.moveDown(0.5);
+    }
+  });
+  
+  // معلومات التواقيع
+  doc.moveDown();
+  doc.fontSize(12);
+  doc.text(toArabic('الطرف الأول: منصة لينكتك (https://linktech.app)'), {
+    width: pageWidth,
+    align: 'right'
+  });
+  doc.moveDown();
+  doc.text(toArabic('الطرف الثاني: ______________________'), {
+    width: pageWidth,
+    align: 'right'
+  });
+  doc.moveDown();
+  
+  // التاريخ
+  const today = new Date();
+  const dateStr = today.toISOString().split('T')[0];
+  doc.text(toArabic(`تاريخ التوقيع: ${dateStr}`), {
+    width: pageWidth,
     align: 'right'
   });
   
-  doc.moveDown();
-  doc.fontSize(16).text(toArabic('هذا اختبار لعرض النصوص العربية في ملفات PDF'), {
-    align: 'right'
-  });
-  
-  doc.moveDown();
-  doc.fontSize(14).text(toArabic('محتوى فقرة تجريبية باللغة العربية. نختبر هنا قدرة المكتبة على عرض النصوص العربية بشكل صحيح مع دعم التشكيل والاتجاه من اليمين إلى اليسار.'), {
-    align: 'right'
-  });
-  
-  doc.moveDown();
-  const currentDate = new Date();
-  const dateString = currentDate.toLocaleDateString('ar-SA');
-  doc.fontSize(12).text(toArabic(`تاريخ إنشاء المستند: ${dateString}`), {
-    align: 'right'
-  });
-  
-  doc.moveDown();
-  doc.fontSize(14).text(toArabic('أرقام للاختبار: ١٢٣٤٥٦٧٨٩٠'), {
+  // إضافة اختبار الأرقام
+  doc.moveDown(2);
+  doc.text(toArabic('اختبار أرقام: ١٢٣٤٥٦٧٨٩٠'), {
+    width: pageWidth,
     align: 'right'
   });
 }
