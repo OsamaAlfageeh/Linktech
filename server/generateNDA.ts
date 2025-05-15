@@ -86,23 +86,23 @@ export async function generateProjectNdaPdf(
             fontSize: 22, 
             bold: true, 
             margin: [0, 0, 0, 20],
-            alignment: 'right'
+            alignment: 'left'
           },
           subheader: {
             fontSize: 16,
             bold: true,
             margin: [0, 15, 0, 10],
-            alignment: 'right'
+            alignment: 'left'
           },
           paragraph: { 
             fontSize: 12, 
             margin: [0, 5, 0, 5],
-            alignment: 'right'
+            alignment: 'left'
           },
           signature: {
             fontSize: 12,
             margin: [0, 10, 0, 5],
-            alignment: 'right'
+            alignment: 'left'
           },
           footer: {
             fontSize: 10,
@@ -307,8 +307,9 @@ router.get('/api/generate-nda', async (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'application/pdf');
     
     if (mode === 'download') {
-      // تنزيل الملف
-      res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename}"`);
+      // تنزيل الملف مع اسم عربي مناسب
+      const arabicFilename = encodeURIComponent('اتفاقية_عدم_الإفصاح.pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${arabicFilename}"`);
     } else {
       // عرض الملف في المتصفح
       res.setHeader('Content-Disposition', `inline; filename="${pdfFilename}"`);
