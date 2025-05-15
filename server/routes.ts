@@ -3170,7 +3170,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // انتظار اكتمال إنشاء المستند
       const pdfBuffer = await pdfPromise;
       
-      // إرسال الملف مباشرة في الاستجابة
+      // إرسال الملف مباشرة في الاستجابة مع إضافة headers مناسبة للتنزيل
+      res.setHeader('Content-Disposition', 'attachment; filename="arabic-test.pdf"');
+      res.setHeader('Cache-Control', 'no-cache');
       res.contentType('application/pdf');
       res.send(pdfBuffer);
       
