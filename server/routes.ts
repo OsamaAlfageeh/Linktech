@@ -7,6 +7,7 @@ import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./email
 // استيراد مسارات Sitemap و robots.txt
 import sitemapRoutes from "./routes/sitemap";
 import arabicPdfTestRoutes from "./arabicPdfTest";
+import pdfmakeTestRoutes from "./pdfmakeTest";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import fsExtra from "fs-extra";
@@ -3212,6 +3213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // استخدام مسارات اختبار PDF العربي
   app.use(arabicPdfTestRoutes);
+  app.use(pdfmakeTestRoutes);
   
   // صفحة HTML تحتوي على زر تنزيل وعرض لملف PDF
   app.get('/arabic-pdf-test', (req: Request, res: Response) => {
