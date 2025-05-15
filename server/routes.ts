@@ -1437,8 +1437,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // وظيفة مساعدة لإعادة تشكيل النص العربي 
       // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
       function reshapeArabicText(text: string): string {
-        // نحول النص باستخدام مكتبة arabic-reshaper
-        return arabicReshaper.convertArabic(text);
+        try {
+          // استخدام الإعدادات المتقدمة مع arabic-reshaper
+          // تمكين خيار الترميز العكسي ليناسب عرض النص من اليمين لليسار
+          return arabicReshaper.convertArabic(text, { supportCG: true, flipWords: true, flipWholeSentence: true });
+        } catch (error) {
+          console.error('خطأ في تحويل النص العربي:', error);
+          return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
+        }
       }
       
       // إضافة مسار الخط العربي المطلق
