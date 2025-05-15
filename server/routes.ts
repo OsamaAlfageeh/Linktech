@@ -15,8 +15,6 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import arabicReshaper from 'arabic-reshaper';
 import bidiFactory from 'bidi-js';
-
-// تهيئة كائن bidi حسب التوثيق
 const bidi = bidiFactory();
 
 // Track active connections
@@ -3081,11 +3079,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('اختبار إنشاء PDF باللغة العربية');
       
-      // وظيفة مساعدة لإعادة تشكيل النص العربي 
-      function reshapeTestArabicText(text: string): string {
+      // مساعدة لإعادة تشكيل و bidi
+      function toArabic(text: string): string {
         try {
-          // استخدام الإعدادات المتقدمة مع arabic-reshaper
-          return arabicReshaper.convertArabic(text, { supportCG: true, flipWords: true, flipWholeSentence: true });
+          // 1) reshape: يربط الحروف مع بعض
+          const reshaped = arabicReshaper.reshape(text);
+          // 2) bidi: يضعها من اليمين لليسار
+          return getVisualString(reshaped);
         } catch (error) {
           console.error('خطأ في تحويل النص العربي:', error);
           return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
@@ -3099,9 +3099,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
-        autoFirstPage: true,
-        bufferPages: true,
-        layout: 'portrait',
         info: {
           Title: 'وثيقة اختبار اللغة العربية',
           Author: 'منصة لينكتك',
@@ -3110,10 +3107,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // تسجيل الخط العربي
-      doc.registerFont('Arabic', arabicFontPath);
+      doc.registerFont('Cairo', arabicFontPath);
       
       // استخدام الخط العربي
-      doc.font('Arabic');
+      doc.font('Cairo');
       
       // إنشاء stream للحصول على البايتات
       const chunks: Buffer[] = [];
@@ -3129,49 +3126,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // إضافة عنوان المستند
-      doc.fontSize(24).text(reshapeTestArabicText('اختبار دعم اللغة العربية'), { 
-        align: 'center',
-        direction: 'rtl'
+      doc.fontSize(24).text(toArabic('اختبار دعم اللغة العربية'), { 
+        align: 'center' 
       });
       doc.moveDown();
       
       // إضافة نصوص للاختبار
-      doc.fontSize(18).text(reshapeTestArabicText('هذا نص عربي للتجربة'), { 
-        align: 'right',
-        direction: 'rtl'
+      doc.fontSize(18).text(toArabic('هذا نص عربي للتجربة'), { 
+        align: 'right'
       });
       doc.moveDown();
       
-      doc.fontSize(14).text(reshapeTestArabicText('١٢٣٤٥ - أرقام عربية للتجربة'), { 
-        align: 'right', 
-        direction: 'rtl'
+      doc.fontSize(14).text(toArabic('١٢٣٤٥ - أرقام عربية للتجربة'), { 
+        align: 'right'
       });
       doc.moveDown();
       
-      doc.fontSize(12).text(reshapeTestArabicText('هذه فقرة طويلة باللغة العربية لاختبار ظهور النصوص الطويلة وكيفية التعامل معها في مستندات PDF. يجب أن تظهر النصوص العربية من اليمين إلى اليسار بشكل صحيح مع حروف متصلة.'), { 
-        align: 'right',
-        direction: 'rtl'
+      doc.fontSize(12).text(toArabic('هذه فقرة طويلة باللغة العربية لاختبار ظهور النصوص الطويلة وكيفية التعامل معها في مستندات PDF. يجب أن تظهر النصوص العربية من اليمين إلى اليسار بشكل صحيح مع حروف متصلة.'), { 
+        align: 'right'
       });
       doc.moveDown(2);
       
       // اختبار كلمات منفصلة
-      doc.fontSize(16).text(reshapeTestArabicText('كلمات - منفصلة - للاختبار'), { 
-        align: 'right',
-        direction: 'rtl'
+      doc.fontSize(16).text(toArabic('كلمات - منفصلة - للاختبار'), { 
+        align: 'right'
       });
       doc.moveDown();
       
       // اختبار جملة مع أرقام وعلامات خاصة
-      doc.fontSize(14).text(reshapeTestArabicText('تاريخ الاختبار: ١٥-٠٥-٢٠٢٥'), { 
-        align: 'right',
-        direction: 'rtl'
+      doc.fontSize(14).text(toArabic('تاريخ الاختبار: ١٥-٠٥-٢٠٢٥'), { 
+        align: 'right'
       });
       doc.moveDown(2);
       
       // تذييل المستند
-      doc.fontSize(10).text(reshapeTestArabicText('تم إنشاء هذا المستند للاختبار فقط - منصة لينكتك ©'), { 
-        align: 'center',
-        direction: 'rtl'
+      doc.fontSize(10).text(toArabic('تم إنشاء هذا المستند للاختبار فقط - منصة لينكتك ©'), { 
+        align: 'center'
       });
       
       // إنهاء المستند
