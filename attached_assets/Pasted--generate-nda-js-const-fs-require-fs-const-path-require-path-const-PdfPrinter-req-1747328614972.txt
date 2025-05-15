@@ -1,0 +1,55 @@
+// generate-nda.js
+const fs = require('fs');
+const path = require('path');
+const PdfPrinter = require('pdfmake');
+
+// 1. إعداد الخطوط (تأكد من أن الملف Cairo-Regular.ttf موجود في مجلد fonts)
+const fonts = {
+  Cairo: {
+    normal:      path.join(__dirname, 'fonts', 'Cairo-Regular.ttf'),
+    bold:        path.join(__dirname, 'fonts', 'Cairo-Regular.ttf'),
+    italics:     path.join(__dirname, 'fonts', 'Cairo-Regular.ttf'),
+    bolditalics: path.join(__dirname, 'fonts', 'Cairo-Regular.ttf')
+  }
+};
+
+const printer = new PdfPrinter(fonts);
+
+// 2. تقسيم المحتوى إلى فقرات
+const paragraphs = [
+  'بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.',
+  'تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع الإلكتروني عليها، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.',
+  'في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.',
+  'الطرف الأول: منصة لينكتك (https://linktech.app)',
+  'الطرف الثاني: .........................................'
+];
+
+// 3. إعداد تعريف الوثيقة
+const docDefinition = {
+  defaultStyle: {
+    font: 'Cairo',
+    alignment: 'right',
+    direction: 'rtl',
+    lineHeight: 1.3
+  },
+  pageMargins: [40, 60, 40, 60],
+  styles: {
+    header:    { fontSize: 20, bold: true, margin: [0, 0, 0, 10] },
+    paragraph: { fontSize: 12, margin: [0, 0, 0, 8] }
+  },
+  content: [
+    // العنوان
+    { text: 'اتفاقية عدم الإفصاح', style: 'header' },
+    // الفقرات
+    ...paragraphs.map(p => ({ text: p, style: 'paragraph' })),
+    // التاريخ والتوقيع
+    { text: 'التوقيع: _____________    2025-05-15', style: 'paragraph', margin: [0, 20, 0, 0] }
+  ]
+};
+
+// 4. إنشاء وكتابة الملف
+const pdfDoc = printer.createPdfKitDocument(docDefinition);
+pdfDoc.pipe(fs.createWriteStream('NDA_Linktek.pdf'));
+pdfDoc.end();
+
+console.log('✅ تم إنشاء NDA_Linktek.pdf بنجاح');
