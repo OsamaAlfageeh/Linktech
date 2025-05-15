@@ -1439,26 +1439,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return bidi.getReorderString(reshaped);
       }
       
-      // إضافة مسار الخط العربي المطلق
-      const arabicFontPath = path.join(process.cwd(), 'assets', 'fonts', 'Amiri-Regular.ttf');
-      
       // إنشاء وثيقة PDF جديدة مع دعم اللغة العربية
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
-        rtl: true, // تفعيل الكتابة من اليمين إلى اليسار
         info: {
           Title: `اتفاقية عدم إفصاح - NDA`,
           Author: 'منصة لينكتك',
           Subject: 'اتفاقية عدم إفصاح',
         }
       });
-      
-      // تسجيل الخط العربي
-      doc.registerFont('Arabic', arabicFontPath);
-      
-      // استخدام الخط العربي
-      doc.font('Arabic');
       
       // إنشاء stream للحصول على البايتات
       const chunks: Buffer[] = [];
