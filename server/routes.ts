@@ -1433,8 +1433,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // وظيفة مساعدة لإعادة تشكيل النص العربي
       function reshapeArabicText(text: string): string {
-        // إعادة تشكيل النص العربي باستخدام arabic-reshaper
-        const reshaped = arabicReshaper.reshape(text);
+        // استخدام وظيفة convertArabic من مكتبة arabic-reshaper
+        // الطريقة الصحيحة حسب توثيق المكتبة: ArabicReshaper.convertArabic()
+        const reshaped = arabicReshaper.convertArabic(text);
+        
         // إضافة معالجة اتجاه النص من اليمين إلى اليسار
         return bidi.getReorderString(reshaped);
       }
