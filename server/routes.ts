@@ -1188,34 +1188,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         // معلومات التوقيع
         if (nda.signedAt) {
-          doc.fontSize(12).text(`تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`, rtlOptions);
-          doc.fontSize(12).text(`تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`, rtlOptions);
-          doc.fontSize(11).text(`عنوان IP للتوقيع: ${nda.companySignatureInfo.signerIp}`, rtlOptions);
+          const signDateText = `تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`;
+          const signDateReshaped = arabicReshaper.reshape(signDateText);
+          const signDateBidi = bidi.getDisplay(signDateReshaped);
+          doc.fontSize(12).text(signDateBidi, { align: 'right' });
+          
+          const signerText = `تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`;
+          const signerReshaped = arabicReshaper.reshape(signerText);
+          const signerBidi = bidi.getDisplay(signerReshaped);
+          doc.fontSize(12).text(signerBidi, { align: 'right' });
+          
+          const ipText = `عنوان IP للتوقيع: ${nda.companySignatureInfo.signerIp}`;
+          const ipReshaped = arabicReshaper.reshape(ipText);
+          const ipBidi = bidi.getDisplay(ipReshaped);
+          doc.fontSize(11).text(ipBidi, { align: 'right' });
         }
         doc.moveDown(2);
 
         // نص الاتفاقية
-        doc.fontSize(14).text('نص اتفاقية عدم الإفصاح:', { ...rtlOptions, underline: true });
+        const agreementTitleReshaped = arabicReshaper.reshape('نص اتفاقية عدم الإفصاح:');
+        const agreementTitleBidi = bidi.getDisplay(agreementTitleReshaped);
+        doc.fontSize(14).text(agreementTitleBidi, { align: 'right', underline: true });
         doc.moveDown();
         
         // المقدمة
-        doc.fontSize(12).text("المقدمة:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("هذه الاتفاقية (\"الاتفاقية\") محررة ومبرمة بتاريخ التوقيع الإلكتروني بين الطرف الأول (صاحب المشروع) والطرف الثاني (الشركة).", rtlOptions);
+        const introTitleReshaped = arabicReshaper.reshape("المقدمة:");
+        const introTitleBidi = bidi.getDisplay(introTitleReshaped);
+        doc.fontSize(12).text(introTitleBidi, { align: 'right', bold: true });
+        
+        const introTextReshaped = arabicReshaper.reshape("هذه الاتفاقية (\"الاتفاقية\") محررة ومبرمة بتاريخ التوقيع الإلكتروني بين الطرف الأول (صاحب المشروع) والطرف الثاني (الشركة).");
+        const introTextBidi = bidi.getDisplay(introTextReshaped);
+        doc.fontSize(11).text(introTextBidi, { align: 'right' });
         doc.moveDown();
 
         // الغرض
-        doc.fontSize(12).text("الغرض:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف الأول بالكشف عن معلومات سرية وملكية فكرية للطرف الثاني.", rtlOptions);
+        const purposeTitleReshaped = arabicReshaper.reshape("الغرض:");
+        const purposeTitleBidi = bidi.getDisplay(purposeTitleReshaped);
+        doc.fontSize(12).text(purposeTitleBidi, { align: 'right', bold: true });
+        
+        const purposeTextReshaped = arabicReshaper.reshape("لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف الأول بالكشف عن معلومات سرية وملكية فكرية للطرف الثاني.");
+        const purposeTextBidi = bidi.getDisplay(purposeTextReshaped);
+        doc.fontSize(11).text(purposeTextBidi, { align: 'right' });
         doc.moveDown();
 
         // المعلومات السرية
-        doc.fontSize(12).text("المعلومات السرية:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("تشمل \"المعلومات السرية\" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.", rtlOptions);
+        const confidentialTitleReshaped = arabicReshaper.reshape("المعلومات السرية:");
+        const confidentialTitleBidi = bidi.getDisplay(confidentialTitleReshaped);
+        doc.fontSize(12).text(confidentialTitleBidi, { align: 'right', bold: true });
+        
+        const confidentialTextReshaped = arabicReshaper.reshape("تشمل \"المعلومات السرية\" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.");
+        const confidentialTextBidi = bidi.getDisplay(confidentialTextReshaped);
+        doc.fontSize(11).text(confidentialTextBidi, { align: 'right' });
         doc.moveDown();
 
         // التزامات الطرف المستلم
-        doc.fontSize(12).text("التزامات الطرف الثاني:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("يوافق الطرف الثاني على:", rtlOptions);
+        const obligationsTitleReshaped = arabicReshaper.reshape("التزامات الطرف الثاني:");
+        const obligationsTitleBidi = bidi.getDisplay(obligationsTitleReshaped);
+        doc.fontSize(12).text(obligationsTitleBidi, { align: 'right', bold: true });
+        
+        const obligationsIntroReshaped = arabicReshaper.reshape("يوافق الطرف الثاني على:");
+        const obligationsIntroBidi = bidi.getDisplay(obligationsIntroReshaped);
+        doc.fontSize(11).text(obligationsIntroBidi, { align: 'right' });
         
         const obligations = [
           "الحفاظ على سرية جميع المعلومات السرية وعدم الكشف عنها لأي طرف ثالث.",
@@ -1226,36 +1259,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
         
         obligations.forEach((obligation, index) => {
-          doc.fontSize(11).text(`${index + 1}. ${obligation}`, { ...rtlOptions });
+          const obligationText = `${index + 1}. ${obligation}`;
+          const obligationReshaped = arabicReshaper.reshape(obligationText);
+          const obligationBidi = bidi.getDisplay(obligationReshaped);
+          doc.fontSize(11).text(obligationBidi, { align: 'right' });
         });
         doc.moveDown();
 
         // مدة الاتفاقية
-        doc.fontSize(12).text("مدة الاتفاقية:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.", rtlOptions);
+        const durationTitleReshaped = arabicReshaper.reshape("مدة الاتفاقية:");
+        const durationTitleBidi = bidi.getDisplay(durationTitleReshaped);
+        doc.fontSize(12).text(durationTitleBidi, { align: 'right', bold: true });
+        
+        const durationTextReshaped = arabicReshaper.reshape("تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.");
+        const durationTextBidi = bidi.getDisplay(durationTextReshaped);
+        doc.fontSize(11).text(durationTextBidi, { align: 'right' });
         doc.moveDown();
 
         // القانون الحاكم
-        doc.fontSize(12).text("القانون الحاكم:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.", rtlOptions);
+        const lawTitleReshaped = arabicReshaper.reshape("القانون الحاكم:");
+        const lawTitleBidi = bidi.getDisplay(lawTitleReshaped);
+        doc.fontSize(12).text(lawTitleBidi, { align: 'right', bold: true });
+        
+        const lawTextReshaped = arabicReshaper.reshape("تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.");
+        const lawTextBidi = bidi.getDisplay(lawTextReshaped);
+        doc.fontSize(11).text(lawTextBidi, { align: 'right' });
         doc.moveDown();
 
         // توقيع إلكتروني
-        doc.fontSize(12).text("توقيع إلكتروني:", { ...rtlOptions, bold: true });
-        doc.fontSize(11).text("يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.", rtlOptions);
+        const signTitleReshaped = arabicReshaper.reshape("توقيع إلكتروني:");
+        const signTitleBidi = bidi.getDisplay(signTitleReshaped);
+        doc.fontSize(12).text(signTitleBidi, { align: 'right', bold: true });
+        
+        const signTextReshaped = arabicReshaper.reshape("يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.");
+        const signTextBidi = bidi.getDisplay(signTextReshaped);
+        doc.fontSize(11).text(signTextBidi, { align: 'right' });
         doc.moveDown(2);
 
         // مكان للتوقيعات
-        doc.fontSize(12).text("التوقيعات:", { ...rtlOptions, underline: true });
+        const signaturesTitleReshaped = arabicReshaper.reshape("التوقيعات:");
+        const signaturesTitleBidi = bidi.getDisplay(signaturesTitleReshaped);
+        doc.fontSize(12).text(signaturesTitleBidi, { align: 'right', underline: true });
         doc.moveDown();
         
-        doc.fontSize(11).text("الطرف الأول (صاحب المشروع):", rtlOptions);
-        doc.moveDown();
-        doc.fontSize(11).text("الاسم: ___________________", rtlOptions);
-        doc.fontSize(11).text("التاريخ: ___________________", rtlOptions);
+        const firstPartySignReshaped = arabicReshaper.reshape("الطرف الأول (صاحب المشروع):");
+        const firstPartySignBidi = bidi.getDisplay(firstPartySignReshaped);
+        doc.fontSize(11).text(firstPartySignBidi, { align: 'right' });
         doc.moveDown();
         
-        doc.fontSize(11).text("الطرف الثاني (الشركة):", rtlOptions);
+        const nameFieldReshaped = arabicReshaper.reshape("الاسم: ___________________");
+        const nameFieldBidi = bidi.getDisplay(nameFieldReshaped);
+        doc.fontSize(11).text(nameFieldBidi, { align: 'right' });
+        
+        const dateFieldReshaped = arabicReshaper.reshape("التاريخ: ___________________");
+        const dateFieldBidi = bidi.getDisplay(dateFieldReshaped);
+        doc.fontSize(11).text(dateFieldBidi, { align: 'right' });
+        doc.moveDown();
+        
+        const secondPartySignReshaped = arabicReshaper.reshape("الطرف الثاني (الشركة):");
+        const secondPartySignBidi = bidi.getDisplay(secondPartySignReshaped);
+        doc.fontSize(11).text(secondPartySignBidi, { align: 'right' });
         doc.moveDown();
         doc.fontSize(11).text(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`, rtlOptions);
         doc.fontSize(11).text(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`, rtlOptions);
