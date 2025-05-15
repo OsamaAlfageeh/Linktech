@@ -76,9 +76,7 @@ export async function generateProjectNdaPdf(
         // إعدادات المستند
         defaultStyle: {
           font: 'Cairo',
-          alignment: 'right',
-          direction: 'rtl',
-          lineHeight: 1.5
+          fontSize: 12
         },
         pageMargins: [40, 60, 40, 60],
         
@@ -88,20 +86,23 @@ export async function generateProjectNdaPdf(
             fontSize: 22, 
             bold: true, 
             margin: [0, 0, 0, 20],
-            alignment: 'center'
+            alignment: 'right'
           },
           subheader: {
             fontSize: 16,
             bold: true,
-            margin: [0, 15, 0, 10]
+            margin: [0, 15, 0, 10],
+            alignment: 'right'
           },
           paragraph: { 
             fontSize: 12, 
-            margin: [0, 5, 0, 5]
+            margin: [0, 5, 0, 5],
+            alignment: 'right'
           },
           signature: {
             fontSize: 12,
-            margin: [0, 10, 0, 5]
+            margin: [0, 10, 0, 5],
+            alignment: 'right'
           },
           footer: {
             fontSize: 10,
@@ -110,64 +111,64 @@ export async function generateProjectNdaPdf(
           }
         },
         
-        // محتوى المستند
+        // محتوى المستند - استخدام dir: 'rtl' لكل عنصر
         content: [
           // العنوان
-          { text: 'اتفاقية عدم إفصاح', style: 'header' },
+          { text: 'اتفاقية عدم إفصاح', style: 'header', dir: 'rtl' },
           
           // تاريخ الاتفاقية
-          { text: `تاريخ الإنشاء: ${formattedDate}`, style: 'paragraph', alignment: 'left' },
+          { text: `تاريخ الإنشاء: ${formattedDate}`, alignment: 'left' },
           
           // معلومات المشروع
-          { text: 'معلومات المشروع:', style: 'subheader' },
-          { text: `اسم المشروع: ${project.title || 'غير محدد'}`, style: 'paragraph' },
-          { text: `وصف المشروع: ${project.description || 'غير محدد'}`, style: 'paragraph' },
+          { text: 'معلومات المشروع:', style: 'subheader', dir: 'rtl' },
+          { text: `اسم المشروع: ${project.title || 'غير محدد'}`, style: 'paragraph', dir: 'rtl' },
+          { text: `وصف المشروع: ${project.description || 'غير محدد'}`, style: 'paragraph', dir: 'rtl' },
           
           // معلومات الشركة
-          { text: 'معلومات الشركة:', style: 'subheader' },
-          { text: `اسم الشركة: ${company.name || 'غير محدد'}`, style: 'paragraph' },
-          company.location ? { text: `الموقع: ${company.location}`, style: 'paragraph' } : {},
+          { text: 'معلومات الشركة:', style: 'subheader', dir: 'rtl' },
+          { text: `اسم الشركة: ${company.name || 'غير محدد'}`, style: 'paragraph', dir: 'rtl' },
+          company.location ? { text: `الموقع: ${company.location}`, style: 'paragraph', dir: 'rtl' } : {},
           
           // شروط الاتفاقية
-          { text: 'شروط الاتفاقية:', style: 'subheader' },
-          ...numberedTerms,
+          { text: 'شروط الاتفاقية:', style: 'subheader', dir: 'rtl' },
+          ...numberedTerms.map(term => ({ ...term, dir: 'rtl' })),
           
           // معلومات التوقيع
-          { text: 'التوقيعات:', style: 'subheader', margin: [0, 20, 0, 10] },
-          { text: 'الطرف الأول (صاحب المشروع)', style: 'signature' },
-          { text: 'الطرف الثاني (الشركة)', style: 'signature' }
+          { text: 'التوقيعات:', style: 'subheader', margin: [0, 20, 0, 10], dir: 'rtl' },
+          { text: 'الطرف الأول (صاحب المشروع)', style: 'signature', dir: 'rtl' },
+          { text: 'الطرف الثاني (الشركة)', style: 'signature', dir: 'rtl' }
         ]
       };
       
       // إضافة معلومات الموقع إذا وجدت
       if (signerInfo) {
         const signatureInfo = [
-          { text: `تم التوقيع إلكترونياً بتاريخ: ${formattedDate}`, style: 'signature' }
+          { text: `تم التوقيع إلكترونياً بتاريخ: ${formattedDate}`, style: 'signature', dir: 'rtl' }
         ];
         
         if (signerInfo.name) {
-          signatureInfo.push({ text: `اسم الموقّع: ${signerInfo.name}`, style: 'signature' });
+          signatureInfo.push({ text: `اسم الموقّع: ${signerInfo.name}`, style: 'signature', dir: 'rtl' });
         }
         
         if (signerInfo.title) {
-          signatureInfo.push({ text: `المنصب: ${signerInfo.title}`, style: 'signature' });
+          signatureInfo.push({ text: `المنصب: ${signerInfo.title}`, style: 'signature', dir: 'rtl' });
         }
         
         if (signerInfo.ip) {
-          signatureInfo.push({ text: `IP عنوان: ${signerInfo.ip}`, style: 'signature', fontSize: 10 });
+          signatureInfo.push({ text: `IP عنوان: ${signerInfo.ip}`, style: 'signature', fontSize: 10, dir: 'rtl' });
         }
         
         // إضافة معلومات التوقيع للمستند
         docDefinition.content.push(...signatureInfo);
       } else {
         // إضافة مكان للتوقيع
-        docDefinition.content.push({ text: 'التوقيع: ______________________________', style: 'signature' });
+        docDefinition.content.push({ text: 'التوقيع: ______________________________', style: 'signature', dir: 'rtl' });
       }
       
       // إضافة معلومات المنصة في نهاية المستند
       docDefinition.content.push(
-        { text: 'تم إنشاء هذه الاتفاقية عبر منصة لينكتك - https://linktech.app', style: 'footer' },
-        { text: `الرقم المرجعي: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, style: 'footer' }
+        { text: 'تم إنشاء هذه الاتفاقية عبر منصة لينكتك - https://linktech.app', style: 'footer', dir: 'rtl' },
+        { text: `الرقم المرجعي: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, style: 'footer', dir: 'rtl' }
       );
       
       // إنشاء ملف PDF
