@@ -5,7 +5,9 @@
 
 import { Request, Response, Router } from 'express';
 import path from 'path';
-import PDFDocument from 'pdfkit';
+import PDFKit from 'pdfkit';
+// تعريف نوع PDFDocument كـ any لتجنب مشاكل TypeScript
+type PDFDocument = any;
 import arabicReshaper from 'arabic-reshaper';
 import bidi from 'bidi-js';
 
@@ -29,9 +31,9 @@ function toArabic(text: string): string {
 }
 
 // إنشاء مستند PDF عربي
-function createArabicPdf(doc: PDFDocument) {
+function createArabicPdf(doc: any) {
   // تحميل الخط العربي
-  const fontPath = path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf');
+  const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
   doc.font(fontPath);
   
   // حساب عرض الصفحة المتاح للكتابة
@@ -40,7 +42,6 @@ function createArabicPdf(doc: PDFDocument) {
   // إضافة العنوان
   doc.fontSize(24);
   doc.text(toArabic('اتفاقية عدم إفصاح'), {
-    width: pageWidth,
     align: 'center'
   });
   doc.moveDown();
@@ -64,7 +65,6 @@ function createArabicPdf(doc: PDFDocument) {
   lines.forEach(line => {
     if (line.trim()) {
       doc.text(toArabic(line), {
-        width: pageWidth,
         align: 'right',
         lineGap: 5
       });
@@ -77,12 +77,10 @@ function createArabicPdf(doc: PDFDocument) {
   doc.moveDown();
   doc.fontSize(12);
   doc.text(toArabic('الطرف الأول: منصة لينكتك (https://linktech.app)'), {
-    width: pageWidth,
     align: 'right'
   });
   doc.moveDown();
   doc.text(toArabic('الطرف الثاني: ______________________'), {
-    width: pageWidth,
     align: 'right'
   });
   doc.moveDown();
@@ -91,14 +89,12 @@ function createArabicPdf(doc: PDFDocument) {
   const today = new Date();
   const dateStr = today.toISOString().split('T')[0];
   doc.text(toArabic(`تاريخ التوقيع: ${dateStr}`), {
-    width: pageWidth,
     align: 'right'
   });
   
   // إضافة اختبار الأرقام
   doc.moveDown(2);
   doc.text(toArabic('اختبار أرقام: ١٢٣٤٥٦٧٨٩٠'), {
-    width: pageWidth,
     align: 'right'
   });
 }
@@ -173,7 +169,7 @@ router.get('/api/view-arabic-pdf', async (req: Request, res: Response) => {
     console.log('اختبار إنشاء PDF باللغة العربية - عرض مباشر');
     
     // إنشاء وثيقة PDF جديدة
-    const doc = new PDFDocument({
+    const doc = new PDFKit({
       size: 'A4',
       margin: 50,
       info: {
@@ -208,7 +204,7 @@ router.get('/api/test-arabic-pdf', async (req: Request, res: Response) => {
     console.log('اختبار إنشاء PDF باللغة العربية للتنزيل');
     
     // إنشاء وثيقة PDF جديدة مع دعم اللغة العربية
-    const doc = new PDFDocument({
+    const doc = new PDFKit({
       size: 'A4',
       margin: 50,
       info: {
