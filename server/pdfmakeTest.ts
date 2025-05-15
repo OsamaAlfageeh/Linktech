@@ -6,9 +6,10 @@
 import { Request, Response, Router } from 'express';
 import path from 'path';
 import fs from 'fs';
-import arabicReshaper from 'arabic-reshaper';
-import bidiFactory from 'bidi-js';
-const bidi = bidiFactory();
+// استخدام مكتبات reshaping للنصوص العربية
+import * as arabicReshaper from 'arabic-reshaper';
+import * as bidiFactory from 'bidi-js';
+const bidi = bidiFactory.default();
 
 // استيراد pdfmake - بطريقة تتلاءم مع TypeScript/ESM
 import PdfPrinter from 'pdfmake/src/printer';
