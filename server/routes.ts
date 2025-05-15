@@ -3075,7 +3075,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // استخدام مسارات Sitemap و robots.txt من ملف منفصل
   app.use(sitemapRoutes);
   
-  // صفحة HTML تحتوي على زر تنزيل لملف PDF
+  // صفحة HTML تحتوي على زر تنزيل وعرض لملف PDF
   app.get('/arabic-pdf-test', (req: Request, res: Response) => {
     res.send(`
       <!DOCTYPE html>
@@ -3095,24 +3095,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           h1 {
             color: #333;
           }
-          .download-btn {
+          .btn {
             display: inline-block;
-            background-color: #4CAF50;
-            color: white;
+            margin: 10px;
             padding: 12px 30px;
-            margin: 20px 0;
             border: none;
             border-radius: 4px;
             cursor: pointer;
             font-size: 18px;
             text-decoration: none;
+            color: white;
+          }
+          .download-btn {
+            background-color: #4CAF50;
+          }
+          .view-btn {
+            background-color: #2196F3;
+          }
+          .option {
+            margin: 30px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
           }
         </style>
       </head>
       <body>
         <h1>اختبار عرض النصوص العربية في ملفات PDF</h1>
-        <p>انقر على الزر أدناه لتنزيل ملف PDF يحتوي على نصوص عربية للاختبار</p>
-        <a href="/api/test-arabic-pdf" class="download-btn">تنزيل ملف PDF</a>
+        
+        <div class="option">
+          <h2>الخيار 1: عرض PDF في المتصفح</h2>
+          <p>سيتم عرض ملف PDF مباشرة في المتصفح</p>
+          <a href="/api/view-arabic-pdf" class="btn view-btn" target="_blank">عرض الملف</a>
+        </div>
+        
+        <div class="option">
+          <h2>الخيار 2: تنزيل PDF</h2>
+          <p>سيتم تنزيل ملف PDF للاحتفاظ به على جهازك</p>
+          <a href="/api/test-arabic-pdf" class="btn download-btn">تنزيل الملف</a>
+        </div>
       </body>
       </html>
     `);
