@@ -1438,9 +1438,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
       function reshapeArabicText(text: string): string {
         try {
-          // استخدام الإعدادات المتقدمة مع arabic-reshaper
-          // تمكين خيار الترميز العكسي ليناسب عرض النص من اليمين لليسار
-          return arabicReshaper.convertArabic(text, { supportCG: true, flipWords: true, flipWholeSentence: true });
+          // النهج المحسن لمعالجة النص العربي
+          
+          // 1. إعادة تشكيل النص العربي (دمج الحروف بشكل صحيح)
+          const reshaped = arabicReshaper.reshape(text);
+          
+          // 2. تصحيح اتجاه النص من اليمين إلى اليسار
+          const bidiText = bidi.getDisplay(reshaped);
+          
+          return bidiText;
         } catch (error) {
           console.error('خطأ في تحويل النص العربي:', error);
           return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
