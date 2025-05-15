@@ -3075,6 +3075,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // استخدام مسارات Sitemap و robots.txt من ملف منفصل
   app.use(sitemapRoutes);
   
+  // صفحة HTML تحتوي على زر تنزيل لملف PDF
+  app.get('/arabic-pdf-test', (req: Request, res: Response) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>اختبار PDF باللغة العربية</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+          }
+          h1 {
+            color: #333;
+          }
+          .download-btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            margin: 20px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            text-decoration: none;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>اختبار عرض النصوص العربية في ملفات PDF</h1>
+        <p>انقر على الزر أدناه لتنزيل ملف PDF يحتوي على نصوص عربية للاختبار</p>
+        <a href="/api/test-arabic-pdf" class="download-btn">تنزيل ملف PDF</a>
+      </body>
+      </html>
+    `);
+  });
+
   // نقطة نهاية لاختبار دعم اللغة العربية في ملفات PDF
   app.get('/api/test-arabic-pdf', async (req: Request, res: Response) => {
     try {
