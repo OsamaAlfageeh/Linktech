@@ -3139,7 +3139,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     `);
   });
 
-  // نقطة نهاية لاختبار دعم اللغة العربية في ملفات PDF
+  // نقطة نهاية جديدة لعرض ملف PDF مباشرة في المتصفح
+  app.get('/api/view-arabic-pdf', async (req: Request, res: Response) => {
+    try {
+      console.log('اختبار إنشاء PDF باللغة العربية - عرض مباشر');
+      
+      // مساعدة لإعادة تشكيل و bidi
+      function toArabic(text: string): string {
+        try {
+          // 1) reshape: يربط الحروف مع بعض
+          const reshaped = arabicReshaper.reshape(text);
+          // 2) bidi: يعالج اتجاه النص من اليمين لليسار
+          return bidi.getVisualString(reshaped);
+        } catch (error) {
+          console.error('خطأ في معالجة النص العربي:', error);
+          return text; // إرجاع النص الأصلي في حالة الخطأ
+        }
+      }
+      
+      // إنشاء وثيقة PDF جديدة
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        info: {
+          Title: 'اختبار دعم اللغة العربية',
+          Author: 'لينكتك',
+          Subject: 'اختبار توليد ملفات PDF بالعربية',
+        }
+      });
+      
+      // تحميل الخط العربي
+      const fontPath = path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf');
+      doc.font(fontPath);
+      
+      // إعداد رأس الاستجابة لعرض PDF مباشرة في المتصفح
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline; filename=arabic-test.pdf');
+      
+      // توجيه مخرجات PDF مباشرة إلى الاستجابة
+      doc.pipe(res);
+      
+      // إضافة محتوى باللغة العربية للاختبار
+      doc.fontSize(24).text(toArabic('مرحبًا بكم في اختبار دعم اللغة العربية'), {
+        align: 'right'
+      });
+      
+      doc.moveDown();
+      doc.fontSize(16).text(toArabic('هذا اختبار لعرض النصوص العربية في ملفات PDF'), {
+        align: 'right'
+      });
+      
+      doc.moveDown();
+      doc.fontSize(14).text(toArabic('محتوى فقرة تجريبية باللغة العربية. نختبر هنا قدرة المكتبة على عرض النصوص العربية بشكل صحيح مع دعم التشكيل والاتجاه من اليمين إلى اليسار.'), {
+        align: 'right'
+      });
+      
+      doc.moveDown();
+      const currentDate = new Date();
+      const dateString = currentDate.toLocaleDateString('ar-SA');
+      doc.fontSize(12).text(toArabic(`تاريخ إنشاء المستند: ${dateString}`), {
+        align: 'right'
+      });
+      
+      doc.moveDown();
+      doc.fontSize(14).text(toArabic('أرقام للاختبار: ١٢٣٤٥٦٧٨٩٠'), {
+        align: 'right'
+      });
+      
+      // إنهاء المستند
+      doc.end();
+      
+    } catch (error) {
+      console.error('خطأ في إنشاء PDF للاختبار (عرض):', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء إنشاء PDF للاختبار' });
+    }
+  });
+
+  // نقطة نهاية لاختبار دعم اللغة العربية في ملفات PDF (تنزيل)
   app.get('/api/test-arabic-pdf', async (req: Request, res: Response) => {
     try {
       console.log('اختبار إنشاء PDF باللغة العربية');
