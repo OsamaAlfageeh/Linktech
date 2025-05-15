@@ -10,6 +10,195 @@ import PdfPrinter from 'pdfmake/src/printer';
 // إنشاء موجه للمسارات
 const router = Router();
 
+/**
+ * وظيفة مساعدة لإنشاء ملف PDF لاتفاقية عدم الإفصاح
+ * هذه النسخة محسنة لعرض النص العربي باستخدام pdfmake
+ * مع استخدام خاصية direction:rtl بدلاً من مكتبات خارجية
+ * 
+ * @param project بيانات المشروع
+ * @param company بيانات الشركة
+ * @param signerInfo معلومات الموقع (اختياري)
+ * @returns وعد يرجع البفر النهائي للملف
+ */
+export async function generateProjectNdaPdf(
+  project: any, 
+  company: any, 
+  signerInfo?: {
+    name?: string;
+    title?: string;
+    date?: Date;
+    ip?: string;
+  }
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    try {
+      // تحميل الخط العربي
+      const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+      
+      // التحقق من وجود ملف الخط
+      if (!fs.existsSync(fontPath)) {
+        throw new Error('ملف الخط العربي Cairo-Regular.ttf غير موجود');
+      }
+      
+      // إنشاء تعريف الخطوط
+      const fonts = {
+        Cairo: {
+          normal: fontPath,
+          bold: fontPath,
+          italics: fontPath,
+          bolditalics: fontPath
+        }
+      };
+      
+      // إنشاء نسخة من pdfmake مع الخطوط العربية
+      const printer = new PdfPrinter(fonts);
+      
+      // تحضير معلومات التوقيع
+      const signedDate = signerInfo?.date ? new Date(signerInfo.date) : new Date();
+      const formattedDate = `${signedDate.getDate()}-${signedDate.getMonth() + 1}-${signedDate.getFullYear()}`;
+      
+      // شروط الاتفاقية
+      const terms = [
+        'بموجب هذه الاتفاقية، يلتزم الطرف الثاني (الشركة) بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول (صاحب المشروع).',
+        'تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع عليها إلكترونياً، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.',
+        'تبقى هذه الاتفاقية سارية لمدة عامين (2) بعد انتهاء العمل بالمشروع أو انتهاء العلاقة بين الطرفين، أيهما أبعد.',
+        'في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.',
+        'تخضع هذه الاتفاقية للقوانين المعمول بها في المملكة العربية السعودية وتحل أي نزاعات تنشأ عنها في محاكم المملكة.',
+      ];
+      
+      // ترقيم البنود
+      const numberedTerms = terms.map((term, index) => {
+        return { text: `${index + 1}. ${term}`, style: 'paragraph' };
+      });
+      
+      // إنشاء تعريف المستند
+      const docDefinition = {
+        // إعدادات المستند
+        defaultStyle: {
+          font: 'Cairo',
+          alignment: 'right',
+          direction: 'rtl',
+          lineHeight: 1.5
+        },
+        pageMargins: [40, 60, 40, 60],
+        
+        // تعريف الأنماط
+        styles: {
+          header: { 
+            fontSize: 22, 
+            bold: true, 
+            margin: [0, 0, 0, 20],
+            alignment: 'center'
+          },
+          subheader: {
+            fontSize: 16,
+            bold: true,
+            margin: [0, 15, 0, 10]
+          },
+          paragraph: { 
+            fontSize: 12, 
+            margin: [0, 5, 0, 5]
+          },
+          signature: {
+            fontSize: 12,
+            margin: [0, 10, 0, 5]
+          },
+          footer: {
+            fontSize: 10,
+            alignment: 'center',
+            margin: [0, 30, 0, 0]
+          }
+        },
+        
+        // محتوى المستند
+        content: [
+          // العنوان
+          { text: 'اتفاقية عدم إفصاح', style: 'header' },
+          
+          // تاريخ الاتفاقية
+          { text: `تاريخ الإنشاء: ${formattedDate}`, style: 'paragraph', alignment: 'left' },
+          
+          // معلومات المشروع
+          { text: 'معلومات المشروع:', style: 'subheader' },
+          { text: `اسم المشروع: ${project.title || 'غير محدد'}`, style: 'paragraph' },
+          { text: `وصف المشروع: ${project.description || 'غير محدد'}`, style: 'paragraph' },
+          
+          // معلومات الشركة
+          { text: 'معلومات الشركة:', style: 'subheader' },
+          { text: `اسم الشركة: ${company.name || 'غير محدد'}`, style: 'paragraph' },
+          company.location ? { text: `الموقع: ${company.location}`, style: 'paragraph' } : {},
+          
+          // شروط الاتفاقية
+          { text: 'شروط الاتفاقية:', style: 'subheader' },
+          ...numberedTerms,
+          
+          // معلومات التوقيع
+          { text: 'التوقيعات:', style: 'subheader', margin: [0, 20, 0, 10] },
+          { text: 'الطرف الأول (صاحب المشروع)', style: 'signature' },
+          { text: 'الطرف الثاني (الشركة)', style: 'signature' }
+        ]
+      };
+      
+      // إضافة معلومات الموقع إذا وجدت
+      if (signerInfo) {
+        const signatureInfo = [
+          { text: `تم التوقيع إلكترونياً بتاريخ: ${formattedDate}`, style: 'signature' }
+        ];
+        
+        if (signerInfo.name) {
+          signatureInfo.push({ text: `اسم الموقّع: ${signerInfo.name}`, style: 'signature' });
+        }
+        
+        if (signerInfo.title) {
+          signatureInfo.push({ text: `المنصب: ${signerInfo.title}`, style: 'signature' });
+        }
+        
+        if (signerInfo.ip) {
+          signatureInfo.push({ text: `IP عنوان: ${signerInfo.ip}`, style: 'signature', fontSize: 10 });
+        }
+        
+        // إضافة معلومات التوقيع للمستند
+        docDefinition.content.push(...signatureInfo);
+      } else {
+        // إضافة مكان للتوقيع
+        docDefinition.content.push({ text: 'التوقيع: ______________________________', style: 'signature' });
+      }
+      
+      // إضافة معلومات المنصة في نهاية المستند
+      docDefinition.content.push(
+        { text: 'تم إنشاء هذه الاتفاقية عبر منصة لينكتك - https://linktech.app', style: 'footer' },
+        { text: `الرقم المرجعي: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, style: 'footer' }
+      );
+      
+      // إنشاء ملف PDF
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: Buffer[] = [];
+      
+      // جمع البيانات
+      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      
+      // الانتهاء من إنشاء المستند
+      pdfDoc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        resolve(pdfBuffer);
+      });
+      
+      // معالجة الأخطاء
+      pdfDoc.on('error', (err) => {
+        console.error('خطأ في إنشاء ملف PDF:', err);
+        reject(err);
+      });
+      
+      // إنهاء المستند
+      pdfDoc.end();
+      
+    } catch (error) {
+      console.error('خطأ في إنشاء ملف PDF:', error);
+      reject(error);
+    }
+  });
+}
+
 // صفحة HTML لاختبار PDF
 router.get('/generate-nda-test', (req: Request, res: Response) => {
   res.send(`
@@ -82,150 +271,49 @@ router.get('/api/generate-nda', async (req: Request, res: Response) => {
       fs.mkdirSync(tempDir, { recursive: true });
     }
     
-    // تحميل الخط العربي
-    const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
-    let fontExists = true;
-    try {
-      fs.accessSync(fontPath, fs.constants.R_OK);
-    } catch (err) {
-      fontExists = false;
-      console.error(`خطأ: ملف الخط غير موجود في ${fontPath}`);
-    }
-
-    if (!fontExists) {
-      return res.status(500).json({ 
-        message: 'لم يتم العثور على ملف الخط Cairo-Regular.ttf' 
-      });
-    }
-
-    // إنشاء تعريف الخطوط المستخدمة في pdfmake
-    const fonts = {
-      Cairo: {
-        normal: fontPath,
-        bold: fontPath,
-        italics: fontPath,
-        bolditalics: fontPath
-      }
+    // بيانات نموذجية للاختبار
+    const sampleProject = {
+      id: 12345,
+      title: 'تطبيق إدارة المشاريع',
+      description: 'تطبيق متكامل لإدارة المشاريع والمهام وتتبع الوقت لتسهيل العمل الجماعي وزيادة الإنتاجية'
     };
     
-    // إنشاء نسخة مخصصة من pdfmake
-    const printer = new PdfPrinter(fonts);
-    
-    // محتوى الاتفاقية
-    const paragraphs = [
-      'بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.',
-      'تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع الإلكتروني عليها، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.',
-      'في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.',
-      'الطرف الأول: منصة لينكتك (https://linktech.app)',
-      'الطرف الثاني: _____________________________',
-      `تاريخ التوقيع: ${new Date().toISOString().split('T')[0]}`,
-      'اختبار أرقام: ١٢٣٤٥٦٧٨٩٠'
-    ];
-
-    // إنشاء تعريف المستند
-    const docDefinition = {
-      // إعدادات المستند
-      defaultStyle: {
-        font: 'Cairo',
-        alignment: 'right',
-        direction: 'rtl',
-        lineHeight: 1.5
-      },
-      pageMargins: [40, 60, 40, 60],
-      
-      // تعريف الأنماط
-      styles: {
-        header: { 
-          fontSize: 22, 
-          bold: true, 
-          margin: [0, 0, 0, 20],
-          alignment: 'center'
-        },
-        paragraph: { 
-          fontSize: 14, 
-          margin: [0, 10, 0, 10] 
-        },
-        signature: {
-          fontSize: 12,
-          margin: [0, 30, 0, 0]
-        }
-      },
-      
-      // محتوى المستند
-      content: [
-        // العنوان
-        { text: 'اتفاقية عدم الإفصاح', style: 'header' },
-        
-        // مقدمة الاتفاقية
-        { 
-          text: 'تم إبرام هذه الاتفاقية بين كل من:', 
-          style: 'paragraph',
-          margin: [0, 0, 0, 20]
-        },
-        
-        // الفقرات الرئيسية
-        ...paragraphs.slice(0, 3).map(p => ({ 
-          text: p, 
-          style: 'paragraph'
-        })),
-        
-        // معلومات التوقيع
-        { 
-          text: paragraphs[3], 
-          style: 'signature'
-        },
-        { 
-          text: paragraphs[4], 
-          style: 'signature' 
-        },
-        { 
-          text: paragraphs[5], 
-          style: 'signature',
-          margin: [0, 10, 0, 10]
-        }
-      ]
+    const sampleCompany = {
+      name: 'شركة التقنية المتقدمة',
+      location: 'الرياض - المملكة العربية السعودية'
     };
+    
+    // إنشاء ملف PDF
+    const pdfBuffer = await generateProjectNdaPdf(sampleProject, sampleCompany, {
+      name: 'محمد علي',
+      title: 'مدير المشاريع',
+      date: new Date(),
+      ip: '192.168.1.1'
+    });
     
     // استخدام اسم ملف بالإنجليزية لتجنب مشاكل التشفير
     const pdfFilename = 'linktech-nda.pdf';
     const tempPdfPath = path.join(tempDir, pdfFilename);
     
-    // إنشاء الـ PDF
-    const pdfDoc = printer.createPdfKitDocument(docDefinition);
+    // حفظ الملف
+    fs.writeFileSync(tempPdfPath, pdfBuffer);
+    console.log(`تم إنشاء ملف PDF بنجاح في: ${tempPdfPath}`);
     
-    // كتابة الملف إلى مسار مؤقت
-    const writeStream = fs.createWriteStream(tempPdfPath);
-    pdfDoc.pipe(writeStream);
-    pdfDoc.end();
+    // تعيين الترويسات المناسبة
+    res.setHeader('Content-Type', 'application/pdf');
     
-    // عندما يكتمل إنشاء الملف
-    writeStream.on('finish', () => {
-      console.log(`تم إنشاء ملف PDF بنجاح في: ${tempPdfPath}`);
-      
-      // تعيين الترويسات المناسبة
-      res.setHeader('Content-Type', 'application/pdf');
-      
-      if (mode === 'download') {
-        // تنزيل الملف
-        res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename}"`);
-      } else {
-        // عرض الملف في المتصفح
-        res.setHeader('Content-Disposition', `inline; filename="${pdfFilename}"`);
-      }
-      
-      // إرسال الملف
-      const fileStream = fs.createReadStream(tempPdfPath);
-      fileStream.pipe(res);
-    });
+    if (mode === 'download') {
+      // تنزيل الملف
+      res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename}"`);
+    } else {
+      // عرض الملف في المتصفح
+      res.setHeader('Content-Disposition', `inline; filename="${pdfFilename}"`);
+    }
     
-    // التعامل مع أخطاء الكتابة
-    writeStream.on('error', (error) => {
-      console.error('خطأ في كتابة ملف PDF:', error);
-      res.status(500).json({ 
-        message: 'حدث خطأ أثناء كتابة ملف PDF',
-        error: error.message 
-      });
-    });
+    // إرسال الملف
+    const fileStream = fs.createReadStream(tempPdfPath);
+    fileStream.pipe(res);
+    
   } catch (error: any) {
     console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
     res.status(500).json({ 
