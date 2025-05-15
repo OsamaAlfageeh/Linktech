@@ -17,9 +17,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import arabicReshaper from 'arabic-reshaper';
-import bidiFactory from 'bidi-js';
-const bidi = bidiFactory();
+// مكتبة pdfmake للتوليد المحسّن لملفات PDF
+import PdfPrinter from 'pdfmake/src/printer';
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
