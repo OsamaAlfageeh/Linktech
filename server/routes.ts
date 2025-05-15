@@ -3214,31 +3214,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // انتظار اكتمال إنشاء المستند
       const pdfBuffer = await pdfPromise;
       
-      // إنشاء ملف مؤقت على القرص ثم إرسال الملف للتنزيل
-      const tempFilePath = path.join(process.cwd(), 'temp', 'arabic-test.pdf');
+      // إنشاء ملف في المجلد العام ليكون متاحًا للتنزيل عبر الوصول المباشر
+      const publicPdfPath = path.join(process.cwd(), 'public', 'arabic-test.pdf');
       
-      // التأكد من وجود مجلد temp
-      const tempDir = path.join(process.cwd(), 'temp');
-      if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir, { recursive: true });
+      // التأكد من وجود مجلد public
+      const publicDir = path.join(process.cwd(), 'public');
+      if (!fs.existsSync(publicDir)) {
+        fs.mkdirSync(publicDir, { recursive: true });
       }
       
-      // كتابة الملف
-      fs.writeFileSync(tempFilePath, pdfBuffer);
+      // كتابة الملف في المجلد العام
+      fs.writeFileSync(publicPdfPath, pdfBuffer);
       
-      // إرسال الملف من القرص مباشرة
-      res.download(tempFilePath, 'arabic-test.pdf', (err) => {
-        if (err) {
-          console.error('خطأ في تنزيل الملف:', err);
-        }
-        
-        // حذف الملف المؤقت بعد التنزيل
-        try {
-          fs.unlinkSync(tempFilePath);
-        } catch (unlinkErr) {
-          console.error('خطأ في حذف الملف المؤقت:', unlinkErr);
-        }
-      });
+      // تعديل صفحة HTML للإشارة إلى المسار الجديد
+      res.send(`<!DOCTYPE html>
+      <html lang="ar" dir="rtl">
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>PDF تم توليده بنجاح</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+          }
+          h1 { color: #4CAF50; }
+          .download-btn {
+            display: inline-block;
+            background-color: #4CAF50;
+            color: white;
+            padding: 12px 30px;
+            margin: 20px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 18px;
+            text-decoration: none;
+          }
+        </style>
+      </head>
+      <body>
+        <h1>تم إنشاء ملف PDF بنجاح!</h1>
+        <p>تم إنشاء ملف PDF بنجاح ويمكنك تنزيله من خلال الرابط أدناه</p>
+        <a href="/arabic-test.pdf" class="download-btn" download>تنزيل الملف</a>
+        <p>أو، يمكنك الوصول للملف مباشرة من:</p>
+        <a href="/arabic-test.pdf" target="_blank">/arabic-test.pdf</a>
+      </body>
+      </html>`);
       
     } catch (error) {
       console.error('خطأ في إنشاء PDF للاختبار:', error);
