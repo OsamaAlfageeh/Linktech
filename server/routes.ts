@@ -1434,15 +1434,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخدام PDFKit بدلاً من Puppeteer
       console.log('استخدام PDFKit لإنشاء ملف PDF بدلاً من Puppeteer');
       
-      // طباعة نماذج نصية للتحقق من كيفية عمل خوارزمية إعادة التشكيل
-      console.log('اختبار arabic-reshaper:');
-      console.log('الأصل: اتفاقية عدم الإفصاح');
-      console.log('بعد التحويل: ' + arabicReshaper.convertArabic('اتفاقية عدم الإفصاح'));
-      
-      // وظيفة مساعدة لإعادة تشكيل النص العربي
+      // وظيفة مساعدة لإعادة تشكيل النص العربي 
+      // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
       function reshapeArabicText(text: string): string {
-        // استخدام وظيفة convertArabic من مكتبة arabic-reshaper
-        // الطريقة الصحيحة حسب توثيق المكتبة: arabicReshaper.convertArabic()
+        // نحول النص باستخدام مكتبة arabic-reshaper
         return arabicReshaper.convertArabic(text);
       }
       
@@ -1453,6 +1448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
+        autoFirstPage: true,
+        bufferPages: true,
+        layout: 'portrait',
         info: {
           Title: `اتفاقية عدم إفصاح - NDA`,
           Author: 'منصة لينكتك',
@@ -1465,10 +1463,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // استخدام الخط العربي
       doc.font('Arabic');
-      
-      // تمكين دعم اللغة العربية باستخدام الخصائص المناسبة
-      doc._page.features.arabic = true; // تفعيل خاصية دعم العربية في الصفحة
-      doc._page.features.bidirectional = true; // تفعيل دعم الكتابة ثنائية الاتجاه
       
       // إنشاء stream للحصول على البايتات
       const chunks: Buffer[] = [];
@@ -1486,7 +1480,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // إضافة عنوان المستند
       doc.fontSize(22).text(reshapeArabicText('اتفاقية عدم الإفصاح'), { 
         align: 'center',
-        features: ['rtla'] // استخدام خاصية rtla للنص العربي 
+        direction: 'rtl' // استخدام اتجاه من اليمين إلى اليسار
       });
       doc.moveDown();
       
@@ -1494,7 +1488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectTitle = reshapeArabicText(`المشروع: ${project.title}`);
       doc.fontSize(16).text(projectTitle, { 
         align: 'center',
-        features: ['rtla']
+        direction: 'rtl'
       });
       doc.moveDown(2);
       
@@ -1503,57 +1497,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       doc.fontSize(14).text(partiesTitle, { 
         align: 'right', 
         underline: true,
-        features: ['rtla']
+        direction: 'rtl'
       });
       doc.moveDown();
       
       const firstPartyText = reshapeArabicText(`الطرف الأول (صاحب المشروع): ${projectOwner}`);
-      doc.fontSize(12).text(firstPartyText, { align: 'right', features: ['rtla'] });
+      doc.fontSize(12).text(firstPartyText, { align: 'right', direction: 'rtl' });
       doc.moveDown();
       
       const secondPartyText = reshapeArabicText(`الطرف الثاني (الشركة): ${companyNameStr}`);
-      doc.fontSize(12).text(secondPartyText, { align: 'right', features: ['rtla'] });
+      doc.fontSize(12).text(secondPartyText, { align: 'right', direction: 'rtl' });
       doc.moveDown(2);
       
       // محتوى الاتفاقية
       const termsTitle = reshapeArabicText('بنود الاتفاقية:');
-      doc.fontSize(14).text(termsTitle, { align: 'right', underline: true, features: ['rtla'] });
+      doc.fontSize(14).text(termsTitle, { align: 'right', underline: true, direction: 'rtl' });
       doc.moveDown();
       
       const term1 = reshapeArabicText('١. يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات والبيانات المتعلقة بالمشروع المذكور أعلاه، وعدم الإفصاح عنها لأي طرف ثالث دون موافقة خطية مسبقة من الطرف الأول.');
-      doc.fontSize(11).text(term1, { align: 'right', features: ['rtla'] });
+      doc.fontSize(11).text(term1, { align: 'right', direction: 'rtl' });
       doc.moveDown();
       
       const term2 = reshapeArabicText('٢. تشمل المعلومات السرية على سبيل المثال لا الحصر: خطط العمل، التصاميم، الرسومات، البرمجيات، الأفكار، المفاهيم، والتفاصيل التقنية والتجارية.');
-      doc.fontSize(11).text(term2, { align: 'right', features: ['rtla'] });
+      doc.fontSize(11).text(term2, { align: 'right', direction: 'rtl' });
       doc.moveDown();
       
       const term3 = reshapeArabicText('٣. تستمر التزامات السرية لمدة سنتين من تاريخ توقيع هذه الاتفاقية.');
-      doc.fontSize(11).text(term3, { align: 'right' });
+      doc.fontSize(11).text(term3, { align: 'right', direction: 'rtl' });
       doc.moveDown(2);
       
       // معلومات التوقيع
       const signatureTitle = reshapeArabicText('حالة التوقيع:');
-      doc.fontSize(14).text(signatureTitle, { align: 'right', underline: true });
+      doc.fontSize(14).text(signatureTitle, { align: 'right', underline: true, direction: 'rtl' });
       doc.moveDown();
       
       if (nda.status === 'signed' && nda.signedAt) {
         const signDateStr = new Date(nda.signedAt).toLocaleDateString('ar-SA');
         const signedText = reshapeArabicText(`تم توقيع هذه الاتفاقية بتاريخ: ${signDateStr}`);
-        doc.fontSize(12).text(signedText, { align: 'right' });
+        doc.fontSize(12).text(signedText, { align: 'right', direction: 'rtl' });
         
         const signerInfo = nda.companySignatureInfo as any || {};
         if (signerInfo.signerName) {
           const signerNameText = reshapeArabicText(`تم التوقيع بواسطة: ${signerInfo.signerName}`);
-          doc.fontSize(12).text(signerNameText, { align: 'right' });
+          doc.fontSize(12).text(signerNameText, { align: 'right', direction: 'rtl' });
         }
         if (signerInfo.signerTitle) {
           const signerTitleText = reshapeArabicText(`المنصب: ${signerInfo.signerTitle}`);
-          doc.fontSize(12).text(signerTitleText, { align: 'right' });
+          doc.fontSize(12).text(signerTitleText, { align: 'right', direction: 'rtl' });
         }
       } else {
         const draftText = reshapeArabicText('حالة الاتفاقية: مسودة (غير موقعة)');
-        doc.fontSize(12).text(draftText, { align: 'right' });
+        doc.fontSize(12).text(draftText, { align: 'right', direction: 'rtl' });
       }
       
       doc.moveDown(2);
@@ -1561,7 +1555,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تذييل الصفحة
       const todayDate = new Date().toLocaleDateString('ar-SA');
       const footerText = reshapeArabicText(`تم إنشاء هذا المستند بواسطة منصة لينكتك - ${todayDate}`);
-      doc.fontSize(10).text(footerText, { align: 'center' });
+      doc.fontSize(10).text(footerText, { align: 'center', direction: 'rtl' });
       
       // إنهاء المستند
       doc.end();
