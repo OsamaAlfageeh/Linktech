@@ -1434,18 +1434,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // استخدام PDFKit بدلاً من Puppeteer
       console.log('استخدام PDFKit لإنشاء ملف PDF بدلاً من Puppeteer');
       
+      // طباعة نماذج نصية للتحقق من كيفية عمل خوارزمية إعادة التشكيل
+      console.log('اختبار arabic-reshaper:');
+      console.log('الأصل: اتفاقية عدم الإفصاح');
+      console.log('بعد التحويل: ' + arabicReshaper.convertArabic('اتفاقية عدم الإفصاح'));
+      
       // وظيفة مساعدة لإعادة تشكيل النص العربي
       function reshapeArabicText(text: string): string {
         // استخدام وظيفة convertArabic من مكتبة arabic-reshaper
         // الطريقة الصحيحة حسب توثيق المكتبة: arabicReshaper.convertArabic()
-        const reshaped = arabicReshaper.convertArabic(text);
-        
-        // معالجة اتجاه النص من اليمين إلى اليسار مع مكتبة bidi-js
-        // الطريقة الصحيحة هي استخدام getEmbeddingLevels ثم getReorderSegments
-        // ولكن هنا نستغني عن ذلك لأن PDFKit يدعم خاصية RTL بشكل مباشر
-        
-        // نكتفي بإرجاع النص بعد إعادة تشكيله
-        return reshaped;
+        return arabicReshaper.convertArabic(text);
       }
       
       // إضافة مسار الخط العربي المطلق
@@ -1455,7 +1453,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
-        rtl: true, // تفعيل الكتابة من اليمين إلى اليسار
         info: {
           Title: `اتفاقية عدم إفصاح - NDA`,
           Author: 'منصة لينكتك',
@@ -1468,6 +1465,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // استخدام الخط العربي
       doc.font('Arabic');
+      
+      // تمكين دعم اللغة العربية باستخدام الخصائص المناسبة
+      doc._page.features.arabic = true; // تفعيل خاصية دعم العربية في الصفحة
+      doc._page.features.bidirectional = true; // تفعيل دعم الكتابة ثنائية الاتجاه
       
       // إنشاء stream للحصول على البايتات
       const chunks: Buffer[] = [];
@@ -1483,38 +1484,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // إضافة عنوان المستند
-      doc.fontSize(22).text(reshapeArabicText('اتفاقية عدم الإفصاح'), { align: 'center' });
+      doc.fontSize(22).text(reshapeArabicText('اتفاقية عدم الإفصاح'), { 
+        align: 'center',
+        features: ['rtla'] // استخدام خاصية rtla للنص العربي 
+      });
       doc.moveDown();
       
       // إضافة عنوان المشروع
       const projectTitle = reshapeArabicText(`المشروع: ${project.title}`);
-      doc.fontSize(16).text(projectTitle, { align: 'center' });
+      doc.fontSize(16).text(projectTitle, { 
+        align: 'center',
+        features: ['rtla']
+      });
       doc.moveDown(2);
       
       // معلومات الأطراف
       const partiesTitle = reshapeArabicText('أطراف الاتفاقية:');
-      doc.fontSize(14).text(partiesTitle, { align: 'right', underline: true });
+      doc.fontSize(14).text(partiesTitle, { 
+        align: 'right', 
+        underline: true,
+        features: ['rtla']
+      });
       doc.moveDown();
       
       const firstPartyText = reshapeArabicText(`الطرف الأول (صاحب المشروع): ${projectOwner}`);
-      doc.fontSize(12).text(firstPartyText, { align: 'right' });
+      doc.fontSize(12).text(firstPartyText, { align: 'right', features: ['rtla'] });
       doc.moveDown();
       
       const secondPartyText = reshapeArabicText(`الطرف الثاني (الشركة): ${companyNameStr}`);
-      doc.fontSize(12).text(secondPartyText, { align: 'right' });
+      doc.fontSize(12).text(secondPartyText, { align: 'right', features: ['rtla'] });
       doc.moveDown(2);
       
       // محتوى الاتفاقية
       const termsTitle = reshapeArabicText('بنود الاتفاقية:');
-      doc.fontSize(14).text(termsTitle, { align: 'right', underline: true });
+      doc.fontSize(14).text(termsTitle, { align: 'right', underline: true, features: ['rtla'] });
       doc.moveDown();
       
       const term1 = reshapeArabicText('١. يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات والبيانات المتعلقة بالمشروع المذكور أعلاه، وعدم الإفصاح عنها لأي طرف ثالث دون موافقة خطية مسبقة من الطرف الأول.');
-      doc.fontSize(11).text(term1, { align: 'right' });
+      doc.fontSize(11).text(term1, { align: 'right', features: ['rtla'] });
       doc.moveDown();
       
       const term2 = reshapeArabicText('٢. تشمل المعلومات السرية على سبيل المثال لا الحصر: خطط العمل، التصاميم، الرسومات، البرمجيات، الأفكار، المفاهيم، والتفاصيل التقنية والتجارية.');
-      doc.fontSize(11).text(term2, { align: 'right' });
+      doc.fontSize(11).text(term2, { align: 'right', features: ['rtla'] });
       doc.moveDown();
       
       const term3 = reshapeArabicText('٣. تستمر التزامات السرية لمدة سنتين من تاريخ توقيع هذه الاتفاقية.');
