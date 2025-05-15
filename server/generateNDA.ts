@@ -114,7 +114,7 @@ export async function generateProjectNdaPdf(
         // محتوى المستند - استخدام dir: 'rtl' لكل عنصر
         content: [
           // العنوان
-          { text: 'اتفاقية عدم إفصاح', style: 'header', dir: 'rtl' },
+          { text: 'اتفاقية عدم الإفصاح', style: 'header', dir: 'rtl' },
           
           // تاريخ الاتفاقية
           { text: `تاريخ الإنشاء: ${formattedDate}`, alignment: 'left' },
