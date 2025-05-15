@@ -14,16 +14,18 @@ import bidi from 'bidi-js';
 // إنشاء موجه للمسارات
 const router = Router();
 
-// مساعدة لإعادة تشكيل النص العربي باستخدام النهج المقترح
+// مساعدة لإعادة تشكيل النص العربي باستخدام النهج المحسن
 function toArabic(text: string): string {
   try {
-    // 1. إعادة تشكيل النص العربي (دمج الحروف بشكل صحيح)
-    const reshaped = arabicReshaper.reshape(text);
-    
-    // 2. تصحيح اتجاه النص من اليمين إلى اليسار
-    const bidiText = bidi.getDisplay(reshaped);
-    
-    return bidiText;
+    // الطريقة المحسنة: معالجة النص كلمة كلمة
+    return text
+      .split(' ')
+      .map(word => {
+        // تشكيل وترتيب كل كلمة على حدة
+        return bidi.getDisplay(arabicReshaper.reshape(word));
+      })
+      .reverse() // عكس ترتيب الكلمات لتصبح من اليمين لليسار
+      .join(' ');
   } catch (error) {
     console.error('خطأ في معالجة النص العربي:', error);
     return text; // إرجاع النص الأصلي في حالة الخطأ
