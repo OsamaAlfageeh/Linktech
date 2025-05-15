@@ -11,6 +11,7 @@ import { Readable } from "stream";
 import fsExtra from "fs-extra";
 import puppeteer from "puppeteer";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import arabicReshaper from 'arabic-reshaper';
@@ -3170,11 +3171,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // انتظار اكتمال إنشاء المستند
       const pdfBuffer = await pdfPromise;
       
-      // إرسال الملف مباشرة في الاستجابة مع إضافة headers مناسبة للتنزيل
-      res.setHeader('Content-Disposition', 'attachment; filename="arabic-test.pdf"');
-      res.setHeader('Cache-Control', 'no-cache');
-      res.contentType('application/pdf');
-      res.send(pdfBuffer);
+      // إنشاء ملف مؤقت على القرص ثم إرسال الملف للتنزيل
+      const tempFilePath = path.join(process.cwd(), 'temp', 'arabic-test.pdf');
+      
+      // التأكد من وجود مجلد temp
+      const tempDir = path.join(process.cwd(), 'temp');
+      if (!fs.existsSync(tempDir)) {
+        fs.mkdirSync(tempDir, { recursive: true });
+      }
+      
+      // كتابة الملف
+      fs.writeFileSync(tempFilePath, pdfBuffer);
+      
+      // إرسال الملف من القرص مباشرة
+      res.download(tempFilePath, 'arabic-test.pdf', (err) => {
+        if (err) {
+          console.error('خطأ في تنزيل الملف:', err);
+        }
+        
+        // حذف الملف المؤقت بعد التنزيل
+        try {
+          fs.unlinkSync(tempFilePath);
+        } catch (unlinkErr) {
+          console.error('خطأ في حذف الملف المؤقت:', unlinkErr);
+        }
+      });
       
     } catch (error) {
       console.error('خطأ في إنشاء PDF للاختبار:', error);
