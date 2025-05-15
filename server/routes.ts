@@ -54,6 +54,7 @@ import {
 } from "./aiRecommendation";
 import session from "express-session";
 import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
+import pdfmakeTestRoutes from './pdfmakeTest';
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";

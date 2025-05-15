@@ -6,35 +6,14 @@
 import { Request, Response, Router } from 'express';
 import path from 'path';
 import fs from 'fs';
-// استخدام مكتبات reshaping للنصوص العربية
-import * as arabicReshaper from 'arabic-reshaper';
-import * as bidiFactory from 'bidi-js';
-const bidi = bidiFactory.default();
-
 // استيراد pdfmake - بطريقة تتلاءم مع TypeScript/ESM
 import PdfPrinter from 'pdfmake/src/printer';
 
 // إنشاء موجه للمسارات
 const router = Router();
 
-// وظيفة مساعدة لإعادة تشكيل النص العربي بالطريقة المحسنة (كلمة كلمة)
-function reshapeArabicText(text: string): string {
-  try {
-    // الطريقة المحسنة: معالجة النص كلمة كلمة
-    return text
-      .split(' ')
-      .map(word => {
-        const reshaped = arabicReshaper.reshape(word);
-        const bidiText = bidi.getDisplay(reshaped);
-        return bidiText;
-      })
-      .reverse() // عكس ترتيب الكلمات لتصبح من اليمين لليسار
-      .join(' ');
-  } catch (error) {
-    console.error('خطأ في معالجة النص العربي:', error);
-    return text; // إرجاع النص الأصلي في حالة الخطأ
-  }
-}
+// لم نعد بحاجة لوظيفة إعادة تشكيل النص العربي
+// نعتمد الآن على خاصية RTL المدمجة في pdfmake
 
 // صفحة HTML لاختبار PDF
 router.get('/pdfmake-test', (req: Request, res: Response) => {
@@ -149,48 +128,51 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
     
     // إنشاء تعريف المستند
     const docDefinition = {
+      // تفعيل دعم RTL وتعيين اللغة إلى العربية
+      rtl: true,
       defaultStyle: {
-        font: 'Cairo'
+        font: 'Cairo',
+        direction: 'rtl'
       },
       content: [
         { 
-          text: reshapeArabicText('اتفاقية عدم الإفصاح'),
+          text: 'اتفاقية عدم الإفصاح',
           style: 'header',
           alignment: 'center',
         },
         '\n',
         { 
-          text: reshapeArabicText('بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.'),
+          text: 'بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.',
           alignment: 'right',
           margin: [0, 20, 0, 0]
         },
         { 
-          text: reshapeArabicText('تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع الإلكتروني عليها، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.'),
+          text: 'تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع الإلكتروني عليها، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.',
           alignment: 'right',
           margin: [0, 20, 0, 0]
         },
         { 
-          text: reshapeArabicText('في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.'),
+          text: 'في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.',
           alignment: 'right',
           margin: [0, 20, 0, 0]
         },
         { 
-          text: reshapeArabicText('الطرف الأول: منصة لينكتك (https://linktech.app)'),
+          text: 'الطرف الأول: منصة لينكتك (https://linktech.app)',
           alignment: 'right',
           margin: [0, 40, 0, 0]
         },
         { 
-          text: reshapeArabicText('الطرف الثاني: ___________________________'),
+          text: 'الطرف الثاني: ___________________________',
           alignment: 'right',
           margin: [0, 10, 0, 0]
         },
         { 
-          text: reshapeArabicText(`تاريخ التوقيع: ${new Date().toISOString().split('T')[0]}`),
+          text: `تاريخ التوقيع: ${new Date().toISOString().split('T')[0]}`,
           alignment: 'right',
           margin: [0, 10, 0, 0]
         },
         { 
-          text: reshapeArabicText('اختبار أرقام: ١٢٣٤٥٦٧٨٩٠'),
+          text: 'اختبار أرقام: ١٢٣٤٥٦٧٨٩٠',
           alignment: 'right',
           margin: [0, 40, 0, 0]
         }
