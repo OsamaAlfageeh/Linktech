@@ -102,24 +102,14 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
       });
     }
 
-    // مسار خط Cairo محلياً
-    const fontBase64 = fs.readFileSync(fontPath).toString('base64');
-    
     // إنشاء تعريف الخطوط المستخدمة في pdfmake
+    // استخدام مسار الملف مباشرة بدلاً من البيانات الثنائية
     const fonts = {
       Cairo: {
-        normal: {
-          data: Buffer.from(fontBase64, 'base64'),
-        },
-        bold: {
-          data: Buffer.from(fontBase64, 'base64'),
-        },
-        italics: {
-          data: Buffer.from(fontBase64, 'base64'),
-        },
-        bolditalics: {
-          data: Buffer.from(fontBase64, 'base64'),
-        }
+        normal: fontPath,
+        bold: fontPath,
+        italics: fontPath,
+        bolditalics: fontPath
       }
     };
     
