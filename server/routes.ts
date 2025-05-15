@@ -8,6 +8,7 @@ import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./email
 import sitemapRoutes from "./routes/sitemap";
 import arabicPdfTestRoutes from "./arabicPdfTest";
 import pdfmakeTestRoutes from "./pdfmakeTest";
+import generateNdaRoutes from "./generateNDA";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import fsExtra from "fs-extra";
