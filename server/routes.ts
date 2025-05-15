@@ -1080,6 +1080,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   async function generateNdaPdf(nda: any, project: any, company: any): Promise<Buffer> {
     return new Promise((resolve, reject) => {
       try {
+        // وظيفة مساعدة لإعادة تشكيل النص العربي 
+        // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
+        function reshapeArabicText(text: string): string {
+          try {
+            // النهج المحسن لمعالجة النص العربي
+            
+            // 1. إعادة تشكيل النص العربي (دمج الحروف بشكل صحيح)
+            const reshaped = arabicReshaper.reshape(text);
+            
+            // 2. تصحيح اتجاه النص من اليمين إلى اليسار
+            const bidiText = bidi.getDisplay(reshaped);
+            
+            return bidiText;
+          } catch (error) {
+            console.error('خطأ في تحويل النص العربي:', error);
+            return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
+          }
+        }
+      
         const chunks: Buffer[] = [];
         const doc = new PDFDocument({ 
           size: 'A4',
@@ -1094,11 +1113,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: ['rtla']
         });
 
-        // استخدم الخط الافتراضي (Helvetica) بدلاً من محاولة تحميل خط عربي
-        // هذا قد يعرض النص العربي بشكل بسيط ولكن على الأقل سيسمح بإنشاء الملف
-        // ويمكن قراءة النص العربي حتى لو لم يكن بخط عربي مناسب
-        console.log('استخدام الخط الافتراضي...');
-        doc.font('Helvetica');
+        // تحديد مسار ملف الخط العربي
+        const arabicFontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+        console.log('مسار ملف الخط العربي:', arabicFontPath);
+        
+        // التحقق من وجود ملف الخط
+        const fontExists = fs.existsSync(arabicFontPath);
+        console.log('هل يوجد ملف الخط؟', fontExists);
+        
+        // تسجيل واستخدام الخط العربي
+        if (fontExists) {
+          try {
+            doc.registerFont('Arabic', arabicFontPath);
+            doc.font('Arabic');
+            console.log('تم تسجيل واستخدام الخط العربي بنجاح');
+          } catch (fontError) {
+            console.error('خطأ في تسجيل الخط العربي:', fontError);
+            console.log('الاستبدال بالخط الافتراضي Helvetica');
+            doc.font('Helvetica');
+          }
+        } else {
+          console.log('ملف الخط العربي غير موجود، استخدام الخط الافتراضي Helvetica');
+          doc.font('Helvetica');
+        }
         
         // تضبيط اتجاه RTL
         doc.text('', 0, 0, { align: 'right' });
@@ -1117,20 +1154,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
           features: ['rtla']  // تفعيل الكتابة من اليمين لليسار
         };
         
-        // إضافة الشعار والعنوان
-        doc.fontSize(22).text('اتفاقية عدم إفصاح', { align: 'center', features: ['rtla'] });
+        // إضافة الشعار والعنوان باستخدام معالجة النص العربي محسنة
+        // 1. إعادة تشكيل النص العربي مع bidi
+        const titleReshaped = arabicReshaper.reshape('اتفاقية عدم إفصاح');
+        const titleBidi = bidi.getDisplay(titleReshaped);
+        doc.fontSize(22).text(titleBidi, { align: 'center' });
         doc.moveDown();
-        doc.fontSize(16).text(`مشروع: ${project.title}`, { align: 'center', features: ['rtla'] });
+        
+        const projectTitleText = `مشروع: ${project.title}`;
+        const projectTitleReshaped = arabicReshaper.reshape(projectTitleText);
+        const projectTitleBidi = bidi.getDisplay(projectTitleReshaped);
+        doc.fontSize(16).text(projectTitleBidi, { align: 'center' });
         doc.moveDown(2);
 
         // معلومات الأطراف
-        doc.fontSize(14).text('أطراف الاتفاقية:', { ...rtlOptions, underline: true });
+        const partiesTitleReshaped = arabicReshaper.reshape('أطراف الاتفاقية:');
+        const partiesTitleBidi = bidi.getDisplay(partiesTitleReshaped);
+        doc.fontSize(14).text(partiesTitleBidi, { align: 'right', underline: true });
         doc.moveDown();
-        doc.fontSize(12).text(`الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`, rtlOptions);
+        
+        const firstPartyText = `الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`;
+        const firstPartyReshaped = arabicReshaper.reshape(firstPartyText);
+        const firstPartyBidi = bidi.getDisplay(firstPartyReshaped);
+        doc.fontSize(12).text(firstPartyBidi, { align: 'right' });
         
         // معلومات الشركة
         const companyName = company?.name || nda.companySignatureInfo?.companyName || 'غير محدد';
-        doc.fontSize(12).text(`الطرف الثاني (الشركة): ${companyName}`, rtlOptions);
+        const secondPartyText = `الطرف الثاني (الشركة): ${companyName}`;
+        const secondPartyReshaped = arabicReshaper.reshape(secondPartyText);
+        const secondPartyBidi = bidi.getDisplay(secondPartyReshaped);
+        doc.fontSize(12).text(secondPartyBidi, { align: 'right' });
         doc.moveDown();
 
         // معلومات التوقيع
