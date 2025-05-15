@@ -3085,7 +3085,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // 1) reshape: يربط الحروف مع بعض
           const reshaped = arabicReshaper.reshape(text);
           // 2) bidi: يضعها من اليمين لليسار
-          return getVisualString(reshaped);
+          return bidi.getVisualString(reshaped);
         } catch (error) {
           console.error('خطأ في تحويل النص العربي:', error);
           return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
