@@ -1320,18 +1320,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const secondPartySignBidi = bidi.getDisplay(secondPartySignReshaped);
         doc.fontSize(11).text(secondPartySignBidi, { align: 'right' });
         doc.moveDown();
-        doc.fontSize(11).text(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`, rtlOptions);
-        doc.fontSize(11).text(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`, rtlOptions);
+        
+        const companyNameTextReshaped = arabicReshaper.reshape(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`);
+        const companyNameTextBidi = bidi.getDisplay(companyNameTextReshaped);
+        doc.fontSize(11).text(companyNameTextBidi, { align: 'right' });
+        
+        const dateTextReshaped = arabicReshaper.reshape(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`);
+        const dateTextBidi = bidi.getDisplay(dateTextReshaped);
+        doc.fontSize(11).text(dateTextBidi, { align: 'right' });
         
         // إضافة الرقم التسلسلي والصفحات
         const totalPages = doc.bufferedPageRange().count;
         for (let i = 0; i < totalPages; i++) {
           doc.switchToPage(i);
+          
+          const footerTextReshaped = arabicReshaper.reshape(
+            `منصة لينكتك - اتفاقية عدم إفصاح - رقم الاتفاقية: ${nda.id} - الصفحة ${i + 1} من ${totalPages}`
+          );
+          const footerTextBidi = bidi.getDisplay(footerTextReshaped);
+          
           doc.fontSize(8).text(
-            `منصة لينكتك - اتفاقية عدم إفصاح - رقم الاتفاقية: ${nda.id} - الصفحة ${i + 1} من ${totalPages}`,
+            footerTextBidi,
             50,
             doc.page.height - 50,
-            { align: 'center', features: ['rtla'] }
+            { align: 'center' }
           );
         }
 
