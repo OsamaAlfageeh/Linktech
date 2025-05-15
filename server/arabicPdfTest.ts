@@ -15,26 +15,28 @@ const router = Router();
 // مساعدة لإعادة تشكيل و bidi مع تحسين لمعالجة ترتيب الكلمات
 function toArabic(text: string): string {
   try {
-    // 1) reshape: يربط الحروف مع بعض
-    const reshaped = arabicReshaper.reshape(text);
+    // نهج مختلف لمعالجة النص العربي
+    // بدلاً من استخدام bidi.getVisualString بعد التقسيم، سنقوم بتشكيل كل كلمة لوحدها ثم ترتيبها
     
-    // 2) معالجة خاصة للاتجاه من اليمين لليسار
-    // تقسيم النص إلى جمل/سطور (اختياري)
-    const lines = reshaped.split('\n');
-    const processedLines = lines.map(line => {
-      // تقسيم كل سطر إلى كلمات
+    // 1. تقسيم النص إلى سطور
+    const lines = text.split('\n');
+    const processedLines = lines.map((line: string) => {
+      // 2. تقسيم السطر إلى كلمات
       const words = line.split(' ');
-      // عكس ترتيب الكلمات (حتى تظهر من اليمين إلى اليسار)
-      const reversedWords = words.reverse();
-      // إعادة دمج الكلمات المعكوسة
-      return reversedWords.join(' ');
+      
+      // 3. تشكيل كل كلمة وترتيبها من اليمين لليسار
+      const processedWords = words.map((word: string) => {
+        return arabicReshaper.reshape(word);
+      });
+      
+      // 4. عكس ترتيب الكلمات (ليظهر النص من اليمين لليسار)
+      return processedWords.reverse().join(' ');
     });
     
-    // إعادة دمج السطور
-    const processedText = processedLines.join('\n');
+    // 5. دمج السطور مرة أخرى
+    const finalText = processedLines.join('\n');
     
-    // 3) استخدام bidi للحصول على النص المرئي النهائي
-    return bidi.getVisualString(processedText);
+    return finalText;
   } catch (error) {
     console.error('خطأ في معالجة النص العربي:', error);
     return text; // إرجاع النص الأصلي في حالة الخطأ
@@ -42,7 +44,7 @@ function toArabic(text: string): string {
 }
 
 // إنشاء مستند PDF عربي
-function createArabicPdf(doc: PDFKit.PDFDocument) {
+function createArabicPdf(doc: PDFDocument) {
   // تحميل الخط العربي
   const fontPath = path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf');
   doc.font(fontPath);
