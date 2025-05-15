@@ -144,8 +144,7 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
     };
     
     // إنشاء نسخة مخصصة من pdfmake
-    const Printer = pdfmake.Printer;
-    const printer = new Printer(fonts);
+    const printer = new PdfPrinter(fonts);
     
     // إنشاء تعريف المستند
     const docDefinition = {
@@ -227,7 +226,7 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
       const fileStream = fs.createReadStream(tempPdfPath);
       fileStream.pipe(res);
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('خطأ في إنشاء PDF باستخدام pdfmake:', error);
     res.status(500).json({ 
       message: 'حدث خطأ أثناء إنشاء ملف PDF', 
