@@ -14,7 +14,10 @@ import path from "path";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import arabicReshaper from 'arabic-reshaper';
-import bidi from 'bidi-js';
+import bidiFactory from 'bidi-js';
+
+// تهيئة كائن bidi حسب التوثيق
+const bidi = bidiFactory();
 
 // Track active connections
 const connections = new Map<number, WebSocket>();
@@ -1434,11 +1437,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // وظيفة مساعدة لإعادة تشكيل النص العربي
       function reshapeArabicText(text: string): string {
         // استخدام وظيفة convertArabic من مكتبة arabic-reshaper
-        // الطريقة الصحيحة حسب توثيق المكتبة: ArabicReshaper.convertArabic()
+        // الطريقة الصحيحة حسب توثيق المكتبة: arabicReshaper.convertArabic()
         const reshaped = arabicReshaper.convertArabic(text);
         
-        // إضافة معالجة اتجاه النص من اليمين إلى اليسار
-        return bidi.getReorderString(reshaped);
+        // معالجة اتجاه النص من اليمين إلى اليسار مع مكتبة bidi-js
+        // الطريقة الصحيحة هي استخدام getEmbeddingLevels ثم getReorderSegments
+        // ولكن هنا نستغني عن ذلك لأن PDFKit يدعم خاصية RTL بشكل مباشر
+        
+        // نكتفي بإرجاع النص بعد إعادة تشكيله
+        return reshaped;
       }
       
       // إضافة مسار الخط العربي المطلق
