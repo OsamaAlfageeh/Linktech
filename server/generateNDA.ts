@@ -76,6 +76,12 @@ router.get('/api/generate-nda', async (req: Request, res: Response) => {
     const mode = req.query.mode === 'download' ? 'download' : 'view';
     console.log(`إنشاء اتفاقية عدم الإفصاح - وضع: ${mode}`);
     
+    // إنشاء مجلد مؤقت للملف إذا لم يكن موجوداً
+    const tempDir = path.join(process.cwd(), 'temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    
     // تحميل الخط العربي
     const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
     let fontExists = true;
@@ -176,41 +182,49 @@ router.get('/api/generate-nda', async (req: Request, res: Response) => {
           text: paragraphs[5], 
           style: 'signature',
           margin: [0, 10, 0, 10]
-        },
-        
-        // صورة توضيحية للتوقيع (اختياري)
-        /*{
-          svg: '<svg width="100" height="50"><line x1="0" y1="25" x2="100" y2="25" style="stroke:black;stroke-width:1" /></svg>',
-          width: 100,
-          alignment: 'right',
-          margin: [0, 20, 0, 0]
-        }*/
+        }
       ]
     };
+    
+    // استخدام اسم ملف بالإنجليزية لتجنب مشاكل التشفير
+    const pdfFilename = 'linktech-nda.pdf';
+    const tempPdfPath = path.join(tempDir, pdfFilename);
     
     // إنشاء الـ PDF
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
     
-    // تحديد كيفية عرض الملف
-    if (mode === 'download') {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'attachment; filename=لينكتك-اتفاقية-عدم-افصاح.pdf');
-    } else {
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', 'inline; filename=لينكتك-اتفاقية-عدم-افصاح.pdf');
-    }
-    
-    // إنشاء مسار مؤقت لحفظ الملف
-    const tempPdfPath = path.join(process.cwd(), 'temp', 'لينكتك-اتفاقية-عدم-افصاح.pdf');
-    
-    // حفظ الملف محلياً ثم إرساله
-    pdfDoc.pipe(fs.createWriteStream(tempPdfPath));
+    // كتابة الملف إلى مسار مؤقت
+    const writeStream = fs.createWriteStream(tempPdfPath);
+    pdfDoc.pipe(writeStream);
     pdfDoc.end();
     
-    // انتظار حتى يتم إنشاء الملف بالكامل
-    pdfDoc.on('end', () => {
+    // عندما يكتمل إنشاء الملف
+    writeStream.on('finish', () => {
+      console.log(`تم إنشاء ملف PDF بنجاح في: ${tempPdfPath}`);
+      
+      // تعيين الترويسات المناسبة
+      res.setHeader('Content-Type', 'application/pdf');
+      
+      if (mode === 'download') {
+        // تنزيل الملف
+        res.setHeader('Content-Disposition', `attachment; filename="${pdfFilename}"`);
+      } else {
+        // عرض الملف في المتصفح
+        res.setHeader('Content-Disposition', `inline; filename="${pdfFilename}"`);
+      }
+      
+      // إرسال الملف
       const fileStream = fs.createReadStream(tempPdfPath);
       fileStream.pipe(res);
+    });
+    
+    // التعامل مع أخطاء الكتابة
+    writeStream.on('error', (error) => {
+      console.error('خطأ في كتابة ملف PDF:', error);
+      res.status(500).json({ 
+        message: 'حدث خطأ أثناء كتابة ملف PDF',
+        error: error.message 
+      });
     });
   } catch (error: any) {
     console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
