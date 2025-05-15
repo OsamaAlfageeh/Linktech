@@ -3075,6 +3075,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // استخدام مسارات Sitemap و robots.txt من ملف منفصل
   app.use(sitemapRoutes);
+  
+  // نقطة نهاية لاختبار دعم اللغة العربية في ملفات PDF
+  app.get('/api/test-arabic-pdf', async (req: Request, res: Response) => {
+    try {
+      console.log('اختبار إنشاء PDF باللغة العربية');
+      
+      // وظيفة مساعدة لإعادة تشكيل النص العربي 
+      function reshapeTestArabicText(text: string): string {
+        try {
+          // استخدام الإعدادات المتقدمة مع arabic-reshaper
+          return arabicReshaper.convertArabic(text, { supportCG: true, flipWords: true, flipWholeSentence: true });
+        } catch (error) {
+          console.error('خطأ في تحويل النص العربي:', error);
+          return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
+        }
+      }
+      
+      // إضافة مسار الخط العربي المطلق
+      const arabicFontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+      
+      // إنشاء وثيقة PDF جديدة مع دعم اللغة العربية
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        autoFirstPage: true,
+        bufferPages: true,
+        layout: 'portrait',
+        info: {
+          Title: 'وثيقة اختبار اللغة العربية',
+          Author: 'منصة لينكتك',
+          Subject: 'اختبار',
+        }
+      });
+      
+      // تسجيل الخط العربي
+      doc.registerFont('Arabic', arabicFontPath);
+      
+      // استخدام الخط العربي
+      doc.font('Arabic');
+      
+      // إنشاء stream للحصول على البايتات
+      const chunks: Buffer[] = [];
+      doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      
+      // الوعد باكتمال إنشاء PDF
+      const pdfPromise = new Promise<Buffer>((resolve, reject) => {
+        doc.on('end', () => {
+          const pdfData = Buffer.concat(chunks);
+          resolve(pdfData);
+        });
+        doc.on('error', reject);
+      });
+      
+      // إضافة عنوان المستند
+      doc.fontSize(24).text(reshapeTestArabicText('اختبار دعم اللغة العربية'), { 
+        align: 'center',
+        direction: 'rtl'
+      });
+      doc.moveDown();
+      
+      // إضافة نصوص للاختبار
+      doc.fontSize(18).text(reshapeTestArabicText('هذا نص عربي للتجربة'), { 
+        align: 'right',
+        direction: 'rtl'
+      });
+      doc.moveDown();
+      
+      doc.fontSize(14).text(reshapeTestArabicText('١٢٣٤٥ - أرقام عربية للتجربة'), { 
+        align: 'right', 
+        direction: 'rtl'
+      });
+      doc.moveDown();
+      
+      doc.fontSize(12).text(reshapeTestArabicText('هذه فقرة طويلة باللغة العربية لاختبار ظهور النصوص الطويلة وكيفية التعامل معها في مستندات PDF. يجب أن تظهر النصوص العربية من اليمين إلى اليسار بشكل صحيح مع حروف متصلة.'), { 
+        align: 'right',
+        direction: 'rtl'
+      });
+      doc.moveDown(2);
+      
+      // اختبار كلمات منفصلة
+      doc.fontSize(16).text(reshapeTestArabicText('كلمات - منفصلة - للاختبار'), { 
+        align: 'right',
+        direction: 'rtl'
+      });
+      doc.moveDown();
+      
+      // اختبار جملة مع أرقام وعلامات خاصة
+      doc.fontSize(14).text(reshapeTestArabicText('تاريخ الاختبار: ١٥-٠٥-٢٠٢٥'), { 
+        align: 'right',
+        direction: 'rtl'
+      });
+      doc.moveDown(2);
+      
+      // تذييل المستند
+      doc.fontSize(10).text(reshapeTestArabicText('تم إنشاء هذا المستند للاختبار فقط - منصة لينكتك ©'), { 
+        align: 'center',
+        direction: 'rtl'
+      });
+      
+      // إنهاء المستند
+      doc.end();
+      
+      // انتظار اكتمال إنشاء المستند
+      const pdfBuffer = await pdfPromise;
+      
+      // إرسال الملف مباشرة في الاستجابة
+      res.contentType('application/pdf');
+      res.send(pdfBuffer);
+      
+    } catch (error) {
+      console.error('خطأ في إنشاء PDF للاختبار:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء إنشاء PDF للاختبار' });
+    }
+  });
 
   return httpServer;
 }
