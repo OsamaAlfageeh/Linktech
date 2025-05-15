@@ -64,6 +64,9 @@ const SessionStore = MemoryStore(session);
 // تم تعريف استيراد WebSocket واستخدامها في مكان آخر من الملف
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // إضافة مسارات التحويل والتنزيل
+  app.use(arabicPdfTestRoutes);
+  app.use(pdfmakeTestRoutes);
   // Initialize session and passport
   // تكوين الجلسة بشكل صحيح
   app.use(session({
