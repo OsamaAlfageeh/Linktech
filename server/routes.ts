@@ -3144,13 +3144,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('اختبار إنشاء PDF باللغة العربية - عرض مباشر');
       
-      // مساعدة لإعادة تشكيل و bidi
+      // مساعدة لإعادة تشكيل و bidi مع تحسين لمعالجة ترتيب الكلمات
       function toArabic(text: string): string {
         try {
           // 1) reshape: يربط الحروف مع بعض
           const reshaped = arabicReshaper.reshape(text);
-          // 2) bidi: يعالج اتجاه النص من اليمين لليسار
-          return bidi.getVisualString(reshaped);
+          
+          // 2) معالجة خاصة للاتجاه من اليمين لليسار
+          // تقسيم النص إلى جمل/سطور (اختياري)
+          const lines = reshaped.split('\n');
+          const processedLines = lines.map(line => {
+            // تقسيم كل سطر إلى كلمات
+            const words = line.split(' ');
+            // عكس ترتيب الكلمات (حتى تظهر من اليمين إلى اليسار)
+            const reversedWords = words.reverse();
+            // إعادة دمج الكلمات المعكوسة
+            return reversedWords.join(' ');
+          });
+          
+          // إعادة دمج السطور
+          const processedText = processedLines.join('\n');
+          
+          // 3) استخدام bidi للحصول على النص المرئي النهائي
+          return bidi.getVisualString(processedText);
         } catch (error) {
           console.error('خطأ في معالجة النص العربي:', error);
           return text; // إرجاع النص الأصلي في حالة الخطأ
@@ -3220,16 +3236,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('اختبار إنشاء PDF باللغة العربية');
       
-      // مساعدة لإعادة تشكيل و bidi
+      // مساعدة لإعادة تشكيل و bidi مع تحسين لمعالجة ترتيب الكلمات
       function toArabic(text: string): string {
         try {
           // 1) reshape: يربط الحروف مع بعض
           const reshaped = arabicReshaper.reshape(text);
-          // 2) bidi: يضعها من اليمين لليسار
-          return bidi.getVisualString(reshaped);
+          
+          // 2) معالجة خاصة للاتجاه من اليمين لليسار
+          // تقسيم النص إلى جمل/سطور (اختياري)
+          const lines = reshaped.split('\n');
+          const processedLines = lines.map(line => {
+            // تقسيم كل سطر إلى كلمات
+            const words = line.split(' ');
+            // عكس ترتيب الكلمات (حتى تظهر من اليمين إلى اليسار)
+            const reversedWords = words.reverse();
+            // إعادة دمج الكلمات المعكوسة
+            return reversedWords.join(' ');
+          });
+          
+          // إعادة دمج السطور
+          const processedText = processedLines.join('\n');
+          
+          // 3) استخدام bidi للحصول على النص المرئي النهائي
+          return bidi.getVisualString(processedText);
         } catch (error) {
-          console.error('خطأ في تحويل النص العربي:', error);
-          return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
+          console.error('خطأ في معالجة النص العربي:', error);
+          return text; // إرجاع النص الأصلي في حالة الخطأ
         }
       }
       
