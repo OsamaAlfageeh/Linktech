@@ -136,24 +136,24 @@ export async function generateProjectNdaPdf(
         
         // محتوى المستند بالعربية، مع عكس ترتيب الكلمات
         content: [
-          // العنوان - النص بترتيب كلمات معكوس
-          { text: 'الإفصاح عدم اتفاقية', style: 'header' },
+          // العنوان - النص بترتيب كلمات معكوس بالدالة الذكية
+          { text: reverseWordsSmart('اتفاقية عدم الإفصاح'), style: 'header' },
           
           // تاريخ الاتفاقية
-          { text: `${formattedDate} :الإنشاء تاريخ`, style: 'paragraph' },
+          { text: reverseWordsSmart(`تاريخ الإنشاء: ${formattedDate}`), style: 'paragraph' },
           
           // معلومات المشروع - النص بترتيب كلمات معكوس
-          { text: ':المشروع معلومات', style: 'subheader' },
-          { text: `${project.title || 'غير محدد'} :المشروع اسم`, style: 'paragraph' },
-          { text: `${project.description || 'غير محدد'} :المشروع وصف`, style: 'paragraph' },
+          { text: reverseWordsSmart('معلومات المشروع:'), style: 'subheader' },
+          { text: reverseWordsSmart(`اسم المشروع: ${project.title || 'غير محدد'}`), style: 'paragraph' },
+          { text: reverseWordsSmart(`وصف المشروع: ${project.description || 'غير محدد'}`), style: 'paragraph' },
           
           // معلومات الشركة - النص بترتيب كلمات معكوس
-          { text: ':الشركة معلومات', style: 'subheader' },
-          { text: `${company.name || 'غير محدد'} :الشركة اسم`, style: 'paragraph' },
-          company.location ? { text: `${company.location} :الموقع`, style: 'paragraph' } : {},
+          { text: reverseWordsSmart('معلومات الشركة:'), style: 'subheader' },
+          { text: reverseWordsSmart(`اسم الشركة: ${company.name || 'غير محدد'}`), style: 'paragraph' },
+          company.location ? { text: reverseWordsSmart(`الموقع: ${company.location}`), style: 'paragraph' } : {},
           
           // شروط الاتفاقية - النص بترتيب كلمات معكوس
-          { text: ':الاتفاقية شروط', style: 'subheader' },
+          { text: reverseWordsSmart('شروط الاتفاقية:'), style: 'subheader' },
           ...numberedTerms.map((term, index) => {
             // استخراج النص من العنصر الأصلي بدون الرقم
             const text = term.text.replace(`${index + 1}. `, '');
@@ -164,41 +164,41 @@ export async function generateProjectNdaPdf(
           }),
           
           // معلومات التوقيع - النص بترتيب كلمات معكوس
-          { text: ':التوقيعات', style: 'subheader', margin: [0, 20, 0, 10] },
-          { text: ')المشروع صاحب( الأول الطرف', style: 'signature' },
-          { text: ')الشركة( الثاني الطرف', style: 'signature' }
+          { text: reverseWordsSmart('التوقيعات:'), style: 'subheader', margin: [0, 20, 0, 10] },
+          { text: reverseWordsSmart('الطرف الأول (صاحب المشروع)'), style: 'signature' },
+          { text: reverseWordsSmart('الطرف الثاني (الشركة)'), style: 'signature' }
         ]
       };
       
       // إضافة معلومات الموقع إذا وجدت
       if (signerInfo) {
         const signatureInfo = [
-          { text: `${formattedDate} :بتاريخ إلكترونياً التوقيع تم`, style: 'signature' }
+          { text: reverseWordsSmart(`تم التوقيع إلكترونياً بتاريخ: ${formattedDate}`), style: 'signature' }
         ];
         
         if (signerInfo.name) {
-          signatureInfo.push({ text: `${signerInfo.name} :الموقّع اسم`, style: 'signature' });
+          signatureInfo.push({ text: reverseWordsSmart(`اسم الموقّع: ${signerInfo.name}`), style: 'signature' });
         }
         
         if (signerInfo.title) {
-          signatureInfo.push({ text: `${signerInfo.title} :المنصب`, style: 'signature' });
+          signatureInfo.push({ text: reverseWordsSmart(`المنصب: ${signerInfo.title}`), style: 'signature' });
         }
         
         if (signerInfo.ip) {
-          signatureInfo.push({ text: `${signerInfo.ip} :IP عنوان`, style: 'signature' });
+          signatureInfo.push({ text: reverseWordsSmart(`عنوان IP: ${signerInfo.ip}`), style: 'signature' });
         }
         
         // إضافة معلومات التوقيع للمستند
         docDefinition.content.push(...signatureInfo);
       } else {
         // إضافة مكان للتوقيع
-        docDefinition.content.push({ text: '______________________________ :التوقيع', style: 'signature' });
+        docDefinition.content.push({ text: reverseWordsSmart('التوقيع: ______________________________'), style: 'signature' });
       }
       
       // إضافة معلومات المنصة في نهاية المستند
       docDefinition.content.push(
-        { text: 'https://linktech.app - لينكتك منصة عبر الاتفاقية هذه إنشاء تم', style: 'footer' },
-        { text: `${Date.now().toString().substring(0, 8)}-${project.id}-NDA :المرجعي الرقم`, style: 'footer' }
+        { text: reverseWordsSmart('تم إنشاء هذه الاتفاقية عبر منصة لينكتك - https://linktech.app'), style: 'footer' },
+        { text: reverseWordsSmart(`الرقم المرجعي: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`), style: 'footer' }
       );
       
       // إنشاء ملف PDF
