@@ -86,23 +86,23 @@ export async function generateProjectNdaPdf(
             fontSize: 22, 
             bold: true, 
             margin: [0, 0, 0, 20],
-            alignment: 'left'
+            alignment: 'right'
           },
           subheader: {
             fontSize: 16,
             bold: true,
             margin: [0, 15, 0, 10],
-            alignment: 'left'
+            alignment: 'right'
           },
           paragraph: { 
             fontSize: 12, 
             margin: [0, 5, 0, 5],
-            alignment: 'left'
+            alignment: 'right'
           },
           signature: {
             fontSize: 12,
             margin: [0, 10, 0, 5],
-            alignment: 'left'
+            alignment: 'right'
           },
           footer: {
             fontSize: 10,
