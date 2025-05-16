@@ -192,7 +192,12 @@ export async function generateProjectNdaPdf(
             // إضافة باقي أسطر النص إن وجدت
             if (splitLines.length > 1) {
               for (let i = 1; i < splitLines.length; i++) {
-                paragraphItems.push({ text: splitLines[i], style: 'paragraph', margin: [15, 0, 0, 0] });
+                // استخدام نوع صريح لكل سطر مع خصائص إضافية
+                paragraphItems.push({ 
+                  text: splitLines[i], 
+                  style: 'paragraph', 
+                  margin: [15, 0, 0, 0] as [number, number, number, number]
+                });
               }
             }
             

@@ -34,6 +34,7 @@ import Contact from "@/pages/contact";
 import Terms from "@/pages/terms";
 import Privacy from "@/pages/privacy";
 import Sitemap from "@/pages/sitemap";
+import TestNdaPage from "@/pages/test-nda-page";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -217,6 +218,9 @@ function App() {
           <Route path="/terms" component={Terms} />
           
           <Route path="/privacy" component={Privacy} />
+          
+          {/* صفحة اختبار PDF */}
+          <Route path="/test-nda" component={TestNdaPage} />
           
           {/* صفحات المدونة */}
           <Route path="/blog" component={BlogIndexPage} />
