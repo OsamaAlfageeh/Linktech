@@ -7,6 +7,29 @@ import path from 'path';
 import fs from 'fs';
 import PdfPrinter from 'pdfmake/src/printer';
 
+/**
+ * دالة ذكية لعكس ترتيب الكلمات مع الحفاظ على علامات الترقيم في مكانها الصحيح
+ * @param text النص المراد عكس كلماته
+ * @returns النص بعد عكس ترتيب كلماته
+ */
+function reverseWordsSmart(text: string): string {
+  const words = text.split(' ');
+  const reversed = [];
+
+  for (let i = words.length - 1; i >= 0; i--) {
+    // فصل العلامة إن وجدت ملتصقة بالكلمة
+    const match = words[i].match(/^(.+?)([.,،؛:]?)$/);
+    if (match) {
+      const [, word, punctuation] = match;
+      reversed.push(`${word}${punctuation}`);
+    } else {
+      reversed.push(words[i]);
+    }
+  }
+
+  return reversed.join(' ');
+}
+
 // إنشاء موجه للمسارات
 const router = Router();
 
@@ -134,10 +157,8 @@ export async function generateProjectNdaPdf(
           ...numberedTerms.map((term, index) => {
             // استخراج النص من العنصر الأصلي بدون الرقم
             const text = term.text.replace(`${index + 1}. `, '');
-            // تقسيم النص إلى كلمات
-            const words = text.split(' ');
-            // عكس ترتيب الكلمات
-            const reversedText = words.reverse().join(' ');
+            // استخدام الدالة الذكية لعكس الكلمات مع مراعاة علامات الترقيم
+            const reversedText = reverseWordsSmart(text);
             // إعادة إضافة الرقم
             return { text: `${index + 1}. ${reversedText}`, style: 'paragraph' };
           }),
