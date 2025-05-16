@@ -111,67 +111,64 @@ export async function generateProjectNdaPdf(
           }
         },
         
-        // محتوى المستند - استخدام dir: 'rtl' لكل عنصر
+        // محتوى المستند بالعربية، دون عكس حروف، مع مراعاة المحاذاة
         content: [
-          // العنوان - إدخال النص بترتيب معكوس
-          { text: 'الإفصاح عدم اتفاقية', style: 'header' },
+          // العنوان - النص بترتيبه الطبيعي
+          { text: 'اتفاقية عدم الإفصاح', style: 'header' },
           
           // تاريخ الاتفاقية
-          { text: `تاريخ الإنشاء: ${formattedDate}`, alignment: 'left' },
+          { text: `تاريخ الإنشاء: ${formattedDate}`, style: 'paragraph' },
           
-          // معلومات المشروع - إدخال النص بترتيب معكوس
-          { text: ':المشروع معلومات', style: 'subheader' },
-          { text: `${project.title || 'غير محدد'} :المشروع اسم`, style: 'paragraph' },
-          { text: `${project.description || 'غير محدد'} :المشروع وصف`, style: 'paragraph' },
+          // معلومات المشروع - النص بترتيبه الطبيعي
+          { text: 'معلومات المشروع:', style: 'subheader' },
+          { text: `اسم المشروع: ${project.title || 'غير محدد'}`, style: 'paragraph' },
+          { text: `وصف المشروع: ${project.description || 'غير محدد'}`, style: 'paragraph' },
           
-          // معلومات الشركة - إدخال النص بترتيب معكوس
-          { text: ':الشركة معلومات', style: 'subheader' },
-          { text: `${company.name || 'غير محدد'} :الشركة اسم`, style: 'paragraph' },
-          company.location ? { text: `${company.location} :الموقع`, style: 'paragraph' } : {},
+          // معلومات الشركة - النص بترتيبه الطبيعي
+          { text: 'معلومات الشركة:', style: 'subheader' },
+          { text: `اسم الشركة: ${company.name || 'غير محدد'}`, style: 'paragraph' },
+          company.location ? { text: `الموقع: ${company.location}`, style: 'paragraph' } : {},
           
-          // شروط الاتفاقية - إدخال النص بترتيب معكوس
-          { text: ':الاتفاقية شروط', style: 'subheader' },
-          ...numberedTerms.map((term, index) => ({ 
-            text: term.text.replace(`${index + 1}. `, '').split('').reverse().join('') + ` .${index + 1}`, 
-            style: 'paragraph' 
-          })),
+          // شروط الاتفاقية - النص بترتيبه الطبيعي
+          { text: 'شروط الاتفاقية:', style: 'subheader' },
+          ...numberedTerms,
           
-          // معلومات التوقيع - إدخال النص بترتيب معكوس
-          { text: ':التوقيعات', style: 'subheader', margin: [0, 20, 0, 10] },
-          { text: ')المشروع صاحب( الأول الطرف', style: 'signature' },
-          { text: ')الشركة( الثاني الطرف', style: 'signature' }
+          // معلومات التوقيع - النص بترتيبه الطبيعي
+          { text: 'التوقيعات:', style: 'subheader', margin: [0, 20, 0, 10] },
+          { text: 'الطرف الأول (صاحب المشروع)', style: 'signature' },
+          { text: 'الطرف الثاني (الشركة)', style: 'signature' }
         ]
       };
       
       // إضافة معلومات الموقع إذا وجدت
       if (signerInfo) {
         const signatureInfo = [
-          { text: `${formattedDate} :بتاريخ إلكترونياً التوقيع تم`, style: 'signature' }
+          { text: `تم التوقيع إلكترونياً بتاريخ: ${formattedDate}`, style: 'signature' }
         ];
         
         if (signerInfo.name) {
-          signatureInfo.push({ text: `${signerInfo.name} :الموقّع اسم`, style: 'signature' });
+          signatureInfo.push({ text: `اسم الموقّع: ${signerInfo.name}`, style: 'signature' });
         }
         
         if (signerInfo.title) {
-          signatureInfo.push({ text: `${signerInfo.title} :المنصب`, style: 'signature' });
+          signatureInfo.push({ text: `المنصب: ${signerInfo.title}`, style: 'signature' });
         }
         
         if (signerInfo.ip) {
-          signatureInfo.push({ text: `${signerInfo.ip} :IP عنوان`, style: 'signature', fontSize: 10 });
+          signatureInfo.push({ text: `عنوان IP: ${signerInfo.ip}`, style: 'signature' });
         }
         
         // إضافة معلومات التوقيع للمستند
         docDefinition.content.push(...signatureInfo);
       } else {
         // إضافة مكان للتوقيع
-        docDefinition.content.push({ text: '______________________________ :التوقيع', style: 'signature' });
+        docDefinition.content.push({ text: 'التوقيع: ______________________________', style: 'signature' });
       }
       
       // إضافة معلومات المنصة في نهاية المستند
       docDefinition.content.push(
-        { text: 'https://linktech.app - لينكتك منصة عبر الاتفاقية هذه إنشاء تم', style: 'footer' },
-        { text: `${Date.now().toString().substring(0, 8)}-${project.id}-NDA :المرجعي الرقم`, style: 'footer' }
+        { text: 'تم إنشاء هذه الاتفاقية عبر منصة لينكتك - https://linktech.app', style: 'footer' },
+        { text: `الرقم المرجعي: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, style: 'footer' }
       );
       
       // إنشاء ملف PDF
@@ -179,7 +176,7 @@ export async function generateProjectNdaPdf(
       const chunks: Buffer[] = [];
       
       // جمع البيانات
-      pdfDoc.on('data', (chunk) => chunks.push(chunk));
+      pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
       
       // الانتهاء من إنشاء المستند
       pdfDoc.on('end', () => {
@@ -188,7 +185,7 @@ export async function generateProjectNdaPdf(
       });
       
       // معالجة الأخطاء
-      pdfDoc.on('error', (err) => {
+      pdfDoc.on('error', (err: Error) => {
         console.error('خطأ في إنشاء ملف PDF:', err);
         reject(err);
       });
