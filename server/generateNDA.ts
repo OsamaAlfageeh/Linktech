@@ -30,6 +30,27 @@ function reverseWordsSmart(text: string): string {
   return reversed.join(' ');
 }
 
+/**
+ * دالة لتقسيم النص الطويل إلى أسطر مناسبة وعكس ترتيب الكلمات في كل سطر
+ * @param text النص المراد تقسيمه
+ * @param wordsPerLine عدد الكلمات في كل سطر
+ * @returns مصفوفة من الأسطر المقسمة بعد عكس ترتيب الكلمات
+ */
+function splitAndReverseParagraph(
+  text: string,
+  wordsPerLine = 12
+): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+
+  for (let i = 0; i < words.length; i += wordsPerLine) {
+    const slice = words.slice(i, i + wordsPerLine);
+    lines.push(slice.reverse().join(' '));
+  }
+
+  return lines;
+}
+
 // إنشاء موجه للمسارات
 const router = Router();
 
@@ -154,14 +175,29 @@ export async function generateProjectNdaPdf(
           
           // شروط الاتفاقية - النص بترتيب كلمات معكوس
           { text: reverseWordsSmart('شروط الاتفاقية:'), style: 'subheader' },
+          // تقسيم البنود الطويلة إلى فقرات وعكس كل فقرة
           ...numberedTerms.map((term, index) => {
             // استخراج النص من العنصر الأصلي بدون الرقم
             const text = term.text.replace(`${index + 1}. `, '');
-            // استخدام الدالة الذكية لعكس الكلمات مع مراعاة علامات الترقيم
-            const reversedText = reverseWordsSmart(text);
-            // إعادة إضافة الرقم
-            return { text: `${index + 1}. ${reversedText}`, style: 'paragraph' };
-          }),
+            
+            // استخدام الدالة لتقسيم النص إلى أسطر وعكس ترتيب الكلمات في كل سطر
+            const splitLines = splitAndReverseParagraph(text, 10);
+            
+            // إنشاء مصفوفة من العناصر النصية لكل سطر
+            const paragraphItems = [
+              // البند الأول مع رقمه
+              { text: `${index + 1}. ${splitLines[0]}`, style: 'paragraph' }
+            ];
+            
+            // إضافة باقي أسطر النص إن وجدت
+            if (splitLines.length > 1) {
+              for (let i = 1; i < splitLines.length; i++) {
+                paragraphItems.push({ text: splitLines[i], style: 'paragraph', margin: [15, 0, 0, 0] });
+              }
+            }
+            
+            return paragraphItems;
+          }).flat(),
           
           // معلومات التوقيع - النص بترتيب كلمات معكوس
           { text: reverseWordsSmart('التوقيعات:'), style: 'subheader', margin: [0, 20, 0, 10] },
