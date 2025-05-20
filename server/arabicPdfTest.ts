@@ -14,18 +14,55 @@ import bidi from 'bidi-js';
 // إنشاء موجه للمسارات
 const router = Router();
 
+/**
+ * دالة ذكية لعكس ترتيب الكلمات مع الحفاظ على علامات الترقيم في مكانها الصحيح
+ * @param text النص المراد عكس كلماته
+ * @returns النص بعد عكس ترتيب كلماته
+ */
+function reverseWordsSmart(text: string): string {
+  const words = text.split(' ');
+  const reversed = [];
+
+  for (let i = words.length - 1; i >= 0; i--) {
+    // فصل العلامة إن وجدت ملتصقة بالكلمة
+    const match = words[i].match(/^(.+?)([.,،؛:]?)$/);
+    if (match) {
+      const [, word, punctuation] = match;
+      reversed.push(`${word}${punctuation}`);
+    } else {
+      reversed.push(words[i]);
+    }
+  }
+
+  return reversed.join(' ');
+}
+
+/**
+ * دالة لتقسيم النص الطويل إلى أسطر مناسبة وعكس ترتيب الكلمات في كل سطر
+ * @param text النص المراد تقسيمه
+ * @param wordsPerLine عدد الكلمات في كل سطر
+ * @returns مصفوفة من الأسطر المقسمة بعد عكس ترتيب الكلمات
+ */
+function splitAndReverseParagraph(
+  text: string,
+  wordsPerLine = 10
+): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+
+  for (let i = 0; i < words.length; i += wordsPerLine) {
+    const slice = words.slice(i, i + wordsPerLine);
+    lines.push(slice.reverse().join(' '));
+  }
+
+  return lines;
+}
+
 // مساعدة لإعادة تشكيل النص العربي باستخدام النهج المحسن
 function toArabic(text: string): string {
   try {
-    // الطريقة المحسنة: معالجة النص كلمة كلمة
-    return text
-      .split(' ')
-      .map(word => {
-        // تشكيل وترتيب كل كلمة على حدة
-        return bidi.getDisplay(arabicReshaper.reshape(word));
-      })
-      .reverse() // عكس ترتيب الكلمات لتصبح من اليمين لليسار
-      .join(' ');
+    // استخدام الدالة الذكية لعكس ترتيب الكلمات
+    return reverseWordsSmart(text);
   } catch (error) {
     console.error('خطأ في معالجة النص العربي:', error);
     return text; // إرجاع النص الأصلي في حالة الخطأ
@@ -66,10 +103,25 @@ function createArabicPdf(doc: any) {
   const lines = content.trim().split('\n');
   lines.forEach(line => {
     if (line.trim()) {
-      doc.text(toArabic(line), {
+      // تقسيم النص الطويل إلى أسطر قصيرة وعكس ترتيب الكلمات
+      const splitLines = splitAndReverseParagraph(line, 10);
+      
+      // إضافة السطر الأول
+      doc.text(splitLines[0], {
         align: 'right',
         lineGap: 5
       });
+      
+      // إضافة باقي الأسطر مع هامش للإشارة إلى أنها تابعة للفقرة السابقة
+      if (splitLines.length > 1) {
+        for (let i = 1; i < splitLines.length; i++) {
+          doc.text(splitLines[i], {
+            align: 'right',
+            lineGap: 5,
+            indent: 20 // إضافة مسافة بادئة للأسطر التابعة
+          });
+        }
+      }
     } else {
       doc.moveDown(0.5);
     }
@@ -217,8 +269,10 @@ router.get('/api/test-arabic-pdf', async (req: Request, res: Response) => {
     });
 
     // إعداد رأس الاستجابة للتنزيل - استخدام "attachment" بدلاً من "inline"
+    // واستخدام اسم ملف عربي مع ترميز لضمان التوافق مع المتصفحات
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'attachment; filename=arabic-test.pdf');
+    const fileName = encodeURIComponent('اختبار_النص_العربي.pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=${fileName}; filename*=UTF-8''${fileName}`);
     
     // توجيه مخرجات PDF مباشرة إلى الاستجابة
     doc.pipe(res);
