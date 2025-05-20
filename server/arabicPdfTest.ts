@@ -5,6 +5,7 @@
 
 import { Request, Response, Router } from 'express';
 import path from 'path';
+import fs from 'fs';
 import PDFKit from 'pdfkit';
 // تعريف نوع PDFDocument كـ any لتجنب مشاكل TypeScript
 type PDFDocument = any;
@@ -71,23 +72,19 @@ function toArabic(text: string): string {
 
 // إنشاء مستند PDF عربي
 function createArabicPdf(doc: any) {
-  // تحميل الخط العربي - محاولة العثور عليه في مسارات متعددة محتملة
-  const possiblePaths = [
-    path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf'),
-    path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf'),
-    path.join(__dirname, '..', 'assets', 'fonts', 'Cairo-Regular.ttf'),
-    path.join(__dirname, '..', 'attached_assets', 'Cairo-Regular.ttf'),
-    path.join(__dirname, '..', '..', 'assets', 'fonts', 'Cairo-Regular.ttf')
-  ];
+  // تحميل الخط العربي - استخدام المسار النسبي للخط المتضمن في المشروع
+  const fontPath = path.join(__dirname, 'fonts', 'Cairo-Regular.ttf');
   
-  // البحث عن ملف الخط في المسارات المحتملة
-  const fontPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+  // طباعة مسار الخط للتحقق
+  console.log('مسار ملف الخط المستخدم:', fontPath);
   
-  if (fontPath) {
-    console.log('تم العثور على ملف الخط في المسار:', fontPath);
+  // التحقق من وجود ملف الخط
+  if (fs.existsSync(fontPath)) {
+    console.log('تم العثور على ملف الخط بنجاح في مسار:', fontPath);
     doc.font(fontPath);
   } else {
-    console.warn('لم يتم العثور على ملف الخط، سيتم استخدام الخط الافتراضي');
+    console.warn('لم يتم العثور على ملف الخط في المسار:', fontPath);
+    // استمر بالخط الافتراضي
   }
   
   // حساب عرض الصفحة المتاح للكتابة
