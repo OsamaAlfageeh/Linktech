@@ -76,12 +76,29 @@ export async function generateProjectNdaPdf(
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
-      // تحميل الخط العربي
-      const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+      // تحميل الخط العربي - محاولة العثور عليه في مسارات متعددة محتملة
+      let fontPath: string;
       
-      // التحقق من وجود ملف الخط
-      if (!fs.existsSync(fontPath)) {
-        throw new Error('ملف الخط العربي Cairo-Regular.ttf غير موجود');
+      // مصفوفة من المسارات المحتملة لملف الخط في بيئات مختلفة
+      const possiblePaths = [
+        path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf'),
+        path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf'),
+        path.join(__dirname, '..', 'assets', 'fonts', 'Cairo-Regular.ttf'),
+        path.join(__dirname, '..', 'attached_assets', 'Cairo-Regular.ttf'),
+        path.join(__dirname, '..', '..', 'assets', 'fonts', 'Cairo-Regular.ttf'),
+        path.join(__dirname, '..', '..', 'attached_assets', 'Cairo-Regular.ttf')
+      ];
+      
+      // البحث عن ملف الخط في المسارات المحتملة
+      const foundPath = possiblePaths.find(p => fs.existsSync(p));
+      
+      if (!foundPath) {
+        console.error('تحذير: لم يتم العثور على ملف الخط Cairo-Regular.ttf في المسارات التالية:');
+        possiblePaths.forEach(p => console.error(`- ${p}`));
+        throw new Error('ملف الخط العربي Cairo-Regular.ttf غير موجود، تحقق من تثبيت الخطوط بشكل صحيح');
+      } else {
+        console.log('تم العثور على ملف الخط في المسار:', foundPath);
+        fontPath = foundPath;
       }
       
       // إنشاء تعريف الخطوط

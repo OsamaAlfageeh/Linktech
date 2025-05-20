@@ -71,9 +71,24 @@ function toArabic(text: string): string {
 
 // إنشاء مستند PDF عربي
 function createArabicPdf(doc: any) {
-  // تحميل الخط العربي
-  const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
-  doc.font(fontPath);
+  // تحميل الخط العربي - محاولة العثور عليه في مسارات متعددة محتملة
+  const possiblePaths = [
+    path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf'),
+    path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf'),
+    path.join(__dirname, '..', 'assets', 'fonts', 'Cairo-Regular.ttf'),
+    path.join(__dirname, '..', 'attached_assets', 'Cairo-Regular.ttf'),
+    path.join(__dirname, '..', '..', 'assets', 'fonts', 'Cairo-Regular.ttf')
+  ];
+  
+  // البحث عن ملف الخط في المسارات المحتملة
+  const fontPath = possiblePaths.find(p => fs.existsSync(p)) || possiblePaths[0];
+  
+  if (fontPath) {
+    console.log('تم العثور على ملف الخط في المسار:', fontPath);
+    doc.font(fontPath);
+  } else {
+    console.warn('لم يتم العثور على ملف الخط، سيتم استخدام الخط الافتراضي');
+  }
   
   // حساب عرض الصفحة المتاح للكتابة
   const pageWidth = doc.page.width - (doc.page.margins as any).left - (doc.page.margins as any).right;
