@@ -5,7 +5,7 @@
 import { Request, Response, Router } from 'express';
 import path from 'path';
 import fs from 'fs';
-import PdfPrinter from 'pdfmake/src/printer';
+import PdfPrinter from 'pdfmake/src/printer.js';
 
 /**
  * دالة ذكية لعكس ترتيب الكلمات مع الحفاظ على علامات الترقيم في مكانها الصحيح

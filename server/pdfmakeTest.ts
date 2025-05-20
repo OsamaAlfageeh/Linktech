@@ -62,12 +62,12 @@ router.get('/pdfmake-test', (req: Request, res: Response) => {
     </head>
     <body>
       <h1>اختبار عرض النصوص العربية في PDF باستخدام pdfmake</h1>
-      
+
       <div class="option">
         <h2>اختبار pdfkit (الطريقة الحالية)</h2>
         <a href="/arabic-pdf-test" class="btn view-btn">فتح اختبار pdfkit</a>
       </div>
-      
+
       <div class="option">
         <h2>اختبار pdfmake (الطريقة الجديدة)</h2>
         <p>اختبار عرض النص العربي باستخدام PDFMake</p>
@@ -85,7 +85,7 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
     // تحديد ما إذا كان العرض أو التنزيل
     const mode = req.query.mode === 'download' ? 'download' : 'view';
     console.log(`اختبار إنشاء PDF باللغة العربية باستخدام pdfmake - وضع: ${mode}`);
-    
+
     // تحميل الخط العربي وتحويله إلى Base64
     const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
     let fontExists = true;
@@ -112,10 +112,10 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
         bolditalics: fontPath
       }
     };
-    
+
     // إنشاء نسخة مخصصة من pdfmake
     const printer = new PdfPrinter(fonts);
-    
+
     // إنشاء تعريف المستند باستخدام الطريقة الجديدة
     const paragraphs = [
       'بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.',
@@ -158,10 +158,10 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
         }))
       ]
     };
-    
+
     // إنشاء الـ PDF
     const pdfDoc = printer.createPdfKitDocument(docDefinition);
-    
+
     // تحديد كيفية عرض الملف
     if (mode === 'download') {
       res.setHeader('Content-Type', 'application/pdf');
@@ -170,14 +170,14 @@ router.get('/api/test-pdfmake', async (req: Request, res: Response) => {
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'inline; filename=arabic-test-pdfmake.pdf');
     }
-    
+
     // إنشاء مسار مؤقت لحفظ الملف
     const tempPdfPath = path.join(process.cwd(), 'temp', 'arabic-test-pdfmake.pdf');
-    
+
     // حفظ الملف محلياً ثم إرساله
     pdfDoc.pipe(fs.createWriteStream(tempPdfPath));
     pdfDoc.end();
-    
+
     // انتظار حتى يتم إنشاء الملف بالكامل
     pdfDoc.on('end', () => {
       const fileStream = fs.createReadStream(tempPdfPath);
