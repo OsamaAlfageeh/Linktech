@@ -7,7 +7,7 @@ import { Request, Response, Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 // استيراد pdfmake - بطريقة تتلاءم مع TypeScript/ESM
-import PdfPrinter from 'pdfmake/src/printer';
+import PdfPrinter from 'pdfmake/src/printer.js';
 
 // إنشاء موجه للمسارات
 const router = Router();
