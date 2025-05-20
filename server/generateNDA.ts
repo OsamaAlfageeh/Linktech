@@ -76,34 +76,18 @@ export async function generateProjectNdaPdf(
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     try {
-      // تحميل الخط العربي - استخدام المسار النسبي للخط المتضمن في المشروع
-      // هذا سيضمن توفر الخط في بيئة النشر
-      const fontPath = path.join(__dirname, 'fonts', 'Cairo-Regular.ttf');
-      
-      // طباعة مسار الخط للتحقق في سجلات النظام
-      console.log('مسار ملف الخط المستخدم:', fontPath);
-      
-      // التحقق من وجود ملف الخط
-      if (!fs.existsSync(fontPath)) {
-        console.error('تحذير: لم يتم العثور على ملف الخط في المسار:', fontPath);
-        // في حالة البيئة الإنتاجية نستمر دون إلقاء خطأ
-        if (process.env.NODE_ENV === 'production') {
-          console.error('استمرار في بيئة الإنتاج رغم عدم وجود ملف الخط');
-          // استخدام خط افتراضي
-        } else {
-          throw new Error('ملف الخط العربي Cairo-Regular.ttf غير موجود في المسار ' + fontPath);
-        }
-      } else {
-        console.log('تم العثور على ملف الخط بنجاح');
-      }
+      // استخدام خط متوفر افتراضياً بدلاً من خط مخصص
+      // هذا يجعل التطبيق أكثر استقراراً في بيئة الإنتاج
+      console.log('استخدام أسلوب بسيط مع خط افتراضي للتوافق مع بيئة الإنتاج');
       
       // إنشاء تعريف الخطوط
       const fonts = {
-        Cairo: {
-          normal: fontPath,
-          bold: fontPath,
-          italics: fontPath,
-          bolditalics: fontPath
+        // استخدام خط Roboto المتوفر افتراضياً في pdfmake
+        Roboto: {
+          normal: 'Roboto-Regular.ttf',
+          bold: 'Roboto-Medium.ttf',
+          italics: 'Roboto-Italic.ttf',
+          bolditalics: 'Roboto-MediumItalic.ttf'
         }
       };
       
@@ -132,7 +116,7 @@ export async function generateProjectNdaPdf(
       const docDefinition = {
         // إعدادات المستند
         defaultStyle: {
-          font: 'Cairo',
+          font: 'Roboto',
           fontSize: 12
         },
         pageMargins: [40, 60, 40, 60],
