@@ -92,6 +92,23 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isEditMode, setIsEditMode] = useState(false);
+  
+  // قراءة معلمة التبويب من URL عند تحميل الصفحة
+  useEffect(() => {
+    // الحصول على معلمات URL
+    const searchParams = new URLSearchParams(window.location.search);
+    const tabParam = searchParams.get('tab');
+    
+    // تحديث التبويب النشط إذا كان موجودًا في URL
+    if (tabParam && ['dashboard', 'profile', 'messages'].includes(tabParam)) {
+      setActiveTab(tabParam);
+      
+      // إذا كان التبويب هو profile، قد نحتاج لضبط وضع التعديل
+      if (tabParam === 'profile') {
+        setIsEditMode(true);
+      }
+    }
+  }, []);
 
   // Fetch company profile
   const {
