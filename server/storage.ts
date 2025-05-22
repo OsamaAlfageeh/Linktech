@@ -720,6 +720,52 @@ export class MemStorage implements IStorage {
   
   // Seed initial data
   private seedData() {
+    // إضافة بعض عملاء التميز للاختبار
+    const client1: PremiumClient = {
+      id: this.premiumClientIdCounter++,
+      name: "شركة المستقبل",
+      description: "شركة رائدة في مجال تطوير التطبيقات والحلول التقنية المبتكرة",
+      logo: "https://placehold.co/400x200/2563eb/ffffff?text=المستقبل",
+      category: "تكنولوجيا المعلومات",
+      website: "https://example.com",
+      benefits: ["تطوير تطبيقات متكاملة", "حلول ذكاء اصطناعي", "استشارات تقنية"],
+      featured: true,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.premiumClients.set(client1.id, client1);
+
+    const client2: PremiumClient = {
+      id: this.premiumClientIdCounter++,
+      name: "مؤسسة الإبداع",
+      description: "مؤسسة متخصصة في دعم المشاريع الريادية وتطوير حلول الأعمال الرقمية",
+      logo: "https://placehold.co/400x200/059669/ffffff?text=الإبداع",
+      category: "ريادة الأعمال",
+      website: "https://example.org",
+      benefits: ["تمويل المشاريع الناشئة", "مساحات عمل مشتركة", "برامج تدريبية"],
+      featured: true,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.premiumClients.set(client2.id, client2);
+
+    const client3: PremiumClient = {
+      id: this.premiumClientIdCounter++,
+      name: "شركة التقنية المتقدمة",
+      description: "شركة متخصصة في تطوير الحلول التقنية المتقدمة والبنية التحتية السحابية",
+      logo: "https://placehold.co/400x200/7c3aed/ffffff?text=التقنية",
+      category: "تكنولوجيا المعلومات",
+      website: null,
+      benefits: ["خدمات الحوسبة السحابية", "إدارة البنية التحتية", "حلول أمنية"],
+      featured: false,
+      active: true,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.premiumClients.set(client3.id, client3);
+    
     // إضافة مستخدم مسؤول (admin)
     const adminUser: User = {
       id: this.userIdCounter++,
