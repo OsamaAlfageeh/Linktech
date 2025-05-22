@@ -113,6 +113,14 @@ const Header = ({ auth }: HeaderProps) => {
               </li>
               <li>
                 <Link 
+                  href="/premium-clients" 
+                  className={`px-3 py-2 font-medium ${isActive("/premium-clients") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                >
+                  عملاء التميز
+                </Link>
+              </li>
+              <li>
+                <Link 
                   href="/about" 
                   className={`px-3 py-2 font-medium ${isActive("/about") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
                 >

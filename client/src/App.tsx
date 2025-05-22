@@ -36,6 +36,7 @@ import Privacy from "@/pages/privacy";
 import Sitemap from "@/pages/sitemap";
 import TestNdaPage from "@/pages/test-nda-page";
 import PersonalInfo from "@/pages/personal-info";
+import PremiumClients from "@/pages/premium-clients";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -234,6 +235,9 @@ function App() {
           <Route path="/blog" component={BlogIndexPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
           <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
+          
+          {/* صفحة عملاء التميز */}
+          <Route path="/premium-clients" component={PremiumClients} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
