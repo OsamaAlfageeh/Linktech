@@ -14,7 +14,9 @@ import {
   newsletterSubscribers,
   NdaAgreement, InsertNdaAgreement,
   ndaAgreements,
-  blogCategories, blogPosts, blogComments
+  blogCategories, blogPosts, blogComments,
+  PremiumClient, InsertPremiumClient,
+  premiumClients
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
@@ -116,6 +118,16 @@ export interface IStorage {
   getPublishedBlogPosts(): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; }[]>;
   getBlogPost(id: number): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
   getBlogPostBySlug(slug: string): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
+  
+  // عمليات عملاء التميز
+  getPremiumClients(): Promise<PremiumClient[]>;
+  getPremiumClientById(id: number): Promise<PremiumClient | undefined>;
+  getPremiumClientsByCategory(category: string): Promise<PremiumClient[]>;
+  getActivePremiumClients(): Promise<PremiumClient[]>;
+  getFeaturedPremiumClients(): Promise<PremiumClient[]>;
+  createPremiumClient(client: InsertPremiumClient): Promise<PremiumClient>;
+  updatePremiumClient(id: number, updates: Partial<InsertPremiumClient>): Promise<PremiumClient | undefined>;
+  deletePremiumClient(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -129,6 +141,7 @@ export class MemStorage implements IStorage {
   private passwordResetTokens: Map<string, {userId: number, email: string, expiresAt: Date}>;
   private newsletterSubscribers: Map<number, NewsletterSubscriber>;
   private ndaAgreements: Map<number, NdaAgreement>;
+  private premiumClients: Map<number, PremiumClient>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -139,6 +152,7 @@ export class MemStorage implements IStorage {
   private siteSettingsIdCounter: number = 1;
   private newsletterSubscriberIdCounter: number = 1;
   private ndaAgreementIdCounter: number = 1;
+  private premiumClientIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();

@@ -581,6 +581,30 @@ export const usersBlogRelations = relations(users, ({ many }) => ({
   blogComments: many(blogComments),
 }));
 
+// نموذج عملاء التميز - الجهات والشركاء المميزين
+export const premiumClients = pgTable("premium_clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  logo: text("logo").notNull(),
+  description: text("description").notNull(),
+  website: text("website"),
+  category: text("category").notNull(), // حكومي، جمعية خيرية، شركة كبرى، إلخ
+  benefits: text("benefits").array(), // المزايا الخاصة المقدمة
+  featured: boolean("featured").default(false), // هل يتم عرضه في الصفحة الرئيسية
+  active: boolean("active").default(true), // نشط أو غير نشط
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertPremiumClientSchema = createInsertSchema(premiumClients).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+
+export type PremiumClient = typeof premiumClients.$inferSelect;
+export type InsertPremiumClient = z.infer<typeof insertPremiumClientSchema>;
+
 // أنواع البيانات لنظام المدونة
 export type BlogCategory = typeof blogCategories.$inferSelect;
 export type InsertBlogCategory = z.infer<typeof insertBlogCategorySchema>;
