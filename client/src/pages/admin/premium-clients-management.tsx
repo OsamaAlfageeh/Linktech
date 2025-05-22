@@ -106,8 +106,18 @@ const PremiumClientsManagement = () => {
       }
       return await response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // إعادة تحميل البيانات بشكل صريح
       queryClient.invalidateQueries({ queryKey: ["/api/premium-clients"] });
+      
+      // تحديث البيانات مباشرة في حالة التخزين المؤقت
+      queryClient.setQueryData(["/api/premium-clients"], (oldData: any) => {
+        if (!oldData) return oldData;
+        return oldData.map((client: PremiumClient) => 
+          client.id === data.id ? data : client
+        );
+      });
+      
       setIsEditDialogOpen(false);
       setSelectedClient(null);
       resetForm();
