@@ -161,6 +161,51 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       address: "",
     },
   });
+  
+  // تحديث البيانات الشخصية (نسخة 1)
+  const updatePersonalInfoMutation1 = useMutation({
+    mutationFn: async (data: PersonalInfoFormValues) => {
+      if (!profile?.id) throw new Error("Profile ID is missing");
+      
+      console.log('Sending personal info update to server:', JSON.stringify(data));
+      
+      // في الواقع، سنستخدم نفس نقطة النهاية لتحديث ملف الشركة ولكن نضيف البيانات الشخصية
+      const response = await apiRequest("PATCH", `/api/companies/${profile.id}`, data);
+      const result = await response.json();
+      console.log('Server response:', JSON.stringify(result));
+      return result;
+    },
+    onSuccess: async (data) => {
+      console.log('تم استلام بيانات شخصية محدثة من الخادم:', JSON.stringify(data));
+      
+      // تحديث البيانات في الكاش
+      queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], (oldData: any) => {
+        return { ...oldData, ...data };
+      });
+      
+      // إعادة تحميل البيانات
+      try {
+        await refetchProfile();
+        console.log('تم إعادة تحميل بيانات الملف بنجاح');
+      } catch (error) {
+        console.error('خطأ في إعادة تحميل بيانات الملف:', error);
+      }
+      
+      toast({
+        title: "تم تحديث البيانات الشخصية بنجاح",
+        description: "تم تحديث بياناتك الشخصية المطلوبة لاتفاقيات عدم الإفصاح بنجاح.",
+      });
+      
+      setIsPersonalInfoMode(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "حدث خطأ",
+        description: "لم نتمكن من تحديث البيانات الشخصية، يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    },
+  });
 
   // Set form values when profile data is loaded
   useEffect(() => {
@@ -229,8 +274,57 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     },
   });
 
+  // تحديث البيانات الشخصية (نسخة 2)
+  const updatePersonalInfoMutation2 = useMutation({
+    mutationFn: async (data: PersonalInfoFormValues) => {
+      if (!profile?.id) throw new Error("Profile ID is missing");
+      
+      console.log('Sending personal info update to server:', JSON.stringify(data));
+      console.log('Profile ID:', profile.id);
+      
+      const response = await apiRequest("PATCH", `/api/companies/${profile.id}/personal-info`, data);
+      const result = await response.json();
+      console.log('Server response:', JSON.stringify(result));
+      return result;
+    },
+    onSuccess: async (data) => {
+      console.log('تم استلام بيانات شخصية محدثة من الخادم:', JSON.stringify(data));
+      
+      // تحديث البيانات في الكاش
+      queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], (oldData: any) => {
+        return { ...oldData, ...data };
+      });
+      
+      // إعادة تحميل البيانات
+      try {
+        await refetchProfile();
+        console.log('تم إعادة تحميل بيانات الملف بنجاح');
+      } catch (error) {
+        console.error('خطأ في إعادة تحميل بيانات الملف:', error);
+      }
+      
+      toast({
+        title: "تم تحديث البيانات الشخصية بنجاح",
+        description: "تم تحديث بياناتك الشخصية المطلوبة لاتفاقيات عدم الإفصاح بنجاح.",
+      });
+      
+      setIsPersonalInfoMode(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "حدث خطأ",
+        description: "لم نتمكن من تحديث البيانات الشخصية، يرجى المحاولة مرة أخرى.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const onSubmit = (data: ProfileFormValues) => {
     updateProfileMutation.mutate(data);
+  };
+  
+  const onSubmitPersonalInfo = (data: PersonalInfoFormValues) => {
+    updatePersonalInfoMutation2.mutate(data);
   };
 
   // Redirect if not authenticated or not a company
