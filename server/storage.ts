@@ -1497,6 +1497,59 @@ export class DatabaseStorage implements IStorage {
     return updatedAgreement;
   }
 
+  // عمليات عملاء التميز
+  async getPremiumClients(): Promise<PremiumClient[]> {
+    return await db.query.premiumClients.findMany();
+  }
+  
+  async getPremiumClientById(id: number): Promise<PremiumClient | undefined> {
+    return await db.query.premiumClients.findFirst({
+      where: eq(schema.premiumClients.id, id)
+    });
+  }
+  
+  async getPremiumClientsByCategory(category: string): Promise<PremiumClient[]> {
+    return await db.query.premiumClients.findMany({
+      where: eq(schema.premiumClients.category, category)
+    });
+  }
+  
+  async getActivePremiumClients(): Promise<PremiumClient[]> {
+    return await db.query.premiumClients.findMany({
+      where: eq(schema.premiumClients.active, true)
+    });
+  }
+  
+  async getFeaturedPremiumClients(): Promise<PremiumClient[]> {
+    return await db.query.premiumClients.findMany({
+      where: and(
+        eq(schema.premiumClients.featured, true),
+        eq(schema.premiumClients.active, true)
+      )
+    });
+  }
+  
+  async createPremiumClient(client: InsertPremiumClient): Promise<PremiumClient> {
+    const [newClient] = await db.insert(schema.premiumClients)
+      .values(client)
+      .returning();
+    return newClient;
+  }
+  
+  async updatePremiumClient(id: number, updates: Partial<InsertPremiumClient>): Promise<PremiumClient | undefined> {
+    const [updatedClient] = await db.update(schema.premiumClients)
+      .set(updates)
+      .where(eq(schema.premiumClients.id, id))
+      .returning();
+    return updatedClient;
+  }
+  
+  async deletePremiumClient(id: number): Promise<boolean> {
+    const result = await db.delete(schema.premiumClients)
+      .where(eq(schema.premiumClients.id, id));
+    return result.rowCount > 0;
+  }
+
   // عمليات المدونة
   async getBlogCategories() {
     return await db.query.blogCategories.findMany();
