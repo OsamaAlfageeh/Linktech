@@ -59,6 +59,12 @@ type CompanyProfile = {
   skills: string[];
   rating?: number;
   reviewCount?: number;
+  // معلومات شخصية إضافية
+  fullName?: string;
+  nationalId?: string;
+  phone?: string;
+  birthDate?: string;
+  address?: string;
 };
 
 type User = {
@@ -85,13 +91,24 @@ const profileSchema = z.object({
   location: z.string().optional(),
 });
 
+// Personal info form schema
+const personalInfoSchema = z.object({
+  fullName: z.string().min(3, "الاسم الكامل مطلوب (3 أحرف على الأقل)"),
+  nationalId: z.string().min(10, "رقم الهوية الوطنية مطلوب (10 أرقام على الأقل)"),
+  phone: z.string().min(10, "رقم الجوال مطلوب (10 أرقام على الأقل)"),
+  birthDate: z.string().min(1, "تاريخ الميلاد مطلوب"),
+  address: z.string().min(10, "العنوان الوطني مطلوب (10 أحرف على الأقل)"),
+});
+
 type ProfileFormValues = z.infer<typeof profileSchema>;
+type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
 
 const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isPersonalInfoMode, setIsPersonalInfoMode] = useState(false);
   
   // قراءة معلمة التبويب من URL عند تحميل الصفحة
   useEffect(() => {
@@ -132,6 +149,18 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       location: "",
     },
   });
+  
+  // نموذج البيانات الشخصية
+  const personalInfoForm = useForm<PersonalInfoFormValues>({
+    resolver: zodResolver(personalInfoSchema),
+    defaultValues: {
+      fullName: "",
+      nationalId: "",
+      phone: "",
+      birthDate: "",
+      address: "",
+    },
+  });
 
   // Set form values when profile data is loaded
   useEffect(() => {
@@ -140,10 +169,18 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       form.setValue("skills", profile.skills.join(", "));
       form.setValue("website", profile.website || "");
       form.setValue("location", profile.location || "");
+      
+      // ضبط قيم البيانات الشخصية إذا كانت موجودة
+      personalInfoForm.setValue("fullName", profile.fullName || "");
+      personalInfoForm.setValue("nationalId", profile.nationalId || "");
+      personalInfoForm.setValue("phone", profile.phone || "");
+      personalInfoForm.setValue("birthDate", profile.birthDate || "");
+      personalInfoForm.setValue("address", profile.address || "");
     }
-  }, [profile, form]);
+  }, [profile, form, personalInfoForm]);
 
   // Update profile mutation
+  // تحديث بيانات الملف الشخصي للشركة
   const updateProfileMutation = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
       if (!profile?.id) throw new Error("Profile ID is missing");
