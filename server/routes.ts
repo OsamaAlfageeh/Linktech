@@ -2531,7 +2531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // تحديث عميل تميز (للمسؤولين فقط)
-  app.patch('/api/premium-clients/:id', isAdmin, async (req: Request, res: Response) => {
+  app.put('/api/premium-clients/:id', isAdmin, async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {

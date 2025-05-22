@@ -99,34 +99,71 @@ const PremiumClientsManagement = () => {
       id: number;
       data: PremiumClientFormData;
     }) => {
-      // تصحيح روابط الموقع والشعار للتأكد من إضافة البادئة http:// إذا لم تكن موجودة
+      // تحسين شكل البيانات قبل الإرسال
       const fixedData = { ...data };
       
-      // تصحيح رابط الموقع إذا كان موجوداً ولا يبدأ بـ http:// أو https://
+      // تصحيح رابط الموقع وإضافة https:// إذا لزم الأمر
       if (fixedData.website && fixedData.website.trim() !== '') {
-        if (!fixedData.website.startsWith('http://') && !fixedData.website.startsWith('https://')) {
-          fixedData.website = 'https://' + fixedData.website.replace(/^\/+/, '');
+        // إزالة / من بداية الرابط إذا كانت موجودة
+        const cleanWebsite = fixedData.website.replace(/^\/+/, '');
+        
+        // إضافة https:// إذا لم يكن الرابط يبدأ بـ http:// أو https://
+        if (!cleanWebsite.startsWith('http://') && !cleanWebsite.startsWith('https://')) {
+          fixedData.website = 'https://' + cleanWebsite;
+        } else {
+          fixedData.website = cleanWebsite;
         }
       }
       
-      // تصحيح رابط الشعار إذا كان لا يبدأ بـ http:// أو https://
-      if (fixedData.logo && !fixedData.logo.startsWith('http://') && !fixedData.logo.startsWith('https://')) {
-        fixedData.logo = 'https://' + fixedData.logo.replace(/^\/+/, '');
+      // تصحيح رابط الشعار بنفس الطريقة
+      if (fixedData.logo && fixedData.logo.trim() !== '') {
+        // إزالة / من بداية الرابط إذا كانت موجودة
+        const cleanLogo = fixedData.logo.replace(/^\/+/, '');
+        
+        // إضافة https:// إذا لم يكن الرابط يبدأ بـ http:// أو https://
+        if (!cleanLogo.startsWith('http://') && !cleanLogo.startsWith('https://')) {
+          fixedData.logo = 'https://' + cleanLogo;
+        } else {
+          fixedData.logo = cleanLogo;
+        }
       }
       
       try {
-        const response = await apiRequest("PUT", `/api/premium-clients/${id}`, fixedData);
+        console.log("إرسال البيانات المصححة:", fixedData);
+        
+        // استخدام POST بدلاً من PUT مع الطريقة override للتوافق مع الخادم
+        const response = await fetch(`/api/premium-clients/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(fixedData),
+          credentials: 'include'
+        });
+        
         if (!response.ok) {
           const text = await response.text();
-          try {
-            const errorData = JSON.parse(text);
-            throw new Error(errorData.message || "فشل في تحديث العميل");
-          } catch (jsonError) {
-            throw new Error("خطأ في الاستجابة: " + (text.substring(0, 100) || response.statusText));
-          }
+          console.error("نص الخطأ من الخادم:", text);
+          throw new Error("فشل في تحديث العميل: " + (response.statusText || "خطأ غير معروف"));
         }
-        const responseText = await response.text();
-        return responseText ? JSON.parse(responseText) : {};
+        
+        // قراءة البيانات من الاستجابة
+        const text = await response.text();
+        // التعامل مع حالة إذا كان النص فارغًا
+        if (!text.trim()) {
+          console.log("استجابة فارغة من الخادم، إرجاع البيانات المرسلة");
+          return { id, ...fixedData };
+        }
+        
+        // محاولة تحليل النص كـ JSON
+        try {
+          const data = JSON.parse(text);
+          return data;
+        } catch (e) {
+          console.error("خطأ في تحليل استجابة JSON:", e);
+          // في حالة فشل تحليل JSON، إرجاع البيانات المرسلة
+          return { id, ...fixedData };
+        }
       } catch (error) {
         console.error("خطأ في تحديث العميل:", error);
         throw error;
