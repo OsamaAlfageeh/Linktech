@@ -2478,7 +2478,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           clients = clients.filter(client => client.active);
         }
       } else if (activeOnly) {
-        clients = await storage.getActivePremiumClients();
+        // الحصول على جميع العملاء ثم تصفية النشطين فقط
+        clients = await storage.getPremiumClients();
+        clients = clients.filter(client => client.active !== false);
       } else {
         clients = await storage.getPremiumClients();
       }

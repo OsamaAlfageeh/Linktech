@@ -45,13 +45,13 @@ const PremiumClients = () => {
     <div className="container mx-auto py-12 px-4 md:px-6">
       <Helmet>
         <title>عملاء التميز | لينكتك</title>
-        <meta name="description" content="تعرف على عملائنا المميزين وشركاءنا الاستراتيجيين في منصة لينكتك" />
+        <meta name="description" content="تعرف على عملاء التميز والمشاريع المميزة في منصة لينكتك" />
       </Helmet>
       
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-primary mb-4">عملاء التميز</h1>
         <p className="text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-          نفتخر بالتعاون مع مجموعة من أبرز الشركات والمؤسسات الرائدة في مجال التكنولوجيا والابتكار
+          نفتخر بخدمة نخبة من العملاء المميزين والمؤسسات الرائدة التي تثق بمنصة لينكتك لتنفيذ مشاريعها التقنية
         </p>
       </div>
       
@@ -82,7 +82,7 @@ const PremiumClients = () => {
         <div className="text-center">
           <h2 className="text-2xl font-bold mb-4">هل ترغب بالانضمام إلى قائمة عملاء التميز؟</h2>
           <p className="mb-6 max-w-2xl mx-auto">
-            إذا كنت تمثل شركة رائدة في مجال التكنولوجيا أو مؤسسة مرموقة وترغب بالانضمام إلى شركائنا الاستراتيجيين، نرحب بالتواصل معنا
+            إذا كنت تملك مشروعاً مميزاً أو مؤسسة رائدة وترغب بالانضمام إلى عملاء التميز في منصة لينكتك، نرحب بالتواصل معنا
           </p>
           <a 
             href="/contact" 

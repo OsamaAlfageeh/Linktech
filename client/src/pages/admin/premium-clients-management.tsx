@@ -247,7 +247,7 @@ const PremiumClientsManagement = () => {
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogTrigger asChild>
             <Button>
-              <Plus className="ml-2 h-4 w-4" /> إضافة عميل جديد
+              <Plus className="ml-2 h-4 w-4" /> إضافة عميل مميز جديد
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md">
