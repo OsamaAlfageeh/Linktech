@@ -236,6 +236,7 @@ function App() {
           <Route path="/blog" component={BlogIndexPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
           <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
+          <ProtectedRoute path="/admin/premium-clients" component={PremiumClientsManagement} requiredRole="admin" />
           
           {/* صفحة عملاء التميز */}
           <Route path="/premium-clients" component={PremiumClients} />
