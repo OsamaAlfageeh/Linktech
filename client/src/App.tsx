@@ -42,6 +42,7 @@ import PremiumClients from "@/pages/premium-clients";
 import BlogIndexPage from "@/pages/blog/index";
 import BlogPostPage from "@/pages/blog/[slug]";
 import BlogManagement from "@/pages/admin/blog-management";
+import PremiumClientsManagement from "@/pages/admin/premium-clients-management";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export type User = {

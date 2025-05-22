@@ -241,6 +241,10 @@ const Header = ({ auth }: HeaderProps) => {
                       المدونة
                     </Link>
                     
+                    <Link href="/premium-clients" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                      عملاء التميز
+                    </Link>
+                    
                     <Link href="/about" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                       من نحن
                     </Link>
