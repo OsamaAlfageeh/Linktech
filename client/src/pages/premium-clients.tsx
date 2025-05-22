@@ -15,15 +15,37 @@ const PremiumClientCard = ({ client }: { client: any }) => {
             className="h-24 w-auto object-contain"
           />
         </div>
+        <div className={`mb-2 flex justify-center items-center ${client.featured ? 'visible' : 'hidden'}`}>
+          <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-white text-xs px-2 py-1 rounded-full">
+            عميل مميز
+          </span>
+        </div>
         <h3 className="text-xl font-bold text-primary text-center mb-2">{client.name}</h3>
+        <div className="mb-2 text-sm text-center text-gray-500 dark:text-gray-400">
+          {client.category && <span className="inline-block px-2">{client.category}</span>}
+        </div>
         <p className="text-gray-600 dark:text-gray-300 text-center mb-4">{client.description}</p>
+        
+        {client.benefits && client.benefits.length > 0 && (
+          <div className="mt-4 border-t pt-4 border-gray-100 dark:border-gray-700">
+            <ul className="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+              {client.benefits.map((benefit: string, index: number) => (
+                <li key={index} className="flex items-start">
+                  <span className="text-green-500 ml-2">✓</span>
+                  <span>{benefit}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+        
         {client.website && (
-          <div className="text-center">
+          <div className="text-center mt-4">
             <a 
               href={client.website} 
               target="_blank" 
               rel="noopener noreferrer" 
-              className="text-sm text-primary hover:underline"
+              className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
             >
               زيارة الموقع
             </a>

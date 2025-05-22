@@ -267,7 +267,7 @@ const PremiumClientsManagement = () => {
                     required
                     value={formData.name}
                     onChange={handleInputChange}
-                    placeholder="اسم الشركة أو المؤسسة"
+                    placeholder="اسم العميل أو المؤسسة"
                   />
                 </div>
                 <div className="grid gap-2">
@@ -329,7 +329,7 @@ const PremiumClientsManagement = () => {
                     onChange={handleCheckboxChange}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="featured">مميز</Label>
+                  <Label htmlFor="featured">عرض بشكل مميز</Label>
                 </div>
                 <div className="flex items-center gap-2">
                   <input
@@ -340,7 +340,7 @@ const PremiumClientsManagement = () => {
                     onChange={handleCheckboxChange}
                     className="h-4 w-4 rounded border-gray-300"
                   />
-                  <Label htmlFor="active">نشط</Label>
+                  <Label htmlFor="active">نشط حاليًا</Label>
                 </div>
               </div>
               <DialogFooter>
