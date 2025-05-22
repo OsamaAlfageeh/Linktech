@@ -99,12 +99,38 @@ const PremiumClientsManagement = () => {
       id: number;
       data: PremiumClientFormData;
     }) => {
-      const response = await apiRequest("PUT", `/api/premium-clients/${id}`, data);
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "فشل في تحديث العميل");
+      // تصحيح روابط الموقع والشعار للتأكد من إضافة البادئة http:// إذا لم تكن موجودة
+      const fixedData = { ...data };
+      
+      // تصحيح رابط الموقع إذا كان موجوداً ولا يبدأ بـ http:// أو https://
+      if (fixedData.website && fixedData.website.trim() !== '') {
+        if (!fixedData.website.startsWith('http://') && !fixedData.website.startsWith('https://')) {
+          fixedData.website = 'https://' + fixedData.website.replace(/^\/+/, '');
+        }
       }
-      return await response.json();
+      
+      // تصحيح رابط الشعار إذا كان لا يبدأ بـ http:// أو https://
+      if (fixedData.logo && !fixedData.logo.startsWith('http://') && !fixedData.logo.startsWith('https://')) {
+        fixedData.logo = 'https://' + fixedData.logo.replace(/^\/+/, '');
+      }
+      
+      try {
+        const response = await apiRequest("PUT", `/api/premium-clients/${id}`, fixedData);
+        if (!response.ok) {
+          const text = await response.text();
+          try {
+            const errorData = JSON.parse(text);
+            throw new Error(errorData.message || "فشل في تحديث العميل");
+          } catch (jsonError) {
+            throw new Error("خطأ في الاستجابة: " + (text.substring(0, 100) || response.statusText));
+          }
+        }
+        const responseText = await response.text();
+        return responseText ? JSON.parse(responseText) : {};
+      } catch (error) {
+        console.error("خطأ في تحديث العميل:", error);
+        throw error;
+      }
     },
     onSuccess: (data) => {
       // إعادة تحميل البيانات بشكل صريح
