@@ -531,6 +531,8 @@ export const insertBlogCommentSchema = createInsertSchema(blogComments).omit({
   updatedAt: true 
 });
 
+// تم نقل نموذج عملاء التميز إلى الجزء الأسفل من الملف
+
 // العلاقات لنظام المدونة
 export const blogCategoriesRelations = relations(blogCategories, ({ one, many }) => ({
   parent: one(blogCategories, {
@@ -614,3 +616,6 @@ export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 
 export type BlogComment = typeof blogComments.$inferSelect;
 export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;
+
+export type PremiumClient = typeof premiumClients.$inferSelect;
+export type InsertPremiumClient = z.infer<typeof insertPremiumClientSchema>;
