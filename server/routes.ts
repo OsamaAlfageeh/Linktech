@@ -169,6 +169,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     res.status(401).json({ message: 'Unauthorized' });
   };
+  
+  // التحقق من صلاحيات المسؤول
+  const isAdmin = (req: Request, res: Response, next: Function) => {
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+    
+    if (req.user && req.user.role === 'admin') {
+      return next();
+    }
+    
+    return res.status(403).json({ message: 'Forbidden - Admin access required' });
+  };
 
   // Auth routes
   app.post('/api/auth/register', async (req: Request, res: Response) => {
@@ -2447,6 +2460,117 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // عملاء التميز (الجهات والشركاء المميزين)
+  // الحصول على قائمة عملاء التميز
+  app.get('/api/premium-clients', async (req: Request, res: Response) => {
+    try {
+      const category = req.query.category as string;
+      const featuredOnly = req.query.featured === 'true';
+      const activeOnly = req.query.active === 'true' || true; // افتراضيًا نعرض فقط العملاء النشطين
+      
+      let clients: PremiumClient[] = [];
+      
+      if (featuredOnly) {
+        clients = await storage.getFeaturedPremiumClients();
+      } else if (category) {
+        clients = await storage.getPremiumClientsByCategory(category);
+        if (activeOnly) {
+          clients = clients.filter(client => client.active);
+        }
+      } else if (activeOnly) {
+        clients = await storage.getActivePremiumClients();
+      } else {
+        clients = await storage.getPremiumClients();
+      }
+      
+      res.json(clients);
+    } catch (error) {
+      console.error('Error getting premium clients:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // الحصول على عميل تميز محدد بواسطة المعرف
+  app.get('/api/premium-clients/:id', async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid ID format' });
+      }
+      
+      const client = await storage.getPremiumClientById(id);
+      if (!client) {
+        return res.status(404).json({ message: 'Premium client not found' });
+      }
+      
+      res.json(client);
+    } catch (error) {
+      console.error('Error getting premium client:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // إنشاء عميل تميز جديد (للمسؤولين فقط)
+  app.post('/api/premium-clients', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const clientData = req.body;
+      
+      // التحقق من البيانات المطلوبة
+      if (!clientData.name || !clientData.logo || !clientData.description || !clientData.category) {
+        return res.status(400).json({ message: 'Missing required fields' });
+      }
+      
+      const newClient = await storage.createPremiumClient(clientData);
+      res.status(201).json(newClient);
+    } catch (error) {
+      console.error('Error creating premium client:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // تحديث عميل تميز (للمسؤولين فقط)
+  app.patch('/api/premium-clients/:id', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid ID format' });
+      }
+      
+      const clientData = req.body;
+      const updatedClient = await storage.updatePremiumClient(id, clientData);
+      
+      if (!updatedClient) {
+        return res.status(404).json({ message: 'Premium client not found' });
+      }
+      
+      res.json(updatedClient);
+    } catch (error) {
+      console.error('Error updating premium client:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
+  // حذف عميل تميز (للمسؤولين فقط)
+  app.delete('/api/premium-clients/:id', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'Invalid ID format' });
+      }
+      
+      const success = await storage.deletePremiumClient(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: 'Premium client not found' });
+      }
+      
+      res.json({ message: 'Premium client deleted successfully' });
+    } catch (error) {
+      console.error('Error deleting premium client:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+  
   // Site Settings routes
   // Get a specific site setting by key
   app.get('/api/site-settings/:key', async (req: Request, res: Response) => {

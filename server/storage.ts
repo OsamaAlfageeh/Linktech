@@ -165,6 +165,7 @@ export class MemStorage implements IStorage {
     this.passwordResetTokens = new Map();
     this.newsletterSubscribers = new Map();
     this.ndaAgreements = new Map();
+    this.premiumClients = new Map();
     
     this.seedData();
   }
@@ -658,6 +659,63 @@ export class MemStorage implements IStorage {
     const updatedAgreement = { ...agreement, pdfUrl };
     this.ndaAgreements.set(id, updatedAgreement);
     return updatedAgreement;
+  }
+  
+  // وظائف عملاء التميز
+  async getPremiumClients(): Promise<PremiumClient[]> {
+    return Array.from(this.premiumClients.values());
+  }
+  
+  async getPremiumClientById(id: number): Promise<PremiumClient | undefined> {
+    return this.premiumClients.get(id);
+  }
+  
+  async getPremiumClientsByCategory(category: string): Promise<PremiumClient[]> {
+    return Array.from(this.premiumClients.values()).filter(
+      (client) => client.category === category
+    );
+  }
+  
+  async getActivePremiumClients(): Promise<PremiumClient[]> {
+    return Array.from(this.premiumClients.values()).filter(
+      (client) => client.active === true
+    );
+  }
+  
+  async getFeaturedPremiumClients(): Promise<PremiumClient[]> {
+    return Array.from(this.premiumClients.values()).filter(
+      (client) => client.featured === true && client.active === true
+    );
+  }
+  
+  async createPremiumClient(client: InsertPremiumClient): Promise<PremiumClient> {
+    const id = this.premiumClientIdCounter++;
+    const now = new Date();
+    const premiumClient: PremiumClient = { 
+      ...client, 
+      id, 
+      createdAt: now, 
+      updatedAt: now
+    };
+    this.premiumClients.set(id, premiumClient);
+    return premiumClient;
+  }
+  
+  async updatePremiumClient(id: number, updates: Partial<InsertPremiumClient>): Promise<PremiumClient | undefined> {
+    const client = this.premiumClients.get(id);
+    if (!client) return undefined;
+    
+    const updatedClient = { 
+      ...client, 
+      ...updates, 
+      updatedAt: new Date() 
+    };
+    this.premiumClients.set(id, updatedClient);
+    return updatedClient;
+  }
+  
+  async deletePremiumClient(id: number): Promise<boolean> {
+    return this.premiumClients.delete(id);
   }
   
   // Seed initial data
