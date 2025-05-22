@@ -686,13 +686,14 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto pb-2 -mb-2">
-            <TabsList className="flex lg:grid lg:grid-cols-7 min-w-[500px] w-max lg:w-full">
+            <TabsList className="flex lg:grid lg:grid-cols-8 min-w-[500px] w-max lg:w-full">
               <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
               <TabsTrigger value="users">المستخدمون</TabsTrigger>
               <TabsTrigger value="companies">الشركات</TabsTrigger>
               <TabsTrigger value="projects">المشاريع</TabsTrigger>
               <TabsTrigger value="offers">العروض</TabsTrigger>
               <TabsTrigger value="messages">المحادثات</TabsTrigger>
+              <TabsTrigger value="premium-clients">عملاء التميز</TabsTrigger>
               <TabsTrigger value="blog">المدونة</TabsTrigger>
               <TabsTrigger value="settings">الإعدادات</TabsTrigger>
             </TabsList>
@@ -1440,6 +1441,27 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
           </TabsContent>
 
           {/* قسم إدارة المدونة */}
+          {/* عملاء التميز */}
+          <TabsContent value="premium-clients" className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-xl font-bold">إدارة عملاء التميز</h2>
+              <Link href="/admin/premium-clients">
+                <Button variant="default">
+                  الانتقال إلى لوحة إدارة عملاء التميز
+                </Button>
+              </Link>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-800 p-6 rounded-lg">
+              <p className="mb-4">يمكنك إدارة قائمة عملاء التميز والشركاء الاستراتيجيين لمنصة لينكتك من خلال لوحة الإدارة الخاصة.</p>
+              <ul className="list-disc list-inside space-y-2 text-gray-600 dark:text-gray-300 mb-4">
+                <li>إضافة شركاء استراتيجيين جدد</li>
+                <li>تعديل بيانات الشركاء الحاليين</li>
+                <li>إزالة الشركاء غير النشطين</li>
+                <li>تحديد الشركاء المميزين للعرض بشكل بارز</li>
+              </ul>
+            </div>
+          </TabsContent>
+          
           <TabsContent value="blog" className="space-y-4">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
