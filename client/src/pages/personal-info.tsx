@@ -151,12 +151,8 @@ const PersonalInfoPage = () => {
     updatePersonalInfoMutation.mutate(data);
   };
   
-  // التحقق من الصلاحيات
-  useEffect(() => {
-    if (!auth.isAuthenticated || !auth.isCompany) {
-      navigate("/");
-    }
-  }, [auth, navigate]);
+  // لن نقوم بإعادة التوجيه هنا لأن ProtectedRoute يتعامل مع التحقق من الصلاحيات
+  // هذا يمنع حدوث إعادة توجيه مزدوجة تسبب مشاكل
   
   if (isLoadingProfile) {
     return (
@@ -167,9 +163,7 @@ const PersonalInfoPage = () => {
     );
   }
   
-  if (!auth.isAuthenticated || !auth.isCompany) {
-    return null;
-  }
+  // لا نحتاج إلى هذا التحقق هنا، حيث أن التحقق من الوصول يتم في ProtectedRoute
   
   return (
     <>
