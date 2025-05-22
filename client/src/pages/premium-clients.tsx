@@ -8,12 +8,22 @@ const PremiumClientCard = ({ client }: { client: any }) => {
   return (
     <div className="bg-white dark:bg-gray-800 shadow-lg rounded-lg overflow-hidden hover:shadow-xl transition-shadow duration-300">
       <div className="p-6">
-        <div className="mb-4 flex justify-center">
-          <img 
-            src={client.logo} 
-            alt={client.name} 
-            className="h-24 w-auto object-contain"
-          />
+        <div className="mb-4 flex justify-center items-center h-32">
+          {client.logo && (
+            <img 
+              src={client.logo.startsWith('http') ? client.logo : `https://${client.logo.replace(/^\/+/, '')}`}
+              alt={client.name} 
+              className="h-24 w-auto max-w-full object-contain"
+              onError={(e) => {
+                // في حالة فشل تحميل الصورة، عرض الحرف الأول من اسم العميل
+                (e.target as HTMLImageElement).style.display = 'none';
+                (e.target as HTMLImageElement).parentElement?.classList.add('flex', 'justify-center', 'items-center', 'bg-gray-200', 'rounded-full', 'h-24', 'w-24');
+                if ((e.target as HTMLImageElement).parentElement) {
+                  (e.target as HTMLImageElement).parentElement.innerHTML = `<span class="text-4xl font-bold text-primary">${client.name.charAt(0)}</span>`;
+                }
+              }}
+            />
+          )}
         </div>
         <div className={`mb-2 flex justify-center items-center ${client.featured ? 'visible' : 'hidden'}`}>
           <span className="bg-gradient-to-r from-amber-400 to-amber-600 text-white text-xs px-2 py-1 rounded-full">
