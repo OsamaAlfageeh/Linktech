@@ -7,6 +7,7 @@ import { z } from "zod";
 import { Helmet } from "react-helmet";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+// استخدام مكون المصادقة من التطبيق
 import { useAuth } from "../App";
 
 import {
@@ -49,6 +50,7 @@ type PersonalInfoFormValues = z.infer<typeof personalInfoSchema>;
 const PersonalInfoPage = () => {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
+  const auth = useAuth();
   const [successfulSubmit, setSuccessfulSubmit] = useState(false);
   const [returnUrl, setReturnUrl] = useState<string | null>(null);
   
@@ -61,21 +63,15 @@ const PersonalInfoPage = () => {
     }
   }, []);
   
-  // استعلام عن معلومات المستخدم
-  const {
-    data: user,
-    isLoading: isLoadingUser,
-  } = useQuery<any>({
-    queryKey: ['/api/auth/user'],
-  });
-  
   // استعلام عن ملف الشركة
   const {
     data: profile,
     isLoading: isLoadingProfile,
+    refetch: refetchProfile
   } = useQuery<any>({
-    queryKey: [`/api/companies/user/${user?.user?.id}`],
-    enabled: !!user?.user?.id,
+    queryKey: [`/api/companies/user/${auth.user?.id}`],
+    enabled: !!auth.user?.id,
+    staleTime: 0, // دائماً اعتبر البيانات قديمة لضمان التحديث عند الطلب
   });
   
   // نموذج البيانات الشخصية
@@ -118,9 +114,12 @@ const PersonalInfoPage = () => {
       console.log('تم استلام بيانات شخصية محدثة من الخادم:', JSON.stringify(data));
       
       // تحديث البيانات في الكاش
-      queryClient.setQueryData([`/api/companies/user/${user?.user?.id}`], (oldData: any) => {
+      queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], (oldData: any) => {
         return { ...oldData, ...data };
       });
+      
+      // إعادة تحميل البيانات
+      await refetchProfile();
       
       toast({
         title: "تم تحديث البيانات الشخصية بنجاح",
@@ -154,12 +153,12 @@ const PersonalInfoPage = () => {
   
   // التحقق من الصلاحيات
   useEffect(() => {
-    if (!isLoadingUser && (!user || user.user?.role !== 'company')) {
+    if (!auth.isAuthenticated || !auth.isCompany) {
       navigate("/");
     }
-  }, [user, isLoadingUser, navigate]);
+  }, [auth, navigate]);
   
-  if (isLoadingUser || isLoadingProfile) {
+  if (isLoadingProfile) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -168,7 +167,7 @@ const PersonalInfoPage = () => {
     );
   }
   
-  if (!user || user.user?.role !== 'company') {
+  if (!auth.isAuthenticated || !auth.isCompany) {
     return null;
   }
   
