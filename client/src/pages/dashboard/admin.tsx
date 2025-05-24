@@ -742,6 +742,77 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
               </Card>
             </div>
             
+            {/* أدوات الإدارة السريعة */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <MessageSquare className="h-10 w-10 text-primary" />
+                    <CardTitle className="text-lg">رسائل الاتصال</CardTitle>
+                    <p className="text-sm text-muted-foreground">إدارة رسائل نموذج الاتصال من الزوار</p>
+                    <Button 
+                      variant="default" 
+                      className="mt-2 w-full"
+                      onClick={() => navigate("/admin/contact-messages")}
+                    >
+                      عرض الرسائل
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <FileText className="h-10 w-10 text-primary" />
+                    <CardTitle className="text-lg">المدونة</CardTitle>
+                    <p className="text-sm text-muted-foreground">إدارة مقالات ومحتوى المدونة</p>
+                    <Button 
+                      variant="default" 
+                      className="mt-2 w-full"
+                      onClick={() => navigate("/admin/blog-management")}
+                    >
+                      إدارة المدونة
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <Star className="h-10 w-10 text-primary" />
+                    <CardTitle className="text-lg">عملاء التميز</CardTitle>
+                    <p className="text-sm text-muted-foreground">إدارة عملاء التميز والشركات المميزة</p>
+                    <Button 
+                      variant="default" 
+                      className="mt-2 w-full"
+                      onClick={() => navigate("/admin/premium-clients")}
+                    >
+                      إدارة العملاء
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="border-2 border-primary/10 hover:border-primary/30 transition-colors cursor-pointer">
+                <CardContent className="p-6">
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    <Settings className="h-10 w-10 text-primary" />
+                    <CardTitle className="text-lg">إعدادات الموقع</CardTitle>
+                    <p className="text-sm text-muted-foreground">تعديل إعدادات وصور الموقع</p>
+                    <Button 
+                      variant="default" 
+                      className="mt-2 w-full"
+                      onClick={() => setActiveTab("settings")}
+                    >
+                      الإعدادات
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
