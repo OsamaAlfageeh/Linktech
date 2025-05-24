@@ -16,7 +16,9 @@ import {
   ndaAgreements,
   blogCategories, blogPosts, blogComments,
   PremiumClient, InsertPremiumClient,
-  premiumClients
+  premiumClients,
+  ContactMessage, InsertContactMessage,
+  contactMessages
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
@@ -128,6 +130,15 @@ export interface IStorage {
   createPremiumClient(client: InsertPremiumClient): Promise<PremiumClient>;
   updatePremiumClient(id: number, updates: Partial<InsertPremiumClient>): Promise<PremiumClient | undefined>;
   deletePremiumClient(id: number): Promise<boolean>;
+  
+  // عمليات رسائل الاتصال
+  getContactMessages(): Promise<ContactMessage[]>;
+  getContactMessageById(id: number): Promise<ContactMessage | undefined>;
+  createContactMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  updateContactMessageStatus(id: number, status: string): Promise<ContactMessage | undefined>;
+  addNoteToContactMessage(id: number, note: string): Promise<ContactMessage | undefined>;
+  replyToContactMessage(id: number, replyMessage: string): Promise<ContactMessage | undefined>;
+  deleteContactMessage(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -1548,6 +1559,55 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(schema.premiumClients)
       .where(eq(schema.premiumClients.id, id));
     return result.rowCount > 0;
+  }
+
+  // عمليات رسائل الاتصال
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return await db.select().from(schema.contactMessages).orderBy(desc(schema.contactMessages.createdAt));
+  }
+
+  async getContactMessageById(id: number): Promise<ContactMessage | undefined> {
+    const [message] = await db.select().from(schema.contactMessages).where(eq(schema.contactMessages.id, id));
+    return message || undefined;
+  }
+
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const [result] = await db.insert(schema.contactMessages).values(message).returning();
+    return result;
+  }
+
+  async updateContactMessageStatus(id: number, status: string): Promise<ContactMessage | undefined> {
+    const [result] = await db.update(schema.contactMessages)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(schema.contactMessages.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async addNoteToContactMessage(id: number, note: string): Promise<ContactMessage | undefined> {
+    const [result] = await db.update(schema.contactMessages)
+      .set({ notes: note, updatedAt: new Date() })
+      .where(eq(schema.contactMessages.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async replyToContactMessage(id: number, replyMessage: string): Promise<ContactMessage | undefined> {
+    const [result] = await db.update(schema.contactMessages)
+      .set({ 
+        replyMessage: replyMessage, 
+        repliedAt: new Date(), 
+        status: "replied",
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.contactMessages.id, id))
+      .returning();
+    return result || undefined;
+  }
+
+  async deleteContactMessage(id: number): Promise<boolean> {
+    const result = await db.delete(schema.contactMessages).where(eq(schema.contactMessages.id, id));
+    return result.rowCount ? result.rowCount > 0 : false;
   }
 
   // عمليات المدونة

@@ -617,5 +617,31 @@ export type InsertBlogPost = z.infer<typeof insertBlogPostSchema>;
 export type BlogComment = typeof blogComments.$inferSelect;
 export type InsertBlogComment = z.infer<typeof insertBlogCommentSchema>;
 
-export type PremiumClient = typeof premiumClients.$inferSelect;
-export type InsertPremiumClient = z.infer<typeof insertPremiumClientSchema>;
+// جدول رسائل نموذج الاتصال
+export const contactMessages = pgTable("contact_messages", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  subject: text("subject").notNull(),
+  message: text("message").notNull(),
+  status: text("status").notNull().default("new"), // new, read, replied, archived
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  notes: text("admin_notes"),
+  replyMessage: text("reply_message"),
+  repliedAt: timestamp("replied_at"),
+});
+
+export const insertContactMessageSchema = createInsertSchema(contactMessages).omit({ 
+  id: true, 
+  status: true,
+  createdAt: true,
+  updatedAt: true,
+  notes: true,
+  replyMessage: true,
+  repliedAt: true 
+});
+
+export type ContactMessage = typeof contactMessages.$inferSelect;
+export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
