@@ -26,13 +26,11 @@ import SEO from "@/components/seo/SEO";
 import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
 import { Link } from "wouter";
 
-// نموذج التحقق
-const contactFormSchema = z.object({
-  name: z.string().min(2, { message: "الاسم يجب أن يحتوي على حرفين على الأقل" }),
-  email: z.string().email({ message: "يرجى إدخال بريد إلكتروني صحيح" }),
-  phone: z.string().optional(),
+import { insertContactMessageSchema } from "@shared/schema";
+
+// نموذج التحقق مع امتداد لإضافة الموضوع (subject)
+const contactFormSchema = insertContactMessageSchema.extend({
   subject: z.string().min(1, { message: "يرجى اختيار موضوع" }),
-  message: z.string().min(10, { message: "الرسالة يجب أن تحتوي على 10 أحرف على الأقل" }),
 });
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
@@ -55,10 +53,33 @@ const ContactPage = () => {
   const onSubmit = async (data: ContactFormValues) => {
     setIsSubmitting(true);
     
-    // محاكاة إرسال البريد الإلكتروني
+    // إعداد بيانات الرسالة للإرسال إلى API
+    const contactData = {
+      name: data.name,
+      email: data.email,
+      phone: data.phone || null,
+      message: data.message,
+      // تخزين الموضوع كجزء من الرسالة
+      messageDetails: {
+        subject: data.subject
+      }
+    };
+    
     try {
-      // إضافة تأخير لمحاكاة طلب الشبكة
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // إرسال البيانات إلى نقطة نهاية API
+      const response = await fetch('/api/contact-messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(contactData),
+      });
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.message || 'حدث خطأ أثناء إرسال الرسالة');
+      }
       
       toast({
         title: "تم إرسال رسالتك بنجاح",
@@ -67,9 +88,10 @@ const ContactPage = () => {
       
       form.reset();
     } catch (error) {
+      console.error('خطأ في إرسال نموذج الاتصال:', error);
       toast({
         title: "حدث خطأ أثناء إرسال الرسالة",
-        description: "يرجى المحاولة مرة أخرى لاحقاً.",
+        description: error instanceof Error ? error.message : "يرجى المحاولة مرة أخرى لاحقاً.",
         variant: "destructive",
       });
     } finally {

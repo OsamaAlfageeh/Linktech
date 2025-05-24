@@ -44,6 +44,7 @@ import BlogIndexPage from "@/pages/blog/index";
 import BlogPostPage from "@/pages/blog/[slug]";
 import BlogManagement from "@/pages/admin/blog-management";
 import PremiumClientsManagement from "@/pages/admin/premium-clients-management";
+import ContactMessagesPage from "@/pages/admin/contact-messages";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 
 export type User = {
@@ -240,6 +241,7 @@ function App() {
           <Route path="/blog/:slug" component={BlogPostPage} />
           <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
           <ProtectedRoute path="/admin/premium-clients" component={PremiumClientsManagement} requiredRole="admin" />
+          <ProtectedRoute path="/admin/contact-messages" component={ContactMessagesPage} requiredRole="admin" />
           
           {/* صفحة عملاء التميز */}
           <Route path="/premium-clients" component={PremiumClients} />

@@ -9,6 +9,7 @@ import sitemapRoutes from "./routes/sitemap";
 import arabicPdfTestRoutes from "./arabicPdfTest";
 import pdfmakeTestRoutes from "./pdfmakeTest";
 import generateNdaRoutes from "./generateNDA";
+import contactRoutes from "./routes/contactRoutes";
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import fsExtra from "fs-extra";
@@ -69,6 +70,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(arabicPdfTestRoutes);
   app.use(pdfmakeTestRoutes);
   app.use(generateNdaRoutes);
+  app.use(contactRoutes);
   // Initialize session and passport
   // تكوين الجلسة بشكل صحيح
   app.use(session({
