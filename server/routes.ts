@@ -33,7 +33,8 @@ import {
   insertNdaAgreementSchema,
   insertBlogCategorySchema,
   insertBlogPostSchema,
-  insertBlogCommentSchema
+  insertBlogCommentSchema,
+  insertContactMessageSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
