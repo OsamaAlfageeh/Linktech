@@ -7,6 +7,7 @@ import { apiRequest } from "./lib/queryClient";
 
 // Layout
 import Header from "@/components/layout/Header";
+import ModernHeader from "@/components/layout/ModernHeader";
 import Footer from "@/components/layout/Footer";
 import ScrollToTop from "@/components/layout/ScrollToTop";
 
@@ -127,7 +128,9 @@ function App() {
   return (
     <TooltipProvider delayDuration={0}>
       <ScrollToTop />
-      {!isAuthPage && <Header auth={auth} />}
+      {!isAuthPage && (
+        location === "/" ? <ModernHeader auth={auth} /> : <Header auth={auth} />
+      )}
       <main dir="rtl" lang="ar" className="min-h-screen">
         <Switch>
           <Route path="/" component={() => <Home auth={auth} />} />
