@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, RefreshCcw, Trash2, Edit, Check, X, Reply, AlertCircle, CheckCircle, Archive } from "lucide-react";
+import { Loader2, Mail, RefreshCcw, Trash2, Edit, Check, X, Reply, AlertCircle, CheckCircle, Archive, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -206,7 +206,7 @@ const ContactMessagesPage = () => {
     switch (status) {
       case "new": return "default";
       case "read": return "secondary";
-      case "replied": return "success";
+      case "replied": return "secondary";
       case "archived": return "outline";
       default: return "default";
     }
