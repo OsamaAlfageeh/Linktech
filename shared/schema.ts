@@ -623,7 +623,7 @@ export const contactMessages = pgTable("contact_messages", {
   name: text("name").notNull(),
   email: text("email").notNull(),
   phone: text("phone"),
-  subject: text("subject").notNull(),
+  subject: text("subject").default("استفسار عام"),
   message: text("message").notNull(),
   status: text("status").notNull().default("new"), // new, read, replied, archived
   createdAt: timestamp("created_at").defaultNow().notNull(),
