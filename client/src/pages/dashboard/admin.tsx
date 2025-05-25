@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
-  DollarSign, Clock, Award, MessageSquare, FileText, X, Star } from "lucide-react";
+  DollarSign, Clock, Award, MessageSquare, FileText, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -744,8 +744,17 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>آخر المشاريع</CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => navigate("/admin/contact-messages")}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    رسائل الاتصال
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
