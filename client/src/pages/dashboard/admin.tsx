@@ -744,8 +744,17 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
-                <CardHeader>
+                <CardHeader className="flex flex-row items-center justify-between">
                   <CardTitle>آخر المشاريع</CardTitle>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="gap-1"
+                    onClick={() => navigate("/admin/contact-messages")}
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    رسائل الاتصال
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
