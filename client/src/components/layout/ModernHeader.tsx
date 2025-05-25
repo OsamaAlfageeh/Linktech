@@ -221,10 +221,6 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
 
             {/* أزرار المستخدم */}
             <div className="flex items-center space-x-4 space-x-reverse">
-              {/* زر البحث */}
-              <button className="p-2 text-gray-600 hover:text-primary rounded-full hover:bg-gray-100">
-                <Search className="h-5 w-5" />
-              </button>
               
               {auth.isAuthenticated && (
                 <>
