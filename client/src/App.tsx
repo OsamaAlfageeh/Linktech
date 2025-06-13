@@ -15,6 +15,7 @@ import ScrollToTop from "@/components/layout/ScrollToTop";
 import Home from "@/pages/home";
 import Projects from "@/pages/projects";
 import ProjectDetails from "@/pages/projects/[id]";
+import TrendingProjects from "@/pages/projects/trending";
 import CompanyDetails from "@/pages/companies/[id]";
 import ForCompanies from "@/pages/for-companies";
 import Register from "@/pages/auth/register";
@@ -136,6 +137,7 @@ function App() {
         <Switch>
           <Route path="/" component={() => <Home auth={auth} />} />
           <Route path="/projects" component={() => <Projects auth={auth} />} />
+          <Route path="/projects/trending" component={TrendingProjects} />
           <Route path="/projects/:id" component={ProjectDetails} />
           <Route path="/companies/:id" component={CompanyDetails} />
 
