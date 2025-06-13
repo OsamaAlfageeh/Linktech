@@ -3,7 +3,16 @@ import { Helmet } from "react-helmet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useLocation } from "wouter";
-import { Users, Briefcase, Building2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Users, Briefcase, Building2, BarChart3, TrendingUp } from "lucide-react";
+import { QuickVisitStats } from "@/components/analytics/VisitStatsCard";
+import { 
+  VisitChart, 
+  TopPagesChart, 
+  DeviceStatsChart, 
+  BrowserStatsChart 
+} from "@/components/analytics/VisitChart";
+import { Skeleton } from "@/components/ui/skeleton";
 
 // صفحة مسؤول بسيطة بدون تصاريح ومباشرة
 const AdminSimplePage = () => {

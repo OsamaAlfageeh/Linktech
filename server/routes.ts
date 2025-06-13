@@ -56,6 +56,7 @@ import {
 } from "./aiRecommendation";
 import session from "express-session";
 import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
+import { trackVisit, getVisitStats, getQuickStats } from "./visitTracking";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";
@@ -3670,6 +3671,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('خطأ في إنشاء PDF للاختبار:', error);
       res.status(500).json({ message: 'حدث خطأ أثناء إنشاء PDF للاختبار' });
+    }
+  });
+
+  // === نقاط نهاية إحصائيات الزيارات ===
+  
+  // تسجيل زيارة جديدة
+  app.post('/api/visits/track', async (req: Request, res: Response) => {
+    try {
+      const { pageUrl, pageTitle, sessionId } = req.body;
+      
+      if (!pageUrl) {
+        return res.status(400).json({ message: 'Page URL is required' });
+      }
+
+      const userId = req.isAuthenticated() ? req.user.id : undefined;
+      
+      await trackVisit(req, {
+        pageUrl,
+        pageTitle,
+        sessionId,
+        userId,
+        referrer: req.get('Referer')
+      });
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('خطأ في تسجيل الزيارة:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // الحصول على إحصائيات الزيارات (للمسؤولين فقط)
+  app.get('/api/admin/visit-stats', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+
+      const days = parseInt(req.query.days as string) || 7;
+      const stats = await getVisitStats(days);
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('خطأ في الحصول على إحصائيات الزيارات:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // الحصول على الإحصائيات السريعة (للمسؤولين فقط)
+  app.get('/api/admin/quick-stats', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      if (req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden - Admin access required' });
+      }
+
+      const stats = await getQuickStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('خطأ في الحصول على الإحصائيات السريعة:', error);
+      res.status(500).json({ message: 'Internal server error' });
     }
   });
 
