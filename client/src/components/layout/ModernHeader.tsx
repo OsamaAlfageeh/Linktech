@@ -46,8 +46,6 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
   const [location] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const [showAnnouncement, setShowAnnouncement] = useState(true);
-
   // تتبع حالة السكرول لتغيير مظهر الهيدر
   useEffect(() => {
     const handleScroll = () => {
@@ -72,25 +70,6 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
 
   return (
     <>
-      {/* شريط الإعلانات - يمكن إزالته أو تغييره حسب الحاجة */}
-      {showAnnouncement && (
-        <div className="bg-gradient-to-r from-blue-600 to-violet-600 text-white py-2 relative">
-          <div className="container mx-auto px-4 text-center text-sm">
-            <span className="font-medium">🎉 عروض خاصة للشركات الجديدة - خصم 25% على العمولة لأول مشروع </span>
-            <Link href="/offers" className="underline font-bold mr-2 hover:text-white/90">
-              اعرف المزيد
-            </Link>
-            <button 
-              onClick={() => setShowAnnouncement(false)}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/80 hover:text-white"
-              aria-label="إغلاق"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* الهيدر الرئيسي */}
       <header 
         className={`sticky top-0 z-50 w-full transition-all duration-300 ${
