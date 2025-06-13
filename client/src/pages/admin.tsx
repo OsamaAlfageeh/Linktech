@@ -18,6 +18,36 @@ import { Skeleton } from "@/components/ui/skeleton";
 const AdminSimplePage = () => {
   const [, navigate] = useLocation();
 
+  // جلب الإحصائيات السريعة للزيارات
+  const { data: quickStats, isLoading: quickStatsLoading } = useQuery({
+    queryKey: ['/api/admin/quick-stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/quick-stats', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('فشل في جلب الإحصائيات السريعة');
+      }
+      return response.json();
+    },
+    retry: false
+  });
+
+  // جلب إحصائيات الزيارات التفصيلية
+  const { data: visitStats, isLoading: visitStatsLoading } = useQuery({
+    queryKey: ['/api/admin/visit-stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/admin/visit-stats?days=7', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('فشل في جلب إحصائيات الزيارات');
+      }
+      return response.json();
+    },
+    retry: false
+  });
+
   return (
     <div className="container mx-auto p-4 sm:p-6">
       <Helmet>
@@ -34,7 +64,39 @@ const AdminSimplePage = () => {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* إحصائيات الزيارات السريعة */}
+        {quickStatsLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader className="pb-2">
+                  <Skeleton className="h-4 w-20" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-8 w-16 mb-2" />
+                  <Skeleton className="h-3 w-24" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : quickStats ? (
+          <QuickVisitStats stats={quickStats} />
+        ) : (
+          <div className="mb-6">
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardContent className="pt-6">
+                <div className="flex items-center">
+                  <BarChart3 className="h-5 w-5 text-yellow-600 ml-2" />
+                  <span className="text-yellow-800">
+                    لا توجد بيانات زيارات متاحة حالياً. قم بتسجيل الدخول كمسؤول لعرض الإحصائيات.
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">المستخدمون</CardTitle>
@@ -74,6 +136,78 @@ const AdminSimplePage = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* الرسوم البيانية التفصيلية للزيارات */}
+        {visitStatsLoading ? (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardHeader>
+                  <Skeleton className="h-5 w-32" />
+                </CardHeader>
+                <CardContent>
+                  <Skeleton className="h-[300px] w-full" />
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : visitStats ? (
+          <div className="space-y-6 mb-6">
+            {/* الرسم البياني للزيارات اليومية */}
+            <VisitChart data={visitStats.dailyStats} />
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* أكثر الصفحات زيارة */}
+              <TopPagesChart data={visitStats.topPages} />
+              
+              {/* توزيع الأجهزة */}
+              <DeviceStatsChart data={visitStats.deviceStats} />
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* المتصفحات الأكثر استخداماً */}
+              <BrowserStatsChart data={visitStats.browserStats} />
+              
+              {/* معلومات إضافية */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-semibold flex items-center">
+                    <TrendingUp className="ml-2 h-5 w-5 text-blue-600" />
+                    ملخص الإحصائيات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center p-3 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {visitStats.totalVisits.toLocaleString('ar-SA')}
+                      </div>
+                      <div className="text-sm text-blue-700">إجمالي الزيارات</div>
+                    </div>
+                    <div className="text-center p-3 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {visitStats.uniqueVisitors.toLocaleString('ar-SA')}
+                      </div>
+                      <div className="text-sm text-green-700">زوار فريدون</div>
+                    </div>
+                    <div className="text-center p-3 bg-purple-50 rounded-lg">
+                      <div className="text-2xl font-bold text-purple-600">
+                        {visitStats.pageViews.toLocaleString('ar-SA')}
+                      </div>
+                      <div className="text-sm text-purple-700">مشاهدات الصفحات</div>
+                    </div>
+                    <div className="text-center p-3 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {Math.round(visitStats.avgTimeSpent / 60)}
+                      </div>
+                      <div className="text-sm text-orange-700">دقائق متوسط البقاء</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        ) : null}
 
         <Card className="mt-4">
           <CardHeader>
