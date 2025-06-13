@@ -225,7 +225,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
 
             {/* CTA Buttons */}
             <motion.div 
-              className="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-6 sm:space-x-reverse justify-center lg:justify-start"
+              className="flex flex-col sm:flex-row gap-4 sm:gap-6 justify-center lg:justify-start"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.9 }}
@@ -233,10 +233,10 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Link 
                   href={getEntrepreneurLink()} 
-                  className="group relative bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-2xl px-8 py-4 text-lg text-center transition-all duration-300 shadow-2xl hover:shadow-amber-500/25 overflow-hidden"
+                  className="group relative bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white font-bold rounded-2xl px-6 md:px-8 py-3 md:py-4 text-base md:text-lg text-center transition-all duration-300 shadow-2xl hover:shadow-amber-500/25 overflow-hidden inline-flex items-center justify-center w-full sm:w-auto"
                 >
                   <span className="relative z-10 flex items-center justify-center">
-                    <Users className="ml-2 h-5 w-5" />
+                    <Users className="ml-2 h-4 w-4 md:h-5 md:w-5" />
                     أنا رائد أعمال
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -246,10 +246,10 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <Link 
                   href={getCompanyLink()} 
-                  className="group relative bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 font-bold rounded-2xl px-8 py-4 text-lg text-center transition-all duration-300 border border-white/30 hover:border-white/50 shadow-2xl overflow-hidden"
+                  className="group relative bg-white/10 backdrop-blur-sm text-white hover:bg-white/20 font-bold rounded-2xl px-6 md:px-8 py-3 md:py-4 text-base md:text-lg text-center transition-all duration-300 border border-white/30 hover:border-white/50 shadow-2xl overflow-hidden inline-flex items-center justify-center w-full sm:w-auto"
                 >
                   <span className="relative z-10 flex items-center justify-center">
-                    <Shield className="ml-2 h-5 w-5" />
+                    <Shield className="ml-2 h-4 w-4 md:h-5 md:w-5" />
                     أنا شركة برمجة
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -260,15 +260,15 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
 
           {/* Visual Section */}
           <motion.div 
-            className="order-1 lg:order-2 flex justify-center mt-[100px] mb-[100px]"
+            className="order-1 lg:order-2 flex justify-center items-center"
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.4 }}
           >
-            <div className="relative">
+            <div className="relative w-full max-w-sm md:max-w-md lg:max-w-lg">
               {sideImageUrl ? (
                 <motion.div
-                  className="rounded-3xl shadow-2xl overflow-hidden max-w-lg w-full"
+                  className="rounded-3xl shadow-2xl overflow-hidden w-full"
                   whileHover={{ scale: 1.02, rotate: 1 }}
                   transition={{ duration: 0.3 }}
                 >
@@ -280,7 +280,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
                 </motion.div>
               ) : (
                 <motion.div
-                  className="relative max-w-lg w-full"
+                  className="relative w-full"
                   whileHover={{ scale: 1.02 }}
                   transition={{ duration: 0.3 }}
                 >
