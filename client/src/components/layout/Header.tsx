@@ -95,6 +95,16 @@ const Header = ({ auth }: HeaderProps) => {
                   </Link>
                 </li>
               )}
+              {auth.isEntrepreneur && (
+                <li>
+                  <Link 
+                    href="/ai-assistant" 
+                    className={`px-3 py-2 font-medium ${isActive("/ai-assistant") ? "text-primary" : "text-neutral-600 hover:text-primary"}`}
+                  >
+                    المساعد الذكي
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link 
                   href="/how-it-works" 
@@ -230,6 +240,12 @@ const Header = ({ auth }: HeaderProps) => {
                     {auth.isCompany && (
                       <Link href="/for-companies" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
                         للشركات
+                      </Link>
+                    )}
+
+                    {auth.isEntrepreneur && (
+                      <Link href="/ai-assistant" onClick={() => setMobileMenuOpen(false)} className="text-lg font-medium">
+                        المساعد الذكي
                       </Link>
                     )}
                     

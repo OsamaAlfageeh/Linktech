@@ -39,6 +39,7 @@ import Sitemap from "@/pages/sitemap";
 import TestNdaPage from "@/pages/test-nda-page";
 import PersonalInfo from "@/pages/personal-info";
 import PremiumClients from "@/pages/premium-clients";
+import AiAssistant from "@/pages/ai-assistant";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -140,6 +141,13 @@ function App() {
           <Route path="/projects/trending" component={TrendingProjects} />
           <Route path="/projects/:id" component={ProjectDetails} />
           <Route path="/companies/:id" component={CompanyDetails} />
+
+          {/* مساعد الذكاء الاصطناعي للمشاريع */}
+          <ProtectedRoute 
+            path="/ai-assistant" 
+            component={() => <AiAssistant auth={auth} />} 
+            requiredRole="entrepreneur" 
+          />
 
           <Route path="/for-companies">
             {auth.isAuthenticated && auth.isCompany ? (

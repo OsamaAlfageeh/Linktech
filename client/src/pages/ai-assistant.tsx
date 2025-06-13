@@ -68,7 +68,7 @@ interface AnalysisResult {
 }
 
 const AiAssistantPage = () => {
-  const navigate = useNavigate();
+  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -86,12 +86,21 @@ const AiAssistantPage = () => {
 
   const analyzeProjectMutation = useMutation({
     mutationFn: async (data: any) => {
-      return apiRequest('/api/ai/analyze-project', {
+      const response = await fetch('/api/ai/analyze-project', {
         method: 'POST',
-        body: JSON.stringify(data)
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
       });
+      
+      if (!response.ok) {
+        throw new Error('Failed to analyze project');
+      }
+      
+      return response.json();
     },
-    onSuccess: (result) => {
+    onSuccess: (result: AnalysisResult) => {
       setAnalysisResult(result);
       setCurrentStep(3);
       toast({
