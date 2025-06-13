@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, jsonb, varchar, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
@@ -702,3 +702,83 @@ export type InsertVisitStats = z.infer<typeof insertVisitStatsSchema>;
 
 export type DailyStats = typeof dailyStats.$inferSelect;
 export type InsertDailyStats = z.infer<typeof insertDailyStatsSchema>;
+
+// جداول مساعد الذكاء الاصطناعي للمشاريع
+export const aiProjectAnalysis = pgTable("ai_project_analysis", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  sessionId: text("session_id").notNull(),
+  projectIdea: text("project_idea").notNull(),
+  projectType: text("project_type"), // web, mobile, desktop, ai, etc
+  businessSize: text("business_size"), // individual, small, medium, enterprise
+  expectedUsers: integer("expected_users"),
+  budget: text("budget"), // low, medium, high, custom
+  timeline: text("timeline"), // urgent, normal, flexible
+  technicalComplexity: text("technical_complexity"), // simple, medium, complex
+  integrationNeeds: text("integration_needs").array(),
+  securityRequirements: text("security_requirements"), // basic, standard, high
+  analysisResult: text("analysis_result").notNull(), // JSON string containing AI analysis
+  estimatedCost: text("estimated_cost"),
+  recommendedTechnologies: text("recommended_technologies").array(),
+  projectPhases: text("project_phases"), // JSON string
+  riskAssessment: text("risk_assessment"),
+  status: text("status").notNull().default("draft"), // draft, completed, archived
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertAiProjectAnalysisSchema = createInsertSchema(aiProjectAnalysis).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+
+export type AiProjectAnalysis = typeof aiProjectAnalysis.$inferSelect;
+export type InsertAiProjectAnalysis = z.infer<typeof insertAiProjectAnalysisSchema>;
+
+// جدول قوالب المشاريع المحددة مسبقاً
+export const projectTemplates = pgTable("project_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(), // web, mobile, ai, etc
+  description: text("description").notNull(),
+  basePrice: integer("base_price"), // السعر الأساسي بالريال
+  complexityMultiplier: real("complexity_multiplier").default(1.0),
+  estimatedDays: integer("estimated_days"),
+  requiredSkills: text("required_skills").array(),
+  features: text("features").array(),
+  technicalSpecs: text("technical_specs"), // JSON string
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertProjectTemplateSchema = createInsertSchema(projectTemplates).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true
+});
+
+export type ProjectTemplate = typeof projectTemplates.$inferSelect;
+export type InsertProjectTemplate = z.infer<typeof insertProjectTemplateSchema>;
+
+// جدول تقييم المستخدمين لدقة التوصيات
+export const analysisRatings = pgTable("analysis_ratings", {
+  id: serial("id").primaryKey(),
+  analysisId: integer("analysis_id").references(() => aiProjectAnalysis.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  accuracyRating: integer("accuracy_rating"), // 1-5
+  usefulnessRating: integer("usefulness_rating"), // 1-5
+  priceAccuracy: integer("price_accuracy"), // 1-5
+  feedback: text("feedback"),
+  actualProjectCost: integer("actual_project_cost"), // التكلفة الفعلية إذا تم تنفيذ المشروع
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertAnalysisRatingSchema = createInsertSchema(analysisRatings).omit({ 
+  id: true, 
+  createdAt: true
+});
+
+export type AnalysisRating = typeof analysisRatings.$inferSelect;
+export type InsertAnalysisRating = z.infer<typeof insertAnalysisRatingSchema>;
