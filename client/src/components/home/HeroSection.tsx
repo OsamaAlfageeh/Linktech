@@ -87,7 +87,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
   
   return (
     <section 
-      className="relative min-h-screen flex items-center bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden"
+      className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden"
       style={headerImageUrl ? {
         backgroundImage: `url(${headerImageUrl})`,
         backgroundSize: 'cover',
@@ -96,9 +96,9 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
     >
       {/* Animated Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-20 left-10 w-72 h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-20 left-4 md:left-10 w-48 h-48 md:w-72 md:h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-4 md:right-10 w-64 h-64 md:w-96 md:h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 md:w-80 md:h-80 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
       {/* Gradient Overlay */}
       <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40"></div>
@@ -126,11 +126,11 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
           <Award size={35} />
         </motion.div>
       </div>
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 flex items-center min-h-screen py-8 md:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-12 lg:gap-16 items-center w-full">
           {/* Content Section */}
           <motion.div 
-            className="order-2 lg:order-1 text-center lg:text-right"
+            className="order-2 lg:order-1 text-center lg:text-right space-y-4 md:space-y-6"
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
@@ -148,7 +148,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
 
             {/* Main Heading */}
             <motion.h1 
-              className="font-heading text-5xl md:text-6xl lg:text-7xl font-bold mb-6 leading-tight"
+              className="font-heading text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold leading-tight"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
@@ -164,7 +164,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
 
             {/* Subtitle */}
             <motion.p 
-              className="text-xl md:text-2xl mb-8 text-blue-100 leading-relaxed max-w-2xl mx-auto lg:mx-0"
+              className="text-lg md:text-xl lg:text-2xl text-blue-100 leading-relaxed max-w-2xl mx-auto lg:mx-0"
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.5 }}
@@ -175,50 +175,50 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
 
             {/* Quick Promise */}
             <motion.div 
-              className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 backdrop-blur-xl p-6 rounded-2xl mb-8 border border-emerald-400/30 shadow-2xl"
+              className="bg-gradient-to-r from-emerald-500/20 to-blue-500/20 backdrop-blur-xl p-4 md:p-6 rounded-2xl border border-emerald-400/30 shadow-2xl"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.7 }}
             >
               <div className="flex items-center justify-center mb-4">
                 <motion.div
-                  className="flex items-center text-emerald-300 font-bold text-xl"
+                  className="flex items-center text-emerald-300 font-bold text-lg md:text-xl"
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
-                  <Zap className="ml-3 h-7 w-7" />
+                  <Zap className="ml-2 md:ml-3 h-5 w-5 md:h-7 md:w-7" />
                   استجابة فورية خلال 30 دقيقة!
                 </motion.div>
               </div>
               
               {/* Stats Grid */}
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-2 gap-3 md:gap-6">
                 <motion.div 
-                  className="bg-white/10 backdrop-blur-sm p-6 rounded-xl text-center border border-white/20"
+                  className="bg-white/10 backdrop-blur-sm p-3 md:p-6 rounded-xl text-center border border-white/20"
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ duration: 0.3 }}
                 >
                   <div className="flex items-center justify-center mb-2">
-                    <Users className="h-8 w-8 text-blue-300" />
+                    <Users className="h-6 w-6 md:h-8 md:w-8 text-blue-300" />
                   </div>
-                  <div className="font-bold text-4xl text-white mb-1">
+                  <div className="font-bold text-2xl md:text-4xl text-white mb-1">
                     {statsLoading ? "..." : platformStats?.companiesCount || 0}+
                   </div>
-                  <div className="text-blue-200 font-medium">شركة متخصصة</div>
+                  <div className="text-blue-200 font-medium text-xs md:text-sm">شركة متخصصة</div>
                 </motion.div>
                 
                 <motion.div 
-                  className="bg-white/10 backdrop-blur-sm p-6 rounded-xl text-center border border-white/20"
+                  className="bg-white/10 backdrop-blur-sm p-3 md:p-6 rounded-xl text-center border border-white/20"
                   whileHover={{ scale: 1.05, y: -5 }}
                   transition={{ duration: 0.3 }}
                 >
                   <div className="flex items-center justify-center mb-2">
-                    <TrendingUp className="h-8 w-8 text-green-300" />
+                    <TrendingUp className="h-6 w-6 md:h-8 md:w-8 text-green-300" />
                   </div>
-                  <div className="font-bold text-4xl text-white mb-1">
+                  <div className="font-bold text-2xl md:text-4xl text-white mb-1">
                     {statsLoading ? "..." : platformStats?.offersCount || 0}+
                   </div>
-                  <div className="text-green-200 font-medium">عرض مقدم</div>
+                  <div className="text-green-200 font-medium text-xs md:text-sm">عرض مقدم</div>
                 </motion.div>
               </div>
             </motion.div>
