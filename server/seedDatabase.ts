@@ -6,6 +6,12 @@ async function seedDatabase() {
   console.log("Seeding database with initial data...");
 
   try {
+    // Test database connection first by attempting to query existing tables
+    console.log("Testing database connection...");
+    // Simple connection test by querying the information schema
+    await db.query.users.findMany({ limit: 0 });
+    console.log("Database connection successful");
+
     // First check if we have any data in essential tables to avoid duplicating data
     const existingUsers = await db.query.users.findMany({ limit: 1 });
     const existingCompanies = await db.query.companyProfiles.findMany({ limit: 1 });
@@ -202,6 +208,20 @@ async function seedDatabase() {
     console.log("Database successfully seeded with initial data");
   } catch (error) {
     console.error("Error seeding database:", error);
+    
+    // Log more detailed database error information
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    
+    // Re-throw in development for debugging, but not in production
+    if (process.env.NODE_ENV !== 'production') {
+      throw error;
+    }
+    
+    console.warn("Seeding failed but continuing in production mode");
   }
 }
 

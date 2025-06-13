@@ -55,42 +55,107 @@ app.use((req, res, next) => {
   next();
 });
 
+// Add process error handlers to prevent crashes
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // In production, we might want to exit gracefully
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // In production, we might want to exit gracefully
+  if (process.env.NODE_ENV === 'production') {
+    process.exit(1);
+  }
+});
+
+// Add graceful shutdown handler
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
 (async () => {
-  // Seed the database with initial data
+  // Seed the database with initial data - with enhanced error handling
+  console.log("Starting database seeding...");
   try {
     await seedDatabase();
+    console.log("Database seeding completed successfully");
   } catch (error) {
     console.error("Error seeding database:", error);
+    // In production, don't fail the entire deployment due to seeding errors
+    if (process.env.NODE_ENV === 'production') {
+      console.warn("Continuing with deployment despite seeding error...");
+    } else {
+      // In development, we can be more strict
+      throw error;
+    }
   }
 
   const server = await registerRoutes(app);
 
+  // Enhanced error handler
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
 
+    // Log the error for debugging
+    console.error('Express error handler:', {
+      status,
+      message,
+      stack: err.stack,
+      url: _req.url,
+      method: _req.method
+    });
+
     res.status(status).json({ message });
-    throw err;
+    
+    // Don't throw in production to prevent crashes
+    if (process.env.NODE_ENV !== 'production') {
+      throw err;
+    }
   });
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
   } else {
     serveStatic(app);
   }
 
-  // ALWAYS serve the app on port 5000
-  // this serves both the API and the client.
-  // It is the only port that is not firewalled.
-  const port = 5000;
+  // Get port from environment or default to 5000
+  // This ensures compatibility with Cloud Run and other deployment platforms
+  const port = process.env.PORT || 5000;
+  const host = process.env.HOST || "0.0.0.0";
+  
+  console.log(`Starting server on ${host}:${port} in ${process.env.NODE_ENV || 'development'} mode`);
+  
   server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
+    port: parseInt(port.toString(), 10),
+    host: host,
+    reusePort: process.env.NODE_ENV !== 'production', // Disable reusePort in production
   }, () => {
-    log(`serving on port ${port}`);
+    log(`serving on ${host}:${port}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);
+  });
+
+  // Handle server errors
+  server.on('error', (error: any) => {
+    console.error('Server error:', error);
+    if (error.code === 'EADDRINUSE') {
+      console.error(`Port ${port} is already in use`);
+      process.exit(1);
+    }
   });
 })();
