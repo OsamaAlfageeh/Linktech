@@ -645,3 +645,60 @@ export const insertContactMessageSchema = createInsertSchema(contactMessages).om
 
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
+
+// جدول إحصائيات الزيارات
+export const visitStats = pgTable("visit_stats", {
+  id: serial("id").primaryKey(),
+  date: text("date").notNull(), // تاريخ بصيغة YYYY-MM-DD
+  pageUrl: text("page_url").notNull(), // المسار المزار
+  pageTitle: text("page_title"), // عنوان الصفحة
+  userAgent: text("user_agent"), // معلومات المتصفح
+  ipAddress: text("ip_address"), // عنوان IP (مجهول)
+  referrer: text("referrer"), // الموقع المرجع
+  sessionId: text("session_id"), // معرف الجلسة
+  userId: integer("user_id").references(() => users.id), // المستخدم المسجل (اختياري)
+  country: text("country"), // البلد
+  city: text("city"), // المدينة
+  deviceType: text("device_type"), // نوع الجهاز (desktop, mobile, tablet)
+  browserName: text("browser_name"), // اسم المتصفح
+  isUniqueVisitor: boolean("is_unique_visitor").default(false), // زائر جديد
+  timeSpent: integer("time_spent"), // الوقت المقضي بالثواني
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// جدول إحصائيات يومية مجمعة
+export const dailyStats = pgTable("daily_stats", {
+  id: serial("id").primaryKey(),
+  date: text("date").notNull().unique(), // تاريخ بصيغة YYYY-MM-DD
+  totalVisits: integer("total_visits").default(0), // إجمالي الزيارات
+  uniqueVisitors: integer("unique_visitors").default(0), // الزوار الفريدون
+  pageViews: integer("page_views").default(0), // مشاهدات الصفحات
+  avgTimeSpent: integer("avg_time_spent").default(0), // متوسط الوقت المقضي
+  bounceRate: integer("bounce_rate").default(0), // معدل الارتداد (%)
+  topPages: jsonb("top_pages"), // أهم الصفحات [{url, views}]
+  topReferrers: jsonb("top_referrers"), // أهم المراجع [{referrer, visits}]
+  deviceStats: jsonb("device_stats"), // إحصائيات الأجهزة {desktop, mobile, tablet}
+  browserStats: jsonb("browser_stats"), // إحصائيات المتصفحات
+  countryStats: jsonb("country_stats"), // إحصائيات البلدان
+  newUsers: integer("new_users").default(0), // المستخدمون الجدد
+  returningUsers: integer("returning_users").default(0), // المستخدمون العائدون
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertVisitStatsSchema = createInsertSchema(visitStats).omit({ 
+  id: true, 
+  createdAt: true 
+});
+
+export const insertDailyStatsSchema = createInsertSchema(dailyStats).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true 
+});
+
+export type VisitStats = typeof visitStats.$inferSelect;
+export type InsertVisitStats = z.infer<typeof insertVisitStatsSchema>;
+
+export type DailyStats = typeof dailyStats.$inferSelect;
+export type InsertDailyStats = z.infer<typeof insertDailyStatsSchema>;
