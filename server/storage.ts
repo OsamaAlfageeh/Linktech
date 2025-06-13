@@ -138,6 +138,13 @@ export interface IStorage {
   updateContactMessageStatus(id: number, status: string): Promise<ContactMessage | undefined>;
   addNoteToContactMessage(id: number, note: string): Promise<ContactMessage | undefined>;
   replyToContactMessage(id: number, replyMessage: string): Promise<ContactMessage | undefined>;
+
+  // عمليات مساعد الذكاء الاصطناعي
+  createAiProjectAnalysis(analysis: schema.InsertAiProjectAnalysis): Promise<schema.AiProjectAnalysis>;
+  getAiProjectAnalysis(id: number): Promise<schema.AiProjectAnalysis | undefined>;
+  getUserAiAnalyses(userId: number): Promise<schema.AiProjectAnalysis[]>;
+  createAnalysisRating(rating: schema.InsertAnalysisRating): Promise<schema.AnalysisRating>;
+  getAnalysisRatings(analysisId: number): Promise<schema.AnalysisRating[]>;
   deleteContactMessage(id: number): Promise<boolean>;
 }
 
@@ -1830,6 +1837,43 @@ export class DatabaseStorage implements IStorage {
     // هذه دالة وهمية لأن schema.messages لا يحتوي على حقل deliveryStatus
     // في تطبيق حقيقي، سنضيف هذا الحقل إلى نموذج الرسائل
     return await this.getMessage(id);
+  }
+
+  // دوال مساعد الذكاء الاصطناعي
+  async createAiProjectAnalysis(analysis: schema.InsertAiProjectAnalysis): Promise<schema.AiProjectAnalysis> {
+    const [newAnalysis] = await db.insert(schema.aiProjectAnalysis)
+      .values(analysis)
+      .returning();
+    return newAnalysis;
+  }
+
+  async getAiProjectAnalysis(id: number): Promise<schema.AiProjectAnalysis | undefined> {
+    const analysis = await db.select()
+      .from(schema.aiProjectAnalysis)
+      .where(eq(schema.aiProjectAnalysis.id, id))
+      .limit(1);
+    return analysis[0];
+  }
+
+  async getUserAiAnalyses(userId: number): Promise<schema.AiProjectAnalysis[]> {
+    return await db.select()
+      .from(schema.aiProjectAnalysis)
+      .where(eq(schema.aiProjectAnalysis.userId, userId))
+      .orderBy(desc(schema.aiProjectAnalysis.createdAt));
+  }
+
+  async createAnalysisRating(rating: schema.InsertAnalysisRating): Promise<schema.AnalysisRating> {
+    const [newRating] = await db.insert(schema.analysisRatings)
+      .values(rating)
+      .returning();
+    return newRating;
+  }
+
+  async getAnalysisRatings(analysisId: number): Promise<schema.AnalysisRating[]> {
+    return await db.select()
+      .from(schema.analysisRatings)
+      .where(eq(schema.analysisRatings.analysisId, analysisId))
+      .orderBy(desc(schema.analysisRatings.createdAt));
   }
 }
 

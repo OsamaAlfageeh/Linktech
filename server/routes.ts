@@ -3734,5 +3734,159 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // مساعد الذكاء الاصطناعي للمشاريع
+  app.post('/api/ai/analyze-project', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { analyzeProject } = await import('./aiProjectAssistant');
+      
+      const validationSchema = z.object({
+        projectIdea: z.string().min(10, 'وصف المشروع يجب أن يكون على الأقل 10 أحرف'),
+        businessSize: z.enum(['individual', 'small', 'medium', 'enterprise']),
+        expectedUsers: z.number().optional(),
+        budget: z.enum(['low', 'medium', 'high', 'custom']),
+        timeline: z.enum(['urgent', 'normal', 'flexible']),
+        integrationNeeds: z.array(z.string()).optional(),
+        securityRequirements: z.enum(['basic', 'standard', 'high']),
+        specificRequirements: z.string().optional()
+      });
+
+      const validatedData = validationSchema.parse(req.body);
+      
+      // تحليل المشروع باستخدام AI
+      const analysisResult = await analyzeProject(validatedData);
+      
+      // حفظ التحليل في قاعدة البيانات
+      const sessionId = crypto.randomUUID();
+      const analysis = await storage.createAiProjectAnalysis({
+        userId: req.user.id,
+        sessionId,
+        projectIdea: validatedData.projectIdea,
+        projectType: analysisResult.projectType,
+        businessSize: validatedData.businessSize,
+        expectedUsers: validatedData.expectedUsers,
+        budget: validatedData.budget,
+        timeline: validatedData.timeline,
+        technicalComplexity: analysisResult.technicalComplexity,
+        integrationNeeds: validatedData.integrationNeeds || [],
+        securityRequirements: validatedData.securityRequirements,
+        analysisResult: JSON.stringify(analysisResult),
+        estimatedCost: `${analysisResult.estimatedCostRange.min}-${analysisResult.estimatedCostRange.max} ${analysisResult.estimatedCostRange.currency}`,
+        recommendedTechnologies: analysisResult.recommendedTechnologies,
+        projectPhases: JSON.stringify(analysisResult.projectPhases),
+        riskAssessment: JSON.stringify(analysisResult.riskAssessment),
+        status: 'completed'
+      });
+
+      res.json({
+        id: analysis.id,
+        ...analysisResult
+      });
+    } catch (error) {
+      console.error('خطأ في تحليل المشروع:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'بيانات غير صحيحة', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ 
+        message: error.message || 'حدث خطأ أثناء تحليل المشروع' 
+      });
+    }
+  });
+
+  // الحصول على تحليلات المستخدم السابقة
+  app.get('/api/ai/my-analyses', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const analyses = await storage.getUserAiAnalyses(req.user.id);
+      res.json(analyses);
+    } catch (error) {
+      console.error('خطأ في الحصول على التحليلات:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // الحصول على تحليل محدد
+  app.get('/api/ai/analysis/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      const analysis = await storage.getAiProjectAnalysis(analysisId);
+      
+      if (!analysis) {
+        return res.status(404).json({ message: 'التحليل غير موجود' });
+      }
+      
+      if (analysis.userId !== req.user.id && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'غير مسموح بالوصول' });
+      }
+      
+      res.json(analysis);
+    } catch (error) {
+      console.error('خطأ في الحصول على التحليل:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // تقييم دقة التحليل
+  app.post('/api/ai/rate-analysis/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      const validationSchema = z.object({
+        accuracyRating: z.number().min(1).max(5),
+        usefulnessRating: z.number().min(1).max(5),
+        priceAccuracy: z.number().min(1).max(5),
+        feedback: z.string().optional(),
+        actualProjectCost: z.number().optional()
+      });
+
+      const validatedData = validationSchema.parse(req.body);
+      
+      const analysis = await storage.getAiProjectAnalysis(analysisId);
+      if (!analysis || analysis.userId !== req.user.id) {
+        return res.status(404).json({ message: 'التحليل غير موجود' });
+      }
+
+      const rating = await storage.createAnalysisRating({
+        analysisId,
+        userId: req.user.id,
+        ...validatedData
+      });
+
+      res.json(rating);
+    } catch (error) {
+      console.error('خطأ في تقييم التحليل:', error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: 'بيانات غير صحيحة', 
+          errors: error.errors 
+        });
+      }
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // تحميل تقرير PDF للتحليل
+  app.get('/api/ai/analysis/:id/report', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const analysisId = parseInt(req.params.id);
+      const analysis = await storage.getAiProjectAnalysis(analysisId);
+      
+      if (!analysis || analysis.userId !== req.user.id) {
+        return res.status(404).json({ message: 'التحليل غير موجود' });
+      }
+
+      const { generateProjectReport } = await import('./aiProjectAssistant');
+      const analysisResult = JSON.parse(analysis.analysisResult);
+      const reportContent = generateProjectReport(analysisResult);
+
+      res.setHeader('Content-Type', 'text/markdown');
+      res.setHeader('Content-Disposition', `attachment; filename="project-analysis-${analysisId}.md"`);
+      res.send(reportContent);
+    } catch (error) {
+      console.error('خطأ في إنشاء التقرير:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   return httpServer;
 }

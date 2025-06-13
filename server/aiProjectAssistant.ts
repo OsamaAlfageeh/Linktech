@@ -180,7 +180,11 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
       ],
     });
 
-    const aiAnalysis = JSON.parse(response.content[0].text);
+    const content = response.content[0];
+    if (content.type !== 'text') {
+      throw new Error('Unexpected response type from AI');
+    }
+    const aiAnalysis = JSON.parse(content.text);
     
     // تحديد القالب المناسب بناءً على تحليل AI
     const projectTemplate = determineProjectTemplate(aiAnalysis.projectType, input);
