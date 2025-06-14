@@ -142,8 +142,7 @@ const TIMELINE_MULTIPLIERS = {
  * تحليل فكرة المشروع باستخدام الذكاء الاصطناعي
  */
 export async function analyzeProject(input: ProjectAnalysisInput): Promise<ProjectAnalysisResult> {
-  const prompt = `
-تحليل فكرة المشروع التقني:
+  const prompt = `تحليل فكرة المشروع التقني:
 
 فكرة المشروع: ${input.projectIdea}
 حجم العمل: ${input.businessSize}
@@ -154,19 +153,31 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
 احتياجات التكامل: ${input.integrationNeeds?.join(', ') || 'لا توجد'}
 متطلبات إضافية: ${input.specificRequirements || 'لا توجد'}
 
-قم بتحليل هذا المشروع وتقديم تقييم شامل يتضمن:
+قم بالرد بصيغة JSON صحيحة فقط، بدون أي نص إضافي أو markdown. البنية المطلوبة:
 
-1. تصنيف نوع المشروع (موقع ويب، تطبيق جوال، نظام إدارة، إلخ)
-2. مستوى التعقيد التقني (بسيط، متوسط، معقد)
-3. التقنيات الموصى بها
-4. المراحل المطلوبة للتطوير
-5. الميزات الأساسية والإضافية
-6. تقييم المخاطر والتحديات
-7. اعتبارات القابلية للتوسع
-8. متطلبات الصيانة
-
-أعطني النتائج بصيغة JSON مفصلة باللغة العربية.
-`;
+{
+  "projectType": "نوع المشروع",
+  "technicalComplexity": "simple | medium | complex",
+  "recommendedTechnologies": ["تقنية1", "تقنية2"],
+  "features": [
+    {
+      "name": "اسم الميزة",
+      "priority": "essential | important | nice-to-have",
+      "complexity": "low | medium | high"
+    }
+  ],
+  "riskAssessment": {
+    "technicalRisks": ["مخاطر تقنية"],
+    "timelineRisks": ["مخاطر زمنية"],
+    "budgetRisks": ["مخاطر ميزانية"],
+    "mitigationStrategies": ["استراتيجيات التخفيف"]
+  },
+  "scalabilityConsiderations": ["اعتبارات التوسع"],
+  "competitorAnalysis": {
+    "similarSolutions": ["حلول مشابهة"],
+    "differentiationOpportunities": ["فرص التميز"]
+  }
+}`;
 
   try {
     const response = await anthropic.messages.create({
@@ -184,7 +195,18 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
     if (content.type !== 'text') {
       throw new Error('Unexpected response type from AI');
     }
-    const aiAnalysis = JSON.parse(content.text);
+    
+    // استخراج JSON من markdown إذا كان موجوداً
+    let jsonText = content.text;
+    const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      jsonText = jsonMatch[1];
+    } else {
+      // إزالة أي markdown formatting آخر
+      jsonText = jsonText.replace(/```[\s\S]*?```/g, '').trim();
+    }
+    
+    const aiAnalysis = JSON.parse(jsonText);
     
     // تحديد القالب المناسب بناءً على تحليل AI
     const projectTemplate = determineProjectTemplate(aiAnalysis.projectType, input);
