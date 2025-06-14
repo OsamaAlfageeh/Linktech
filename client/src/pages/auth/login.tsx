@@ -104,24 +104,21 @@ const Login = ({ auth }: LoginProps) => {
         queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       });
       
-      // توجيه المستخدم حسب دوره
+      // توجيه المستخدم حسب دوره فوراً
       const role = userData.role;
       console.log("توجيه المستخدم بدور:", role);
       
-      // استخدام setTimeout للتأكد من تحديث الحالة قبل التوجيه
-      setTimeout(() => {
-        if (role === "admin") {
-          console.log("بدء التوجيه للوحة المسؤول...");
-          navigate("/dashboard/admin");
-        } else if (role === "entrepreneur") {
-          navigate("/dashboard/entrepreneur");
-        } else if (role === "company") {
-          navigate("/dashboard/company");
-        } else {
-          console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
-          navigate("/");
-        }
-      }, 100);
+      if (role === "admin") {
+        console.log("بدء التوجيه للوحة المسؤول...");
+        window.location.href = "/dashboard/admin";
+      } else if (role === "entrepreneur") {
+        window.location.href = "/dashboard/entrepreneur";
+      } else if (role === "company") {
+        window.location.href = "/dashboard/company";
+      } else {
+        console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
+        window.location.href = "/";
+      }
     },
     onError: (error: any) => {
       console.error("خطأ تسجيل الدخول:", error);
