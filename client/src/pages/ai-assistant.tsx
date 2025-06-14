@@ -247,8 +247,9 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
               ) : previousAnalyses && previousAnalyses.length > 0 ? (
                 <div className="space-y-4">
                   {previousAnalyses.map((analysis: PreviousAnalysis) => (
-                    <div key={analysis.id} className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" 
-                         onClick={() => {
+                    <div key={analysis.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1 cursor-pointer" onClick={() => {
                            try {
                              const parsedResult = JSON.parse(analysis.analysisResult);
                              setAnalysisResult({ ...parsedResult, id: analysis.id });
@@ -262,8 +263,6 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                              });
                            }
                          }}>
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
                           <h3 className="font-semibold text-lg mb-2">{analysis.projectIdea.substring(0, 100)}...</h3>
                           <p className="text-gray-600 text-sm mb-2">
                             تاريخ التحليل: {new Date(analysis.createdAt).toLocaleDateString('ar-SA')}
@@ -277,7 +276,67 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                             </Badge>
                           </div>
                         </div>
-                        <ArrowRight className="h-5 w-5 text-gray-400" />
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              try {
+                                console.log('بدء تحميل التقرير للتحليل رقم:', analysis.id);
+                                
+                                const response = await fetch(`/api/ai/analysis/${analysis.id}/report`, {
+                                  method: 'GET',
+                                  headers: {
+                                    'Accept': 'application/octet-stream',
+                                  },
+                                });
+                                
+                                console.log('استجابة الخادم:', response.status, response.statusText);
+                                
+                                if (!response.ok) {
+                                  throw new Error(`فشل في تحميل التقرير: ${response.status}`);
+                                }
+                                
+                                const blob = await response.blob();
+                                console.log('حجم الملف:', blob.size, 'بايت');
+                                
+                                if (blob.size === 0) {
+                                  throw new Error('الملف فارغ');
+                                }
+                                
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = url;
+                                a.download = `project-analysis-${analysis.id}.md`;
+                                document.body.appendChild(a);
+                                a.click();
+                                
+                                setTimeout(() => {
+                                  window.URL.revokeObjectURL(url);
+                                  document.body.removeChild(a);
+                                }, 1000);
+                                
+                                toast({
+                                  title: "تم التحميل بنجاح",
+                                  description: "تم تحميل التقرير المفصل",
+                                });
+                              } catch (error) {
+                                console.error('خطأ في تحميل التقرير:', error);
+                                toast({
+                                  title: "خطأ في التحميل",
+                                  description: error instanceof Error ? error.message : "حدث خطأ أثناء تحميل التقرير",
+                                  variant: "destructive"
+                                });
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 ml-1" />
+                            تحميل
+                          </Button>
+                          <ArrowRight className="h-5 w-5 text-gray-400" />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -674,7 +733,7 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                         const a = document.createElement('a');
                         a.style.display = 'none';
                         a.href = url;
-                        a.download = `تحليل-المشروع-${analysisResult.id || 'جديد'}.md`;
+                        a.download = `project-analysis-${analysisResult.id || 'new'}.md`;
                         document.body.appendChild(a);
                         a.click();
                         
