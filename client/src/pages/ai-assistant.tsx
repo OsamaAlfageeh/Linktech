@@ -96,7 +96,7 @@ const AiAssistantPage = () => {
   });
 
   // استعلام للحصول على التحليلات السابقة
-  const { data: previousAnalyses, isLoading: loadingPrevious } = useQuery({
+  const { data: previousAnalyses, isLoading: loadingPrevious } = useQuery<PreviousAnalysis[]>({
     queryKey: ['/api/ai/my-analyses'],
     enabled: showPreviousAnalyses
   });
@@ -293,20 +293,20 @@ const AiAssistantPage = () => {
           <>
             {/* Progress Steps */}
             <div className="flex items-center justify-center mb-8">
-          <div className="flex items-center space-x-4 rtl:space-x-reverse">
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
-              1
+              <div className="flex items-center space-x-4 rtl:space-x-reverse">
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                  1
+                </div>
+                <div className={`h-1 w-16 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                  2
+                </div>
+                <div className={`h-1 w-16 ${currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
+                  3
+                </div>
+              </div>
             </div>
-            <div className={`h-1 w-16 ${currentStep >= 2 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 2 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
-              2
-            </div>
-            <div className={`h-1 w-16 ${currentStep >= 3 ? 'bg-blue-600' : 'bg-gray-200'}`} />
-            <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 3 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
-              3
-            </div>
-          </div>
-        </div>
 
         {/* Step 1: Project Idea */}
         {currentStep === 1 && (
@@ -696,7 +696,7 @@ const AiAssistantPage = () => {
             </div>
           </div>
         )}
-        </>
+          </>
         )}
       </div>
     </div>
