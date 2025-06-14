@@ -3895,8 +3895,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log(`تم إنشاء التقرير بنجاح، الطول: ${reportContent.length} حرف`);
 
+      // إنشاء اسم ملف آمن بدون أحرف عربية
+      const safeFilename = `project-analysis-${analysisId}.md`;
+      const encodedFilename = encodeURIComponent(`تحليل-المشروع-${analysisId}.md`);
+      
       res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="تحليل-المشروع-${analysisId}.md"`);
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodedFilename}`);
       res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
       res.send(reportContent);
     } catch (error) {
