@@ -531,7 +531,42 @@ const AiAssistantPage = () => {
                     <FileText className="h-5 w-5 ml-2" />
                     نشر المشروع للشركات
                   </Button>
-                  <Button variant="outline" className="h-16">
+                  <Button 
+                    variant="outline" 
+                    className="h-16"
+                    onClick={async () => {
+                      if (!analysisResult?.id) return;
+                      
+                      try {
+                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report`);
+                        if (!response.ok) {
+                          throw new Error('فشل في تحميل التقرير');
+                        }
+                        
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `تحليل-المشروع-${analysisResult.id}.md`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
+                        toast({
+                          title: "تم التحميل بنجاح",
+                          description: "تم تحميل التقرير المفصل",
+                        });
+                      } catch (error) {
+                        toast({
+                          title: "خطأ في التحميل",
+                          description: "حدث خطأ أثناء تحميل التقرير",
+                          variant: "destructive"
+                        });
+                      }
+                    }}
+                  >
                     <Download className="h-5 w-5 ml-2" />
                     تحميل التقرير المفصل
                   </Button>
