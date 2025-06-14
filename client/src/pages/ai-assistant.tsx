@@ -285,38 +285,23 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                               try {
                                 console.log('بدء تحميل التقرير للتحليل رقم:', analysis.id);
                                 
-                                const response = await fetch(`/api/ai/analysis/${analysis.id}/report`, {
-                                  method: 'GET',
-                                  headers: {
-                                    'Accept': 'application/octet-stream',
-                                  },
-                                });
+                                // استخدام window.open لفتح الملف مباشرة
+                                const downloadUrl = `/api/ai/analysis/${analysis.id}/report?download=1`;
+                                console.log('فتح رابط التحميل:', downloadUrl);
                                 
-                                console.log('استجابة الخادم:', response.status, response.statusText);
+                                // فتح الرابط في نافذة جديدة لتجنب مشاكل CORS
+                                const downloadWindow = window.open(downloadUrl, '_blank');
                                 
-                                if (!response.ok) {
-                                  throw new Error(`فشل في تحميل التقرير: ${response.status}`);
-                                }
-                                
-                                const blob = await response.blob();
-                                console.log('حجم الملف:', blob.size, 'بايت');
-                                
-                                if (blob.size === 0) {
-                                  throw new Error('الملف فارغ');
-                                }
-                                
-                                const url = window.URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.style.display = 'none';
-                                a.href = url;
-                                a.download = `project-analysis-${analysis.id}.md`;
-                                document.body.appendChild(a);
-                                a.click();
-                                
-                                setTimeout(() => {
-                                  window.URL.revokeObjectURL(url);
+                                if (!downloadWindow) {
+                                  // إذا فشلت النافذة الجديدة، استخدم الطريقة التقليدية
+                                  const a = document.createElement('a');
+                                  a.style.display = 'none';
+                                  a.href = downloadUrl;
+                                  a.download = `project-analysis-${analysis.id}.md`;
+                                  document.body.appendChild(a);
+                                  a.click();
                                   document.body.removeChild(a);
-                                }, 1000);
+                                }
                                 
                                 toast({
                                   title: "تم التحميل بنجاح",
@@ -706,46 +691,27 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                       try {
                         console.log('بدء تحميل التقرير للتحليل رقم:', analysisResult.id);
                         
-                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report`, {
-                          method: 'GET',
-                          headers: {
-                            'Accept': 'application/octet-stream',
-                          },
-                        });
+                        // استخدام window.open لفتح الملف مباشرة
+                        const downloadUrl = `/api/ai/analysis/${analysisResult.id}/report?download=1`;
+                        console.log('فتح رابط التحميل:', downloadUrl);
                         
-                        console.log('استجابة الخادم:', response.status, response.statusText);
+                        // فتح الرابط في نافذة جديدة لتجنب مشاكل CORS
+                        const downloadWindow = window.open(downloadUrl, '_blank');
                         
-                        if (!response.ok) {
-                          throw new Error(`فشل في تحميل التقرير: ${response.status}`);
-                        }
-                        
-                        const contentType = response.headers.get('content-type');
-                        console.log('نوع المحتوى:', contentType);
-                        
-                        const blob = await response.blob();
-                        console.log('حجم الملف:', blob.size, 'بايت');
-                        
-                        if (blob.size === 0) {
-                          throw new Error('الملف فارغ');
-                        }
-                        
-                        const url = window.URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.style.display = 'none';
-                        a.href = url;
-                        a.download = `project-analysis-${analysisResult.id || 'new'}.md`;
-                        document.body.appendChild(a);
-                        a.click();
-                        
-                        // تنظيف الذاكرة
-                        setTimeout(() => {
-                          window.URL.revokeObjectURL(url);
+                        if (!downloadWindow) {
+                          // إذا فشلت النافذة الجديدة، استخدم الطريقة التقليدية
+                          const a = document.createElement('a');
+                          a.style.display = 'none';
+                          a.href = downloadUrl;
+                          a.download = `project-analysis-${analysisResult.id || 'new'}.md`;
+                          document.body.appendChild(a);
+                          a.click();
                           document.body.removeChild(a);
-                        }, 1000);
+                        }
                         
                         toast({
-                          title: "تم التحميل بنجاح",
-                          description: "تم تحميل التقرير المفصل إلى مجلد التحميلات",
+                          title: "بدء التحميل",
+                          description: "جاري تحميل التقرير المفصل",
                         });
                       } catch (error) {
                         console.error('خطأ في تحميل التقرير:', error);

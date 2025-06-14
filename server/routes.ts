@@ -3899,10 +3899,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const safeFilename = `project-analysis-${analysisId}.md`;
       const encodedFilename = encodeURIComponent(`تحليل-المشروع-${analysisId}.md`);
       
-      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodedFilename}`);
+      // إعداد headers لإجبار التحميل
+      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
       res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
-      res.send(reportContent);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      // إرسال المحتوى
+      res.end(reportContent, 'utf8');
     } catch (error) {
       console.error('خطأ في إنشاء التقرير:', error);
       res.status(500).json({ message: 'Internal server error', error: error.message });
