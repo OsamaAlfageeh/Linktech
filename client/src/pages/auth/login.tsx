@@ -90,42 +90,38 @@ const Login = ({ auth }: LoginProps) => {
       
       console.log("بيانات المستخدم المستخرجة:", userData);
       
-      // تنظيف ذاكرة التخزين المؤقت قبل تحديث حالة تسجيل الدخول
-      // هذا يضمن إعادة تحميل بيانات المستخدم الجديدة
+      // تحديث حالة المصادقة فوراً
+      auth.login(userData);
+      
+      // عرض رسالة نجاح
+      toast({
+        title: "تم تسجيل الدخول بنجاح",
+        description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
+      });
+      
+      // تنظيف ذاكرة التخزين المؤقت وإعادة تحميل البيانات
       import("@/lib/queryClient").then(({ queryClient }) => {
-        // إزالة جميع الاستعلامات السابقة
-        queryClient.clear();
-        
-        // تحديث حالة تسجيل الدخول بعد تنظيف ذاكرة التخزين المؤقت
-        auth.login(userData);
-        
-        // عرض رسالة نجاح
-        toast({
-          title: "تم تسجيل الدخول بنجاح",
-          description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
-        });
-        
-        // التمرير إلى أعلى الصفحة قبل التوجيه
-        window.scrollTo(0, 0);
-        
-        // توجيه المستخدم حسب دوره فوراً بدون تأخير
-        const role = userData.role;
-        console.log("توجيه المستخدم بدور:", role);
-        
+        queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      });
+      
+      // توجيه المستخدم حسب دوره
+      const role = userData.role;
+      console.log("توجيه المستخدم بدور:", role);
+      
+      // استخدام setTimeout للتأكد من تحديث الحالة قبل التوجيه
+      setTimeout(() => {
         if (role === "admin") {
           console.log("بدء التوجيه للوحة المسؤول...");
-          // استخدام نظام التوجيه الموحد
           navigate("/dashboard/admin");
         } else if (role === "entrepreneur") {
           navigate("/dashboard/entrepreneur");
         } else if (role === "company") {
           navigate("/dashboard/company");
         } else {
-          // إذا لم يكن للمستخدم دور محدد، توجيهه إلى الصفحة الرئيسية
           console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
           navigate("/");
         }
-      });
+      }, 100);
     },
     onError: (error: any) => {
       console.error("خطأ تسجيل الدخول:", error);
