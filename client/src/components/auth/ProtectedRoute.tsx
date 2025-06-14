@@ -1,7 +1,6 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Route, Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/App';
 import { useQuery } from '@tanstack/react-query';
 
 interface ProtectedRouteProps {
@@ -15,21 +14,36 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   component: Component, 
   requiredRole = null
 }) => {
-  const auth = useAuth();
+  const [userState, setUserState] = useState<any>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   
-  // Get loading state from the auth query
-  const { isLoading, error } = useQuery({
+  // Direct auth query without dependency on useAuth hook
+  const { data: authData, isLoading, error } = useQuery<{user: any}>({
     queryKey: ['/api/auth/user'],
-    retry: false
+    retry: false,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
+    refetchOnMount: true,
   });
   
+  useEffect(() => {
+    console.log("ProtectedRoute - Auth data:", authData);
+    if (authData?.user) {
+      setUserState(authData.user);
+      setAuthChecked(true);
+    } else if (error || (!isLoading && !authData)) {
+      setUserState(null);
+      setAuthChecked(true);
+    }
+  }, [authData, error, isLoading]);
+  
   // Function to check if user has the required role
-  const hasRequiredRole = (): boolean => {
+  const hasRequiredRole = (user: any): boolean => {
     if (!requiredRole) return true;
     
-    if (requiredRole === 'admin') return auth.isAdmin;
-    if (requiredRole === 'company') return auth.isCompany;
-    if (requiredRole === 'entrepreneur') return auth.isEntrepreneur;
+    if (requiredRole === 'admin') return user?.role === 'admin';
+    if (requiredRole === 'company') return user?.role === 'company';
+    if (requiredRole === 'entrepreneur') return user?.role === 'entrepreneur';
     
     return false;
   };
@@ -37,8 +51,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return (
     <Route path={path}>
       {() => {
-        // Show loading indicator only while actively fetching and no error
-        if (isLoading && !error) {
+        // Show loading indicator while checking auth
+        if (isLoading || !authChecked) {
           console.log("Loading user info...");
           return (
             <div className="flex items-center justify-center min-h-screen">
@@ -49,7 +63,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         }
         
         // Check if user is authenticated
-        if (!auth.isAuthenticated) {
+        if (!userState) {
           console.log("User not authenticated, redirecting to login");
           return <Redirect to="/auth/login" />;
         }
@@ -57,28 +71,22 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
         console.log("Authentication successful, rendering protected component");
         
         // Check if user has required role
-        if (requiredRole && !hasRequiredRole()) {
-          console.log(`Required role: ${requiredRole}, current role: ${auth.user?.role}`);
-          
-          // إذا كان المستخدم مسجل ولكن ليس لديه الدور المطلوب، فقم بتسجيل الخروج وإعادة التوجيه
-          if (auth.isAuthenticated) {
-            // تنظيف ذاكرة التخزين المؤقت أولاً
-            import("@/lib/queryClient").then(({ queryClient }) => {
-              queryClient.clear();
-              
-              // تسجيل الخروج
-              auth.logout();
-              
-              // إعادة التوجيه إلى صفحة تسجيل الدخول
-              return <Redirect to="/auth/login" />;
-            });
-          }
-          
+        if (requiredRole && !hasRequiredRole(userState)) {
+          console.log(`Required role: ${requiredRole}, current role: ${userState?.role}`);
           return <Redirect to="/auth/login" />;
         }
 
+        // Create auth object for the component
+        const auth = {
+          user: userState,
+          isAuthenticated: !!userState,
+          isAdmin: userState?.role === 'admin',
+          isCompany: userState?.role === 'company',
+          isEntrepreneur: userState?.role === 'entrepreneur',
+        };
+
         // If all checks pass, render the component
-        console.log("Authentication successful, rendering protected component");
+        console.log("Rendering component with user:", userState);
         return <Component auth={auth} />;
       }}
     </Route>

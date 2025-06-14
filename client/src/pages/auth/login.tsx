@@ -90,9 +90,6 @@ const Login = ({ auth }: LoginProps) => {
       
       console.log("بيانات المستخدم المستخرجة:", userData);
       
-      // تحديث حالة المصادقة فوراً
-      auth.login(userData);
-      
       // عرض رسالة نجاح
       toast({
         title: "تم تسجيل الدخول بنجاح",
@@ -102,28 +99,32 @@ const Login = ({ auth }: LoginProps) => {
       // تنظيف ذاكرة التخزين المؤقت وإعادة تحميل البيانات
       import("@/lib/queryClient").then(({ queryClient }) => {
         queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+        queryClient.refetchQueries({ queryKey: ['/api/auth/user'] });
+        
+        // تحديث حالة المصادقة بعد تنظيف ذاكرة التخزين المؤقت
+        auth.login(userData);
+        
+        // توجيه المستخدم حسب دوره
+        const role = userData.role;
+        console.log("توجيه المستخدم بدور:", role);
+        
+        // استخدام setTimeout لضمان تحديث الحالة أولاً
+        setTimeout(() => {
+          if (role === "admin") {
+            console.log("بدء التوجيه للوحة المسؤول...");
+            navigate("/dashboard/admin");
+          } else if (role === "entrepreneur") {
+            console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
+            navigate("/dashboard/entrepreneur");
+          } else if (role === "company") {
+            console.log("بدء التوجيه لداشبورد الشركة...");
+            navigate("/dashboard/company");
+          } else {
+            console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
+            navigate("/");
+          }
+        }, 1000);
       });
-      
-      // توجيه المستخدم حسب دوره فوراً
-      const role = userData.role;
-      console.log("توجيه المستخدم بدور:", role);
-      
-      // استخدام setTimeout قصير لضمان تحديث الحالة أولاً
-      setTimeout(() => {
-        if (role === "admin") {
-          console.log("بدء التوجيه للوحة المسؤول...");
-          navigate("/dashboard/admin");
-        } else if (role === "entrepreneur") {
-          console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
-          navigate("/dashboard/entrepreneur");
-        } else if (role === "company") {
-          console.log("بدء التوجيه لداشبورد الشركة...");
-          navigate("/dashboard/company");
-        } else {
-          console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
-          navigate("/");
-        }
-      }, 500);
     },
     onError: (error: any) => {
       console.error("خطأ تسجيل الدخول:", error);
