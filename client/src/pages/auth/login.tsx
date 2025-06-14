@@ -108,17 +108,22 @@ const Login = ({ auth }: LoginProps) => {
       const role = userData.role;
       console.log("توجيه المستخدم بدور:", role);
       
-      if (role === "admin") {
-        console.log("بدء التوجيه للوحة المسؤول...");
-        window.location.href = "/dashboard/admin";
-      } else if (role === "entrepreneur") {
-        window.location.href = "/dashboard/entrepreneur";
-      } else if (role === "company") {
-        window.location.href = "/dashboard/company";
-      } else {
-        console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
-        window.location.href = "/";
-      }
+      // استخدام setTimeout قصير لضمان تحديث الحالة أولاً
+      setTimeout(() => {
+        if (role === "admin") {
+          console.log("بدء التوجيه للوحة المسؤول...");
+          navigate("/dashboard/admin");
+        } else if (role === "entrepreneur") {
+          console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
+          navigate("/dashboard/entrepreneur");
+        } else if (role === "company") {
+          console.log("بدء التوجيه لداشبورد الشركة...");
+          navigate("/dashboard/company");
+        } else {
+          console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
+          navigate("/");
+        }
+      }, 500);
     },
     onError: (error: any) => {
       console.error("خطأ تسجيل الدخول:", error);
