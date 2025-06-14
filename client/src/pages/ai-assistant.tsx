@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -29,6 +29,7 @@ import {
 } from "lucide-react";
 
 interface AnalysisResult {
+  id?: number;
   projectType: string;
   technicalComplexity: string;
   recommendedTechnologies: string[];
@@ -67,11 +68,21 @@ interface AnalysisResult {
   };
 }
 
+interface PreviousAnalysis {
+  id: number;
+  projectIdea: string;
+  createdAt: string;
+  status: string;
+  estimatedCost: string;
+  analysisResult: string;
+}
+
 const AiAssistantPage = () => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
+  const [showPreviousAnalyses, setShowPreviousAnalyses] = useState(false);
   
   const [formData, setFormData] = useState({
     projectIdea: "",
@@ -82,6 +93,12 @@ const AiAssistantPage = () => {
     integrationNeeds: [] as string[],
     securityRequirements: "",
     specificRequirements: ""
+  });
+
+  // استعلام للحصول على التحليلات السابقة
+  const { data: previousAnalyses, isLoading: loadingPrevious } = useQuery({
+    queryKey: ['/api/ai/my-analyses'],
+    enabled: showPreviousAnalyses
   });
 
   const analyzeProjectMutation = useMutation({
@@ -192,8 +209,90 @@ const AiAssistantPage = () => {
           </p>
         </div>
 
-        {/* Progress Steps */}
-        <div className="flex items-center justify-center mb-8">
+        {/* أزرار التنقل */}
+        <div className="flex gap-4 mb-6 max-w-md mx-auto">
+          <Button 
+            variant={!showPreviousAnalyses ? "default" : "outline"} 
+            onClick={() => setShowPreviousAnalyses(false)}
+            className="flex-1"
+          >
+            تحليل جديد
+          </Button>
+          <Button 
+            variant={showPreviousAnalyses ? "default" : "outline"} 
+            onClick={() => setShowPreviousAnalyses(true)}
+            className="flex-1"
+          >
+            تحليلاتي السابقة
+          </Button>
+        </div>
+
+        {/* عرض التحليلات السابقة */}
+        {showPreviousAnalyses ? (
+          <Card className="max-w-4xl mx-auto">
+            <CardHeader>
+              <CardTitle>تحليلاتي السابقة</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingPrevious ? (
+                <p className="text-center py-8">جارٍ تحميل التحليلات...</p>
+              ) : previousAnalyses && previousAnalyses.length > 0 ? (
+                <div className="space-y-4">
+                  {previousAnalyses.map((analysis: PreviousAnalysis) => (
+                    <div key={analysis.id} className="border rounded-lg p-4 hover:bg-gray-50 cursor-pointer transition-colors" 
+                         onClick={() => {
+                           try {
+                             const parsedResult = JSON.parse(analysis.analysisResult);
+                             setAnalysisResult({ ...parsedResult, id: analysis.id });
+                             setCurrentStep(3);
+                             setShowPreviousAnalyses(false);
+                           } catch (error) {
+                             toast({
+                               title: "خطأ",
+                               description: "فشل في تحميل التحليل",
+                               variant: "destructive"
+                             });
+                           }
+                         }}>
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg mb-2">{analysis.projectIdea.substring(0, 100)}...</h3>
+                          <p className="text-gray-600 text-sm mb-2">
+                            تاريخ التحليل: {new Date(analysis.createdAt).toLocaleDateString('ar-SA')}
+                          </p>
+                          <div className="flex gap-2">
+                            <Badge variant="outline" className="text-xs">
+                              {analysis.estimatedCost}
+                            </Badge>
+                            <Badge variant={analysis.status === 'completed' ? 'default' : 'secondary'} className="text-xs">
+                              {analysis.status === 'completed' ? 'مكتمل' : 'قيد المعالجة'}
+                            </Badge>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-gray-400" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <Brain className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500 text-lg">لا توجد تحليلات سابقة</p>
+                  <p className="text-gray-400 text-sm mt-2">ابدأ بتحليل مشروعك الأول</p>
+                  <Button 
+                    onClick={() => setShowPreviousAnalyses(false)} 
+                    className="mt-4"
+                  >
+                    تحليل مشروع جديد
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            {/* Progress Steps */}
+            <div className="flex items-center justify-center mb-8">
           <div className="flex items-center space-x-4 rtl:space-x-reverse">
             <div className={`flex items-center justify-center w-10 h-10 rounded-full ${currentStep >= 1 ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-600'}`}>
               1
@@ -596,6 +695,8 @@ const AiAssistantPage = () => {
               </Button>
             </div>
           </div>
+        )}
+        </>
         )}
       </div>
     </div>
