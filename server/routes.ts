@@ -75,19 +75,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize session and passport
   // تكوين الجلسة بشكل صحيح
   app.use(session({
-    secret: process.env.SESSION_SECRET || 'linktechapp',
-    resave: true, // تعديل للتأكد من حفظ التغييرات 
-    saveUninitialized: true, // تعديل للتأكد من حفظ الجلسات الجديدة
+    secret: process.env.SESSION_SECRET || 'linktechapp-secret-key-2024',
+    resave: false, // منع إعادة حفظ الجلسة إذا لم تتغير
+    saveUninitialized: false, // منع حفظ جلسات فارغة
+    rolling: true, // تجديد مدة الجلسة مع كل طلب
     cookie: { 
-      secure: false, // تغيير إلى true في بيئة الإنتاج مع HTTPS
-      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 يوم
+      secure: false, // false للـ HTTP في التطوير
+      maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
       httpOnly: true,
-      sameSite: 'lax',
-      path: '/'
+      sameSite: 'lax'
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
-    })
+    }),
+    name: 'linktech.session' // اسم مخصص للجلسة
   }));
   
   // لتصحيح الأخطاء المتعلقة بالـ CORS مع الجلسات
@@ -155,23 +156,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   passport.deserializeUser(async (id: number, done) => {
     try {
+      console.log(`محاولة استرجاع المستخدم من الجلسة، معرف: ${id}`);
       const user = await storage.getUser(id);
       if (!user) {
+        console.log(`فشل في العثور على المستخدم بمعرف: ${id}`);
         return done(null, false);
       }
-      // نحن لا نحتاج لإزالة كلمة المرور هنا لأن هذه المعلومات ستبقى في العملية
-      // وخطوة إزالة كلمة المرور تحدث عند إرسال البيانات للمستخدم في استجابات API
+      console.log(`تم استرجاع المستخدم بنجاح: ${user.username}, دور: ${user.role}`);
       done(null, user);
     } catch (err) {
+      console.error(`خطأ في استرجاع المستخدم من الجلسة:`, err);
       done(err);
     }
   });
 
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
+    const sessionId = req.sessionID;
+    console.log(`طلب ${req.path} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+    
     if (req.isAuthenticated()) {
+      console.log(`المستخدم مصرح، معرف الجلسة: ${sessionId}`);
       return next();
     }
-    res.status(401).json({ message: 'Unauthorized' });
+    
+    console.log(`طلب ${req.path} - المستخدم غير مصرح, sessionID: ${sessionId}`);
+    res.status(401).json({ message: 'Not authenticated' });
   };
   
   // التحقق من صلاحيات المسؤول
@@ -236,13 +245,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/login', passport.authenticate('local'), (req: Request, res: Response) => {
-    console.log('تسجيل دخول ناجح للمستخدم:', req.user?.username);
-    const user = req.user as any;
-    // إزالة كلمة المرور من استجابة تسجيل الدخول
-    const { password, ...userWithoutPassword } = user;
-    console.log('إرسال استجابة تسجيل الدخول:', { user: userWithoutPassword });
-    res.json({ user: userWithoutPassword });
+  app.post('/api/auth/login', (req: Request, res: Response, next) => {
+    passport.authenticate('local', (err: any, user: any, info: any) => {
+      if (err) {
+        console.error('خطأ في المصادقة:', err);
+        return res.status(500).json({ message: 'Authentication error' });
+      }
+      
+      if (!user) {
+        console.log('فشل تسجيل الدخول:', info?.message || 'Invalid credentials');
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+      
+      // تسجيل الدخول وحفظ الجلسة
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          console.error('خطأ في حفظ الجلسة:', loginErr);
+          return res.status(500).json({ message: 'Login session error' });
+        }
+        
+        console.log('تسجيل دخول ناجح للمستخدم:', user.username);
+        console.log('معرف الجلسة:', req.sessionID);
+        
+        // حفظ الجلسة بشكل صريح
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('خطأ في حفظ الجلسة:', saveErr);
+            return res.status(500).json({ message: 'Session save error' });
+          }
+          
+          const { password, ...userWithoutPassword } = user;
+          console.log('إرسال استجابة تسجيل الدخول:', { user: userWithoutPassword });
+          res.json({ user: userWithoutPassword });
+        });
+      });
+    })(req, res, next);
   });
 
   app.post('/api/auth/logout', (req: Request, res: Response) => {
