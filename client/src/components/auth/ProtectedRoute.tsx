@@ -2,6 +2,7 @@ import React from 'react';
 import { Route, Redirect } from 'wouter';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/App';
+import { useQuery } from '@tanstack/react-query';
 
 interface ProtectedRouteProps {
   path: string;
@@ -15,6 +16,12 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requiredRole = null
 }) => {
   const auth = useAuth();
+  
+  // Get loading state from the auth query
+  const { isLoading } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false
+  });
   
   // Function to check if user has the required role
   const hasRequiredRole = (): boolean => {
@@ -30,8 +37,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return (
     <Route path={path}>
       {() => {
-        // Show loading indicator while fetching authentication data
-        if (auth.user === null) {
+        // Show loading indicator only while actively fetching
+        if (isLoading) {
           console.log("Loading user info...");
           return (
             <div className="flex items-center justify-center min-h-screen">

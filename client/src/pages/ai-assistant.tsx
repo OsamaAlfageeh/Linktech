@@ -637,30 +637,54 @@ const AiAssistantPage = () => {
                       if (!analysisResult?.id) return;
                       
                       try {
-                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report`);
+                        console.log('بدء تحميل التقرير للتحليل رقم:', analysisResult.id);
+                        
+                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report`, {
+                          method: 'GET',
+                          headers: {
+                            'Accept': 'application/octet-stream',
+                          },
+                        });
+                        
+                        console.log('استجابة الخادم:', response.status, response.statusText);
+                        
                         if (!response.ok) {
-                          throw new Error('فشل في تحميل التقرير');
+                          throw new Error(`فشل في تحميل التقرير: ${response.status}`);
                         }
                         
+                        const contentType = response.headers.get('content-type');
+                        console.log('نوع المحتوى:', contentType);
+                        
                         const blob = await response.blob();
+                        console.log('حجم الملف:', blob.size, 'بايت');
+                        
+                        if (blob.size === 0) {
+                          throw new Error('الملف فارغ');
+                        }
+                        
                         const url = window.URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.style.display = 'none';
                         a.href = url;
-                        a.download = `تحليل-المشروع-${analysisResult.id}.md`;
+                        a.download = `تحليل-المشروع-${analysisResult.id || 'جديد'}.md`;
                         document.body.appendChild(a);
                         a.click();
-                        window.URL.revokeObjectURL(url);
-                        document.body.removeChild(a);
+                        
+                        // تنظيف الذاكرة
+                        setTimeout(() => {
+                          window.URL.revokeObjectURL(url);
+                          document.body.removeChild(a);
+                        }, 1000);
                         
                         toast({
                           title: "تم التحميل بنجاح",
-                          description: "تم تحميل التقرير المفصل",
+                          description: "تم تحميل التقرير المفصل إلى مجلد التحميلات",
                         });
                       } catch (error) {
+                        console.error('خطأ في تحميل التقرير:', error);
                         toast({
                           title: "خطأ في التحميل",
-                          description: "حدث خطأ أثناء تحميل التقرير",
+                          description: error instanceof Error ? error.message : "حدث خطأ أثناء تحميل التقرير",
                           variant: "destructive"
                         });
                       }

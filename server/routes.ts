@@ -3869,22 +3869,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/ai/analysis/:id/report', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const analysisId = parseInt(req.params.id);
+      const user = req.user as any;
+      
+      console.log(`طلب تحميل التقرير للتحليل ${analysisId} من المستخدم ${user.id}`);
+      
+      if (isNaN(analysisId)) {
+        return res.status(400).json({ message: 'معرف التحليل غير صحيح' });
+      }
+      
       const analysis = await storage.getAiProjectAnalysis(analysisId);
       
-      if (!analysis || analysis.userId !== req.user.id) {
+      if (!analysis) {
+        console.log(`التحليل ${analysisId} غير موجود`);
         return res.status(404).json({ message: 'التحليل غير موجود' });
+      }
+      
+      if (analysis.userId !== user.id) {
+        console.log(`المستخدم ${user.id} غير مخول لتحميل التحليل ${analysisId} (المالك: ${analysis.userId})`);
+        return res.status(403).json({ message: 'غير مخول لتحميل هذا التحليل' });
       }
 
       const { generateProjectReport } = await import('./aiProjectAssistant');
       const analysisResult = JSON.parse(analysis.analysisResult);
       const reportContent = generateProjectReport(analysisResult);
+      
+      console.log(`تم إنشاء التقرير بنجاح، الطول: ${reportContent.length} حرف`);
 
-      res.setHeader('Content-Type', 'text/markdown');
-      res.setHeader('Content-Disposition', `attachment; filename="project-analysis-${analysisId}.md"`);
+      res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="تحليل-المشروع-${analysisId}.md"`);
+      res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
       res.send(reportContent);
     } catch (error) {
       console.error('خطأ في إنشاء التقرير:', error);
-      res.status(500).json({ message: 'Internal server error' });
+      res.status(500).json({ message: 'Internal server error', error: error.message });
     }
   });
 
