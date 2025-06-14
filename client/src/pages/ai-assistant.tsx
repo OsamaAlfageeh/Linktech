@@ -77,7 +77,15 @@ interface PreviousAnalysis {
   analysisResult: string;
 }
 
-const AiAssistantPage = () => {
+interface AiAssistantPageProps {
+  auth: {
+    user: any;
+    isAuthenticated: boolean;
+    isEntrepreneur: boolean;
+  };
+}
+
+const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(1);

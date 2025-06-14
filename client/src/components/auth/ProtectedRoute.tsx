@@ -18,7 +18,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const auth = useAuth();
   
   // Get loading state from the auth query
-  const { isLoading } = useQuery({
+  const { isLoading, error } = useQuery({
     queryKey: ['/api/auth/user'],
     retry: false
   });
@@ -37,8 +37,8 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   return (
     <Route path={path}>
       {() => {
-        // Show loading indicator only while actively fetching
-        if (isLoading) {
+        // Show loading indicator only while actively fetching and no error
+        if (isLoading && !error) {
           console.log("Loading user info...");
           return (
             <div className="flex items-center justify-center min-h-screen">
@@ -48,11 +48,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
           );
         }
         
-        // Check if user is authenticated (auth.user is not null here)
+        // Check if user is authenticated
         if (!auth.isAuthenticated) {
           console.log("User not authenticated, redirecting to login");
           return <Redirect to="/auth/login" />;
         }
+        
+        console.log("Authentication successful, rendering protected component");
         
         // Check if user has required role
         if (requiredRole && !hasRequiredRole()) {
@@ -77,7 +79,7 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
         // If all checks pass, render the component
         console.log("Authentication successful, rendering protected component");
-        return <Component />;
+        return <Component auth={auth} />;
       }}
     </Route>
   );

@@ -74,10 +74,10 @@ export const useAuth = (): AuthContextType => {
   const [location, navigate] = useLocation();
   
   // Check if user is logged in
-  const { data, isLoading } = useQuery<{user: User}>({
+  const { data, isLoading, error } = useQuery<{user: User}>({
     queryKey: ['/api/auth/user'],
     retry: false,
-    staleTime: 0, // عدم تخزين النتائج مؤقتًا - دائمًا الحصول على بيانات المستخدم الحديثة
+    staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
   });
@@ -87,11 +87,11 @@ export const useAuth = (): AuthContextType => {
     console.log("Auth data received:", data);
     if (data && data.user) {
       setUser(data.user);
-    } else {
-      // إعادة ضبط حالة المستخدم عند عدم وجود بيانات مصادقة
+    } else if (error || (data === undefined && !isLoading)) {
+      // إعادة ضبط حالة المستخدم عند وجود خطأ أو عدم وجود بيانات
       setUser(null);
     }
-  }, [data]);
+  }, [data, error, isLoading]);
 
   // Logout mutation
   const logoutMutation = useMutation({
@@ -117,7 +117,11 @@ export const useAuth = (): AuthContextType => {
     isEntrepreneur: user?.role === "entrepreneur",
     isAdmin: user?.role === "admin",
     logout: () => logoutMutation.mutate(),
-    login: (userData: User) => setUser(userData),
+    login: (userData: User) => {
+      setUser(userData);
+      // إبطال الاستعلامات وإعادة تحميلها للتأكد من التزامن
+      queryClient.invalidateQueries({queryKey: ['/api/auth/user']});
+    },
   };
 };
 
@@ -145,7 +149,7 @@ function App() {
           {/* مساعد الذكاء الاصطناعي للمشاريع */}
           <ProtectedRoute 
             path="/ai-assistant" 
-            component={() => <AiAssistant auth={auth} />} 
+            component={AiAssistant} 
             requiredRole="entrepreneur" 
           />
 
@@ -170,22 +174,22 @@ function App() {
           {/* Protected routes - using ProtectedRoute component */}
           <ProtectedRoute 
             path="/dashboard/entrepreneur" 
-            component={() => <EntrepreneurDashboard auth={auth} />} 
+            component={EntrepreneurDashboard} 
             requiredRole="entrepreneur" 
           />
           <ProtectedRoute 
             path="/dashboard/company" 
-            component={() => <CompanyDashboard auth={auth} />} 
+            component={CompanyDashboard} 
             requiredRole="company" 
           />
           {/* صفحة المسؤول مع تحقق - باستخدام ProtectedRoute */}
-          <ProtectedRoute path="/dashboard/admin" component={() => <AdminDashboard auth={auth} />} requiredRole="admin" />
+          <ProtectedRoute path="/dashboard/admin" component={AdminDashboard} requiredRole="admin" />
           {/* صفحة المسؤول المبسطة للوصول المباشر - تحويل مباشر إلى لوحة المسؤول الكاملة */}
-          <ProtectedRoute path="/admin" component={() => <AdminDashboard auth={auth} />} requiredRole="admin" />
+          <ProtectedRoute path="/admin" component={AdminDashboard} requiredRole="admin" />
           {/* نهاية التعديل المؤقت */}
           {/* صفحة الرسائل: تدعم المسار الأساسي والمسار مع معلمة userId - باستخدام ProtectedRoute */}
-          <ProtectedRoute path="/messages" component={() => <Messages auth={auth} />} />
-          <ProtectedRoute path="/messages/:userId" component={() => <Messages auth={auth} />} />
+          <ProtectedRoute path="/messages" component={Messages} />
+          <ProtectedRoute path="/messages/:userId" component={Messages} />
           
           {/* مسار صفحة المستخدم */}
           <Route path="/users/:id" component={UserProfile} />
