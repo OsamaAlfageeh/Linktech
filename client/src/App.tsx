@@ -27,6 +27,7 @@ import CompanyDashboard from "@/pages/dashboard/company";
 import AdminDashboard from "@/pages/dashboard/admin";
 // Removed AdminLogin import as it's now integrated with the main login page
 import Messages from "@/pages/messages";
+import Notifications from "@/pages/notifications";
 import NotFound from "@/pages/not-found";
 import Redirect from "@/pages/redirect";
 import UserProfile from "@/pages/users/UserProfile";
@@ -190,6 +191,9 @@ function App() {
           {/* صفحة الرسائل: تدعم المسار الأساسي والمسار مع معلمة userId - باستخدام ProtectedRoute */}
           <ProtectedRoute path="/messages" component={Messages} />
           <ProtectedRoute path="/messages/:userId" component={Messages} />
+          
+          {/* صفحة الإشعارات */}
+          <ProtectedRoute path="/notifications" component={Notifications} />
           
           {/* مسار صفحة المستخدم */}
           <Route path="/users/:id" component={UserProfile} />

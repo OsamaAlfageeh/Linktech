@@ -3711,6 +3711,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // === نقاط نهاية الإشعارات ===
+  
+  // الحصول على إشعارات المستخدم
+  app.get('/api/notifications', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // إنشاء بعض الإشعارات التجريبية حسب نوع المستخدم
+      const mockNotifications = [];
+      
+      if (user.role === 'entrepreneur') {
+        mockNotifications.push(
+          {
+            id: 1,
+            type: 'proposal',
+            title: 'عرض جديد على مشروعك',
+            content: 'تلقيت عرضاً جديداً من شركة تطوير على مشروع "تطبيق التجارة الإلكترونية"',
+            isRead: false,
+            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            actionUrl: '/projects/1',
+            metadata: { projectId: 1, userId: 2 }
+          },
+          {
+            id: 2,
+            type: 'message',
+            title: 'رسالة جديدة',
+            content: 'تلقيت رسالة جديدة من شركة النخبة للتطوير',
+            isRead: false,
+            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
+            actionUrl: '/messages/2',
+            metadata: { userId: 2 }
+          },
+          {
+            id: 3,
+            type: 'system',
+            title: 'تحديث على مشروعك',
+            content: 'تم تحديث حالة مشروعك إلى "قيد التطوير"',
+            isRead: true,
+            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+            actionUrl: '/projects/1',
+            metadata: { projectId: 1 }
+          }
+        );
+      } else if (user.role === 'company') {
+        mockNotifications.push(
+          {
+            id: 1,
+            type: 'project',
+            title: 'مشروع جديد يناسب خبراتك',
+            content: 'تم إضافة مشروع جديد في مجال تطبيقات الهاتف المحمول',
+            isRead: false,
+            createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
+            actionUrl: '/projects/2',
+            metadata: { projectId: 2 }
+          },
+          {
+            id: 2,
+            type: 'message',
+            title: 'رسالة من رائد أعمال',
+            content: 'تلقيت رسالة جديدة من أحمد محمد بخصوص مشروع التجارة الإلكترونية',
+            isRead: false,
+            createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
+            actionUrl: '/messages/1',
+            metadata: { userId: 1 }
+          },
+          {
+            id: 3,
+            type: 'payment',
+            title: 'تأكيد استلام الدفعة',
+            content: 'تم استلام دفعة بقيمة 15,000 ريال سعودي لمشروع التطبيق التعليمي',
+            isRead: true,
+            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+            actionUrl: '/dashboard/company',
+            metadata: { amount: 15000, projectId: 3 }
+          }
+        );
+      }
+      
+      res.json(mockNotifications);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // تعيين إشعار كمقروء
+  app.post('/api/notifications/:id/read', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const notificationId = parseInt(req.params.id);
+      
+      // في التطبيق الحقيقي، هنا سيتم تحديث حالة الإشعار في قاعدة البيانات
+      console.log(`تم تعيين الإشعار ${notificationId} كمقروء`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // تعيين جميع الإشعارات كمقروءة
+  app.post('/api/notifications/mark-all-read', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // في التطبيق الحقيقي، هنا سيتم تحديث جميع الإشعارات كمقروءة
+      console.log(`تم تعيين جميع إشعارات المستخدم ${user.id} كمقروءة`);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // === نقاط نهاية إحصائيات الزيارات ===
   
   // تسجيل زيارة جديدة
