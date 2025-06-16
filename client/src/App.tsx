@@ -41,6 +41,7 @@ import TestNdaPage from "@/pages/test-nda-page";
 import PersonalInfo from "@/pages/personal-info";
 import PremiumClients from "@/pages/premium-clients";
 import AiAssistant from "@/pages/ai-assistant";
+import CompaniesLanding from "@/pages/companies-landing";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -263,6 +264,9 @@ function App() {
           
           {/* صفحة عملاء التميز */}
           <Route path="/premium-clients" component={PremiumClients} />
+          
+          {/* صفحة هبوط للشركات */}
+          <Route path="/companies-landing" component={CompaniesLanding} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
