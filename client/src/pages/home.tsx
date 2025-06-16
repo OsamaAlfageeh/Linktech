@@ -5,6 +5,7 @@ import CompanyPromotionSection from "@/components/home/TopCompanies";
 import Testimonials from "@/components/home/Testimonials";
 import CTASection from "@/components/home/CTASection";
 import OfficialCompaniesSection from "@/components/home/OfficialCompaniesSection";
+import AIAssistantSection from "@/components/home/AIAssistantSection";
 import { TrendingProjects } from "@/components/recommendations";
 import SEO from "@/components/seo/SEO";
 import { OrganizationStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
@@ -42,6 +43,7 @@ const Home = ({ auth }: HomeProps) => {
       
       <HeroSection auth={auth} />
       <OfficialCompaniesSection />
+      <AIAssistantSection auth={auth} />
       <HowItWorks />
       <div className="container mx-auto px-4 py-10">
         <TrendingProjects limit={3} />
