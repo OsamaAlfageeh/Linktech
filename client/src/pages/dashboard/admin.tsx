@@ -686,13 +686,14 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto pb-2 -mb-2">
-            <TabsList className="flex lg:grid lg:grid-cols-8 min-w-[500px] w-max lg:w-full">
+            <TabsList className="flex lg:grid lg:grid-cols-9 min-w-[600px] w-max lg:w-full">
               <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
               <TabsTrigger value="users">المستخدمون</TabsTrigger>
               <TabsTrigger value="companies">الشركات</TabsTrigger>
               <TabsTrigger value="projects">المشاريع</TabsTrigger>
               <TabsTrigger value="offers">العروض</TabsTrigger>
               <TabsTrigger value="messages">المحادثات</TabsTrigger>
+              <TabsTrigger value="contact">إدارة التواصل</TabsTrigger>
               <TabsTrigger value="premium-clients">عملاء التميز</TabsTrigger>
               <TabsTrigger value="blog">المدونة</TabsTrigger>
               <TabsTrigger value="settings">الإعدادات</TabsTrigger>
@@ -1444,6 +1445,99 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   </div>
                   
                   {/* يمكن إضافة إعدادات أخرى هنا في المستقبل */}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* إدارة التواصل */}
+          <TabsContent value="contact" className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <MessageSquare className="h-5 w-5" />
+                    رسائل التواصل الواردة
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground text-sm">
+                      عرض وإدارة جميع رسائل التواصل الواردة من الزوار والعملاء
+                    </p>
+                    <div className="space-y-2">
+                      <h4 className="font-medium">الميزات المتاحة:</h4>
+                      <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        <li>عرض جميع الرسائل الواردة</li>
+                        <li>الرد على الرسائل</li>
+                        <li>تغيير حالة الرسالة</li>
+                        <li>إضافة ملاحظات إدارية</li>
+                        <li>حذف الرسائل غير المرغوبة</li>
+                      </ul>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => navigate("/admin/contact-messages")}
+                    >
+                      <MessageSquare className="h-4 w-4 ml-2" />
+                      إدارة رسائل التواصل
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Settings className="h-5 w-5" />
+                    إعدادات معلومات الاتصال
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-muted-foreground text-sm">
+                      تحديث معلومات الاتصال المعروضة في صفحة "تواصل معنا"
+                    </p>
+                    <div className="space-y-2">
+                      <h4 className="font-medium">الإعدادات المتاحة:</h4>
+                      <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
+                        <li>تحديث البريد الإلكتروني</li>
+                        <li>تحديث رقم الهاتف</li>
+                        <li>تحديث رقم الواتساب</li>
+                        <li>تحديث العنوان</li>
+                        <li>تحديث ساعات العمل</li>
+                      </ul>
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={() => navigate("/admin/site-settings")}
+                    >
+                      <Settings className="h-4 w-4 ml-2" />
+                      إعدادات الاتصال
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>إحصائيات التواصل</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-blue-50 rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">--</div>
+                    <div className="text-sm text-muted-foreground">الرسائل الجديدة</div>
+                  </div>
+                  <div className="text-center p-4 bg-green-50 rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">--</div>
+                    <div className="text-sm text-muted-foreground">الرسائل المقروءة</div>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 rounded-lg">
+                    <div className="text-2xl font-bold text-orange-600">--</div>
+                    <div className="text-sm text-muted-foreground">الرسائل المجاب عليها</div>
+                  </div>
                 </div>
               </CardContent>
             </Card>
