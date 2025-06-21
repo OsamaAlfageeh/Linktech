@@ -74,17 +74,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(generateNdaRoutes);
   app.use(contactRoutes);
   // Initialize session and passport
-  // تكوين الجلسة بشكل صحيح
+  // تكوين الجلسة بشكل صحيح لبيئة Replit
   app.use(session({
     secret: process.env.SESSION_SECRET || 'linktechapp-secret-key-2024',
-    resave: false, // منع إعادة حفظ الجلسة إذا لم تتغير
-    saveUninitialized: false, // منع حفظ جلسات فارغة
+    resave: true, // تغيير إلى true لضمان حفظ الجلسة
+    saveUninitialized: true, // تغيير إلى true لحفظ الجلسات الجديدة
     rolling: true, // تجديد مدة الجلسة مع كل طلب
     cookie: { 
       secure: false, // false للـ HTTP في التطوير
       maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
-      httpOnly: false, // تغيير إلى false للسماح بالوصول من الجافاسكريبت
-      sameSite: 'lax'
+      httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
+      sameSite: 'none' // تغيير إلى none لبيئة Replit
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
@@ -92,10 +92,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     name: 'connect.sid' // استخدام الاسم الافتراضي
   }));
   
-  // لتصحيح الأخطاء المتعلقة بالـ CORS مع الجلسات
+  // إعداد CORS محسن لبيئة Replit
   app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // في حالة عدم وجود origin header (مثل curl)
+      res.header('Access-Control-Allow-Origin', '*');
+    }
+    
     res.header('Access-Control-Allow-Credentials', 'true');
-    next();
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Cookie');
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+    
+    if (req.method === 'OPTIONS') {
+      res.sendStatus(200);
+    } else {
+      next();
+    }
   });
 
   app.use(passport.initialize());
@@ -174,8 +190,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
     const sessionId = req.sessionID;
     console.log(`طلب ${req.path} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+    console.log(`جلسة المستخدم:`, req.session?.passport);
+    console.log(`بيانات المستخدم:`, req.user);
     
-    if (req.isAuthenticated()) {
+    if (req.isAuthenticated() && req.user) {
       console.log(`المستخدم مصرح، معرف الجلسة: ${sessionId}`);
       return next();
     }
@@ -444,21 +462,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/auth/user', (req: Request, res: Response) => {
+  app.get('/api/auth/user', async (req: Request, res: Response) => {
+    const sessionId = req.sessionID;
     console.log(`طلب /api/auth/user - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+    console.log(`Session data:`, req.session?.passport);
+    console.log(`User from req:`, req.user);
+    console.log(`Session ID:`, sessionId);
+    console.log(`All cookies:`, req.headers.cookie);
     
-    if (req.isAuthenticated()) {
+    if (req.isAuthenticated() && req.user) {
       const user = req.user as any;
       console.log(`استرجاع معلومات المستخدم: ${user.username}, الدور: ${user.role}, معرف: ${user.id}`);
       
-      // استثناء كلمة المرور من الاستجابة
-      const { password, ...userWithoutPassword } = user;
-      console.log(`إرسال معلومات المستخدم بدون كلمة المرور: `, { user: userWithoutPassword });
-      
-      return res.json({ user: userWithoutPassword });
+      try {
+        // التأكد من أن البيانات محدثة من قاعدة البيانات
+        const freshUser = await storage.getUser(user.id);
+        if (freshUser) {
+          const { password, ...userWithoutPassword } = freshUser;
+          console.log('إرسال معلومات المستخدم المحدثة: ', { user: userWithoutPassword });
+          return res.json({ user: userWithoutPassword });
+        } else {
+          console.log('المستخدم غير موجود في قاعدة البيانات');
+          return res.status(401).json({ message: 'User not found' });
+        }
+      } catch (error) {
+        console.error('خطأ في استرجاع بيانات المستخدم:', error);
+        return res.status(500).json({ message: 'Internal server error' });
+      }
     }
     
-    console.log(`طلب /api/auth/user - المستخدم غير مصرح, sessionID: ${req.sessionID}`);
+    console.log(`طلب /api/auth/user - المستخدم غير مصرح, sessionID: ${sessionId}`);
     return res.status(401).json({ message: 'Not authenticated' });
   });
 
