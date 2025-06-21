@@ -1,0 +1,110 @@
+# LinkTech - A Platform Connecting Entrepreneurs with Software Companies
+
+## Overview
+
+LinkTech is a full-stack web application that serves as a marketplace connecting entrepreneurs with software development companies in Saudi Arabia. The platform facilitates project posting, company matching, offer submission, and secure payment processing through an escrow system.
+
+## System Architecture
+
+### Frontend Architecture
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite for fast development and optimized production builds
+- **UI Framework**: Tailwind CSS with shadcn/ui component library
+- **State Management**: TanStack Query (React Query) for server state management
+- **Routing**: Wouter for lightweight client-side routing
+- **Forms**: React Hook Form with Zod validation
+- **SEO**: React Helmet for meta tag management and structured data
+
+### Backend Architecture
+- **Runtime**: Node.js with TypeScript
+- **Framework**: Express.js for API routes and middleware
+- **Database**: PostgreSQL with Drizzle ORM
+- **Authentication**: Passport.js with local strategy and express-session
+- **Real-time Communication**: WebSocket for live messaging
+- **File Processing**: Various libraries for PDF generation and image handling
+
+## Key Components
+
+### Database Schema
+- **Users**: Core user accounts with role-based access (entrepreneur, company, admin)
+- **Company Profiles**: Extended profiles for software companies with verification system
+- **Projects**: Project listings with requirements, budget, and status tracking
+- **Messages**: Real-time messaging system between users
+- **Project Offers**: Bid system for companies to submit proposals
+- **Testimonials**: Review and rating system
+- **Blog System**: Content management for blog posts and categories
+
+### Authentication & Authorization
+- Session-based authentication using Passport.js
+- Role-based access control (entrepreneur, company, admin)
+- Password reset functionality with email verification
+- User profile verification system for companies
+
+### Payment & Escrow System
+- Integration with Stripe for payment processing
+- 2.5% commission system on completed projects
+- Escrow mechanism to protect both parties
+- Automated payment release upon project completion
+
+### Content Management
+- Blog system with categories, posts, and comments
+- Admin dashboard for content moderation
+- Contact form system for customer inquiries
+- Newsletter subscription management
+
+## Data Flow
+
+1. **User Registration**: Users register as either entrepreneurs or companies
+2. **Project Creation**: Entrepreneurs post projects with detailed requirements
+3. **Company Matching**: AI-powered recommendation system suggests relevant companies
+4. **Offer Submission**: Companies submit proposals with pricing and timelines
+5. **Agreement Process**: NDA generation and project acceptance workflow
+6. **Payment Processing**: Escrow system handles secure transactions
+7. **Project Execution**: Real-time messaging and milestone tracking
+8. **Completion**: Final delivery and payment release
+
+## External Dependencies
+
+### Core Dependencies
+- **Database**: @neondatabase/serverless for PostgreSQL connection
+- **ORM**: drizzle-orm for type-safe database operations
+- **UI Components**: @radix-ui components for accessible UI elements
+- **Email Service**: @sendgrid/mail for transactional emails
+- **PDF Generation**: pdfkit and pdfmake for document creation
+- **WebSocket**: ws for real-time communication
+
+### Development Tools
+- **TypeScript**: Full type safety across frontend and backend
+- **ESBuild**: Fast bundling for production builds
+- **Drizzle Kit**: Database migration and schema management
+- **PostCSS**: CSS processing with Tailwind CSS
+
+## Deployment Strategy
+
+### Production Configuration
+- **Platform**: Replit with autoscale deployment
+- **Database**: PostgreSQL 16 with connection pooling
+- **Build Process**: Vite build for frontend, ESBuild for backend
+- **Environment**: Node.js 20 runtime
+- **Port Configuration**: Internal port 5000 mapped to external port 80
+
+### Performance Optimizations
+- Database connection pooling for production scalability
+- Lazy loading for images and components
+- Code splitting and bundle optimization
+- CDN integration for static assets
+
+### Security Measures
+- Content filtering system to prevent contact information sharing
+- SQL injection protection through Drizzle ORM
+- Session security with secure cookie configuration
+- Input validation using Zod schemas
+- CORS configuration for API security
+
+## Changelog
+
+- June 21, 2025. Initial setup
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.

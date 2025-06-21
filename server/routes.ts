@@ -83,13 +83,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     cookie: { 
       secure: false, // false للـ HTTP في التطوير
       maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
-      httpOnly: true,
+      httpOnly: false, // تغيير إلى false للسماح بالوصول من الجافاسكريبت
       sameSite: 'lax'
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
     }),
-    name: 'linktech.session' // اسم مخصص للجلسة
+    name: 'connect.sid' // استخدام الاسم الافتراضي
   }));
   
   // لتصحيح الأخطاء المتعلقة بالـ CORS مع الجلسات
