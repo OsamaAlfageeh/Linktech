@@ -3438,46 +3438,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       
-      // التحقق من صلاحيات المسؤول
-      const adminUser = await storage.getUser(user.id);
-      if (!adminUser || adminUser.role !== 'admin') {
-        return res.status(403).json({ message: 'الوصول غير مصرح' });
-      }
-      
       const { settings } = req.body;
       
-      if (!Array.isArray(settings)) {
-        return res.status(400).json({ message: 'معرف الإعدادات مطلوب' });
+      if (!settings || !Array.isArray(settings)) {
+        return res.status(400).json({ message: 'بيانات الإعدادات غير صالحة' });
       }
       
-      // تحديث كل إعداد
       const updatedSettings = [];
       for (const setting of settings) {
-        try {
-          const validatedSetting = insertSiteSettingSchema.parse({
-            ...setting,
-            updatedBy: user.id
-          });
-          
-          const updatedSetting = await storage.updateSiteSetting(
-            setting.key,
-            validatedSetting
-          );
+        if (setting.key && setting.value !== undefined) {
+          const updatedSetting = await storage.setSiteSetting(setting.key, setting.value);
           updatedSettings.push(updatedSetting);
-        } catch (validationError) {
-          console.error(`خطأ في التحقق من الإعداد ${setting.key}:`, validationError);
-          return res.status(400).json({ 
-            message: `خطأ في التحقق من الإعداد: ${setting.key}` 
-          });
         }
       }
       
       res.json({ 
-        message: 'تم تحديث الإعدادات بنجاح',
+        success: true, 
+        message: 'تم حفظ الإعدادات بنجاح',
         settings: updatedSettings 
       });
     } catch (error) {
-      console.error('Error updating site settings:', error);
+      console.error('خطأ في حفظ إعدادات الموقع:', error);
       res.status(500).json({ message: 'خطأ في تحديث الإعدادات' });
     }
   });
@@ -4288,32 +4269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/admin/site-settings', isAdmin, async (req: Request, res: Response) => {
-    try {
-      const { settings } = req.body;
-      
-      if (!settings || !Array.isArray(settings)) {
-        return res.status(400).json({ message: 'بيانات الإعدادات غير صالحة' });
-      }
-      
-      const updatedSettings = [];
-      for (const setting of settings) {
-        if (setting.key && setting.value !== undefined) {
-          const updatedSetting = await storage.setSiteSetting(setting.key, setting.value);
-          updatedSettings.push(updatedSetting);
-        }
-      }
-      
-      res.json({ 
-        success: true, 
-        message: 'تم حفظ الإعدادات بنجاح',
-        settings: updatedSettings 
-      });
-    } catch (error) {
-      console.error('خطأ في حفظ إعدادات الموقع:', error);
-      res.status(500).json({ message: 'حدث خطأ أثناء حفظ الإعدادات' });
-    }
-  });
+
 
   return httpServer;
 }
