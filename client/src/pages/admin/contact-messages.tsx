@@ -68,6 +68,15 @@ const ContactMessagesPage = () => {
   // استعلام لجلب رسائل الاتصال
   const { data: messages, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/contact-messages'],
+    queryFn: async () => {
+      const response = await fetch('/api/contact-messages', {
+        credentials: 'include'
+      });
+      if (!response.ok) {
+        throw new Error('فشل في تحميل رسائل الاتصال');
+      }
+      return response.json();
+    },
     retry: 1,
   });
 
@@ -84,7 +93,19 @@ const ContactMessagesPage = () => {
   // تحديث حالة الرسالة
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
-      const response = await apiRequest("PATCH", `/api/contact-messages/${id}/status`, { status });
+      const response = await fetch(`/api/contact-messages/${id}/status`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في تحديث حالة الرسالة');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -106,7 +127,19 @@ const ContactMessagesPage = () => {
   // إضافة ملاحظة للرسالة
   const addNotesMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
-      const response = await apiRequest("PATCH", `/api/contact-messages/${id}/notes`, { notes });
+      const response = await fetch(`/api/contact-messages/${id}/notes`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ notes }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في إضافة الملاحظة');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -127,10 +160,55 @@ const ContactMessagesPage = () => {
     },
   });
 
+
+
+  // حذف الرسالة
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/contact-messages/${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في حذف الرسالة');
+      }
+      
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/contact-messages'] });
+      setIsDeleteDialogOpen(false);
+      toast({
+        title: "تم حذف الرسالة",
+        description: "تم حذف الرسالة بنجاح",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في حذف الرسالة", 
+        description: error instanceof Error ? error.message : "حدث خطأ أثناء حذف الرسالة",
+        variant: "destructive",
+      });
+    },
+  });
+
   // الرد على الرسالة
   const replyMutation = useMutation({
     mutationFn: async ({ id, replyMessage }: { id: number; replyMessage: string }) => {
-      const response = await apiRequest("POST", `/api/contact-messages/${id}/reply`, { replyMessage });
+      const response = await fetch(`/api/contact-messages/${id}/reply`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ replyMessage }),
+      });
+      
+      if (!response.ok) {
+        throw new Error('فشل في إرسال الرد');
+      }
+      
       return response.json();
     },
     onSuccess: () => {
@@ -146,30 +224,6 @@ const ContactMessagesPage = () => {
       toast({
         title: "خطأ في إرسال الرد",
         description: error instanceof Error ? error.message : "حدث خطأ أثناء إرسال الرد",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // حذف الرسالة
-  const deleteMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/contact-messages/${id}`);
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/contact-messages'] });
-      setIsDeleteDialogOpen(false);
-      setSelectedMessage(null);
-      toast({
-        title: "تم حذف الرسالة",
-        description: "تم حذف الرسالة بنجاح",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "خطأ في حذف الرسالة",
-        description: error instanceof Error ? error.message : "حدث خطأ أثناء حذف الرسالة",
         variant: "destructive",
       });
     },

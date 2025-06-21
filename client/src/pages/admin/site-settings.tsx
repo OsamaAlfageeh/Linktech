@@ -56,7 +56,9 @@ const SiteSettingsPage = () => {
   const { data: settings, isLoading: isLoadingSettings } = useQuery({
     queryKey: ['/api/admin/site-settings'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/site-settings');
+      const response = await fetch('/api/admin/site-settings', {
+        credentials: 'include'
+      });
       if (!response.ok) {
         throw new Error('فشل في جلب الإعدادات');
       }
@@ -95,6 +97,7 @@ const SiteSettingsPage = () => {
 
       const response = await fetch('/api/admin/site-settings', {
         method: 'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
         },

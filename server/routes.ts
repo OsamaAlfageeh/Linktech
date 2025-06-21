@@ -4187,5 +4187,133 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contact messages API
+  app.get('/api/contact-messages', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const messages = await storage.getContactMessages();
+      res.json(messages);
+    } catch (error) {
+      console.error('خطأ في استرجاع رسائل الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب رسائل الاتصال' });
+    }
+  });
+
+  app.patch('/api/contact-messages/:id/status', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'معرف غير صالح' });
+      }
+      
+      const { status } = req.body;
+      if (!['new', 'read', 'replied', 'archived'].includes(status)) {
+        return res.status(400).json({ message: 'حالة غير صالحة' });
+      }
+      
+      const updatedMessage = await storage.updateContactMessageStatus(id, status);
+      res.json(updatedMessage);
+    } catch (error) {
+      console.error('خطأ في تحديث حالة رسالة الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء تحديث حالة الرسالة' });
+    }
+  });
+
+  app.patch('/api/contact-messages/:id/notes', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'معرف غير صالح' });
+      }
+      
+      const { notes } = req.body;
+      if (!notes) {
+        return res.status(400).json({ message: 'الملاحظات مطلوبة' });
+      }
+      
+      const updatedMessage = await storage.addNoteToContactMessage(id, notes);
+      res.json(updatedMessage);
+    } catch (error) {
+      console.error('خطأ في إضافة ملاحظة إلى رسالة الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء إضافة الملاحظة' });
+    }
+  });
+
+  app.delete('/api/contact-messages/:id', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'معرف غير صالح' });
+      }
+      
+      const success = await storage.deleteContactMessage(id);
+      res.json({ success: true, message: 'تم حذف الرسالة بنجاح' });
+    } catch (error) {
+      console.error('خطأ في حذف رسالة الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء حذف الرسالة' });
+    }
+  });
+
+  app.post('/api/contact-messages/:id/reply', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'معرف غير صالح' });
+      }
+      
+      const { replyMessage } = req.body;
+      if (!replyMessage) {
+        return res.status(400).json({ message: 'نص الرد مطلوب' });
+      }
+      
+      const updatedMessage = await storage.replyToContactMessage(id, replyMessage);
+      if (!updatedMessage) {
+        return res.status(404).json({ message: 'الرسالة غير موجودة' });
+      }
+      
+      res.json(updatedMessage);
+    } catch (error) {
+      console.error('خطأ في الرد على رسالة الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء إرسال الرد' });
+    }
+  });
+
+  // Site settings API
+  app.get('/api/admin/site-settings', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('خطأ في استرجاع إعدادات الموقع:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب الإعدادات' });
+    }
+  });
+
+  app.post('/api/admin/site-settings', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { settings } = req.body;
+      
+      if (!settings || !Array.isArray(settings)) {
+        return res.status(400).json({ message: 'بيانات الإعدادات غير صالحة' });
+      }
+      
+      const updatedSettings = [];
+      for (const setting of settings) {
+        if (setting.key && setting.value !== undefined) {
+          const updatedSetting = await storage.setSiteSetting(setting.key, setting.value);
+          updatedSettings.push(updatedSetting);
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'تم حفظ الإعدادات بنجاح',
+        settings: updatedSettings 
+      });
+    } catch (error) {
+      console.error('خطأ في حفظ إعدادات الموقع:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء حفظ الإعدادات' });
+    }
+  });
+
   return httpServer;
 }
