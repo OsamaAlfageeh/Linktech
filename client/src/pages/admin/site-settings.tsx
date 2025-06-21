@@ -114,13 +114,13 @@ const SiteSettingsPage = () => {
         business_hours: data.businessHours
       };
 
-      const response2 = await fetch('/api/update-contact-info', {
+      const response2 = await fetch('/api/contact-info', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ contactInfo }),
+        body: JSON.stringify(contactInfo),
       });
 
       if (!response1.ok && !response2.ok) {

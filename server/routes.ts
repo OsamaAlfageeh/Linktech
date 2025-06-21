@@ -4279,40 +4279,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 
 
-  // API لتحديث إعدادات التواصل (للاستخدام من لوحة الإدارة)
-  app.post('/api/update-contact-info', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      
-      // التحقق من صلاحيات المسؤول
-      const adminUser = await storage.getUser(user.id);
-      if (!adminUser || adminUser.role !== 'admin') {
-        return res.status(403).json({ message: 'الوصول غير مصرح' });
-      }
-      
-      const { contactInfo } = req.body;
-      
-      if (contactInfo) {
-        // تحديث المخزن المؤقت
-        globalContactSettingsCache = { ...globalContactSettingsCache, ...contactInfo };
-        console.log('تم تحديث إعدادات التواصل:', globalContactSettingsCache);
-      }
-      
-      res.json({ success: true, message: 'تم حفظ معلومات التواصل بنجاح' });
-    } catch (error) {
-      console.error('خطأ في تحديث معلومات التواصل:', error);
-      res.status(500).json({ message: 'حدث خطأ أثناء حفظ المعلومات' });
-    }
+
+
+  // Simple in-memory storage for contact settings
+  const contactSettings = {
+    contact_email: 'info@linktech.app',
+    contact_phone: '+966 53 123 4567',
+    contact_address: 'واحة المعرفة، طريق الملك عبدالعزيز، جدة، المملكة العربية السعودية',
+    contact_whatsapp: '',
+    business_hours: 'الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً\nالجمعة - السبت: مغلق'
+  };
+
+  // API للحصول على معلومات التواصل
+  app.get('/api/contact-info', (req: Request, res: Response) => {
+    res.json(contactSettings);
   });
 
-  // API للحصول على معلومات التواصل (للاستخدام في صفحة التواصل)
-  app.get('/api/contact-info', async (req: Request, res: Response) => {
-    try {
-      console.log('إرجاع معلومات التواصل من المخزن المؤقت:', globalContactSettingsCache);
-      res.json(globalContactSettingsCache);
-    } catch (error) {
-      console.error('خطأ في جلب معلومات التواصل:', error);
-      res.status(500).json({ message: 'حدث خطأ أثناء جلب معلومات التواصل' });
+  // API لتحديث معلومات التواصل
+  app.post('/api/contact-info', isAuthenticated, (req: Request, res: Response) => {
+    const user = req.user as any;
+    if (user && user.role === 'admin') {
+      const { contact_email, contact_phone, contact_address, contact_whatsapp, business_hours } = req.body;
+      
+      if (contact_email) contactSettings.contact_email = contact_email;
+      if (contact_phone) contactSettings.contact_phone = contact_phone;
+      if (contact_address) contactSettings.contact_address = contact_address;
+      if (contact_whatsapp !== undefined) contactSettings.contact_whatsapp = contact_whatsapp;
+      if (business_hours) contactSettings.business_hours = business_hours;
+      
+      res.json({ success: true, message: 'تم تحديث معلومات التواصل بنجاح' });
+    } else {
+      res.status(403).json({ message: 'غير مصرح' });
     }
   });
 
