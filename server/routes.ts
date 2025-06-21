@@ -4269,6 +4269,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // API للحصول على معلومات التواصل (للاستخدام في صفحة التواصل)
+  app.get('/api/contact-info', async (req: Request, res: Response) => {
+    try {
+      // إرجاع معلومات التواصل الافتراضية مؤقتاً حتى يتم إصلاح آلية التخزين
+      const defaultContactInfo = {
+        contact_email: 'info@linktech.sa',
+        contact_phone: '+966501234567',
+        contact_address: 'الرياض، المملكة العربية السعودية',
+        contact_whatsapp: '+966501234567',
+        business_hours: 'الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً'
+      };
+      
+      res.json(defaultContactInfo);
+    } catch (error) {
+      console.error('خطأ في جلب معلومات التواصل:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب معلومات التواصل' });
+    }
+  });
+
 
 
   return httpServer;

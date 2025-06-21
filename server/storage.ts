@@ -168,6 +168,9 @@ export class MemStorage implements IStorage {
   private testimonialIdCounter: number = 1;
   private projectOfferIdCounter: number = 1;
   private siteSettingsIdCounter: number = 1;
+  private contactMessageIdCounter: number = 1;
+  private aiAnalysisIdCounter: number = 1;
+  private analysisRatingIdCounter: number = 1;
   private newsletterSubscriberIdCounter: number = 1;
   private ndaAgreementIdCounter: number = 1;
   private premiumClientIdCounter: number = 1;
@@ -184,8 +187,12 @@ export class MemStorage implements IStorage {
     this.newsletterSubscribers = new Map();
     this.ndaAgreements = new Map();
     this.premiumClients = new Map();
+    this.contactMessages = new Map();
+    this.aiProjectAnalyses = new Map();
+    this.analysisRatings = new Map();
     
     this.seedData();
+    this.seedDefaultSiteSettings();
   }
   
   // User operations
@@ -555,6 +562,7 @@ export class MemStorage implements IStorage {
         updatedAt: now 
       };
       this.siteSettings.set(existingSetting.id.toString(), updatedSetting);
+      console.log(`setSiteSetting: تم تحديث ${key} = ${value}`);
       return updatedSetting;
     } else {
       const id = this.siteSettingsIdCounter++;
@@ -565,12 +573,40 @@ export class MemStorage implements IStorage {
         updatedAt: now 
       };
       this.siteSettings.set(id.toString(), newSetting);
+      console.log(`setSiteSetting: تم إنشاء ${key} = ${value} مع معرف ${id}`);
       return newSetting;
     }
   }
   
   async getAllSiteSettings(): Promise<SiteSetting[]> {
-    return Array.from(this.siteSettings.values());
+    const settings = Array.from(this.siteSettings.values());
+    console.log(`getAllSiteSettings: إرجاع ${settings.length} إعدادات`);
+    return settings;
+  }
+
+  // إضافة إعدادات افتراضية للموقع
+  private seedDefaultSiteSettings() {
+    console.log('تحميل الإعدادات الافتراضية للموقع...');
+    const defaultSettings = [
+      { key: 'contact_email', value: 'info@linktech.sa' },
+      { key: 'contact_phone', value: '+966501234567' },
+      { key: 'contact_address', value: 'الرياض، المملكة العربية السعودية' },
+      { key: 'contact_whatsapp', value: '+966501234567' },
+      { key: 'business_hours', value: 'الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً' }
+    ];
+
+    defaultSettings.forEach(setting => {
+      const id = this.siteSettingsIdCounter++;
+      const siteSetting: SiteSetting = {
+        id,
+        key: setting.key,
+        value: setting.value,
+        updatedAt: new Date()
+      };
+      this.siteSettings.set(id.toString(), siteSetting);
+      console.log(`تم إضافة إعداد: ${setting.key} = ${setting.value}`);
+    });
+    console.log(`تم تحميل ${this.siteSettings.size} إعدادات افتراضية`);
   }
   
   // Newsletter Subscriber operations
