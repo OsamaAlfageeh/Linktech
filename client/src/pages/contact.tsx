@@ -41,15 +41,21 @@ const ContactPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // جلب معلومات التواصل من الإعدادات
-  const { data: contactInfo, isLoading: isLoadingContactInfo } = useQuery({
+  const { data: contactInfo, isLoading: isLoadingContactInfo, refetch: refetchContactInfo } = useQuery({
     queryKey: ['/api/contact-info'],
     queryFn: async () => {
+      console.log('جلب معلومات التواصل...');
       const response = await fetch('/api/contact-info');
       if (!response.ok) {
         throw new Error('فشل في جلب معلومات التواصل');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('معلومات التواصل المستلمة:', data);
+      return data;
     },
+    retry: 1,
+    refetchOnWindowFocus: true,
+    refetchInterval: 30000, // تحديث كل 30 ثانية
   });
   
   const form = useForm<ContactFormValues>({

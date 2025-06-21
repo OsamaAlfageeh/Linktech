@@ -101,6 +101,13 @@ LinkTech is a full-stack web application that serves as a marketplace connecting
 - Input validation using Zod schemas
 - CORS configuration for API security
 
+## Recent Changes
+
+- June 21, 2025: إصلاح مشكلة ربط إعدادات التواصل بصفحة "تواصل معنا"
+  - تم إضافة API `/api/contact-info` لعرض معلومات التواصل المحفوظة
+  - تم إصلاح آلية حفظ واسترجاع إعدادات الموقع في لوحة الإدارة
+  - تم تحسين نظام إدارة رسائل التواصل
+
 ## Changelog
 
 - June 21, 2025. Initial setup

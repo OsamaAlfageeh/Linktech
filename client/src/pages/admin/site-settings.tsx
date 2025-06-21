@@ -95,7 +95,8 @@ const SiteSettingsPage = () => {
         { key: 'business_hours', value: data.businessHours || '', description: 'ساعات العمل', category: 'contact' },
       ];
 
-      const response = await fetch('/api/admin/site-settings', {
+      // حفظ في نظام الإعدادات العام
+      const response1 = await fetch('/api/admin/site-settings', {
         method: 'POST',
         credentials: 'include',
         headers: {
@@ -104,7 +105,25 @@ const SiteSettingsPage = () => {
         body: JSON.stringify({ settings: settingsToUpdate }),
       });
 
-      if (!response.ok) {
+      // حفظ في نظام التواصل المباشر
+      const contactInfo = {
+        contact_email: data.email,
+        contact_phone: data.phone,
+        contact_address: data.address,
+        contact_whatsapp: data.whatsapp || '',
+        business_hours: data.businessHours
+      };
+
+      const response2 = await fetch('/api/update-contact-info', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ contactInfo }),
+      });
+
+      if (!response1.ok && !response2.ok) {
         throw new Error('فشل في حفظ الإعدادات');
       }
 
@@ -116,6 +135,7 @@ const SiteSettingsPage = () => {
         description: "تم تحديث معلومات التواصل بنجاح",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/admin/site-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contact-info'] });
     },
     onError: (error) => {
       toast({

@@ -18,6 +18,14 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+
+// مخزن مؤقت لإعدادات التواصل (على مستوى الوحدة لضمان الاستمرارية)
+let globalContactSettingsCache: any = {
+  contact_email: 'info@linktech.app',
+  contact_phone: '+966 53 123 4567', 
+  contact_address: 'واحة المعرفة، طريق الملك عبدالعزيز، جدة، المملكة العربية السعودية',
+  business_hours: 'الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً\nالجمعة - السبت: مغلق'
+};
 // مكتبة pdfmake للتوليد المحسّن لملفات PDF
 import PdfPrinter from 'pdfmake/src/printer';
 
@@ -4269,19 +4277,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+
+
+  // API لتحديث إعدادات التواصل (للاستخدام من لوحة الإدارة)
+  app.post('/api/update-contact-info', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // التحقق من صلاحيات المسؤول
+      const adminUser = await storage.getUser(user.id);
+      if (!adminUser || adminUser.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح' });
+      }
+      
+      const { contactInfo } = req.body;
+      
+      if (contactInfo) {
+        // تحديث المخزن المؤقت
+        globalContactSettingsCache = { ...globalContactSettingsCache, ...contactInfo };
+        console.log('تم تحديث إعدادات التواصل:', globalContactSettingsCache);
+      }
+      
+      res.json({ success: true, message: 'تم حفظ معلومات التواصل بنجاح' });
+    } catch (error) {
+      console.error('خطأ في تحديث معلومات التواصل:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء حفظ المعلومات' });
+    }
+  });
+
   // API للحصول على معلومات التواصل (للاستخدام في صفحة التواصل)
   app.get('/api/contact-info', async (req: Request, res: Response) => {
     try {
-      // إرجاع معلومات التواصل الافتراضية مؤقتاً حتى يتم إصلاح آلية التخزين
-      const defaultContactInfo = {
-        contact_email: 'info@linktech.sa',
-        contact_phone: '+966501234567',
-        contact_address: 'الرياض، المملكة العربية السعودية',
-        contact_whatsapp: '+966501234567',
-        business_hours: 'الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً'
-      };
-      
-      res.json(defaultContactInfo);
+      console.log('إرجاع معلومات التواصل من المخزن المؤقت:', globalContactSettingsCache);
+      res.json(globalContactSettingsCache);
     } catch (error) {
       console.error('خطأ في جلب معلومات التواصل:', error);
       res.status(500).json({ message: 'حدث خطأ أثناء جلب معلومات التواصل' });

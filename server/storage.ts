@@ -552,19 +552,30 @@ export class MemStorage implements IStorage {
   }
   
   async setSiteSetting(key: string, value: string): Promise<SiteSetting> {
-    const existingSetting = await this.getSiteSetting(key);
     const now = new Date();
     
-    if (existingSetting) {
+    // البحث عن الإعداد الموجود بناءً على المفتاح
+    let existingId: string | null = null;
+    for (const [id, setting] of this.siteSettings.entries()) {
+      if (setting.key === key) {
+        existingId = id;
+        break;
+      }
+    }
+    
+    if (existingId) {
+      // تحديث الإعداد الموجود
+      const existingSetting = this.siteSettings.get(existingId)!;
       const updatedSetting: SiteSetting = { 
         ...existingSetting, 
         value, 
         updatedAt: now 
       };
-      this.siteSettings.set(existingSetting.id.toString(), updatedSetting);
+      this.siteSettings.set(existingId, updatedSetting);
       console.log(`setSiteSetting: تم تحديث ${key} = ${value}`);
       return updatedSetting;
     } else {
+      // إنشاء إعداد جديد
       const id = this.siteSettingsIdCounter++;
       const newSetting: SiteSetting = { 
         id, 
