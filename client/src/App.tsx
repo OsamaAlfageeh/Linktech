@@ -259,8 +259,11 @@ function App() {
           {/* صفحات المدونة */}
           <Route path="/blog" component={BlogIndexPage} />
           <Route path="/blog/:slug" component={BlogPostPage} />
+          
+          {/* صفحات إدارة المسؤول */}
           <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
-          <ProtectedRoute path="/admin/premium-clients" component={PremiumClientsManagement} requiredRole="admin" />
+          <ProtectedRoute path="/admin/premium-clients-management" component={PremiumClientsManagement} requiredRole="admin" />
+          <ProtectedRoute path="/admin/site-settings" component={SiteSettings} requiredRole="admin" />
           <ProtectedRoute path="/admin/contact-messages" component={ContactMessagesPage} requiredRole="admin" />
           
           {/* صفحة عملاء التميز */}
