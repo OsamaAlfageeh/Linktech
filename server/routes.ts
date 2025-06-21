@@ -35,7 +35,8 @@ import {
   insertBlogCategorySchema,
   insertBlogPostSchema,
   insertBlogCommentSchema,
-  insertContactMessageSchema
+  insertContactMessageSchema,
+  insertSiteSettingSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { 
@@ -3379,6 +3380,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Site Settings Management API (Admin only)
+  // Get all site settings
+  app.get('/api/admin/site-settings', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // التحقق من صلاحيات المسؤول
+      const adminUser = await storage.getUser(user.id);
+      if (!adminUser || adminUser.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح' });
+      }
+      
+      const settings = await storage.getAllSiteSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error('Error fetching site settings:', error);
+      res.status(500).json({ message: 'خطأ في جلب الإعدادات' });
+    }
+  });
+
+  // Update multiple site settings
+  app.post('/api/admin/site-settings', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // التحقق من صلاحيات المسؤول
+      const adminUser = await storage.getUser(user.id);
+      if (!adminUser || adminUser.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح' });
+      }
+      
+      const { settings } = req.body;
+      
+      if (!Array.isArray(settings)) {
+        return res.status(400).json({ message: 'معرف الإعدادات مطلوب' });
+      }
+      
+      // تحديث كل إعداد
+      const updatedSettings = [];
+      for (const setting of settings) {
+        try {
+          const validatedSetting = insertSiteSettingSchema.parse({
+            ...setting,
+            updatedBy: user.id
+          });
+          
+          const updatedSetting = await storage.updateSiteSetting(
+            setting.key,
+            validatedSetting
+          );
+          updatedSettings.push(updatedSetting);
+        } catch (validationError) {
+          console.error(`خطأ في التحقق من الإعداد ${setting.key}:`, validationError);
+          return res.status(400).json({ 
+            message: `خطأ في التحقق من الإعداد: ${setting.key}` 
+          });
+        }
+      }
+      
+      res.json({ 
+        message: 'تم تحديث الإعدادات بنجاح',
+        settings: updatedSettings 
+      });
+    } catch (error) {
+      console.error('Error updating site settings:', error);
+      res.status(500).json({ message: 'خطأ في تحديث الإعدادات' });
+    }
+  });
+
+  // Get public contact information (for use in contact page)
+  app.get('/api/contact-info', async (req: Request, res: Response) => {
+    try {
+      const contactSettings = await storage.getSiteSettingsByCategory('contact');
+      
+      const contactInfo = contactSettings.reduce((acc: any, setting) => {
+        acc[setting.key] = setting.value;
+        return acc;
+      }, {});
+      
+      res.json(contactInfo);
+    } catch (error) {
+      console.error('Error fetching contact info:', error);
+      res.status(500).json({ message: 'خطأ في جلب معلومات التواصل' });
+    }
+  });
+
   // استخدام مسارات Sitemap و robots.txt من ملف منفصل
   app.use(sitemapRoutes);
   

@@ -1875,6 +1875,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.analysisRatings.analysisId, analysisId))
       .orderBy(desc(schema.analysisRatings.createdAt));
   }
+
+  // Site settings methods
+  async getAllSiteSettings(): Promise<SiteSetting[]> {
+    return await db.select().from(siteSettings);
+  }
+
+  async getSiteSettingsByCategory(category: string): Promise<SiteSetting[]> {
+    return await db.select().from(siteSettings).where(eq(siteSettings.category, category));
+  }
 }
 
 // Change from MemStorage to DatabaseStorage

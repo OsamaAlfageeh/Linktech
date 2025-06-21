@@ -48,6 +48,7 @@ import BlogIndexPage from "@/pages/blog/index";
 import BlogPostPage from "@/pages/blog/[slug]";
 import BlogManagement from "@/pages/admin/blog-management";
 import PremiumClientsManagement from "@/pages/admin/premium-clients-management";
+import SiteSettings from "@/pages/admin/site-settings";
 import ContactMessagesPage from "@/pages/admin/contact-messages";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 

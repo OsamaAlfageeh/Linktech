@@ -334,21 +334,7 @@ export type InsertBadgeDefinition = z.infer<typeof insertBadgeDefinitionSchema>;
 export type UserActivity = typeof userActivities.$inferSelect;
 export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
 
-// Site Settings schema
-export const siteSettings = pgTable("site_settings", {
-  id: serial("id").primaryKey(),
-  key: text("key").notNull().unique(),
-  value: text("value"),
-  updatedAt: timestamp("updated_at").defaultNow().notNull(),
-});
-
-export const insertSiteSettingsSchema = createInsertSchema(siteSettings).omit({ 
-  id: true, 
-  updatedAt: true 
-});
-
-export type SiteSetting = typeof siteSettings.$inferSelect;
-export type InsertSiteSetting = z.infer<typeof insertSiteSettingsSchema>;
+// Site Settings schema - removed duplicate, using the one defined later
 
 // Password Reset Tokens schema
 export const passwordResetTokens = pgTable("password_reset_tokens", {
@@ -761,6 +747,25 @@ export const insertProjectTemplateSchema = createInsertSchema(projectTemplates).
 
 export type ProjectTemplate = typeof projectTemplates.$inferSelect;
 export type InsertProjectTemplate = z.infer<typeof insertProjectTemplateSchema>;
+
+// جدول إعدادات الموقع
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  description: text("description"),
+  category: text("category").default("general"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: integer("updated_by").references(() => users.id),
+});
+
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({ 
+  id: true, 
+  updatedAt: true
+});
+
+export type SiteSetting = typeof siteSettings.$inferSelect;
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
 
 // جدول تقييم المستخدمين لدقة التوصيات
 export const analysisRatings = pgTable("analysis_ratings", {

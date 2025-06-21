@@ -21,10 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Mail, Phone, MapPin, Send, Loader2, ArrowLeft } from "lucide-react";
+import { Mail, Phone, MapPin, Send, Loader2, ArrowLeft, MessageCircle, Clock } from "lucide-react";
 import SEO from "@/components/seo/SEO";
 import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
 
 import { insertContactMessageSchema } from "@shared/schema";
 
@@ -38,6 +39,18 @@ type ContactFormValues = z.infer<typeof contactFormSchema>;
 const ContactPage = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // جلب معلومات التواصل من الإعدادات
+  const { data: contactInfo, isLoading: isLoadingContactInfo } = useQuery({
+    queryKey: ['/api/contact-info'],
+    queryFn: async () => {
+      const response = await fetch('/api/contact-info');
+      if (!response.ok) {
+        throw new Error('فشل في جلب معلومات التواصل');
+      }
+      return response.json();
+    },
+  });
   
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
@@ -145,49 +158,95 @@ const ContactPage = () => {
             <div className="md:col-span-2 bg-white rounded-xl shadow-md p-6 md:p-8">
               <h2 className="text-2xl font-bold mb-6">معلومات التواصل</h2>
               
-              <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Mail className="h-6 w-6 text-primary" />
+              {isLoadingContactInfo ? (
+                <div className="space-y-6">
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-3/4"></div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg">البريد الإلكتروني</h3>
-                    <p className="text-neutral-600">info@linktech.app</p>
-                    <p className="text-neutral-600">support@linktech.app</p>
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-1/2"></div>
                   </div>
-                </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <Phone className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">الهاتف</h3>
-                    <p className="text-neutral-600">+966 53 123 4567</p>
-                    <p className="text-neutral-600">+966 12 345 6789</p>
+                  <div className="animate-pulse">
+                    <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                    <div className="h-3 bg-gray-200 rounded w-2/3"></div>
                   </div>
                 </div>
-                
-                <div className="flex items-start gap-4">
-                  <div className="bg-primary/10 p-3 rounded-full">
-                    <MapPin className="h-6 w-6 text-primary" />
+              ) : (
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <Mail className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">البريد الإلكتروني</h3>
+                      <p className="text-neutral-600">
+                        {contactInfo?.contact_email || 'info@linktech.app'}
+                      </p>
+                      {contactInfo?.support_email && (
+                        <p className="text-neutral-600">{contactInfo.support_email}</p>
+                      )}
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-bold text-lg">العنوان</h3>
-                    <p className="text-neutral-600">
-                      واحة المعرفة، طريق الملك عبدالعزيز
-                      <br />
-                      جدة، المملكة العربية السعودية
-                    </p>
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <Phone className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">الهاتف</h3>
+                      <p className="text-neutral-600" dir="ltr">
+                        {contactInfo?.contact_phone || '+966 53 123 4567'}
+                      </p>
+                      {contactInfo?.secondary_phone && (
+                        <p className="text-neutral-600" dir="ltr">{contactInfo.secondary_phone}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {contactInfo?.contact_whatsapp && (
+                    <div className="flex items-start gap-4">
+                      <div className="bg-green-100 p-3 rounded-full">
+                        <MessageCircle className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">واتساب</h3>
+                        <p className="text-neutral-600" dir="ltr">
+                          {contactInfo.contact_whatsapp}
+                        </p>
+                        <p className="text-sm text-neutral-500">للتواصل السريع</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  <div className="flex items-start gap-4">
+                    <div className="bg-primary/10 p-3 rounded-full">
+                      <MapPin className="h-6 w-6 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">العنوان</h3>
+                      <p className="text-neutral-600">
+                        {contactInfo?.contact_address || 
+                         'واحة المعرفة، طريق الملك عبدالعزيز، جدة، المملكة العربية السعودية'
+                        }
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               
               <div className="mt-10">
                 <h3 className="font-bold text-lg mb-4">ساعات العمل</h3>
                 <div className="space-y-2 text-neutral-600">
-                  <p>الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً</p>
-                  <p>الجمعة - السبت: مغلق</p>
+                  {contactInfo?.business_hours ? (
+                    <p>{contactInfo.business_hours}</p>
+                  ) : (
+                    <>
+                      <p>الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً</p>
+                      <p>الجمعة - السبت: مغلق</p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
