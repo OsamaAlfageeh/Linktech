@@ -127,7 +127,7 @@ const SiteSettingsPage = () => {
         throw new Error('فشل في حفظ الإعدادات');
       }
 
-      return response.json();
+      return { success: true };
     },
     onSuccess: () => {
       toast({
