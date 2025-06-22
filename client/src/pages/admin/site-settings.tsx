@@ -105,23 +105,26 @@ const SiteSettingsPage = () => {
         body: JSON.stringify({ settings: settingsToUpdate }),
       });
 
-      // حفظ في نظام التواصل المباشر
-      const contactInfo = {
-        contact_email: data.email,
-        contact_phone: data.phone,
-        contact_address: data.address,
-        contact_whatsapp: data.whatsapp || '',
-        business_hours: data.businessHours
-      };
+      // حفظ إعدادات التواصل في قاعدة البيانات
+      const contactSettings = [
+        { category: 'contact', key: 'contact_email', value: data.email },
+        { category: 'contact', key: 'contact_phone', value: data.phone },
+        { category: 'contact', key: 'contact_address', value: data.address },
+        { category: 'contact', key: 'contact_whatsapp', value: data.whatsapp || '' },
+        { category: 'contact', key: 'business_hours', value: data.businessHours }
+      ];
 
-      const response2 = await fetch('/api/contact-info', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(contactInfo),
-      });
+      // حفظ كل إعداد على حدة
+      for (const setting of contactSettings) {
+        await fetch('/api/admin/site-settings', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ settings: [setting] }),
+        });
+      }
 
       if (!response1.ok && !response2.ok) {
         throw new Error('فشل في حفظ الإعدادات');

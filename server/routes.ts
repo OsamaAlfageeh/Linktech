@@ -3481,9 +3481,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return acc;
       }, {});
       
-      res.json(contactInfo);
+      // إذا لم توجد بيانات، استخدم القيم الافتراضية
+      const defaultContactInfo = {
+        contact_email: contactInfo.contact_email || 'info@linktech.app',
+        contact_phone: contactInfo.contact_phone || '+966 53 123 4567',
+        contact_address: contactInfo.contact_address || 'واحة المعرفة، طريق الملك عبدالعزيز، جدة، المملكة العربية السعودية',
+        contact_whatsapp: contactInfo.contact_whatsapp || '',
+        business_hours: contactInfo.business_hours || 'الأحد - الخميس: 9:00 صباحاً - 5:00 مساءً\nالجمعة - السبت: مغلق'
+      };
+      
+      console.log('معلومات التواصل المُرسلة:', defaultContactInfo);
+      res.json(defaultContactInfo);
     } catch (error) {
-      console.error('Error fetching contact info:', error);
+      console.error('خطأ في جلب معلومات التواصل:', error);
       res.status(500).json({ message: 'خطأ في جلب معلومات التواصل' });
     }
   });
