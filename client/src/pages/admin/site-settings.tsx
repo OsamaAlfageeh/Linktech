@@ -126,7 +126,7 @@ const SiteSettingsPage = () => {
         });
       }
 
-      if (!response1.ok && !response2.ok) {
+      if (!response1.ok) {
         throw new Error('فشل في حفظ الإعدادات');
       }
 
