@@ -54,9 +54,10 @@ const ContactPage = () => {
       return data;
     },
     retry: 1,
-    refetchOnWindowFocus: true,
     refetchOnWindowFocus: false, // منع التحديث التلقائي
     staleTime: 1000 * 60 * 5, // البيانات تبقى صالحة لمدة 5 دقائق
+    refetchOnMount: true, // تحديث عند تحميل الصفحة
+    refetchInterval: false // إيقاف التحديث التلقائي
   });
   
   const form = useForm<ContactFormValues>({

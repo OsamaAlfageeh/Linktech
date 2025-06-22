@@ -135,7 +135,9 @@ const SiteSettingsPage = () => {
         title: "تم حفظ الإعدادات بنجاح",
         description: "تم تحديث معلومات التواصل بنجاح",
       });
+      // إعادة تحديث كاش الإعدادات ومعلومات التواصل
       queryClient.invalidateQueries({ queryKey: ['/api/admin/site-settings'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/contact-info'] });
       queryClient.invalidateQueries({ queryKey: ['/api/contact-info'] });
     },
     onError: (error) => {
