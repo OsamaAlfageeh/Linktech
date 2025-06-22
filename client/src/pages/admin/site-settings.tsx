@@ -114,19 +114,17 @@ const SiteSettingsPage = () => {
         { category: 'contact', key: 'business_hours', value: data.businessHours }
       ];
 
-      // حفظ كل إعداد على حدة
-      for (const setting of contactSettings) {
-        await fetch('/api/admin/site-settings', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ settings: [setting] }),
-        });
-      }
+      // حفظ إعدادات التواصل كدفعة واحدة
+      const contactResponse = await fetch('/api/admin/site-settings', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ settings: contactSettings }),
+      });
 
-      if (!response1.ok) {
+      if (!response1.ok || !contactResponse.ok) {
         throw new Error('فشل في حفظ الإعدادات');
       }
 

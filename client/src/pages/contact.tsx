@@ -55,7 +55,8 @@ const ContactPage = () => {
     },
     retry: 1,
     refetchOnWindowFocus: true,
-    refetchInterval: 5000, // تحديث كل 5 ثواني
+    refetchOnWindowFocus: false, // منع التحديث التلقائي
+    staleTime: 1000 * 60 * 5, // البيانات تبقى صالحة لمدة 5 دقائق
   });
   
   const form = useForm<ContactFormValues>({
