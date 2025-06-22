@@ -10,8 +10,7 @@ import AIAssistantSection from "@/components/home/AIAssistantSection";
 import { TrendingProjects } from "@/components/recommendations";
 import SEO from "@/components/seo/SEO";
 import { OrganizationStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
-import { MessageCircle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+
 
 type HomeProps = {
   auth: {
@@ -55,18 +54,6 @@ const Home = ({ auth }: HomeProps) => {
       <CompanyPromotionSection />
       <Testimonials />
       <CTASection auth={auth} />
-
-      {/* زر المساعدة العائم */}
-      <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          size="lg"
-          onClick={() => window.open('https://chat.openai.com', '_blank', 'width=1200,height=800,scrollbars=yes,resizable=yes')}
-          className="rounded-full w-14 h-14 shadow-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 hover:scale-110"
-          title="فتح مساعد ChatGPT"
-        >
-          <MessageCircle className="h-6 w-6" />
-        </Button>
-      </div>
     </>
   );
 };
