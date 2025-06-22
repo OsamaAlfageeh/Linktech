@@ -3454,9 +3454,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const updatedSettings = [];
       for (const setting of settings) {
-        if (setting.key && setting.value !== undefined) {
-          const updatedSetting = await storage.setSiteSetting(setting.key, setting.value);
-          updatedSettings.push(updatedSetting);
+        if (setting.key && setting.value !== undefined && setting.category) {
+          try {
+            const updatedSetting = await storage.setSiteSetting(
+              setting.key, 
+              setting.value, 
+              setting.category,
+              setting.description || '',
+              user.id
+            );
+            updatedSettings.push(updatedSetting);
+            console.log(`تم حفظ الإعداد: ${setting.key} = ${setting.value}`);
+          } catch (settingError) {
+            console.error(`خطأ في حفظ الإعداد ${setting.key}:`, settingError);
+          }
         }
       }
       

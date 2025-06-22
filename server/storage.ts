@@ -1438,18 +1438,30 @@ export class DatabaseStorage implements IStorage {
     return settings.length > 0 ? settings[0] : undefined;
   }
 
-  async setSiteSetting(key: string, value: string): Promise<SiteSetting> {
+  async setSiteSetting(key: string, value: string, category?: string, description?: string, updatedBy?: number): Promise<SiteSetting> {
     const existingSetting = await this.getSiteSetting(key);
 
     if (existingSetting) {
       const [updatedSetting] = await db.update(schema.siteSettings)
-        .set({ value, updatedAt: new Date() })
+        .set({ 
+          value, 
+          updatedAt: new Date(),
+          ...(category && { category }),
+          ...(description && { description }),
+          ...(updatedBy && { updatedBy })
+        })
         .where(eq(schema.siteSettings.key, key))
         .returning();
       return updatedSetting;
     } else {
       const [newSetting] = await db.insert(schema.siteSettings)
-        .values({ key, value })
+        .values({ 
+          key, 
+          value,
+          category: category || 'general',
+          description: description || '',
+          updatedBy: updatedBy || 1
+        })
         .returning();
       return newSetting;
     }
