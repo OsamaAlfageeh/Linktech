@@ -9,7 +9,7 @@ import sitemapRoutes from "./routes/sitemap";
 import arabicPdfTestRoutes from "./arabicPdfTest";
 import pdfmakeTestRoutes from "./pdfmakeTest";
 import generateNdaRoutes from "./generateNDA";
-import contactRoutes from "./routes/contactRoutes";
+// Contact routes are now integrated below
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
 import fsExtra from "fs-extra";
@@ -80,7 +80,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(arabicPdfTestRoutes);
   app.use(pdfmakeTestRoutes);
   app.use(generateNdaRoutes);
-  app.use(contactRoutes);
+  // Contact routes integrated above
   // Initialize session and passport
   // تكوين الجلسة بشكل صحيح لبيئة Replit
   app.use(session({
@@ -4298,9 +4298,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contact Messages Management API
+  app.get('/api/contact-messages', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح - يجب أن تكون مديراً' });
+      }
+      
+      const messages = await storage.getContactMessages();
+      res.json(messages);
+    } catch (error) {
+      console.error('خطأ في جلب رسائل التواصل:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب الرسائل' });
+    }
+  });
 
+  app.patch('/api/contact-messages/:id/status', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح' });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (isNaN(id) || !status) {
+        return res.status(400).json({ message: 'بيانات غير صالحة' });
+      }
+      
+      const updatedMessage = await storage.updateContactMessageStatus(id, status);
+      if (!updatedMessage) {
+        return res.status(404).json({ message: 'الرسالة غير موجودة' });
+      }
+      
+      res.json({ success: true, message: updatedMessage });
+    } catch (error) {
+      console.error('خطأ في تحديث حالة الرسالة:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء التحديث' });
+    }
+  });
 
-
+  app.delete('/api/contact-messages/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح' });
+      }
+      
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: 'معرف غير صالح' });
+      }
+      
+      const deleted = await storage.deleteContactMessage(id);
+      if (!deleted) {
+        return res.status(404).json({ message: 'الرسالة غير موجودة' });
+      }
+      
+      res.json({ success: true, message: 'تم حذف الرسالة بنجاح' });
+    } catch (error) {
+      console.error('خطأ في حذف الرسالة:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء الحذف' });
+    }
+  });
 
   // Simple in-memory storage for contact settings
   const contactSettings = {
