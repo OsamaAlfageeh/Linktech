@@ -4364,6 +4364,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contact Statistics API
+  app.get('/api/contact-stats', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح' });
+      }
+      
+      const stats = await storage.getContactStats();
+      res.json(stats);
+    } catch (error) {
+      console.error('خطأ في جلب إحصائيات التواصل:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب الإحصائيات' });
+    }
+  });
+
   // Simple in-memory storage for contact settings
   const contactSettings = {
     contact_email: 'info@linktech.app',

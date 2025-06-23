@@ -1926,6 +1926,44 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updated;
   }
+
+  async getContactStats() {
+    try {
+      const stats = await db.select({
+        totalMessages: sql`COUNT(*)`,
+        newMessages: sql`COUNT(CASE WHEN status = 'new' THEN 1 END)`,
+        readMessages: sql`COUNT(CASE WHEN status = 'read' THEN 1 END)`, 
+        repliedMessages: sql`COUNT(CASE WHEN status = 'replied' THEN 1 END)`,
+        thisWeek: sql`COUNT(CASE WHEN created_at >= NOW() - INTERVAL '7 days' THEN 1 END)`,
+        thisMonth: sql`COUNT(CASE WHEN created_at >= NOW() - INTERVAL '30 days' THEN 1 END)`
+      }).from(schema.contactMessages);
+
+      const result = stats[0];
+      
+      return {
+        totalMessages: Number(result.totalMessages) || 0,
+        newMessages: Number(result.newMessages) || 0,
+        readMessages: Number(result.readMessages) || 0,
+        repliedMessages: Number(result.repliedMessages) || 0,
+        thisWeek: Number(result.thisWeek) || 0,
+        thisMonth: Number(result.thisMonth) || 0,
+        responseRate: Number(result.totalMessages) > 0 
+          ? Math.round((Number(result.repliedMessages) / Number(result.totalMessages)) * 100)
+          : 0
+      };
+    } catch (error) {
+      console.error('Error getting contact stats:', error);
+      return {
+        totalMessages: 0,
+        newMessages: 0,
+        readMessages: 0,
+        repliedMessages: 0,
+        thisWeek: 0,
+        thisMonth: 0,
+        responseRate: 0
+      };
+    }
+  }
   
   async deleteBlogComment(id: number): Promise<boolean> {
     try {

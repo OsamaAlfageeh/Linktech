@@ -48,6 +48,15 @@ type AdminDashboardStats = {
   companies: {
     total: number;
     verified: number;
+  };
+  contact: {
+    totalMessages: number;
+    newMessages: number;
+    readMessages: number;
+    repliedMessages: number;
+    thisWeek: number;
+    thisMonth: number;
+    responseRate: number;
     unverified: number;
   };
 };
@@ -190,6 +199,19 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     },
     enabled: isAuthenticated && user?.role === "admin"
   });
+
+  // جلب إحصائيات التواصل
+  const { data: contactStats } = useQuery({
+    queryKey: ['/api/contact-stats'],
+    queryFn: async () => {
+      const response = await fetch('/api/contact-stats', {
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('فشل في جلب إحصائيات التواصل');
+      return response.json();
+    },
+    enabled: isAuthenticated && user?.role === "admin"
+  });
   
   // استعلام لجلب كافة العروض المقدمة على المشاريع
   const {
@@ -290,6 +312,15 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       verified: companies?.filter((c: any) => c.verified).length || 0,
       unverified: companies?.filter((c: any) => !c.verified).length || 0,
     },
+    contact: contactStats || {
+      totalMessages: 0,
+      newMessages: 0,
+      readMessages: 0,
+      repliedMessages: 0,
+      thisWeek: 0,
+      thisMonth: 0,
+      responseRate: 0
+    }
   };
 
   // دالة لمعالجة اختيار صورة الهيدر
@@ -743,6 +774,61 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
               </Card>
             </div>
             
+            {/* إحصائيات التواصل */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">إجمالي الرسائل</CardTitle>
+                  <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{stats.contact.totalMessages}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {stats.contact.thisWeek} رسالة هذا الأسبوع
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">رسائل جديدة</CardTitle>
+                  <div className="h-4 w-4 bg-orange-500 rounded-full" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-orange-600">{stats.contact.newMessages}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    تحتاج للمراجعة
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">تم الرد عليها</CardTitle>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-green-600">{stats.contact.repliedMessages}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    معدل الاستجابة {stats.contact.responseRate}%
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <CardTitle className="text-sm font-medium">هذا الشهر</CardTitle>
+                  <Clock className="h-4 w-4 text-blue-600" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold text-blue-600">{stats.contact.thisMonth}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {stats.contact.readMessages} مقروءة
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
@@ -751,7 +837,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     variant="outline" 
                     size="sm" 
                     className="gap-1"
-                    onClick={() => navigate("/admin/contact-messages")}
+                    onClick={() => setActiveTab("contact")}
                   >
                     <MessageSquare className="h-4 w-4" />
                     رسائل الاتصال
