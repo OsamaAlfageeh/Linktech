@@ -47,8 +47,8 @@ const Login = ({ auth }: LoginProps) => {
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: "",
-      password: "",
+      username: "admin",
+      password: "admin123",
     },
   });
 
