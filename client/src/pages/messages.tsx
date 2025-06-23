@@ -7,11 +7,35 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, AlertTriangle, Send } from 'lucide-react';
+import { Loader2, AlertTriangle, Send, RefreshCw, ArrowRight, MessageCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Link, useLocation } from 'wouter';
 import { Message, Conversation, WebSocketMessage, ContentError } from '@/interfaces/messageTypes';
-import ConversationWrapper, { formatDate } from '@/components/messages/ConversationWrapper';
+// إزالة import ConversationWrapper - سنقوم بدمج الوظائف مباشرة
+
+// دالة لتنسيق التاريخ
+const formatDate = (date: Date): string => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  if (date >= today) {
+    return `اليوم ${date.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  
+  if (date >= yesterday && date < today) {
+    return `أمس ${date.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  
+  return date.toLocaleDateString('ar-SA', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+};
 
 // إضافة أنواع البيانات
 interface User {
@@ -630,54 +654,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     });
   };
 
-  // معالجة بيانات الرسائل لعرض المحادثات
-  if (messagesData && Array.isArray(messagesData)) {
-    // إنشاء قاموس للمستخدمين الآخرين وآخر الرسائل
-    const conversationsMap = new Map<number, Conversation>();
-    
-    messagesData.forEach((message: Message) => {
-      // تحديد المستخدم الآخر (المرسل أو المستقبل)
-      const isFromCurrentUser = message.fromUserId === auth.user.id;
-      const otherUserId = isFromCurrentUser ? message.toUserId : message.fromUserId;
-      const otherUserName = isFromCurrentUser 
-        ? (message.toUser?.name || "مستخدم") 
-        : (message.fromUser?.name || "مستخدم");
-      const otherUserAvatar = isFromCurrentUser 
-        ? message.toUser?.avatar || null 
-        : message.fromUser?.avatar || null;
-      
-      // إذا لم تكن هناك محادثة مع هذا المستخدم بعد، أضف واحدة جديدة
-      if (!conversationsMap.has(otherUserId)) {
-        conversationsMap.set(otherUserId, {
-          otherUserId,
-          otherUserName,
-          otherUserAvatar,
-          lastMessage: message.content,
-          lastMessageTime: message.createdAt,
-          unreadCount: (!isFromCurrentUser && !message.read) ? 1 : 0
-        });
-      } else {
-        // تحديث المحادثة الموجودة إذا كانت الرسالة أحدث
-        const conversation = conversationsMap.get(otherUserId)!;
-        const messageTime = new Date(message.createdAt);
-        const lastMessageTime = new Date(conversation.lastMessageTime);
-        
-        if (messageTime > lastMessageTime) {
-          conversation.lastMessage = message.content;
-          conversation.lastMessageTime = message.createdAt;
-        }
-        
-        // زيادة عدد الرسائل غير المقروءة
-        if (!isFromCurrentUser && !message.read) {
-          conversation.unreadCount++;
-        }
-      }
-    });
-    
-    // تحويل القاموس إلى مصفوفة وترتيبها حسب وقت آخر رسالة (الأحدث أولاً)
-    conversations.push(...Array.from(conversationsMap.values())
-      .sort((a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()));
-  }
+
+
 
   return (
     <div className="container mx-auto p-4">
@@ -796,15 +774,20 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   </Button>
 
                   <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                    <AvatarImage src={conversations.find(c => c.otherUserId === selectedConversation)?.otherUserAvatar || undefined} alt="صورة المستخدم" />
+                    <AvatarImage src={conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.avatar || undefined} alt="صورة المستخدم" />
                     <AvatarFallback>
-                      {getInitials(conversations.find(c => c.otherUserId === selectedConversation)?.otherUserName || "مستخدم")}
+                      {getInitials(conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || "مستخدم")}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-grow">
                     <CardTitle className="text-base md:text-lg truncate">
-                      {conversations.find(c => c.otherUserId === selectedConversation)?.otherUserName || "مستخدم"}
+                      {conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || "مستخدم"}
                     </CardTitle>
+                    {conversations.find(c => c.otherUserId === selectedConversation)?.project?.title && (
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">
+                        مشروع: {conversations.find(c => c.otherUserId === selectedConversation)?.project?.title}
+                      </p>
+                    )}
                   </div>
                   
                   {/* مؤشر حالة الاتصال */}
@@ -841,13 +824,38 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   }
                 }}
               >
-                <ConversationWrapper 
-                  conversationLoading={conversationLoading} 
-                  conversationData={conversationData} 
-                  localMessages={localMessages} 
-                  selectedConversation={selectedConversation} 
-                  userId={auth.user?.id || 0} 
-                />
+                {conversationLoading ? (
+                  <div className="flex justify-center py-8">
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  </div>
+                ) : (
+                  [...(conversationData || []), ...localMessages]
+                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                    .map((message, index) => (
+                    <div 
+                      key={message.id || index}
+                      className={`flex ${message.fromUserId === auth.user.id ? 'justify-end' : 'justify-start'} mb-2 md:mb-3`}
+                    >
+                      <div className={`max-w-xs md:max-w-md lg:max-w-lg px-3 md:px-4 py-2 md:py-3 rounded-lg ${
+                        message.fromUserId === auth.user.id 
+                          ? 'bg-primary text-white ml-2 md:ml-4' 
+                          : 'bg-accent mr-2 md:mr-4'
+                      }`}>
+                        <p className="text-sm md:text-base break-words">{message.content}</p>
+                        <div className="flex justify-between items-center mt-1 md:mt-2">
+                          <p className="text-xs opacity-70">
+                            {formatDate(new Date(message.createdAt))}
+                          </p>
+                          {message.fromUserId === auth.user.id && (
+                            <div className="text-xs opacity-70">
+                              {message.read ? '✓✓' : '✓'}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
               </CardContent>
               
               <div className="p-2 md:p-3 border-t">
