@@ -1282,12 +1282,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getMessages(userId: number): Promise<Message[]> {
-    return await db.query.messages.findMany({
+    const messages = await db.query.messages.findMany({
       where: or(
         eq(schema.messages.fromUserId, userId),
         eq(schema.messages.toUserId, userId)
-      )
+      ),
+      with: {
+        fromUser: true,
+        toUser: true,
+        project: true
+      },
+      orderBy: [desc(schema.messages.createdAt)]
     });
+    
+    console.log(`استرجاع ${messages.length} رسالة للمستخدم ${userId}`);
+    return messages;
   }
 
   async getConversation(user1Id: number, user2Id: number, projectId?: number): Promise<Message[]> {
@@ -1319,10 +1328,18 @@ export class DatabaseStorage implements IStorage {
       );
     }
 
-    return await db.query.messages.findMany({
+    const messages = await db.query.messages.findMany({
       where: whereClause,
+      with: {
+        fromUser: true,
+        toUser: true,
+        project: true
+      },
       orderBy: asc(schema.messages.createdAt)
     });
+    
+    console.log(`استرجاع ${messages.length} رسالة في المحادثة بين ${user1Id} و ${user2Id}${projectId ? ` للمشروع ${projectId}` : ''}`);
+    return messages;
   }
 
   async createMessage(message: InsertMessage): Promise<Message> {
@@ -1332,7 +1349,19 @@ export class DatabaseStorage implements IStorage {
         read: false
       })
       .returning();
-    return insertedMessage;
+    
+    // إضافة معلومات المرسل والمستقبل
+    const messageWithDetails = await db.query.messages.findFirst({
+      where: eq(schema.messages.id, insertedMessage.id),
+      with: {
+        fromUser: true,
+        toUser: true,
+        project: true
+      }
+    });
+    
+    console.log(`تم إنشاء رسالة جديدة: ${insertedMessage.id}`);
+    return messageWithDetails || insertedMessage;
   }
 
   async markMessageAsRead(id: number): Promise<Message | undefined> {
@@ -1340,7 +1369,23 @@ export class DatabaseStorage implements IStorage {
       .set({ read: true })
       .where(eq(schema.messages.id, id))
       .returning();
-    return updatedMessage;
+    
+    if (updatedMessage) {
+      // إضافة معلومات المرسل والمستقبل
+      const messageWithDetails = await db.query.messages.findFirst({
+        where: eq(schema.messages.id, updatedMessage.id),
+        with: {
+          fromUser: true,
+          toUser: true,
+          project: true
+        }
+      });
+      
+      console.log(`تم تحديد الرسالة ${id} كمقروءة`);
+      return messageWithDetails || updatedMessage;
+    }
+    
+    return undefined;
   }
 
   // Testimonial operations

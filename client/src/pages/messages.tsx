@@ -318,33 +318,37 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   }, [auth.isAuthenticated, auth.user?.id, wsReconnectAttempts]);
   
   // جلب جميع الرسائل للمستخدم الحالي
-  const { data: messagesData, isLoading: messagesLoading } = useQuery({
+  const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
     queryKey: ['/api/messages'],
-    enabled: auth.isAuthenticated,
-    refetchInterval: 10000, // إعادة جلب البيانات كل 10 ثوانٍ كنسخة احتياطية
+    queryFn: async () => {
+      const response = await fetch('/api/messages', { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Failed to fetch messages');
+      }
+      return response.json();
+    },
+    enabled: auth.isAuthenticated && !!auth.user?.id,
+    refetchInterval: 10000,
   });
 
   // جلب المحادثة المحددة
-  const { data: conversationData, isLoading: conversationLoading } = useQuery<Message[]>({
-    queryKey: ['/api/messages/conversation', selectedConversation],
+  const { data: conversationData, isLoading: conversationLoading, refetch: refetchConversation } = useQuery<Message[]>({
+    queryKey: ['/api/messages/conversation', selectedConversation, projectId],
     queryFn: async () => {
       if (!selectedConversation || !auth.isAuthenticated) return [];
-      try {
-        console.log('جاري جلب بيانات المحادثة للمستخدم:', selectedConversation);
-        const response = await apiRequest('GET', `/api/messages/conversation/${selectedConversation}`);
-        if (!response.ok) {
-          throw new Error(`Error fetching conversation: ${response.status}`);
-        }
-        const data = await response.json();
-        console.log('تم استلام بيانات المحادثة:', data);
-        return data;
-      } catch (error) {
-        console.error('خطأ في جلب بيانات المحادثة:', error);
-        return [];
+      
+      const url = projectId 
+        ? `/api/messages/conversation/${selectedConversation}?projectId=${projectId}`
+        : `/api/messages/conversation/${selectedConversation}`;
+      
+      const response = await fetch(url, { credentials: 'include' });
+      if (!response.ok) {
+        throw new Error('Failed to fetch conversation');
       }
+      return response.json();
     },
     enabled: !!selectedConversation && auth.isAuthenticated,
-    refetchInterval: wsConnected ? undefined : 5000, // استخدام الاستطلاع فقط إذا كان WebSocket غير متصل
+    refetchInterval: wsConnected ? undefined : 5000,
   });
   
   // تم نقل هذا إلى الأعلى
@@ -357,43 +361,52 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // إرسال رسالة جديدة
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { content: string; toUserId: number; projectId: number | null }) => {
-      const response = await apiRequest('POST', '/api/messages', data);
-      return await response.json();
+      const response = await fetch('/api/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw error;
+      }
+
+      return response.json();
     },
     onSuccess: (newMessage) => {
-      console.log("رسالة جديدة تم إرسالها:", newMessage);
-      
-      // تفريغ حقل الرسالة
       setNewMessage('');
       
-      // إضافة الرسالة الجديدة إلى الرسائل المحلية
-      const tempMessage: Message = {
-        ...newMessage,
-        // إضافة معلومات المستخدم المرسل (أنت)
-        fromUser: {
-          name: auth.user.name || auth.user.username,
-          avatar: auth.user.avatar || null
-        }
-      };
-      
-      // إضافة الرسالة المؤقتة للعرض مؤقتاً حتى تظهر من قاعدة البيانات
-      setLocalMessages(prev => [...prev, tempMessage]);
-      
-      // تحديث قائمة المحادثات والمحادثة الحالية
+      // تحديث البيانات
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+      refetchMessages();
+      refetchConversation();
       
       toast({
         title: "تم إرسال الرسالة",
         description: "تم إرسال رسالتك بنجاح",
       });
     },
-    onError: (error) => {
-      toast({
-        title: "فشل إرسال الرسالة",
-        description: "حدث خطأ أثناء إرسال الرسالة. يرجى المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      console.error('خطأ في إرسال الرسالة:', error);
+      
+      if (error?.violations?.includes('معلومات_اتصال_محظورة')) {
+        toast({
+          title: "محتوى غير مسموح",
+          description: "لا يمكن مشاركة معلومات الاتصال مثل أرقام الهواتف أو الإيميلات في الرسائل",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "فشل إرسال الرسالة",
+          description: error?.message || "حدث خطأ أثناء إرسال رسالتك، يرجى المحاولة مرة أخرى",
+          variant: "destructive",
+        });
+      }
     }
   });
 
@@ -533,8 +546,53 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   });
 
   // تحويل الرسائل إلى محادثات
-  const conversations: Conversation[] = [];
-  // في حال كانت هناك رسائل, نقوم بتحويلها إلى محادثات
+  const conversations: Conversation[] = React.useMemo(() => {
+    if (!messagesData || !auth.user) return [];
+    
+    const conversationsMap = new Map<string, Conversation>();
+    
+    messagesData.forEach((message: any) => {
+      const otherUserId = message.fromUserId === auth.user.id ? message.toUserId : message.fromUserId;
+      const conversationKey = `${Math.min(auth.user.id, otherUserId)}-${Math.max(auth.user.id, otherUserId)}${message.projectId ? `-${message.projectId}` : ''}`;
+      
+      if (!conversationsMap.has(conversationKey)) {
+        // تحديد معلومات المستخدم الآخر
+        let otherUser;
+        if (message.fromUserId === auth.user.id) {
+          otherUser = message.toUser || { name: `المستخدم ${message.toUserId}`, avatar: null };
+        } else {
+          otherUser = message.fromUser || { name: `المستخدم ${message.fromUserId}`, avatar: null };
+        }
+
+        conversationsMap.set(conversationKey, {
+          id: otherUserId,
+          otherUserId,
+          otherUser,
+          lastMessage: message,
+          unreadCount: message.toUserId === auth.user.id && !message.read ? 1 : 0,
+          projectId: message.projectId,
+          project: message.project
+        });
+      } else {
+        const existingConversation = conversationsMap.get(conversationKey)!;
+        if (new Date(message.createdAt) > new Date(existingConversation.lastMessage.createdAt)) {
+          conversationsMap.set(conversationKey, {
+            ...existingConversation,
+            lastMessage: message,
+            unreadCount: existingConversation.unreadCount + (message.toUserId === auth.user.id && !message.read ? 1 : 0)
+          });
+        } else {
+          conversationsMap.set(conversationKey, {
+            ...existingConversation,
+            unreadCount: existingConversation.unreadCount + (message.toUserId === auth.user.id && !message.read ? 1 : 0)
+          });
+        }
+      }
+    });
+    
+    return Array.from(conversationsMap.values())
+      .sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
+  }, [messagesData, auth.user]);
   
   if (!auth.isAuthenticated) {
     return (
@@ -565,110 +623,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const sendMessage = () => {
     if (!newMessage.trim() || !selectedConversation) return;
     
-    // إذا كان WebSocket متصل، استخدمه
-    if (wsRef.current && wsConnected && wsRef.current.readyState === WebSocket.OPEN) {
-      // إنشاء معرّف مؤقت للرسالة (سيتم استبداله بالمعرّف الحقيقي من الخادم)
-      const tempId = Date.now();
-      
-      // إنشاء رسالة مؤقتة للعرض المباشر
-      const tempMessage: Message = {
-        id: tempId as unknown as number,
-        content: newMessage,
-        fromUserId: auth.user.id,
-        toUserId: selectedConversation,
-        projectId: projectId,
-        read: false,
-        createdAt: new Date().toISOString(),
-        // إضافة حالة "جاري المعالجة" للرسالة المؤقتة
-        deliveryStatus: 'processing',
-        fromUser: {
-          name: auth.user.name || auth.user.username,
-          avatar: auth.user.avatar || null
-        }
-      };
-      
-      // إضافة الرسالة المؤقتة للعرض مؤقتاً حتى تظهر من قاعدة البيانات
-      setLocalMessages(prev => [...prev, tempMessage]);
-      
-      // تفريغ حقل الرسالة
-      setNewMessage('');
-      
-      // إرسال الرسالة عبر WebSocket مع معرف مؤقت للتتبع
-      wsRef.current.send(JSON.stringify({
-        type: 'message',
-        content: newMessage,
-        toUserId: selectedConversation,
-        projectId: projectId,
-        tempMessageId: tempId
-      }));
-      
-      console.log('تم إرسال الرسالة عبر WebSocket');
-    } else {
-      // استخدام الطريقة التقليدية كنسخة احتياطية
-      console.log('استخدام الطريقة التقليدية لإرسال الرسالة (WebSocket غير متصل)');
-      
-      // إنشاء معرّف مؤقت للرسالة عند استخدام الطريقة التقليدية
-      const fallbackTempId = Date.now();
-      
-      // إنشاء رسالة مؤقتة للعرض المباشر
-      const fallbackTempMessage: Message = {
-        id: fallbackTempId as unknown as number,
-        content: newMessage,
-        fromUserId: auth.user.id,
-        toUserId: selectedConversation,
-        projectId: projectId,
-        read: false,
-        createdAt: new Date().toISOString(),
-        // إضافة حالة "جاري المعالجة" للرسالة المؤقتة
-        deliveryStatus: 'processing',
-        fromUser: {
-          name: auth.user.name || auth.user.username,
-          avatar: auth.user.avatar || null
-        }
-      };
-      
-      // إضافة الرسالة المؤقتة للعرض المباشر
-      setLocalMessages(prev => [...prev, fallbackTempMessage]);
-      
-      // تفريغ حقل الرسالة
-      setNewMessage('');
-      
-      // إرسال الرسالة باستخدام API التقليدي
-      sendMessageMutation.mutate({
-        content: newMessage,
-        toUserId: selectedConversation,
-        projectId: projectId
-      }, {
-        onSuccess: () => {
-          // تحديث حالة الرسالة المؤقتة إلى "تم الإرسال"
-          setLocalMessages(prev => prev.map(msg => {
-            if (msg.id === fallbackTempId) {
-              return { ...msg, deliveryStatus: 'sent' };
-            }
-            return msg;
-          }));
-          
-          // تحديث قائمة المحادثات
-          queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-          queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
-        },
-        onError: () => {
-          // تحديث حالة الرسالة المؤقتة إلى "فشل الإرسال"
-          setLocalMessages(prev => prev.map(msg => {
-            if (msg.id === fallbackTempId) {
-              return { ...msg, deliveryStatus: 'failed' };
-            }
-            return msg;
-          }));
-          
-          toast({
-            title: "فشل إرسال الرسالة",
-            description: "حدث خطأ أثناء إرسال رسالتك، يرجى المحاولة مرة أخرى",
-            variant: "destructive",
-          });
-        }
-      });
-    }
+    sendMessageMutation.mutate({
+      content: newMessage,
+      toUserId: selectedConversation,
+      projectId: projectId
+    });
   };
 
   // معالجة بيانات الرسائل لعرض المحادثات
@@ -778,8 +737,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               conversations
                 .filter(conv => 
                   searchTerm === "" || 
-                  conv.otherUserName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  conv.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+                  conv.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                  conv.lastMessage?.content?.toLowerCase().includes(searchTerm.toLowerCase())
                 )
                 .map((conv) => (
                 <div 
@@ -789,15 +748,15 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 >
                   <div className="flex items-start gap-2 md:gap-3">
                     <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                      <AvatarImage src={conv.otherUserAvatar || undefined} alt={conv.otherUserName} />
-                      <AvatarFallback>{getInitials(conv.otherUserName)}</AvatarFallback>
+                      <AvatarImage src={conv.otherUser?.avatar || undefined} alt={conv.otherUser?.name} />
+                      <AvatarFallback>{getInitials(conv.otherUser?.name || 'مستخدم')}</AvatarFallback>
                     </Avatar>
                     <div className="flex-grow min-w-0">
                       <div className="flex justify-between items-center">
-                        <p className="font-medium truncate text-sm md:text-base">{conv.otherUserName}</p>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(new Date(conv.lastMessageTime))}</span>
+                        <p className="font-medium truncate text-sm md:text-base">{conv.otherUser?.name || 'مستخدم غير معروف'}</p>
+                        <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(new Date(conv.lastMessage?.createdAt))}</span>
                       </div>
-                      <p className="text-xs md:text-sm text-muted-foreground truncate">{conv.lastMessage}</p>
+                      <p className="text-xs md:text-sm text-muted-foreground truncate">{conv.lastMessage?.content}</p>
                     </div>
                     {conv.unreadCount > 0 && (
                       <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
