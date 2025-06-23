@@ -1859,13 +1859,72 @@ export class DatabaseStorage implements IStorage {
   
   async updateBlogCommentStatus(id: number, status: string) {
     const [updatedComment] = await db.update(schema.blogComments)
-      .set({ 
-        status,
-        updatedAt: new Date()
-      })
+      .set({ status, updatedAt: new Date() })
       .where(eq(schema.blogComments.id, id))
       .returning();
     return updatedComment;
+  }
+
+  // Contact Messages operations
+  async getContactMessages(): Promise<ContactMessage[]> {
+    return await db.select().from(schema.contactMessages).orderBy(desc(schema.contactMessages.createdAt));
+  }
+
+  async getContactMessageById(id: number): Promise<ContactMessage | undefined> {
+    const messages = await db.select().from(schema.contactMessages)
+      .where(eq(schema.contactMessages.id, id))
+      .limit(1);
+    return messages.length > 0 ? messages[0] : undefined;
+  }
+
+  async createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+    const [result] = await db.insert(schema.contactMessages).values({
+      ...message,
+      status: 'new',
+      createdAt: new Date(),
+      updatedAt: new Date()
+    }).returning();
+    return result;
+  }
+
+  async updateContactMessageStatus(id: number, status: string): Promise<ContactMessage | undefined> {
+    const [updated] = await db.update(schema.contactMessages)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(schema.contactMessages.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteContactMessage(id: number): Promise<boolean> {
+    try {
+      await db.delete(schema.contactMessages)
+        .where(eq(schema.contactMessages.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting contact message:', error);
+      return false;
+    }
+  }
+
+  async updateContactMessageNotes(id: number, notes: string): Promise<ContactMessage | undefined> {
+    const [updated] = await db.update(schema.contactMessages)
+      .set({ notes, updatedAt: new Date() })
+      .where(eq(schema.contactMessages.id, id))
+      .returning();
+    return updated;
+  }
+
+  async replyToContactMessage(id: number, replyMessage: string): Promise<ContactMessage | undefined> {
+    const [updated] = await db.update(schema.contactMessages)
+      .set({ 
+        replyMessage, 
+        status: 'replied',
+        repliedAt: new Date(),
+        updatedAt: new Date() 
+      })
+      .where(eq(schema.contactMessages.id, id))
+      .returning();
+    return updated;
   }
   
   async deleteBlogComment(id: number): Promise<boolean> {
