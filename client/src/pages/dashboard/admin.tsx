@@ -201,16 +201,24 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   });
 
   // جلب إحصائيات التواصل
-  const { data: contactStats } = useQuery({
+  const { data: contactStats, isLoading: contactStatsLoading, error: contactStatsError } = useQuery({
     queryKey: ['/api/contact-stats'],
     queryFn: async () => {
+      console.log('جاري جلب إحصائيات التواصل...');
       const response = await fetch('/api/contact-stats', {
         credentials: 'include'
       });
-      if (!response.ok) throw new Error('فشل في جلب إحصائيات التواصل');
-      return response.json();
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('خطأ في جلب إحصائيات التواصل:', response.status, errorText);
+        throw new Error(`فشل في جلب إحصائيات التواصل: ${response.status}`);
+      }
+      const data = await response.json();
+      console.log('إحصائيات التواصل المستلمة:', data);
+      return data;
     },
-    enabled: isAuthenticated && user?.role === "admin"
+    enabled: isAuthenticated && user?.role === "admin",
+    retry: 2
   });
   
   // استعلام لجلب كافة العروض المقدمة على المشاريع
@@ -782,10 +790,21 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <MessageSquare className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{stats.contact.totalMessages}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {stats.contact.thisWeek} رسالة هذا الأسبوع
-                  </div>
+                  {contactStatsLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                      <span className="text-sm">جاري التحميل...</span>
+                    </div>
+                  ) : contactStatsError ? (
+                    <div className="text-sm text-red-500">خطأ في التحميل</div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold">{stats.contact.totalMessages}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {stats.contact.thisWeek} رسالة هذا الأسبوع
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -795,10 +814,21 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <div className="h-4 w-4 bg-orange-500 rounded-full" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-orange-600">{stats.contact.newMessages}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    تحتاج للمراجعة
-                  </div>
+                  {contactStatsLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                      <span className="text-sm">جاري التحميل...</span>
+                    </div>
+                  ) : contactStatsError ? (
+                    <div className="text-sm text-red-500">يجب تسجيل الدخول كمدير</div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-orange-600">{stats.contact.newMessages}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        تحتاج للمراجعة
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -808,10 +838,21 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-green-600">{stats.contact.repliedMessages}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    معدل الاستجابة {stats.contact.responseRate}%
-                  </div>
+                  {contactStatsLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                      <span className="text-sm">جاري التحميل...</span>
+                    </div>
+                  ) : contactStatsError ? (
+                    <div className="text-sm text-red-500">يجب تسجيل الدخول كمدير</div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-green-600">{stats.contact.repliedMessages}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        معدل الاستجابة {stats.contact.responseRate}%
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
               
@@ -821,10 +862,21 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <Clock className="h-4 w-4 text-blue-600" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold text-blue-600">{stats.contact.thisMonth}</div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    {stats.contact.readMessages} مقروءة
-                  </div>
+                  {contactStatsLoading ? (
+                    <div className="flex items-center">
+                      <Loader2 className="h-4 w-4 animate-spin ml-2" />
+                      <span className="text-sm">جاري التحميل...</span>
+                    </div>
+                  ) : contactStatsError ? (
+                    <div className="text-sm text-red-500">يجب تسجيل الدخول كمدير</div>
+                  ) : (
+                    <>
+                      <div className="text-2xl font-bold text-blue-600">{stats.contact.thisMonth}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {stats.contact.readMessages} مقروءة
+                      </div>
+                    </>
+                  )}
                 </CardContent>
               </Card>
             </div>
