@@ -69,13 +69,18 @@ const ContactMessagesPage = () => {
   const { data: messages, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/contact-messages'],
     queryFn: async () => {
+      console.log('جلب رسائل التواصل...');
       const response = await fetch('/api/contact-messages', {
         credentials: 'include'
       });
       if (!response.ok) {
-        throw new Error('فشل في تحميل رسائل الاتصال');
+        const errorText = await response.text();
+        console.error('خطأ في API:', response.status, errorText);
+        throw new Error(`فشل في تحميل رسائل الاتصال: ${response.status}`);
       }
-      return response.json();
+      const data = await response.json();
+      console.log('رسائل التواصل المستلمة:', data);
+      return data;
     },
     retry: 1,
   });
