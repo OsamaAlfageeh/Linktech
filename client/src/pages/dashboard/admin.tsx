@@ -1663,20 +1663,47 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                 <CardTitle>إحصائيات التواصل</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-blue-50 rounded-lg">
-                    <div className="text-2xl font-bold text-blue-600">--</div>
-                    <div className="text-sm text-muted-foreground">الرسائل الجديدة</div>
+                {contactStatsLoading ? (
+                  <div className="flex justify-center items-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="mr-2">جاري تحميل الإحصائيات...</span>
                   </div>
-                  <div className="text-center p-4 bg-green-50 rounded-lg">
-                    <div className="text-2xl font-bold text-green-600">--</div>
-                    <div className="text-sm text-muted-foreground">الرسائل المقروءة</div>
+                ) : contactStatsError ? (
+                  <div className="text-center p-8">
+                    <p className="text-red-500 mb-2">خطأ في تحميل الإحصائيات</p>
+                    <p className="text-sm text-muted-foreground">تأكد من تسجيل الدخول كمدير</p>
                   </div>
-                  <div className="text-center p-4 bg-orange-50 rounded-lg">
-                    <div className="text-2xl font-bold text-orange-600">--</div>
-                    <div className="text-sm text-muted-foreground">الرسائل المجاب عليها</div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">
+                        {stats?.contact?.totalMessages || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">إجمالي الرسائل</div>
+                    </div>
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div className="text-2xl font-bold text-orange-600">
+                        {stats?.contact?.newMessages || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">الرسائل الجديدة</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg">
+                      <div className="text-2xl font-bold text-green-600">
+                        {stats?.contact?.readMessages || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">الرسائل المقروءة</div>
+                    </div>
+                    <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                      <div className="text-2xl font-bold text-emerald-600">
+                        {stats?.contact?.repliedMessages || 0}
+                      </div>
+                      <div className="text-sm text-muted-foreground">الرسائل المجاب عليها</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        معدل الاستجابة: {stats?.contact?.responseRate || 0}%
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
