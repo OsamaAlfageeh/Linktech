@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, RefreshCcw, Trash2, Edit, Check, X, Reply, AlertCircle, CheckCircle, Archive, Send, BarChart3 } from "lucide-react";
+import { Loader2, Mail, RefreshCcw, Trash2, Edit, Check, X, Reply, AlertCircle, CheckCircle, Archive, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -84,20 +84,7 @@ const ContactMessagesPage = () => {
     retry: 1,
   });
 
-  // استعلام لجلب إحصائيات رسائل التواصل
-  const { data: contactStats, isLoading: statsLoading, isError: statsError } = useQuery({
-    queryKey: ['/api/contact-stats'],
-    queryFn: async () => {
-      const response = await fetch('/api/contact-stats', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch contact statistics');
-      }
-      return response.json();
-    },
-    retry: 1,
-  });
+
 
   // تحويل الرسائل حسب حالتها (الكل، جديد، مقروء، تم الرد، مؤرشف)
   const filteredMessages = messages ? messages.filter((message: ContactMessage) => {
@@ -109,14 +96,7 @@ const ContactMessagesPage = () => {
     return true;
   }) : [];
 
-  // حساب الإحصائيات المحلية من البيانات المحملة
-  const localStats = messages ? {
-    total: messages.length,
-    new: messages.filter((m: ContactMessage) => m.status === "new").length,
-    read: messages.filter((m: ContactMessage) => m.status === "read").length,
-    replied: messages.filter((m: ContactMessage) => m.status === "replied").length,
-    archived: messages.filter((m: ContactMessage) => m.status === "archived").length,
-  } : { total: 0, new: 0, read: 0, replied: 0, archived: 0 };
+
 
   // تحديث حالة الرسالة
   const updateStatusMutation = useMutation({
@@ -344,68 +324,7 @@ const ContactMessagesPage = () => {
         </div>
       </div>
 
-      {/* قسم الإحصائيات */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">إجمالي الرسائل</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{localStats.total}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {statsLoading ? "جاري التحميل..." : statsError ? "خطأ في التحميل" : `${contactStats?.totalMessages || 0} في النظام`}
-            </div>
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">رسائل جديدة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{localStats.new}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              تحتاج للمراجعة
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">مقروءة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{localStats.read}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              تمت المراجعة
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">تم الرد</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{localStats.replied}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              {statsLoading ? "..." : statsError ? "خطأ" : `معدل ${contactStats?.responseRate || 0}%`}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">مؤرشفة</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-gray-600">{localStats.archived}</div>
-            <div className="text-xs text-muted-foreground mt-1">
-              مؤرشفة
-            </div>
-          </CardContent>
-        </Card>
-      </div>
 
       <Tabs
         defaultValue="all"
