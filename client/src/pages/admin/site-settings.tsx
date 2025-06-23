@@ -53,34 +53,48 @@ const SiteSettingsPage = () => {
   });
 
   // جلب الإعدادات الحالية
-  const { data: settings, isLoading: isLoadingSettings } = useQuery({
+  const { data: settings, isLoading: isLoadingSettings, error: settingsError } = useQuery({
     queryKey: ['/api/admin/site-settings'],
     queryFn: async () => {
+      console.log('جلب إعدادات الموقع...');
       const response = await fetch('/api/admin/site-settings', {
         credentials: 'include'
       });
       if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('يرجى تسجيل الدخول كمدير');
+        }
         throw new Error('فشل في جلب الإعدادات');
       }
-      return response.json();
+      const data = await response.json();
+      console.log('إعدادات الموقع المستلمة:', data);
+      return data;
     },
+    retry: 1,
   });
 
   // تحديث القيم عند جلب الإعدادات
   useEffect(() => {
-    if (settings) {
+    if (settings && Array.isArray(settings)) {
+      console.log('تحديث نموذج الإعدادات:', settings);
+      
       const settingsMap = settings.reduce((acc: any, setting: any) => {
         acc[setting.key] = setting.value;
         return acc;
       }, {});
 
-      form.reset({
+      console.log('خريطة الإعدادات:', settingsMap);
+
+      const formData = {
         email: settingsMap.contact_email || "",
         phone: settingsMap.contact_phone || "",
         address: settingsMap.contact_address || "",
         whatsapp: settingsMap.contact_whatsapp || "",
         businessHours: settingsMap.business_hours || "",
-      });
+      };
+
+      console.log('بيانات النموذج المحدثة:', formData);
+      form.reset(formData);
     }
   }, [settings, form]);
 
@@ -164,6 +178,18 @@ const SiteSettingsPage = () => {
         <div className="flex items-center space-x-2">
           <Loader2 className="h-6 w-6 animate-spin" />
           <span>جاري تحميل الإعدادات...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (settingsError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-500 mb-4">خطأ في تحميل الإعدادات</p>
+          <p className="text-gray-600 mb-4">{settingsError instanceof Error ? settingsError.message : 'حدث خطأ غير متوقع'}</p>
+          <Button onClick={() => window.location.reload()}>إعادة تحميل الصفحة</Button>
         </div>
       </div>
     );
