@@ -65,6 +65,25 @@ const getInitials = (name: string): string => {
 };
 
 const Messages: React.FC<MessageProps> = ({ auth }) => {
+  // التحقق من وجود المستخدم أولاً
+  if (!auth || !auth.user) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Card className="w-96">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold mb-4">يجب تسجيل الدخول</h2>
+              <p className="mb-4">يرجى تسجيل الدخول للوصول إلى الرسائل الخاصة بك.</p>
+              <Button onClick={() => window.location.href = '/auth/login'}>
+                تسجيل الدخول
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   // استخلاص userId من المسار إذا تم تعيينه
   const [, params] = useLocation();
   const userId = window.location.pathname.includes('/messages/') 
@@ -342,21 +361,26 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   }, [auth.isAuthenticated, auth.user?.id, wsReconnectAttempts]);
   
   // جلب جميع الرسائل للمستخدم الحالي
-  const { data: messagesData, isLoading: messagesLoading, refetch: refetchMessages } = useQuery({
+  const { data: messagesData, isLoading: messagesLoading, error: messagesError, refetch: refetchMessages } = useQuery({
     queryKey: ['/api/messages'],
     queryFn: async () => {
       const response = await fetch('/api/messages', { credentials: 'include' });
       if (!response.ok) {
-        throw new Error('Failed to fetch messages');
+        if (response.status === 401) {
+          throw new Error('غير مصرح - يرجى تسجيل الدخول مرة أخرى');
+        }
+        throw new Error('فشل في جلب الرسائل');
       }
       return response.json();
     },
     enabled: auth.isAuthenticated && !!auth.user?.id,
     refetchInterval: 10000,
+    retry: 2,
+    retryDelay: 1000,
   });
 
   // جلب المحادثة المحددة
-  const { data: conversationData, isLoading: conversationLoading, refetch: refetchConversation } = useQuery<Message[]>({
+  const { data: conversationData, isLoading: conversationLoading, error: conversationError, refetch: refetchConversation } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation, projectId],
     queryFn: async () => {
       if (!selectedConversation || !auth.isAuthenticated) return [];
@@ -367,12 +391,17 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       
       const response = await fetch(url, { credentials: 'include' });
       if (!response.ok) {
-        throw new Error('Failed to fetch conversation');
+        if (response.status === 401) {
+          throw new Error('غير مصرح');
+        }
+        throw new Error('فشل في جلب المحادثة');
       }
       return response.json();
     },
     enabled: !!selectedConversation && auth.isAuthenticated,
     refetchInterval: wsConnected ? undefined : 5000,
+    retry: 2,
+    retryDelay: 1000,
   });
   
   // تم نقل هذا إلى الأعلى
@@ -404,11 +433,14 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     onSuccess: (newMessage) => {
       setNewMessage('');
       
+      // إزالة الرسالة المؤقتة وإضافة الرسالة الحقيقية
+      setLocalMessages(prev => prev.filter(msg => 
+        !(msg.id > 1000000000000) // إزالة الرسائل المؤقتة بناءً على الوقت
+      ));
+      
       // تحديث البيانات
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
       queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
-      refetchMessages();
-      refetchConversation();
       
       toast({
         title: "تم إرسال الرسالة",
@@ -417,6 +449,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     },
     onError: (error: any) => {
       console.error('خطأ في إرسال الرسالة:', error);
+      
+      // إزالة الرسالة المؤقتة في حالة الخطأ
+      setLocalMessages(prev => prev.filter(msg => 
+        !(msg.id > 1000000000000)
+      ));
       
       if (error?.violations?.includes('معلومات_اتصال_محظورة')) {
         toast({
@@ -618,16 +655,20 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       .sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
   }, [messagesData, auth.user]);
   
-  if (!auth.isAuthenticated) {
+  // تم نقل فحص المصادقة إلى الأعلى
+
+  // عرض رسالة خطأ إذا فشل تحميل الرسائل
+  if (messagesError) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Card className="w-96">
           <CardContent className="pt-6">
             <div className="text-center">
-              <h2 className="text-2xl font-bold mb-4">يجب تسجيل الدخول</h2>
-              <p className="mb-4">يرجى تسجيل الدخول للوصول إلى الرسائل الخاصة بك.</p>
-              <Button onClick={() => window.location.href = '/auth/login'}>
-                تسجيل الدخول
+              <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-bold mb-4">مشكلة في الاتصال</h2>
+              <p className="mb-4 text-red-600">{messagesError.message}</p>
+              <Button onClick={() => refetchMessages()}>
+                إعادة المحاولة
               </Button>
             </div>
           </CardContent>
@@ -640,12 +681,30 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
+        <span className="mr-2">جاري تحميل المحادثات...</span>
       </div>
     );
   }
 
   const sendMessage = () => {
-    if (!newMessage.trim() || !selectedConversation) return;
+    if (!newMessage.trim() || !selectedConversation || sendMessageMutation.isPending) return;
+    
+    // إضافة رسالة مؤقتة للعرض المباشر
+    const tempMessage: Message = {
+      id: Date.now() as any,
+      content: newMessage,
+      fromUserId: auth.user.id,
+      toUserId: selectedConversation,
+      projectId: projectId,
+      read: false,
+      createdAt: new Date().toISOString(),
+      fromUser: {
+        name: auth.user.name || auth.user.username,
+        avatar: auth.user.avatar || null
+      }
+    };
+    
+    setLocalMessages(prev => [...prev, tempMessage]);
     
     sendMessageMutation.mutate({
       content: newMessage,
@@ -746,10 +805,17 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               ))
             ) : (
               <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                <MessageCircle className="w-12 h-12 text-muted-foreground mb-4" />
                 <p className="text-muted-foreground mb-2 md:mb-4 text-sm md:text-base">ليس لديك أي محادثات حالية</p>
                 <p className="text-xs md:text-sm text-muted-foreground">
                   يمكنك بدء محادثة من صفحة تفاصيل أي مشروع تهتم به
                 </p>
+                <Button 
+                  className="mt-4"
+                  onClick={() => window.location.href = '/projects'}
+                >
+                  تصفح المشاريع
+                </Button>
               </div>
             )}
           </CardContent>
@@ -824,9 +890,20 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   }
                 }}
               >
-                {conversationLoading ? (
+                {conversationError ? (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-center">
+                      <AlertTriangle className="w-8 h-8 text-red-500 mx-auto mb-2" />
+                      <p className="text-red-600 mb-2">خطأ في تحميل المحادثة</p>
+                      <Button size="sm" onClick={() => refetchConversation()}>
+                        إعادة المحاولة
+                      </Button>
+                    </div>
+                  </div>
+                ) : conversationLoading ? (
                   <div className="flex justify-center py-8">
                     <Loader2 className="w-6 h-6 animate-spin" />
+                    <span className="mr-2">جاري تحميل الرسائل...</span>
                   </div>
                 ) : (
                   [...(conversationData || []), ...localMessages]
