@@ -1,43 +1,88 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
-import { queryClient, apiRequest } from '@/lib/queryClient';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'wouter';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, AlertTriangle, Send, RefreshCw, ArrowRight, MessageCircle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
-import { Link, useLocation } from 'wouter';
-import { Message, Conversation, WebSocketMessage, ContentError } from '@/interfaces/messageTypes';
-// إزالة import ConversationWrapper - سنقوم بدمج الوظائف مباشرة
+import { 
+  Send, 
+  Search, 
+  MessageCircle, 
+  Clock, 
+  CheckCircle,
+  AlertTriangle,
+  Loader2,
+  ArrowLeft
+} from 'lucide-react';
 
-// دالة لتنسيق التاريخ
+// تعريف الأنواع
+interface Message {
+  id: number;
+  content: string;
+  fromUserId: number;
+  toUserId: number;
+  projectId?: number;
+  read: boolean;
+  createdAt: string;
+  fromUser?: {
+    name: string;
+    avatar?: string;
+  };
+  toUser?: {
+    name: string;
+    avatar?: string;
+  };
+  project?: {
+    id: number;
+    title: string;
+  };
+}
+
+interface Conversation {
+  id: number;
+  otherUserId: number;
+  otherUser: {
+    name: string;
+    avatar?: string;
+  };
+  lastMessage: Message;
+  unreadCount: number;
+  projectId?: number;
+  project?: {
+    id: number;
+    title: string;
+  };
+}
+
 const formatDate = (date: Date): string => {
   const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  
-  if (date >= today) {
-    return `اليوم ${date.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
-  }
-  
-  if (date >= yesterday && date < today) {
-    return `أمس ${date.toLocaleTimeString('ar-SA', { hour: '2-digit', minute: '2-digit' })}`;
-  }
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return 'الآن';
+  if (diffMinutes < 60) return `منذ ${diffMinutes} دقيقة`;
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+  if (diffDays < 7) return `منذ ${diffDays} يوم`;
   
   return date.toLocaleDateString('ar-SA', {
     year: 'numeric',
     month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    day: 'numeric'
   });
 };
 
-// إضافة أنواع البيانات
 interface User {
   id: number;
   username: string;
@@ -54,7 +99,6 @@ interface MessageProps {
   };
 }
 
-// دالة مساعدة للحصول على الأحرف الأولى من اسم المستخدم
 const getInitials = (name: string): string => {
   return name
     .split(' ')
@@ -94,272 +138,15 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [projectId, setProjectId] = useState<number | null>(
-    // قراءة معلمة المشروع من queryString إذا وجدت
     new URLSearchParams(window.location.search).get('projectId') 
       ? parseInt(new URLSearchParams(window.location.search).get('projectId') || '0')
       : null
   );
   const { toast } = useToast();
-  const [wsConnected, setWsConnected] = useState(false);
-  const [wsError, setWsError] = useState(false);
-  const wsRef = useRef<WebSocket | null>(null);
-  const [sentWelcomeMessage, setSentWelcomeMessage] = useState(false);
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
-  const [wsReconnectAttempts, setWsReconnectAttempts] = useState(0);
-  const maxReconnectAttempts = 5;
-  const reconnectInterval = 3000; // 3 ثوانٍ
   
-  // تسجيل معلومات التنقيح
-  useEffect(() => {
-    console.log("صفحة الرسائل: المسار =", window.location.pathname);
-    console.log("صفحة الرسائل: userId المستخلص =", userId);
-    console.log("صفحة الرسائل: projectId المستخلص =", projectId);
-  }, [userId, projectId]);
+  const queryClient = useQueryClient();
 
-  // آلية الاتصال بـ WebSocket مع إعادة المحاولة
-  useEffect(() => {
-    if (!auth.isAuthenticated || !auth.user?.id) return;
-    
-    let reconnectTimer: ReturnType<typeof setTimeout>;
-    let isConnecting = false;
-
-    const connectWebSocket = () => {
-      // تجنب محاولات الاتصال المتزامنة
-      if (isConnecting) return;
-      isConnecting = true;
-
-      // تنظيف الاتصال السابق إذا وجد
-      if (wsRef.current) {
-        try {
-          // إغلاق الاتصال القديم بغض النظر عن حالته
-          wsRef.current.close();
-          wsRef.current = null;
-        } catch (e) {
-          console.log('خطأ عند إغلاق الاتصال القديم:', e);
-        }
-      }
-      
-      try {
-        // تكوين WebSocket
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
-        console.log('محاولة الاتصال بـ WebSocket:', wsUrl);
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-        
-        // تحديد مهلة زمنية للاتصال
-        const connectionTimeout = setTimeout(() => {
-          if (ws.readyState !== WebSocket.OPEN) {
-            console.log('انتهت مهلة الاتصال بـ WebSocket');
-            ws.close();
-          }
-        }, 5000);
-        
-        // مراقبة الأحداث
-        ws.onopen = () => {
-          clearTimeout(connectionTimeout);
-          isConnecting = false;
-          console.log('تم فتح اتصال WebSocket بنجاح');
-          setWsConnected(true);
-          setWsError(false);
-          setWsReconnectAttempts(0);
-          
-          // إرسال رسالة المصادقة
-          if (ws.readyState === WebSocket.OPEN) {
-            try {
-              ws.send(JSON.stringify({
-                type: 'auth',
-                userId: auth.user.id
-              }));
-            } catch (e) {
-              console.error('WebSocket authentication error:', e);
-              // Fallback to HTTP polling if WebSocket fails
-              setWsReconnectAttempts(maxReconnectAttempts);
-            }
-          }
-        };
-        
-        ws.onclose = (event) => {
-          clearTimeout(connectionTimeout);
-          isConnecting = false;
-          console.log('انقطع اتصال WebSocket. كود:', event.code, 'سبب:', event.reason);
-          setWsConnected(false);
-          
-          // فحص الكود والحالة قبل محاولة إعادة الاتصال
-          const shouldRetry = [1000, 1001, 1006, 1011, 1012, 1013].includes(event.code);
-          
-          // محاولة إعادة الاتصال إذا لم نتجاوز الحد الأقصى وكان الكود قابل للإعادة
-          if (wsReconnectAttempts < maxReconnectAttempts && shouldRetry) {
-            // زيادة وقت الانتظار مع كل محاولة فاشلة
-            const delay = reconnectInterval * (Math.pow(1.5, wsReconnectAttempts));
-            console.log(`محاولة إعادة الاتصال (${wsReconnectAttempts + 1}/${maxReconnectAttempts}) بعد ${delay}ms`);
-            
-            reconnectTimer = setTimeout(() => {
-              setWsReconnectAttempts(prev => prev + 1);
-              connectWebSocket();
-            }, delay);
-          } else {
-            // عند فشل إعادة الاتصال، نستخدم آلية الاسترجاع المؤقت
-            console.log('تم الوصول للحد الأقصى من محاولات إعادة الاتصال. استخدام آلية الاسترجاع المؤقت.');
-            setWsError(true);
-          }
-        };
-        
-        ws.onerror = (error) => {
-          console.error('خطأ في اتصال WebSocket:', error);
-          // لا نضبط الحالة هنا لأن onclose سيتم استدعاؤه تلقائياً
-        };
-        
-        ws.onmessage = (event) => {
-          try {
-            const data = JSON.parse(event.data);
-            console.log('رسالة WebSocket جديدة:', data);
-            
-            // إذا كانت رسالة جديدة
-            if (data.type === 'new_message') {
-              // تحديث المحادثات
-              queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-              
-              // إذا كان المستخدم يعرض نفس المحادثة، قم بتحديثها
-              if (selectedConversation === data.message.fromUserId) {
-                queryClient.invalidateQueries({ 
-                  queryKey: ['/api/messages/conversation', selectedConversation] 
-                });
-                
-                // أضف الرسالة إلى المحادثة المحلية مؤقتاً
-                setLocalMessages(prev => [...prev, data.message]);
-                
-                // عرض إشعار
-                toast({
-                  title: 'رسالة جديدة',
-                  description: `${data.message.fromUser?.name || 'مستخدم'}: ${data.message.content}`,
-                });
-              } else {
-                // إذا كان المستخدم يعرض محادثة أخرى، أظهر إشعار فقط
-                toast({
-                  title: 'رسالة جديدة',
-                  description: `${data.message.fromUser?.name || 'مستخدم'} أرسل لك رسالة`,
-                  variant: "default"
-                });
-              }
-            }
-            
-            // إذا كانت رسالة مرسلة بنجاح
-            if (data.type === 'message_sent' || data.type === 'message_ack') {
-              console.log('تأكيد استلام الرسالة من الخادم:', data);
-              
-              // تحديث المحادثات
-              queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-              
-              if (selectedConversation) {
-                queryClient.invalidateQueries({ 
-                  queryKey: ['/api/messages/conversation', selectedConversation] 
-                });
-              }
-              
-              // حفظ المعرف الحقيقي للرسالة المرسلة مؤخرًا
-              if (data.tempMessageId) {
-                console.log('تحديث معرف الرسالة المؤقتة:', data.tempMessageId, 'إلى المعرف الدائم:', data.message?.id);
-                
-                // تحديث الرسائل المحلية المؤقتة
-                setLocalMessages(prev => prev.map(msg => {
-                  // إذا كان هناك معرف مؤقت وتم العثور على تطابق
-                  if (data.tempMessageId && msg.id === data.tempMessageId) {
-                    return { ...data.message, fromUser: msg.fromUser }; // استخدام معلومات المرسل من الرسالة المؤقتة
-                  }
-                  return msg;
-                }));
-              }
-            }
-            
-            // إذا تم توصيل الرسالة للمستلم
-            if (data.type === 'message_delivered') {
-              console.log('تم توصيل الرسالة للمستلم:', data);
-              
-              // تحديث حالة الرسالة في الواجهة إلى "تم التوصيل"
-              if (data.tempMessageId) {
-                setLocalMessages(prev => prev.map(msg => {
-                  if (msg.id === data.tempMessageId || msg.id === data.messageId) {
-                    return { ...msg, deliveryStatus: 'delivered' };
-                  }
-                  return msg;
-                }));
-              }
-            }
-            
-            // إذا فشل تسليم الرسالة
-            if (data.type === 'message_delivery_failed') {
-              console.log('فشل تسليم الرسالة:', data);
-              
-              // تحديث حالة الرسالة في الواجهة إلى "فشل"
-              if (data.messageId) {
-                setLocalMessages(prev => prev.map(msg => {
-                  if (msg.id === data.messageId || msg.id === data.tempMessageId) {
-                    return { ...msg, deliveryStatus: 'failed' };
-                  }
-                  return msg;
-                }));
-                
-                // إظهار إشعار للمستخدم
-                toast({
-                  title: 'لم يتم تسليم الرسالة',
-                  description: 'المستلم غير متصل حاليًا. سيتم تسليم الرسالة عندما يتصل المستلم.',
-                  variant: "default"
-                });
-              }
-            }
-            
-            // إذا كان هناك خطأ في محتوى الرسالة (وجود معلومات اتصال محظورة)
-            if (data.type === 'message_error' && data.error) {
-              console.log('خطأ في محتوى الرسالة:', data.error);
-              
-              // تحديث الرسائل المحلية المؤقتة لإزالة الرسالة المرفوضة
-              const tempId = data.tempMessageId;
-              if (tempId) {
-                setLocalMessages(prev => prev.filter(msg => msg.id !== tempId));
-              }
-              
-              // إظهار رسالة خطأ للمستخدم
-              toast({
-                title: 'لم يتم إرسال الرسالة',
-                description: data.error.message || 'الرسالة تحتوي على محتوى غير مسموح به',
-                variant: "destructive",
-              });
-              
-              // عرض تفاصيل المخالفة للمستخدم
-              if (data.error.violations && data.error.violations.length > 0) {
-                const violations = data.error.violations.join('، ');
-                toast({
-                  title: 'تفاصيل المخالفة',
-                  description: `نوع المخالفة: ${violations}. لا يمكن مشاركة معلومات الاتصال عبر المنصة. سيتم الكشف عن معلومات التواصل بعد دفع العمولة عند قبول العرض.`,
-                  variant: "destructive",
-                });
-              }
-            }
-          } catch (error) {
-            console.error('خطأ في معالجة رسالة WebSocket:', error);
-          }
-        };
-      } catch (error) {
-        console.error('خطأ أثناء إنشاء اتصال WebSocket:', error);
-        setWsError(true);
-        setWsConnected(false);
-      }
-    };
-    
-    // بدء الاتصال
-    connectWebSocket();
-    
-    // تنظيف عند إلغاء التحميل
-    return () => {
-      clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [auth.isAuthenticated, auth.user?.id, wsReconnectAttempts]);
-  
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading, error: messagesError, refetch: refetchMessages } = useQuery({
     queryKey: ['/api/messages'],
@@ -374,7 +161,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       return response.json();
     },
     enabled: auth.isAuthenticated && !!auth.user?.id,
-    refetchInterval: 10000,
+    refetchInterval: 5000, // تحديث كل 5 ثوان
     retry: 2,
     retryDelay: 1000,
   });
@@ -399,28 +186,25 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       return response.json();
     },
     enabled: !!selectedConversation && auth.isAuthenticated,
-    refetchInterval: wsConnected ? undefined : 5000,
+    refetchInterval: 3000, // تحديث كل 3 ثوان
     retry: 2,
     retryDelay: 1000,
   });
-  
-  // تم نقل هذا إلى الأعلى
-  
-  // تنظيف الرسائل المحلية عند تغيير المحادثة
-  useEffect(() => {
-    setLocalMessages([]);
-  }, [selectedConversation]);
-  
-  // إرسال رسالة جديدة
+
+  // إرسال رسالة
   const sendMessageMutation = useMutation({
-    mutationFn: async (data: { content: string; toUserId: number; projectId: number | null }) => {
+    mutationFn: async ({ content, toUserId, projectId }: { content: string; toUserId: number; projectId?: number | null }) => {
       const response = await fetch('/api/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          content,
+          toUserId,
+          projectId
+        }),
       });
 
       if (!response.ok) {
@@ -471,160 +255,23 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     }
   });
 
-  // استخدام معلمات URL لبدء محادثة أو استعادة المحادثة السابقة من التخزين المحلي
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const userIdParam = urlParams.get('userId');
-      const projectIdParam = urlParams.get('projectId');
-      
-      // التحقق من وجود معلمات في URL
-      if (userIdParam) {
-        const userId = parseInt(userIdParam);
-        if (!isNaN(userId)) {
-          console.log("تم تحديد محادثة مع المستخدم:", userId);
-          setSelectedConversation(userId);
-          
-          // حفظ معرف المستخدم في التخزين المحلي
-          localStorage.setItem('lastConversationUserId', userId.toString());
-        }
-      } else {
-        // إذا لم توجد معلمات URL، استعادة المحادثة الأخيرة من التخزين المحلي
-        const lastConversationUserId = localStorage.getItem('lastConversationUserId');
-        if (lastConversationUserId) {
-          const userId = parseInt(lastConversationUserId);
-          if (!isNaN(userId)) {
-            console.log("استعادة المحادثة الأخيرة مع المستخدم:", userId);
-            setSelectedConversation(userId);
-          }
-        }
-      }
-
-      if (projectIdParam) {
-        const projId = parseInt(projectIdParam);
-        if (!isNaN(projId)) {
-          console.log("المحادثة بخصوص المشروع:", projId);
-          setProjectId(projId);
-          
-          // حفظ معرف المشروع في التخزين المحلي
-          localStorage.setItem('lastConversationProjectId', projId.toString());
-        }
-      } else {
-        // استعادة معرف المشروع من التخزين المحلي
-        const lastProjectId = localStorage.getItem('lastConversationProjectId');
-        if (lastProjectId) {
-          const projId = parseInt(lastProjectId);
-          if (!isNaN(projId)) {
-            console.log("استعادة معرف المشروع الأخير:", projId);
-            setProjectId(projId);
-          }
-        }
-      }
-    }
-  }, []);
-  
-  // تم نقل هذا المتغير إلى الأعلى مع باقي المتغيرات
-  
-  // إرسال رسالة ترحيبية مرة واحدة فقط عند وجود معرف المستخدم ومعرف المشروع في URL
-  useEffect(() => {
-    // عدم إرسال رسالة إذا كان المستخدم غير مسجل الدخول أو سبق إرسال رسالة أو لا توجد معلمات كافية
-    if (
-      !auth.isAuthenticated || 
-      !selectedConversation || 
-      !projectId || 
-      sentWelcomeMessage || 
-      !conversationData
-    ) {
-      return;
-    }
-    
-    // التحقق إذا كانت المحادثة فارغة
-    const conversation = Array.isArray(conversationData) ? conversationData : [];
-    if (conversation.length === 0) {
-      console.log("محادثة جديدة، إرسال رسالة ترحيبية...");
-      
-      // تعيين متغير لتجنب إرسال رسائل متكررة
-      setSentWelcomeMessage(true);
-      
-      // إنشاء معرّف مؤقت للرسالة الترحيبية
-      const welcomeTempId = Date.now();
-      
-      // إنشاء رسالة ترحيبية مؤقتة للعرض المباشر
-      const welcomeTempMessage: Message = {
-        id: welcomeTempId as unknown as number,
-        content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
-        fromUserId: auth.user.id,
-        toUserId: selectedConversation,
-        projectId: projectId,
-        read: false,
-        createdAt: new Date().toISOString(),
-        deliveryStatus: 'processing',
-        fromUser: {
-          name: auth.user.name || auth.user.username,
-          avatar: auth.user.avatar || null
-        }
-      };
-      
-      // إضافة الرسالة الترحيبية المؤقتة للعرض المباشر
-      setLocalMessages(prev => [...prev, welcomeTempMessage]);
-      
-      // إرسال الرسالة بعد تأخير قصير
-      setTimeout(() => {
-        sendMessageMutation.mutate({
-          content: "مرحبًا، أنا مهتم بالتحدث معك بخصوص المشروع.",
-          toUserId: selectedConversation,
-          projectId: projectId
-        }, {
-          onSuccess: () => {
-            // تحديث حالة الرسالة الترحيبية المؤقتة إلى "تم الإرسال"
-            setLocalMessages(prev => prev.map(msg => {
-              if (msg.id === welcomeTempId) {
-                return { ...msg, deliveryStatus: 'sent' };
-              }
-              return msg;
-            }));
-          },
-          onError: () => {
-            // تحديث حالة الرسالة الترحيبية المؤقتة إلى "فشل الإرسال"
-            setLocalMessages(prev => prev.map(msg => {
-              if (msg.id === welcomeTempId) {
-                return { ...msg, deliveryStatus: 'failed' };
-              }
-              return msg;
-            }));
-          }
-        });
-      }, 1000);
-    } else {
-      // إذا كانت توجد رسائل بالفعل، لا نحتاج لإرسال رسالة ترحيبية
-      setSentWelcomeMessage(true);
-    }
-  }, [auth.isAuthenticated, selectedConversation, projectId, conversationData, sendMessageMutation, sentWelcomeMessage]);
-
-  const { data: usersData, isLoading: usersLoading } = useQuery<User[]>({
-    queryKey: ['/api/users/all'],
-    enabled: auth.isAuthenticated && auth.user?.role === 'admin',
-  });
-
   // تحويل الرسائل إلى محادثات
-  const conversations: Conversation[] = React.useMemo(() => {
-    if (!messagesData || !auth.user) return [];
-    
+  const conversations: Conversation[] = useMemo(() => {
+    if (!messagesData || !Array.isArray(messagesData) || messagesData.length === 0) {
+      return [];
+    }
+
     const conversationsMap = new Map<string, Conversation>();
     
-    messagesData.forEach((message: any) => {
+    messagesData.forEach((message: Message) => {
       const otherUserId = message.fromUserId === auth.user.id ? message.toUserId : message.fromUserId;
-      const conversationKey = `${Math.min(auth.user.id, otherUserId)}-${Math.max(auth.user.id, otherUserId)}${message.projectId ? `-${message.projectId}` : ''}`;
+      const otherUser = message.fromUserId === auth.user.id ? message.toUser : message.fromUser;
+      
+      if (!otherUser || !otherUserId) return;
+      
+      const conversationKey = `${Math.min(auth.user.id, otherUserId)}-${Math.max(auth.user.id, otherUserId)}-${message.projectId || 'no-project'}`;
       
       if (!conversationsMap.has(conversationKey)) {
-        // تحديد معلومات المستخدم الآخر
-        let otherUser;
-        if (message.fromUserId === auth.user.id) {
-          otherUser = message.toUser || { name: `المستخدم ${message.toUserId}`, avatar: null };
-        } else {
-          otherUser = message.fromUser || { name: `المستخدم ${message.fromUserId}`, avatar: null };
-        }
-
         conversationsMap.set(conversationKey, {
           id: otherUserId,
           otherUserId,
@@ -654,8 +301,6 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     return Array.from(conversationsMap.values())
       .sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
   }, [messagesData, auth.user]);
-  
-  // تم نقل فحص المصادقة إلى الأعلى
 
   // عرض رسالة خطأ إذا فشل تحميل الرسائل
   if (messagesError) {
@@ -713,93 +358,82 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     });
   };
 
-
-
+  // تصفية المحادثات حسب البحث
+  const filteredConversations = conversations.filter(conversation =>
+    conversation.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    conversation.project?.title?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 h-screen flex flex-col">
       <Helmet>
         <title>الرسائل | لينكتك</title>
       </Helmet>
       
-      {wsError && (
-        <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-center gap-2 text-amber-800">
-          <AlertTriangle className="w-5 h-5 text-amber-500" />
-          <div>
-            <p className="font-medium">فشل الاتصال بنظام المراسلة الفوري</p>
-            <p className="text-sm">يتم استخدام النظام الاحتياطي للرسائل. سيتم تحديث الرسائل كل 5 ثوانٍ بدلاً من الرسائل الفورية.</p>
-          </div>
+      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-blue-800">
+        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+        <div>
+          <p className="font-medium">نظام المحادثات المحسن</p>
+          <p className="text-sm">يتم تحديث الرسائل تلقائياً كل 3 ثوان لضمان أفضل أداء واستقرار.</p>
         </div>
-      )}
-      
-      {/* وضع التنقل للأجهزة الصغيرة فقط */}
-      <div className="md:hidden flex justify-center mb-4 gap-2">
-        <Button
-          variant={!selectedConversation ? "default" : "outline"}
-          className="w-1/2"
-          onClick={() => setSelectedConversation(null)}
-        >
-          جميع المحادثات
-        </Button>
-        <Button
-          variant={selectedConversation ? "default" : "outline"}
-          className="w-1/2"
-          disabled={!selectedConversation}
-        >
-          المحادثة الحالية
-        </Button>
       </div>
-
-      <div className="flex flex-col md:flex-row h-[75vh] sm:h-[80vh] gap-4">
-        {/* قائمة المحادثات - تظهر دائماً في الشاشات الكبيرة، وتختفي في الشاشات الصغيرة عند اختيار محادثة */}
+      
+      <div className="flex-grow flex gap-4 overflow-hidden">
+        {/* قائمة المحادثات */}
         <Card className={`md:w-1/3 h-full overflow-hidden flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
-          <CardHeader className="pb-2 md:pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-lg md:text-xl">المحادثات</CardTitle>
-              <div className="md:hidden">
-                <span className="text-xs text-muted-foreground">{conversations.length} محادثة</span>
-              </div>
-            </div>
-            <div className="mt-2">
-              <Input 
-                placeholder="بحث في المحادثات..." 
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg md:text-xl">المحادثات</CardTitle>
+            <div className="relative">
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="ابحث في المحادثات..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="text-sm md:text-base"
+                className="pr-10"
               />
             </div>
           </CardHeader>
-          <CardContent className="flex-grow overflow-y-auto space-y-1 md:space-y-2 p-2 md:p-3">
-            {conversations.length > 0 ? (
-              conversations
-                .filter(conv => 
-                  searchTerm === "" || 
-                  conv.otherUser?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                  conv.lastMessage?.content?.toLowerCase().includes(searchTerm.toLowerCase())
-                )
-                .map((conv) => (
+          <CardContent className="flex-grow overflow-y-auto p-0">
+            {filteredConversations.length > 0 ? (
+              filteredConversations.map((conversation) => (
                 <div 
-                  key={conv.otherUserId}
-                  className={`p-2 md:p-3 rounded-lg cursor-pointer hover:bg-accent transition-colors ${selectedConversation === conv.otherUserId ? 'bg-accent' : 'bg-card'}`}
-                  onClick={() => setSelectedConversation(conv.otherUserId)}
+                  key={`${conversation.otherUserId}-${conversation.projectId || 'no-project'}`}
+                  className={`p-3 border-b cursor-pointer hover:bg-accent transition-colors ${
+                    selectedConversation === conversation.otherUserId ? 'bg-accent' : ''
+                  }`}
+                  onClick={() => setSelectedConversation(conversation.otherUserId)}
                 >
-                  <div className="flex items-start gap-2 md:gap-3">
-                    <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                      <AvatarImage src={conv.otherUser?.avatar || undefined} alt={conv.otherUser?.name} />
-                      <AvatarFallback>{getInitials(conv.otherUser?.name || 'مستخدم')}</AvatarFallback>
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={conversation.otherUser?.avatar || undefined} alt="صورة المستخدم" />
+                      <AvatarFallback>
+                        {getInitials(conversation.otherUser?.name || "مستخدم")}
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex-grow min-w-0">
-                      <div className="flex justify-between items-center">
-                        <p className="font-medium truncate text-sm md:text-base">{conv.otherUser?.name || 'مستخدم غير معروف'}</p>
-                        <span className="text-xs text-muted-foreground whitespace-nowrap">{formatDate(new Date(conv.lastMessage?.createdAt))}</span>
+                      <div className="flex items-center justify-between">
+                        <h3 className="font-medium truncate">{conversation.otherUser?.name || "مستخدم"}</h3>
+                        <div className="flex items-center gap-1">
+                          {conversation.unreadCount > 0 && (
+                            <Badge variant="destructive" className="text-xs">
+                              {conversation.unreadCount}
+                            </Badge>
+                          )}
+                          <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse hidden md:block" title="النظام متصل"></div>
+                        </div>
                       </div>
-                      <p className="text-xs md:text-sm text-muted-foreground truncate">{conv.lastMessage?.content}</p>
+                      {conversation.project?.title && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          مشروع: {conversation.project.title}
+                        </p>
+                      )}
+                      <p className="text-sm text-muted-foreground truncate">
+                        {conversation.lastMessage.content}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(new Date(conversation.lastMessage.createdAt))}
+                      </p>
                     </div>
-                    {conv.unreadCount > 0 && (
-                      <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs text-white font-semibold">{conv.unreadCount}</span>
-                      </div>
-                    )}
                   </div>
                 </div>
               ))
@@ -821,22 +455,19 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           </CardContent>
         </Card>
 
-        {/* منطقة المحادثة - تظهر دائماً في الشاشات الكبيرة، وتظهر فقط عند اختيار محادثة في الشاشات الصغيرة */}
+        {/* منطقة المحادثة */}
         <Card className={`md:w-2/3 h-full overflow-hidden flex flex-col ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
           {selectedConversation ? (
             <>
               <CardHeader className="pb-2 md:pb-3 border-b">
                 <div className="flex items-center gap-2 md:gap-3">
-                  {/* زر الرجوع للمحادثات في الأجهزة الصغيرة */}
                   <Button 
                     variant="ghost" 
                     size="icon" 
                     className="md:hidden" 
                     onClick={() => setSelectedConversation(null)}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="m15 18-6-6 6-6"/>
-                    </svg>
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
 
                   <Avatar className="h-8 w-8 md:h-10 md:w-10">
@@ -858,22 +489,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   
                   {/* مؤشر حالة الاتصال */}
                   <div className="flex items-center text-xs gap-1 text-muted-foreground">
-                    {wsConnected ? (
-                      <>
-                        <div className="h-2 w-2 rounded-full bg-green-500"></div>
-                        <span className="hidden md:inline">متصل</span>
-                      </>
-                    ) : wsError ? (
-                      <>
-                        <AlertTriangle className="h-3 w-3 text-amber-500" />
-                        <span className="hidden md:inline">غير متصل</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse"></div>
-                        <span className="hidden md:inline">جاري الاتصال...</span>
-                      </>
-                    )}
+                    <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                    <span className="hidden md:inline">متصل</span>
                   </div>
                 </div>
               </CardHeader>
@@ -881,7 +498,6 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
               <CardContent 
                 className="flex-grow overflow-y-auto p-2 md:p-4 space-y-2 md:space-y-4"
                 ref={(el) => {
-                  // التمرير إلى آخر الرسائل
                   if (el && !conversationLoading && 
                       ((conversationData && Array.isArray(conversationData) && conversationData.length > 0) || localMessages.length > 0)) {
                     setTimeout(() => {
@@ -906,19 +522,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                     <span className="mr-2">جاري تحميل الرسائل...</span>
                   </div>
                 ) : (
-                  [...(conversationData || []), ...localMessages]
+                  [...(Array.isArray(conversationData) ? conversationData : []), ...localMessages]
+                    .filter((message, index, array) => 
+                      array.findIndex(m => m.id === message.id) === index
+                    )
                     .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
                     .map((message, index) => (
                     <div 
-                      key={message.id || index}
+                      key={`message-${message.id}-${index}`}
                       className={`flex ${message.fromUserId === auth.user.id ? 'justify-end' : 'justify-start'} mb-2 md:mb-3`}
                     >
                       <div className={`max-w-xs md:max-w-md lg:max-w-lg px-3 md:px-4 py-2 md:py-3 rounded-lg ${
                         message.fromUserId === auth.user.id 
-                          ? 'bg-primary text-white ml-2 md:ml-4' 
-                          : 'bg-accent mr-2 md:mr-4'
+                          ? 'bg-primary text-primary-foreground ml-2 md:ml-4' 
+                          : 'bg-muted mr-2 md:mr-4'
                       }`}>
-                        <p className="text-sm md:text-base break-words">{message.content}</p>
+                        <p className="text-sm md:text-base break-words whitespace-pre-wrap">{message.content}</p>
                         <div className="flex justify-between items-center mt-1 md:mt-2">
                           <p className="text-xs opacity-70">
                             {formatDate(new Date(message.createdAt))}
@@ -935,49 +554,48 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                 )}
               </CardContent>
               
-              <div className="p-2 md:p-3 border-t">
-                <form 
-                  className="flex gap-2" 
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    sendMessage();
-                  }}
-                >
-                  <Textarea 
-                    placeholder="اكتب رسالتك هنا..."
-                    className="min-h-[50px] md:min-h-[60px] text-sm md:text-base"
+              <div className="p-3 md:p-4 border-t">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="اكتب رسالتك..."
                     value={newMessage}
                     onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyDown={(e) => {
-                      // ارسال الرسالة عند الضغط على Enter (بدون Shift)
+                    onKeyPress={(e) => {
                       if (e.key === 'Enter' && !e.shiftKey) {
                         e.preventDefault();
-                        if (newMessage.trim()) {
-                          sendMessage();
-                        }
+                        sendMessage();
                       }
                     }}
+                    disabled={sendMessageMutation.isPending}
+                    className="flex-grow"
                   />
                   <Button 
-                    type="submit"
-                    className="shrink-0"
-                    size="sm"
-                    disabled={!newMessage.trim()}
+                    onClick={sendMessage}
+                    disabled={!newMessage.trim() || sendMessageMutation.isPending}
+                    size="icon"
                   >
-                    <Send className="h-4 w-4 md:ml-2" />
-                    <span className="hidden md:inline">إرسال</span>
+                    {sendMessageMutation.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
                   </Button>
-                </form>
+                </div>
+                
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs md:text-sm text-amber-800">
+                  <p className="flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 md:w-4 md:h-4 flex-shrink-0" />
+                    <span>لا يمكن مشاركة معلومات الاتصال في الرسائل. ستتمكن من التواصل المباشر بعد قبول العرض ودفع العمولة.</span>
+                  </p>
+                </div>
               </div>
             </>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center p-4">
-              <div className="mb-4">
-                <Send className="h-10 w-10 md:h-12 md:w-12 mx-auto text-muted-foreground opacity-20" />
-              </div>
-              <h3 className="text-lg md:text-xl font-medium mb-2">اختر محادثة</h3>
-              <p className="text-sm md:text-base text-muted-foreground">
-                اختر محادثة من القائمة لعرض الرسائل
+              <MessageCircle className="w-16 h-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium mb-2">اختر محادثة لبدء المراسلة</h3>
+              <p className="text-muted-foreground">
+                اختر محادثة من القائمة الجانبية لعرض الرسائل والرد عليها
               </p>
             </div>
           )}
