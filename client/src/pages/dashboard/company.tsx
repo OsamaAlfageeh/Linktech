@@ -247,8 +247,10 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     onSuccess: async (data) => {
       console.log('تم استلام بيانات محدثة من الخادم:', JSON.stringify(data));
       
-      // 1. تحديث البيانات في الكاش مباشرة
-      queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], data);
+      // 1. إلغاء صحة البيانات في الكاش لإجبار إعادة التحميل
+      await queryClient.invalidateQueries({
+        queryKey: [`/api/companies/user/${auth.user?.id}`]
+      });
       
       // 2. إعادة تحميل البيانات من الخادم مباشرة للتأكد من تحديث الواجهة
       try {
@@ -334,6 +336,14 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
   const onSubmitPersonalInfo = (data: PersonalInfoFormValues) => {
     updatePersonalInfoMutation2.mutate(data);
   };
+
+  // فحص اكتمال البيانات الشخصية
+  const isPersonalInfoComplete = profile && 
+    profile.fullName && 
+    profile.nationalId && 
+    profile.phone && 
+    profile.birthDate && 
+    profile.address;
 
   // Redirect if not authenticated or not a company
   useEffect(() => {
@@ -973,7 +983,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                       )}
                     </div>
                     
-                    {(!profile.fullName || !profile.nationalId || !profile.phone || !profile.birthDate || !profile.address) && (
+                    {!isPersonalInfoComplete && (
                       <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                         <div className="flex items-center">
                           <AlertCircle className="h-5 w-5 text-red-600 ml-2" />
@@ -991,6 +1001,29 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                     <Button onClick={() => setIsPersonalInfoMode(true)}>
                       إضافة البيانات الشخصية
                     </Button>
+                  </div>
+                )}
+
+                {/* NDA Section - عرض قسم توقيع اتفاقيات عدم الإفصاح عند اكتمال البيانات */}
+                {isPersonalInfoComplete && (
+                  <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex items-center mb-3">
+                      <div className="h-5 w-5 bg-green-600 rounded-full flex items-center justify-center ml-2">
+                        <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                      <h3 className="text-lg font-medium text-green-800">البيانات الشخصية مكتملة</h3>
+                    </div>
+                    <p className="text-green-700 mb-4">
+                      تم إكمال جميع البيانات الشخصية المطلوبة. يمكنك الآن توقيع اتفاقيات عدم الإفصاح مع المشاريع.
+                    </p>
+                    <div className="flex items-center text-sm text-green-600">
+                      <svg className="h-4 w-4 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      متاح للتوقيع على اتفاقيات عدم الإفصاح
+                    </div>
                   </div>
                 )}
               </CardContent>
