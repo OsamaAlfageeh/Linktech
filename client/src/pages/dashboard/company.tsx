@@ -276,7 +276,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     },
   });
 
-  // تحديث البيانات الشخصية (نسخة 2)
+  // تحديث البيانات الشخصية (نسخة محسنة)
   const updatePersonalInfoMutation2 = useMutation({
     mutationFn: async (data: PersonalInfoFormValues) => {
       if (!profile?.id) throw new Error("Profile ID is missing");
@@ -300,18 +300,20 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     onSuccess: async (data) => {
       console.log('تم استلام بيانات شخصية محدثة من الخادم:', JSON.stringify(data));
       
-      // تحديث البيانات في الكاش
-      queryClient.setQueryData([`/api/companies/user/${auth.user?.id}`], (oldData: any) => {
-        return { ...oldData, ...data };
+      // إلغاء صحة جميع الاستعلامات المتعلقة بالشركة لإجبار إعادة التحميل
+      await queryClient.invalidateQueries({
+        queryKey: [`/api/companies/user/${auth.user?.id}`]
       });
       
-      // إعادة تحميل البيانات
-      try {
-        await refetchProfile();
-        console.log('تم إعادة تحميل بيانات الملف بنجاح');
-      } catch (error) {
-        console.error('خطأ في إعادة تحميل بيانات الملف:', error);
-      }
+      // انتظار قصير ثم إعادة تحميل البيانات للتأكد من التحديث
+      setTimeout(async () => {
+        try {
+          const freshData = await refetchProfile();
+          console.log('تم إعادة تحميل بيانات الملف بنجاح بعد التحديث:', freshData);
+        } catch (error) {
+          console.error('خطأ في إعادة تحميل بيانات الملف:', error);
+        }
+      }, 300);
       
       toast({
         title: "تم تحديث البيانات الشخصية بنجاح",
@@ -339,11 +341,21 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
 
   // فحص اكتمال البيانات الشخصية
   const isPersonalInfoComplete = profile && 
-    profile.fullName && 
-    profile.nationalId && 
-    profile.phone && 
-    profile.birthDate && 
-    profile.address;
+    profile.fullName && profile.fullName.trim() !== "" &&
+    profile.nationalId && profile.nationalId.trim() !== "" &&
+    profile.phone && profile.phone.trim() !== "" &&
+    profile.birthDate && profile.birthDate.trim() !== "" &&
+    profile.address && profile.address.trim() !== "";
+
+  console.log('Personal Info Check:', {
+    profile: !!profile,
+    fullName: profile?.fullName,
+    nationalId: profile?.nationalId,
+    phone: profile?.phone,
+    birthDate: profile?.birthDate,
+    address: profile?.address,
+    isComplete: isPersonalInfoComplete
+  });
 
   // Redirect if not authenticated or not a company
   useEffect(() => {
