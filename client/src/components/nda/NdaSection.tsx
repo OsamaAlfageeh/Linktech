@@ -54,6 +54,23 @@ export function NdaSection({
     enabled: !!ndaId && ndaId > 0,
   });
 
+  // جلب بيانات ملف الشركة للتحقق من اكتمال البيانات الشخصية
+  const {
+    data: companyProfile,
+    isLoading: isLoadingCompany,
+  } = useQuery({
+    queryKey: [`/api/companies/user/${currentUserId}`],
+    enabled: !!(currentUserId && userRole === 'company'),
+  });
+
+  // التحقق من اكتمال البيانات الشخصية
+  const isPersonalInfoComplete = companyProfile && 
+    (companyProfile as any).fullName && 
+    (companyProfile as any).nationalId && 
+    (companyProfile as any).phone && 
+    (companyProfile as any).birthDate && 
+    (companyProfile as any).address;
+
   // إذا كان المستخدم هو صاحب المشروع، نقوم بجلب جميع اتفاقيات المشروع
   const {
     data: projectNdas,
@@ -315,38 +332,50 @@ export function NdaSection({
                   </div>
                   
                   {/* التحقق من استكمال البيانات الشخصية */}
-                  <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                    <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
-                      <Info className="h-5 w-5 ml-2 text-blue-600" />
-                      متطلبات توقيع اتفاقية عدم الإفصاح
-                    </h4>
-                    <p className="text-blue-700 mb-3 text-sm">
-                      لتوقيع اتفاقية عدم الإفصاح، يجب عليك استكمال بياناتك الشخصية أولاً:
-                    </p>
-                    <ul className="text-sm text-blue-700 list-disc list-inside mb-3">
-                      <li>الاسم الكامل</li>
-                      <li>رقم الهوية الوطنية</li>
-                      <li>رقم الجوال</li>
-                      <li>تاريخ الميلاد</li>
-                      <li>العنوان الوطني</li>
-                    </ul>
-                    <Link href={`/personal-info?returnUrl=/projects/${projectId}`}>
-                      <Button
-                        variant="outline"
-                        className="bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
-                      >
-                        استكمال بياناتك الشخصية
-                      </Button>
-                    </Link>
-                  </div>
+                  {!isPersonalInfoComplete ? (
+                    <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                      <h4 className="font-semibold text-blue-800 mb-2 flex items-center">
+                        <Info className="h-5 w-5 ml-2 text-blue-600" />
+                        متطلبات توقيع اتفاقية عدم الإفصاح
+                      </h4>
+                      <p className="text-blue-700 mb-3 text-sm">
+                        لتوقيع اتفاقية عدم الإفصاح، يجب عليك استكمال بياناتك الشخصية أولاً:
+                      </p>
+                      <ul className="text-sm text-blue-700 list-disc list-inside mb-3">
+                        <li>الاسم الكامل</li>
+                        <li>رقم الهوية الوطنية</li>
+                        <li>رقم الجوال</li>
+                        <li>تاريخ الميلاد</li>
+                        <li>العنوان الوطني</li>
+                      </ul>
+                      <Link href="/dashboard?tab=profile">
+                        <Button
+                          variant="outline"
+                          className="bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
+                        >
+                          استكمال بياناتك الشخصية
+                        </Button>
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                      <h4 className="font-semibold text-green-800 mb-2 flex items-center">
+                        <Shield className="h-5 w-5 ml-2 text-green-600" />
+                        جاهز لتوقيع اتفاقية عدم الإفصاح
+                      </h4>
+                      <p className="text-green-700 text-sm">
+                        تم استكمال جميع البيانات الشخصية المطلوبة. يمكنك الآن توقيع اتفاقية عدم الإفصاح.
+                      </p>
+                    </div>
+                  )}
                   
                   <Button 
                     onClick={() => setIsNdaDialogOpen(true)}
                     className="bg-gradient-to-l from-blue-600 to-primary hover:from-blue-700 hover:to-primary-dark"
-                    disabled={true} // سيتم تفعيله عندما يتم التحقق من اكتمال البيانات الشخصية
+                    disabled={!isPersonalInfoComplete || isLoadingCompany}
                   >
                     <Shield className="ml-2 h-5 w-5" />
-                    توقيع اتفاقية عدم الإفصاح
+                    {isLoadingCompany ? 'جاري التحقق...' : 'توقيع اتفاقية عدم الإفصاح'}
                   </Button>
                 </div>
               )}
