@@ -328,10 +328,20 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
           console.error('خطأ في إعادة تحميل بيانات الملف:', error);
         }
         
-        // إجبار إعادة تحميل الصفحة بعد تأخير قصير لضمان عرض البيانات المحدثة
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500);
+        // إجبار إعادة تحديث البيانات بدلاً من إعادة تحميل الصفحة
+        setTimeout(async () => {
+          try {
+            await queryClient.invalidateQueries({
+              queryKey: [`/api/companies/user/${auth.user?.id}`],
+              exact: true
+            });
+            await refetchProfile();
+          } catch (error) {
+            console.error('خطأ في إعادة تحميل البيانات:', error);
+            // في حالة فشل إعادة التحميل، نعيد تحميل الصفحة كحل احتياطي
+            window.location.reload();
+          }
+        }, 500);
       }, 100);
       
       toast({
