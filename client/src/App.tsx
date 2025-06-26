@@ -175,6 +175,22 @@ function App() {
           {/* Removed separate admin login route */}
           
           {/* Protected routes - using ProtectedRoute component */}
+          {/* Dashboard redirect based on user role */}
+          <Route path="/dashboard">
+            {auth.isAuthenticated ? (
+              auth.isEntrepreneur ? (
+                <Redirect to="/dashboard/entrepreneur" />
+              ) : auth.isCompany ? (
+                <Redirect to="/dashboard/company" />
+              ) : auth.isAdmin ? (
+                <Redirect to="/dashboard/admin" />
+              ) : (
+                <NotFound />
+              )
+            ) : (
+              <Redirect to="/auth/login" />
+            )}
+          </Route>
           <ProtectedRoute 
             path="/dashboard/entrepreneur" 
             component={EntrepreneurDashboard} 
