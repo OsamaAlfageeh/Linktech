@@ -51,6 +51,12 @@ export const companyProfiles = pgTable("company_profiles", {
   legalName: text("legal_name"), // الاسم القانوني للشركة
   commercialRegistration: text("commercial_registration"), // رقم السجل التجاري
   vatRegistration: text("vat_registration"), // رقم التسجيل الضريبي
+  // معلومات شخصية لتوقيع اتفاقيات عدم الإفصاح
+  fullName: text("full_name"), // الاسم الكامل للمفوض بالتوقيع
+  nationalId: text("national_id"), // رقم الهوية الوطنية
+  phone: text("phone"), // رقم الجوال
+  birthDate: text("birth_date"), // تاريخ الميلاد
+  address: text("address"), // العنوان الوطني
 });
 
 // Project schema

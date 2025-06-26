@@ -778,6 +778,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Internal server error' });
     }
   });
+
+  // تحديث البيانات الشخصية للشركة (مطلوبة لاتفاقيات عدم الإفصاح)
+  app.patch('/api/companies/:id/personal-info', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const profileId = parseInt(req.params.id);
+      
+      console.log(`طلب تحديث البيانات الشخصية لملف الشركة برقم ${profileId} - المستخدم: ${user.username}`);
+      console.log('البيانات الشخصية للتحديث:', JSON.stringify(req.body));
+      
+      const profile = await storage.getCompanyProfile(profileId);
+      if (!profile) {
+        console.log(`خطأ: لم يتم العثور على ملف الشركة برقم ${profileId}`);
+        return res.status(404).json({ message: 'Company profile not found' });
+      }
+      
+      if (profile.userId !== user.id && user.role !== 'admin') {
+        console.log(`خطأ: المستخدم ${user.username} غير مصرح له بتحديث ملف الشركة ${profileId}`);
+        return res.status(403).json({ message: 'Not authorized to update this profile' });
+      }
+      
+      // استخراج البيانات الشخصية فقط من الطلب
+      const personalInfoData = {
+        fullName: req.body.fullName,
+        nationalId: req.body.nationalId,
+        phone: req.body.phone,
+        birthDate: req.body.birthDate,
+        address: req.body.address
+      };
+      
+      // تنظيف البيانات من القيم الفارغة أو undefined
+      const cleanedData = Object.fromEntries(
+        Object.entries(personalInfoData).filter(([_, value]) => value !== undefined && value !== null && value !== '')
+      );
+      
+      console.log('البيانات الشخصية المنظفة للتحديث:', JSON.stringify(cleanedData));
+      
+      const updatedProfile = await storage.updateCompanyProfile(profileId, cleanedData);
+      console.log('تم تحديث البيانات الشخصية بنجاح:', JSON.stringify(updatedProfile));
+      res.json(updatedProfile);
+    } catch (error) {
+      console.error('خطأ في تحديث البيانات الشخصية للشركة:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
   
   // توثيق أو إلغاء توثيق شركة - للمسؤولين فقط
   app.patch('/api/companies/:id/verify', isAuthenticated, async (req: Request, res: Response) => {

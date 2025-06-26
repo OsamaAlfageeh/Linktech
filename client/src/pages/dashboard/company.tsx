@@ -757,6 +757,236 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                 )}
               </CardContent>
             </Card>
+
+            {/* Personal Information for NDA */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <div>
+                  <CardTitle>البيانات الشخصية لوثائق عدم الإفصاح</CardTitle>
+                  <CardDescription>معلومات مطلوبة لتوقيع اتفاقيات عدم الإفصاح مع أصحاب المشاريع</CardDescription>
+                </div>
+                {profile && !isPersonalInfoMode && (
+                  <Button variant="outline" onClick={() => setIsPersonalInfoMode(true)}>
+                    <Edit className="ml-2 h-4 w-4" />
+                    تعديل البيانات الشخصية
+                  </Button>
+                )}
+              </CardHeader>
+              <CardContent className="pt-6">
+                {isLoadingProfile ? (
+                  <div className="space-y-4">
+                    <Skeleton className="h-10 w-full" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
+                  </div>
+                ) : profileError ? (
+                  <div className="text-center p-4">
+                    <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                    <p>حدث خطأ أثناء تحميل البيانات الشخصية</p>
+                    <Button 
+                      onClick={() => queryClient.invalidateQueries({queryKey: [`/api/companies/user/${auth.user?.id}`]})}
+                      variant="outline"
+                      className="mt-2"
+                    >
+                      إعادة المحاولة
+                    </Button>
+                  </div>
+                ) : isPersonalInfoMode ? (
+                  <Form {...personalInfoForm}>
+                    <form onSubmit={personalInfoForm.handleSubmit(onSubmitPersonalInfo)} className="space-y-6">
+                      <FormField
+                        control={personalInfoForm.control}
+                        name="fullName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>الاسم الكامل للمفوض بالتوقيع *</FormLabel>
+                            <FormControl>
+                              <Input 
+                                placeholder="أدخل الاسم الكامل كما هو في الهوية الوطنية"
+                                {...field}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={personalInfoForm.control}
+                          name="nationalId"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>رقم الهوية الوطنية *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="1234567890"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={personalInfoForm.control}
+                          name="phone"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>رقم الجوال *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="05xxxxxxxx"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <FormField
+                          control={personalInfoForm.control}
+                          name="birthDate"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>تاريخ الميلاد *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  type="date"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                        
+                        <FormField
+                          control={personalInfoForm.control}
+                          name="address"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>العنوان الوطني *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="مثال: الرياض، حي النخيل، شارع الملك فهد"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      
+                      <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <AlertCircle className="h-5 w-5 text-amber-600 ml-2" />
+                          <div className="text-sm text-amber-800">
+                            <p className="font-medium mb-1">ملاحظة مهمة:</p>
+                            <p>هذه البيانات مطلوبة لإنشاء وتوقيع اتفاقيات عدم الإفصاح مع أصحاب المشاريع. تأكد من صحة البيانات لأنها ستظهر في المستندات القانونية.</p>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-end space-x-4 space-x-reverse">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => setIsPersonalInfoMode(false)}
+                        >
+                          إلغاء
+                        </Button>
+                        <Button 
+                          type="submit"
+                          disabled={updatePersonalInfoMutation2.isPending}
+                        >
+                          {updatePersonalInfoMutation2.isPending ? "جاري الحفظ..." : "حفظ البيانات الشخصية"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                ) : profile ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium text-neutral-500 mb-1">الاسم الكامل</h3>
+                        {profile.fullName ? (
+                          <p className="text-neutral-700">{profile.fullName}</p>
+                        ) : (
+                          <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium text-neutral-500 mb-1">رقم الهوية الوطنية</h3>
+                        {profile.nationalId ? (
+                          <p className="text-neutral-700">{profile.nationalId}</p>
+                        ) : (
+                          <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium text-neutral-500 mb-1">رقم الجوال</h3>
+                        {profile.phone ? (
+                          <p className="text-neutral-700">{profile.phone}</p>
+                        ) : (
+                          <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <h3 className="text-sm font-medium text-neutral-500 mb-1">تاريخ الميلاد</h3>
+                        {profile.birthDate ? (
+                          <p className="text-neutral-700">{new Date(profile.birthDate).toLocaleDateString('ar-SA')}</p>
+                        ) : (
+                          <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-neutral-500 mb-1">العنوان الوطني</h3>
+                      {profile.address ? (
+                        <p className="text-neutral-700">{profile.address}</p>
+                      ) : (
+                        <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
+                      )}
+                    </div>
+                    
+                    {(!profile.fullName || !profile.nationalId || !profile.phone || !profile.birthDate || !profile.address) && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-center">
+                          <AlertCircle className="h-5 w-5 text-red-600 ml-2" />
+                          <div className="text-sm text-red-800">
+                            <p className="font-medium mb-1">بيانات ناقصة:</p>
+                            <p>لا يمكنك توقيع اتفاقيات عدم الإفصاح حتى تكمل جميع البيانات الشخصية المطلوبة.</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="text-center p-8">
+                    <p className="text-neutral-600 mb-4">قم بإكمال البيانات الشخصية المطلوبة لتوقيع اتفاقيات عدم الإفصاح</p>
+                    <Button onClick={() => setIsPersonalInfoMode(true)}>
+                      إضافة البيانات الشخصية
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
 
           {/* Messages Tab */}
