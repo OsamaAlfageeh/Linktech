@@ -282,7 +282,15 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       console.log('Sending personal info update to server:', JSON.stringify(data));
       console.log('Profile ID:', profile.id);
       
-      const response = await apiRequest("PATCH", `/api/companies/${profile.id}/personal-info`, data);
+      // استخدام نقطة النهاية العادية لتحديث ملف الشركة مع البيانات الشخصية
+      const response = await apiRequest("PATCH", `/api/companies/${profile.id}`, data);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Server error response:', errorText);
+        throw new Error(`فشل في تحديث البيانات: ${response.status}`);
+      }
+      
       const result = await response.json();
       console.log('Server response:', JSON.stringify(result));
       return result;
