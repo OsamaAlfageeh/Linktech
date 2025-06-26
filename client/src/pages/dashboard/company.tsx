@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { useLocation } from "wouter";
@@ -109,6 +109,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isEditMode, setIsEditMode] = useState(false);
   const [isPersonalInfoMode, setIsPersonalInfoMode] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   // قراءة معلمة التبويب من URL عند تحميل الصفحة
   useEffect(() => {
@@ -300,24 +301,42 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     onSuccess: async (data) => {
       console.log('تم استلام بيانات شخصية محدثة من الخادم:', JSON.stringify(data));
       
-      // إلغاء صحة جميع الاستعلامات المتعلقة بالشركة لإجبار إعادة التحميل
+      // إلغاء صحة جميع الاستعلامات المتعلقة بالشركة
       await queryClient.invalidateQueries({
         queryKey: [`/api/companies/user/${auth.user?.id}`]
       });
       
-      // انتظار قصير ثم إعادة تحميل البيانات للتأكد من التحديث
+      // حذف البيانات من الكاش تماماً لإجبار إعادة التحميل
+      queryClient.removeQueries({
+        queryKey: [`/api/companies/user/${auth.user?.id}`]
+      });
+      
+      // إعادة تحميل البيانات فوراً
       setTimeout(async () => {
         try {
           const freshData = await refetchProfile();
-          console.log('تم إعادة تحميل بيانات الملف بنجاح بعد التحديث:', freshData);
+          console.log('=== تم إعادة تحميل بيانات الملف بعد التحديث ===');
+          console.log('البيانات الجديدة:', freshData);
+          console.log('حالة البيانات الشخصية بعد التحديث:', {
+            fullName: freshData?.data?.fullName,
+            nationalId: freshData?.data?.nationalId,
+            phone: freshData?.data?.phone,
+            birthDate: freshData?.data?.birthDate,
+            address: freshData?.data?.address
+          });
         } catch (error) {
           console.error('خطأ في إعادة تحميل بيانات الملف:', error);
         }
-      }, 300);
+        
+        // إجبار إعادة تحميل الصفحة بعد تأخير قصير لضمان عرض البيانات المحدثة
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500);
+      }, 100);
       
       toast({
         title: "تم تحديث البيانات الشخصية بنجاح",
-        description: "تم تحديث بياناتك الشخصية المطلوبة لاتفاقيات عدم الإفصاح بنجاح.",
+        description: "سيتم إعادة تحميل الصفحة لعرض التحديثات.",
       });
       
       setIsPersonalInfoMode(false);
@@ -339,23 +358,28 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
     updatePersonalInfoMutation2.mutate(data);
   };
 
-  // فحص اكتمال البيانات الشخصية
-  const isPersonalInfoComplete = profile && 
-    profile.fullName && profile.fullName.trim() !== "" &&
-    profile.nationalId && profile.nationalId.trim() !== "" &&
-    profile.phone && profile.phone.trim() !== "" &&
-    profile.birthDate && profile.birthDate.trim() !== "" &&
-    profile.address && profile.address.trim() !== "";
+  // فحص اكتمال البيانات الشخصية بدقة أكبر
+  const isPersonalInfoComplete = useMemo(() => {
+    if (!profile) return false;
+    
+    const requiredFields = ['fullName', 'nationalId', 'phone', 'birthDate', 'address'];
+    const isComplete = requiredFields.every(field => {
+      const value = profile[field as keyof typeof profile];
+      return value && typeof value === 'string' && value.trim() !== "";
+    });
 
-  console.log('Personal Info Check:', {
-    profile: !!profile,
-    fullName: profile?.fullName,
-    nationalId: profile?.nationalId,
-    phone: profile?.phone,
-    birthDate: profile?.birthDate,
-    address: profile?.address,
-    isComplete: isPersonalInfoComplete
-  });
+    console.log('Personal Info Completion Check:', {
+      profile: !!profile,
+      fullName: profile?.fullName,
+      nationalId: profile?.nationalId,
+      phone: profile?.phone,
+      birthDate: profile?.birthDate,
+      address: profile?.address,
+      isComplete
+    });
+
+    return isComplete;
+  }, [profile]);
 
   // Redirect if not authenticated or not a company
   useEffect(() => {
