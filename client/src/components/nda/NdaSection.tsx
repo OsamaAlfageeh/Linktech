@@ -348,7 +348,7 @@ export function NdaSection({
                         <li>تاريخ الميلاد</li>
                         <li>العنوان الوطني</li>
                       </ul>
-                      <Link href="/dashboard?tab=profile">
+                      <Link href="/dashboard">
                         <Button
                           variant="outline"
                           className="bg-white text-blue-600 border-blue-300 hover:bg-blue-50"
