@@ -198,23 +198,23 @@ const FeaturedClientsManagement = () => {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold">إدارة العملاء المميزين</h1>
-          <p className="text-gray-600">إدارة عملاء التميز الذين يظهرون في الصفحة الرئيسية</p>
+          <h1 className="text-2xl font-bold">إدارة عملاء نفخر بهم</h1>
+          <p className="text-gray-600">إدارة العملاء الذين نفخر بهم والذين يظهرون في الصفحة الرئيسية</p>
         </div>
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button onClick={() => setEditingClient(null)}>
               <Plus className="w-4 h-4 mr-2" />
-              إضافة عميل مميز
+              إضافة عميل نفخر به
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
               <DialogTitle>
-                {editingClient ? 'تحديث عميل مميز' : 'إضافة عميل مميز جديد'}
+                {editingClient ? 'تحديث عميل نفخر به' : 'إضافة عميل نفخر به جديد'}
               </DialogTitle>
               <DialogDescription>
-                {editingClient ? 'تحديث بيانات العميل المميز' : 'إضافة عميل مميز جديد لعرضه في الصفحة الرئيسية'}
+                {editingClient ? 'تحديث بيانات العميل الذي نفخر به' : 'إضافة عميل نفخر به جديد لعرضه في الصفحة الرئيسية'}
               </DialogDescription>
             </DialogHeader>
             <Form {...form}>
@@ -424,11 +424,11 @@ const FeaturedClientsManagement = () => {
 
       {clients.length === 0 && (
         <div className="text-center py-12">
-          <div className="text-gray-500 text-lg mb-4">لا توجد عملاء مميزين حالياً</div>
-          <p className="text-gray-400 mb-6">ابدأ بإضافة عملاء مميزين لعرضهم في الصفحة الرئيسية</p>
+          <div className="text-gray-500 text-lg mb-4">لا توجد عملاء نفخر بهم حالياً</div>
+          <p className="text-gray-400 mb-6">ابدأ بإضافة عملاء نفخر بهم لعرضهم في الصفحة الرئيسية</p>
           <Button onClick={() => setIsDialogOpen(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            إضافة أول عميل مميز
+            إضافة أول عميل نفخر به
           </Button>
         </div>
       )}

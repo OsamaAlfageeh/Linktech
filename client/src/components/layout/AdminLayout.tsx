@@ -17,7 +17,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { label: "رسائل الاتصال", href: "/admin/contact-messages", icon: MessageSquare },
     { label: "المدونة", href: "/admin/blog-management", icon: FileText },
     { label: "عملاء التميز", href: "/admin/premium-clients", icon: Star },
-    { label: "العملاء المميزون", href: "/admin/featured-clients-management", icon: Award },
+    { label: "عملاء نفخر بهم", href: "/admin/featured-clients-management", icon: Award },
   ];
 
   return (
