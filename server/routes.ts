@@ -4126,10 +4126,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // === نقاط نهاية العملاء المميزين ===
   
-  // الحصول على جميع العملاء المميزين النشطين
+  // الحصول على جميع العملاء المميزين النشطين (الشركات الموثقة)
   app.get('/api/featured-clients', async (req: Request, res: Response) => {
     try {
-      const clients = await storage.getActiveFeaturedClients();
+      const clients = await storage.getFeaturedClients();
       res.json(clients);
     } catch (error) {
       console.error('Error fetching featured clients:', error);
@@ -4137,85 +4137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // الحصول على جميع العملاء المميزين (للمدير)
-  app.get('/api/admin/featured-clients', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      if (req.user?.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden - Admin access required' });
-      }
-      
-      const clients = await storage.getFeaturedClients();
-      res.json(clients);
-    } catch (error) {
-      console.error('Error fetching all featured clients:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
 
-  // إنشاء عميل مميز جديد (للمدير)
-  app.post('/api/admin/featured-clients', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      if (req.user?.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden - Admin access required' });
-      }
-
-      const validation = schema.insertFeaturedClientSchema.safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ message: 'Invalid data', errors: validation.error.errors });
-      }
-
-      const client = await storage.createFeaturedClient(validation.data);
-      res.status(201).json(client);
-    } catch (error) {
-      console.error('Error creating featured client:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-
-  // تحديث عميل مميز (للمدير)
-  app.put('/api/admin/featured-clients/:id', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      if (req.user?.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden - Admin access required' });
-      }
-
-      const id = parseInt(req.params.id);
-      const validation = schema.insertFeaturedClientSchema.partial().safeParse(req.body);
-      if (!validation.success) {
-        return res.status(400).json({ message: 'Invalid data', errors: validation.error.errors });
-      }
-
-      const updatedClient = await storage.updateFeaturedClient(id, validation.data);
-      if (!updatedClient) {
-        return res.status(404).json({ message: 'Client not found' });
-      }
-
-      res.json(updatedClient);
-    } catch (error) {
-      console.error('Error updating featured client:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
-
-  // حذف عميل مميز (للمدير)
-  app.delete('/api/admin/featured-clients/:id', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      if (req.user?.role !== 'admin') {
-        return res.status(403).json({ message: 'Forbidden - Admin access required' });
-      }
-
-      const id = parseInt(req.params.id);
-      const success = await storage.deleteFeaturedClient(id);
-      if (!success) {
-        return res.status(404).json({ message: 'Client not found' });
-      }
-
-      res.json({ message: 'Client deleted successfully' });
-    } catch (error) {
-      console.error('Error deleting featured client:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
   app.get('/api/ai/my-analyses', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const analyses = await storage.getUserAiAnalyses(req.user.id);

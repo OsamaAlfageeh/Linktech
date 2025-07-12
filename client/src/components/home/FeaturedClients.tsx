@@ -1,7 +1,15 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { FeaturedClient } from '@shared/schema';
+
+interface FeaturedClient {
+  id: number;
+  legal_name: string;
+  logo: string;
+  website: string;
+  description: string;
+  username: string;
+}
 
 const FeaturedClients = () => {
   const { data: clients, isLoading, error } = useQuery<FeaturedClient[]>({
@@ -62,20 +70,26 @@ const FeaturedClients = () => {
             >
               <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-1 border border-gray-100">
                 <div className="flex items-center justify-center h-16 mb-4">
-                  <img
-                    src={client.logo}
-                    alt={client.name}
-                    className="max-h-full max-w-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
-                    loading="lazy"
-                  />
+                  {client.logo ? (
+                    <img
+                      src={client.logo}
+                      alt={client.legal_name || client.username}
+                      className="max-h-full max-w-full object-contain filter grayscale hover:grayscale-0 transition-all duration-300"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg">
+                      {(client.legal_name || client.username).charAt(0)}
+                    </div>
+                  )}
                 </div>
                 <div className="text-center">
                   <h3 className="font-semibold text-gray-900 text-sm mb-1">
-                    {client.name}
+                    {client.legal_name || client.username}
                   </h3>
-                  {client.category && (
-                    <p className="text-xs text-gray-500">
-                      {client.category}
+                  {client.description && (
+                    <p className="text-xs text-gray-500 line-clamp-2">
+                      {client.description}
                     </p>
                   )}
                 </div>

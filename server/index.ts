@@ -88,11 +88,6 @@ process.on('SIGINT', () => {
   console.log("Starting database seeding...");
   try {
     await seedDatabase();
-    
-    // Seed featured clients
-    const { seedFeaturedClients } = await import('./seedFeaturedClients');
-    await seedFeaturedClients();
-    
     console.log("Database seeding completed successfully");
   } catch (error) {
     console.error("Error seeding database:", error);
