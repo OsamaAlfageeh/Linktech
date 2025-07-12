@@ -87,29 +87,21 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
   
   return (
     <section 
-      className="relative min-h-screen bg-gradient-hero overflow-hidden"
+      className="relative min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 overflow-hidden"
       style={headerImageUrl ? {
-        backgroundImage: `linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.8)), url(${headerImageUrl})`,
+        backgroundImage: `url(${headerImageUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       } : {}}
     >
-      {/* Modern Animated Background Elements */}
+      {/* Animated Background Elements */}
       <div className="absolute inset-0">
-        <div className="absolute top-10 left-[10%] w-72 h-72 bg-blue-400/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-20 right-[15%] w-96 h-96 bg-purple-400/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
-        <div className="absolute top-1/3 left-1/2 transform -translate-x-1/2 w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '4s' }}></div>
+        <div className="absolute top-20 left-4 md:left-10 w-48 h-48 md:w-72 md:h-72 bg-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 right-4 md:right-10 w-64 h-64 md:w-96 md:h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-60 h-60 md:w-80 md:h-80 bg-amber-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
       </div>
-      
-      {/* Mesh Gradient Overlay */}
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-accent/20"></div>
-      
-      {/* Geometric Patterns */}
-      <div className="absolute inset-0 opacity-5">
-        <div className="absolute top-20 right-20 w-32 h-32 border border-white/20 rotate-45 rounded-lg"></div>
-        <div className="absolute bottom-40 left-20 w-24 h-24 border border-white/15 rotate-12 rounded-full"></div>
-        <div className="absolute top-1/2 right-1/3 w-16 h-16 border border-white/10 rotate-45"></div>
-      </div>
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40"></div>
       {/* Floating Elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <motion.div 

@@ -1,278 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@200;300;400;500;600;700;800;900&family=IBM+Plex+Sans+Arabic:wght@200;300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ===== متغيرات الألوان المحسنة ===== */
-@layer base {
-  :root {
-    /* الألوان الأساسية */
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    
-    /* الألوان الرئيسية - لوحة ألوان LinkTech المحسنة */
-    --primary: 210 83% 53%; /* أزرق تقني حديث */
-    --primary-dark: 210 83% 43%;
-    --primary-light: 210 83% 63%;
-    --primary-foreground: 210 40% 98%;
-    
-    /* ألوان التمييز */
-    --accent: 142 76% 36%; /* أخضر نجاح */
-    --accent-dark: 142 76% 26%;
-    --accent-light: 142 76% 46%;
-    --accent-foreground: 355.7 100% 97.3%;
-    
-    /* ألوان المدمرة */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    
-    /* ألوان ثانوية */
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222.2 84% 4.9%;
-    
-    /* ألوان الحدود والخلفيات */
-    --muted: 210 40% 96%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 210 83% 53%;
-    
-    /* ألوان الظلال */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    
-    /* ألوان الحالة */
-    --success: 142 76% 36%;
-    --warning: 38 92% 50%;
-    --error: 0 84.2% 60.2%;
-    --info: 199 89% 48%;
-    
-    /* تحسينات للوضع المظلم */
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 83% 63%;
-    --primary-foreground: 222.2 84% 4.9%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 142 76% 46%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 210 83% 63%;
-  }
-}
-
-/* ===== إعدادات أساسية محسنة ===== */
-@layer base {
-  * {
-    @apply border-border;
-  }
-  
-  body {
-    @apply bg-background text-foreground font-body;
-    font-feature-settings: "rlig" 1, "calt" 1;
-    direction: rtl;
-    line-height: 1.6;
-  }
-  
-  html {
-    scroll-behavior: smooth;
-  }
-  
-  /* تحسين عرض النصوص العربية */
-  .font-arabic {
-    font-family: "Tajawal", "IBM Plex Sans Arabic", system-ui, -apple-system, sans-serif;
-  }
-  
-  .font-heading {
-    @apply font-arabic font-bold;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-  }
-  
-  .font-body {
-    @apply font-arabic;
-    font-weight: 400;
-  }
-  
-  /* تحسين إمكانية الوصول */
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border-width: 0;
-  }
-  
-  /* تحسين التركيز */
-  .focus-visible:focus {
-    @apply outline-none ring-2 ring-ring ring-offset-2;
-  }
-}
-
-/* ===== مكونات UI محسنة ===== */
+/* ===== تأثيرات التفاعل والحركة ===== */
 @layer components {
-  /* تصميم البطاقات المحسن */
-  .card-modern {
-    @apply bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* تأثيرات البطاقات */
+  .hover-card-lift {
+    @apply transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1;
   }
   
-  .card-modern:hover {
-    @apply shadow-xl -translate-y-1 border-primary/20;
-    transform: translateY(-4px);
+  /* تأثيرات الأزرار */
+  .hover-button-scale {
+    @apply transition-transform duration-150 ease-in-out active:scale-95 hover:scale-105;
   }
   
-  /* تأثيرات الأزرار المحسنة */
-  .btn-primary {
-    @apply bg-primary hover:bg-primary-dark text-primary-foreground px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md active:scale-95;
+  /* تأثيرات للنص الفائق */
+  .link-underline {
+    @apply relative after:absolute after:bg-primary after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:origin-bottom-right after:transition-all after:duration-300 hover:after:origin-bottom-left hover:after:w-full;
   }
   
-  .btn-secondary {
-    @apply bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-xl font-medium transition-all duration-200 border border-border hover:border-primary/30;
+  /* تأثيرات الشارات */
+  .badge-pulse {
+    @apply transition-all duration-300 hover:bg-primary/10 hover:text-primary;
   }
   
-  .btn-accent {
-    @apply bg-accent hover:bg-accent-dark text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-sm hover:shadow-md;
+  /* تأثير الاهتزاز اللطيف */
+  .subtle-shake {
+    animation: subtle-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
   }
   
-  /* تحسين الروابط */
-  .link-elegant {
-    @apply text-primary hover:text-primary-dark transition-colors duration-200 font-medium relative;
-  }
-  
-  .link-elegant::after {
-    content: '';
-    position: absolute;
-    width: 0;
-    height: 2px;
-    bottom: -2px;
-    right: 0;
-    background-color: currentColor;
-    transition: width 0.3s ease-in-out;
-  }
-  
-  .link-elegant:hover::after {
-    width: 100%;
-    left: 0;
-    right: auto;
-  }
-  
-  /* تصميم الشارات المحسن */
-  .badge-modern {
-    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary transition-all duration-200 hover:bg-primary/20;
-  }
-  
-  /* تصميم الإدخال المحسن */
-  .input-modern {
-    @apply w-full px-4 py-3 rounded-xl border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200;
-  }
-  
-  /* تصميم التنبيهات المحسن */
-  .alert-modern {
-    @apply rounded-xl border p-4 flex items-start space-x-3 space-x-reverse;
-  }
-  
-  .alert-success {
-    @apply alert-modern bg-green-50 border-green-200 text-green-800;
-  }
-  
-  .alert-warning {
-    @apply alert-modern bg-yellow-50 border-yellow-200 text-yellow-800;
-  }
-  
-  .alert-error {
-    @apply alert-modern bg-red-50 border-red-200 text-red-800;
-  }
-  
-  .alert-info {
-    @apply alert-modern bg-blue-50 border-blue-200 text-blue-800;
-  }
-  
-  /* تحسينات الحركة والتفاعل */
-  .animate-float {
-    animation: float 6s ease-in-out infinite;
-  }
-  
-  @keyframes float {
-    0%, 100% { transform: translateY(0px) rotate(0deg); }
-    50% { transform: translateY(-10px) rotate(1deg); }
-  }
-  
-  .animate-bounce-gentle {
-    animation: bounce-gentle 2s infinite;
-  }
-  
-  @keyframes bounce-gentle {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-5px); }
-  }
-  
-  .animate-slide-in-right {
-    animation: slide-in-right 0.6s ease-out forwards;
-  }
-  
-  @keyframes slide-in-right {
-    from {
-      opacity: 0;
-      transform: translateX(50px);
+  @keyframes subtle-shake {
+    10%, 90% {
+      transform: translate3d(-1px, 0, 0);
     }
-    to {
-      opacity: 1;
-      transform: translateX(0);
+    
+    20%, 80% {
+      transform: translate3d(1px, 0, 0);
     }
-  }
-  
-  .animate-slide-in-left {
-    animation: slide-in-left 0.6s ease-out forwards;
-  }
-  
-  @keyframes slide-in-left {
-    from {
-      opacity: 0;
-      transform: translateX(-50px);
+    
+    30%, 50%, 70% {
+      transform: translate3d(-2px, 0, 0);
     }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  .animate-scale-in {
-    animation: scale-in 0.5s ease-out forwards;
-  }
-  
-  @keyframes scale-in {
-    from {
-      opacity: 0;
-      transform: scale(0.9);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
+    
+    40%, 60% {
+      transform: translate3d(2px, 0, 0);
     }
   }
   
@@ -348,122 +124,6 @@
     100% { background-position: -200% 0; }
   }
   
-  /* ===== تحسينات RTL والنصوص العربية ===== */
-  .rtl-grid {
-    direction: rtl;
-  }
-  
-  .text-gradient {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  /* تحسين المسافات للنصوص العربية */
-  .arabic-spacing {
-    letter-spacing: 0.02em;
-    word-spacing: 0.1em;
-  }
-  
-  /* ===== تحسينات الاستجابة ===== */
-  .container-modern {
-    @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl;
-  }
-  
-  .section-padding {
-    @apply py-16 sm:py-20 lg:py-24;
-  }
-  
-  .section-padding-sm {
-    @apply py-8 sm:py-12 lg:py-16;
-  }
-  
-  /* ===== تحسينات الظلال والعمق ===== */
-  .glass-effect {
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .shadow-elegant {
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  }
-  
-  .shadow-strong {
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
-  }
-  
-  /* ===== حالات التحميل المحسنة ===== */
-  .skeleton {
-    @apply animate-pulse bg-muted rounded;
-  }
-  
-  .loading-dots::after {
-    content: '';
-    animation: loading-dots 1.5s infinite;
-  }
-  
-  @keyframes loading-dots {
-    0%, 20% { content: ''; }
-    40% { content: '.'; }
-    60% { content: '..'; }
-    80%, 100% { content: '...'; }
-  }
-}
-
-/* ===== تخصيصات خاصة بالمنصة ===== */
-@layer utilities {
-  .text-shadow {
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  }
-  
-  .text-shadow-lg {
-    text-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-  }
-  
-  .bg-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-dark)) 100%);
-  }
-  
-  .bg-gradient-accent {
-    background: linear-gradient(135deg, hsl(var(--accent)) 0%, hsl(var(--accent-dark)) 100%);
-  }
-  
-  .bg-gradient-hero {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 50%, hsl(var(--primary-dark)) 100%);
-  }
-  
-  /* Additional utility classes */
-  .bg-primary-dark {
-    background-color: hsl(var(--primary-dark));
-  }
-  
-  .text-primary-dark {
-    color: hsl(var(--primary-dark));
-  }
-  
-  .hover\:bg-primary-dark:hover {
-    background-color: hsl(var(--primary-dark));
-  }
-  
-  .hover\:text-primary-dark:hover {
-    color: hsl(var(--primary-dark));
-  }
-  
-  .bg-accent-dark {
-    background-color: hsl(var(--accent-dark));
-  }
-  
-  .text-accent-dark {
-    color: hsl(var(--accent-dark));
-  }
-  
-  .hover\:bg-accent-dark:hover {
-    background-color: hsl(var(--accent-dark));
-  }
-}
-  
   /* تأثير فقاعات خلفية متحركة */
   .animate-blob {
     animation: blob 7s infinite;
@@ -491,57 +151,7 @@
       transform: translate(0px, 0px) scale(1);
     }
   }
-  
-  @keyframes slideInLeft {
-    from {
-      opacity: 0;
-      transform: translateX(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  @keyframes bounceGentle {
-    0%, 100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-4px);
-    }
-  }
-  
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-    to {
-      opacity: 1;
-    }
-  }
-  
-  @keyframes slideInRight {
-    from {
-      opacity: 0;
-      transform: translateX(-30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-  
-  @keyframes scaleIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
+}
 
 :root {
   --background: 0 0% 100%;
