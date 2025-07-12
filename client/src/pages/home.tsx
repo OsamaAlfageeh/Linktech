@@ -7,6 +7,7 @@ import Testimonials from "@/components/home/Testimonials";
 import CTASection from "@/components/home/CTASection";
 import OfficialCompaniesSection from "@/components/home/OfficialCompaniesSection";
 import AIAssistantSection from "@/components/home/AIAssistantSection";
+import FeaturedClients from "@/components/home/FeaturedClients";
 import { TrendingProjects } from "@/components/recommendations";
 import SEO from "@/components/seo/SEO";
 import { OrganizationStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
@@ -44,6 +45,7 @@ const Home = ({ auth }: HomeProps) => {
       </SEO>
       
       <HeroSection auth={auth} />
+      <FeaturedClients />
       <OfficialCompaniesSection />
       <AIAssistantSection auth={auth} />
       <HowItWorks />

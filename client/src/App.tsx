@@ -48,6 +48,7 @@ import BlogIndexPage from "@/pages/blog/index";
 import BlogPostPage from "@/pages/blog/[slug]";
 import BlogManagement from "@/pages/admin/blog-management";
 import PremiumClientsManagement from "@/pages/admin/premium-clients-management";
+import FeaturedClientsManagement from "@/pages/admin/featured-clients-management";
 import SiteSettings from "@/pages/admin/site-settings";
 import ContactMessagesPage from "@/pages/admin/contact-messages";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
@@ -279,6 +280,7 @@ function App() {
           {/* صفحات إدارة المسؤول */}
           <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
           <ProtectedRoute path="/admin/premium-clients-management" component={PremiumClientsManagement} requiredRole="admin" />
+          <ProtectedRoute path="/admin/featured-clients-management" component={FeaturedClientsManagement} requiredRole="admin" />
           <ProtectedRoute path="/admin/site-settings" component={SiteSettings} requiredRole="admin" />
           <ProtectedRoute path="/admin/contact-messages" component={ContactMessagesPage} requiredRole="admin" />
           

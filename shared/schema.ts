@@ -452,6 +452,29 @@ export const usersPersonalInfoRelation = relations(users, ({ one }) => ({
   }),
 }));
 
+// العملاء المميزون - Featured Clients
+export const featuredClients = pgTable("featured_clients", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  logo: text("logo").notNull(), // URL to the logo image
+  website: text("website"),
+  description: text("description"),
+  category: text("category"), // نوع العميل (تقني، طبي، تجاري، إلخ)
+  order: integer("order").default(0), // ترتيب العرض
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const insertFeaturedClientSchema = createInsertSchema(featuredClients).omit({ 
+  id: true,
+  createdAt: true,
+  updatedAt: true 
+});
+
+export type FeaturedClient = typeof featuredClients.$inferSelect;
+export type InsertFeaturedClient = z.infer<typeof insertFeaturedClientSchema>;
+
 // مخطط نظام المدونة
 
 // فئات المدونة
