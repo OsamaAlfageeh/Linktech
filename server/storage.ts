@@ -19,6 +19,8 @@ import {
   premiumClients,
   ContactMessage, InsertContactMessage,
   contactMessages,
+  FeaturedClient, InsertFeaturedClient,
+  featuredClients,
 
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
@@ -2095,24 +2097,50 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(siteSettings).where(eq(siteSettings.category, category));
   }
 
-  // Featured clients operations - عرض الشركات الموثقة
-  async getFeaturedClients(): Promise<any[]> {
-    const result = await db
-      .select({
-        id: schema.companyProfiles.id,
-        legal_name: schema.companyProfiles.legalName,
-        logo: schema.companyProfiles.logo,
-        website: schema.companyProfiles.website,
-        description: schema.companyProfiles.description,
-        username: schema.users.username
-      })
-      .from(schema.companyProfiles)
-      .leftJoin(schema.users, eq(schema.companyProfiles.userId, schema.users.id))
-      .where(eq(schema.companyProfiles.verified, true))
-      .orderBy(desc(schema.companyProfiles.verificationDate))
-      .limit(12);
-    
-    return result;
+  // Featured clients operations
+  async getFeaturedClients(): Promise<FeaturedClient[]> {
+    return await db.select().from(featuredClients).orderBy(asc(featuredClients.order));
+  }
+
+  async getActiveFeaturedClients(): Promise<FeaturedClient[]> {
+    return await db.select()
+      .from(featuredClients)
+      .where(eq(featuredClients.active, true))
+      .orderBy(asc(featuredClients.order));
+  }
+
+  async getFeaturedClient(id: number): Promise<FeaturedClient | undefined> {
+    const clients = await db.select()
+      .from(featuredClients)
+      .where(eq(featuredClients.id, id))
+      .limit(1);
+    return clients[0];
+  }
+
+  async createFeaturedClient(client: InsertFeaturedClient): Promise<FeaturedClient> {
+    const [newClient] = await db.insert(featuredClients)
+      .values(client)
+      .returning();
+    return newClient;
+  }
+
+  async updateFeaturedClient(id: number, updates: Partial<FeaturedClient>): Promise<FeaturedClient | undefined> {
+    const [updatedClient] = await db.update(featuredClients)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(featuredClients.id, id))
+      .returning();
+    return updatedClient;
+  }
+
+  async deleteFeaturedClient(id: number): Promise<boolean> {
+    try {
+      await db.delete(featuredClients)
+        .where(eq(featuredClients.id, id));
+      return true;
+    } catch (error) {
+      console.error('Error deleting featured client:', error);
+      return false;
+    }
   }
 
 

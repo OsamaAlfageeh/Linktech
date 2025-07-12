@@ -1,6 +1,6 @@
 import { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
-import { User, ChevronLeft, Home, MessageSquare, Users, FileText, Star } from "lucide-react";
+import { User, ChevronLeft, Home, MessageSquare, Users, FileText, Star, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface AdminLayoutProps {
@@ -17,6 +17,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     { label: "رسائل الاتصال", href: "/admin/contact-messages", icon: MessageSquare },
     { label: "المدونة", href: "/admin/blog-management", icon: FileText },
     { label: "عملاء التميز", href: "/admin/premium-clients", icon: Star },
+    { label: "العملاء المميزون", href: "/admin/featured-clients-management", icon: Award },
   ];
 
   return (
