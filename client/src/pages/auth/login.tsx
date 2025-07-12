@@ -46,10 +46,7 @@ const Login = ({ auth }: LoginProps) => {
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
-    defaultValues: {
-      username: "admin",
-      password: "admin123",
-    },
+  
   });
 
   const loginMutation = useMutation({
