@@ -92,7 +92,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       secure: false, // false للـ HTTP في التطوير
       maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
       httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
-      sameSite: 'lax' // تغيير من none إلى lax للمتصفحات الحديثة
+      sameSite: 'lax', // تغيير من none إلى lax للمتصفحات الحديثة
+      domain: undefined, // لا نحدد domain في بيئة التطوير
+      path: '/' // تأكيد أن الكوكيز متاحة لكامل الموقع
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
@@ -100,25 +102,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     name: 'connect.sid' // استخدام الاسم الافتراضي
   }));
   
-  // إعداد CORS محسن لبيئة Replit
+  // إعداد CORS محسن لبيئة Replit مع ضبط أفضل للكوكيز
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     
-    // في بيئة Replit، نسمح بجميع النطاقات الفرعية لـ replit.dev
-    if (origin && (origin.includes('.replit.dev') || origin.includes('localhost'))) {
-      res.header('Access-Control-Allow-Origin', origin);
-    } else if (!origin) {
-      // للطلبات المباشرة (مثل curl)
-      res.header('Access-Control-Allow-Origin', '*');
-    } else {
-      // للبيئة المحلية أو المطوّرين
-      res.header('Access-Control-Allow-Origin', origin);
-    }
-    
+    // في بيئة Replit، نقبل جميع النطاقات لضمان عمل الكوكيز
+    res.header('Access-Control-Allow-Origin', origin || req.headers.host || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Cookie');
-    res.header('Access-Control-Expose-Headers', 'Set-Cookie');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Cookie, Set-Cookie');
+    res.header('Access-Control-Expose-Headers', 'Set-Cookie, Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma');
+    
+    // إضافة رؤوس إضافية لدعم أفضل للكوكيز
+    res.header('Vary', 'Origin, Accept-Encoding');
     
     if (req.method === 'OPTIONS') {
       res.sendStatus(200);
