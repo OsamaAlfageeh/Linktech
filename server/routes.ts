@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
+import jwt from "jsonwebtoken";
 // استيراد مسارات Sitemap و robots.txt
 import sitemapRoutes from "./routes/sitemap";
 import arabicPdfTestRoutes from "./arabicPdfTest";
@@ -63,16 +64,45 @@ import {
   analyzeProject,
   analyzeCompany
 } from "./aiRecommendation";
-import session from "express-session";
 import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
 import { trackVisit, getVisitStats, getQuickStats } from "./visitTracking";
-import passport from "passport";
-import { Strategy as LocalStrategy } from "passport-local";
-import MemoryStore from "memorystore";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-const SessionStore = MemoryStore(session);
+// JWT helpers
+const JWT_SECRET = process.env.JWT_SECRET || 'linktech-jwt-secret-2024';
+
+function generateToken(userId: number): string {
+  return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '7d' });
+}
+
+function verifyToken(token: string): { userId: number } | null {
+  try {
+    return jwt.verify(token, JWT_SECRET) as { userId: number };
+  } catch {
+    return null;
+  }
+}
+
+// JWT Authentication middleware
+const jwtAuth = async (req: Request, res: Response, next: Function) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  
+  if (!token) {
+    return next(); // مواصلة بدون مصادقة
+  }
+  
+  const decoded = verifyToken(token);
+  if (decoded) {
+    const user = await storage.getUser(decoded.userId);
+    if (user) {
+      req.user = user;
+    }
+  }
+  
+  return next();
+};
 
 // تم تعريف استيراد WebSocket واستخدامها في مكان آخر من الملف
 
@@ -83,188 +113,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(generateNdaRoutes);
   // Contact routes integrated above
   // Initialize session and passport
-  // تكوين الجلسة بشكل صحيح لبيئة Replit
-  app.use(session({
-    secret: process.env.SESSION_SECRET || 'linktechapp-secret-key-2024',
-    resave: true, // تغيير إلى true لضمان حفظ الجلسة
-    saveUninitialized: true, // true لبيئة Replit
-    rolling: true, // تجديد مدة الجلسة مع كل طلب
-    cookie: { 
-      secure: process.env.NODE_ENV === 'production' ? true : false, // secure في الإنتاج
-      maxAge: 7 * 24 * 60 * 60 * 1000, // أسبوع كامل
-      httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // lax في التطوير، none في الإنتاج
-      domain: undefined, // لا نحدد domain
-      path: '/' // الكوكيز متاحة لكامل الموقع
-    },
-    store: new SessionStore({
-      checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
-    }),
-    name: 'connect.sid', // اسم الكوكيز
-    genid: function() {
-      // توليد معرف جلسة أكثر قوة
-      return crypto.randomBytes(16).toString('hex');
-    }
-  }));
+  // استخدام JWT middleware
+  app.use(jwtAuth);
   
-  // إعداد CORS خاص لبيئة Replit مع إجبار الكوكيز على العمل
+  // CORS middleware للـ JWT 
   app.use((req, res, next) => {
     const origin = req.headers.origin || req.headers.referer;
     
-    // إعداد CORS مُحسن لبيئة Replit
-    if (origin) {
-      res.header('Access-Control-Allow-Origin', origin);
-    } else {
-      // للطلبات بدون origin header
-      res.header('Access-Control-Allow-Origin', req.headers.host || '*');
-    }
-    
+    res.header('Access-Control-Allow-Origin', origin || '*');
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
-    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Cookie, Set-Cookie');
-    res.header('Access-Control-Expose-Headers', 'Set-Cookie, Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
     
-    // رؤوس إضافية لإجبار المتصفحات على قبول الكوكيز
-    res.header('Vary', 'Origin, Accept-Encoding');
-    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
-    res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-    
-    // لوجنا كل طلب options للتشخيص
     if (req.method === 'OPTIONS') {
-      console.log(`OPTIONS request from origin: ${origin}`);
-      res.sendStatus(200);
-    } else {
-      next();
+      return res.sendStatus(200);
     }
-  });
-
-  // Middleware خاص لإجبار الكوكيز على العمل في بيئة Replit
-  app.use((req, res, next) => {
-    // لوج معلومات الجلسة والكوكيز للتشخيص
-    console.log(`طلب ${req.method} ${req.path} - معرف الجلسة: ${req.sessionID}`);
-    console.log(`الكوكيز الواردة:`, req.headers.cookie);
-    
-    // تخصيص إعدادات الكوكيز لكل استجابة
-    const originalJson = res.json;
-    res.json = function(body: any) {
-      // تحسين إعدادات Set-Cookie header
-      if (req.sessionID) {
-        const isProduction = process.env.NODE_ENV === 'production';
-        const cookieOptions = [
-          `connect.sid=${req.sessionID}`,
-          'Path=/',
-          `SameSite=${isProduction ? 'None' : 'Lax'}`,
-          `Secure=${isProduction}`,
-          `Max-Age=${7 * 24 * 60 * 60}` // أسبوع
-        ].join('; ');
-        
-        this.header('Set-Cookie', cookieOptions);
-        console.log(`تعيين كوكيز الجلسة: ${cookieOptions}`);
-      }
-      
-      return originalJson.call(this, body);
-    };
     
     next();
   });
 
-  app.use(passport.initialize());
-  app.use(passport.session());
-
-  // Configure passport
-  passport.use(new LocalStrategy(async (username, password, done) => {
-    try {
-      console.log(`محاولة تسجيل دخول للمستخدم: ${username}`);
-      
-      const user = await storage.getUserByUsername(username);
-      if (!user) {
-        console.log(`لم يتم العثور على مستخدم باسم: ${username}`);
-        return done(null, false, { message: 'Incorrect username.' });
-      }
-      
-      console.log(`تم العثور على المستخدم: ${username}, يتم التحقق من كلمة المرور...`);
-      
-      // للتوافق مع الحسابات الموجودة والمستقبلية
-      let isValidPassword = false;
-      
-      // التحقق إذا كانت كلمة المرور مشفرة بالفعل
-      if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
-        console.log(`كلمة المرور مشفرة للمستخدم: ${username}، استخدام bcrypt للتحقق`);
-        // كلمة المرور مشفرة، استخدم bcrypt للتحقق
-        isValidPassword = await bcrypt.compare(password, user.password);
-        console.log(`نتيجة التحقق باستخدام bcrypt: ${isValidPassword ? 'ناجح' : 'فاشل'}`);
-      } else {
-        console.log(`كلمة المرور غير مشفرة للمستخدم: ${username}، استخدام المقارنة المباشرة`);
-        // كلمة المرور غير مشفرة (حسابات قديمة)، قارن مباشرة
-        isValidPassword = user.password === password;
-        console.log(`نتيجة التحقق المباشر: ${isValidPassword ? 'ناجح' : 'فاشل'}`);
-        
-        // إذا نجح التحقق، قم بتحديث كلمة المرور لتكون مشفرة
-        if (isValidPassword) {
-          console.log(`ترحيل كلمة المرور للمستخدم: ${username} إلى bcrypt`);
-          const hashedPassword = await bcrypt.hash(password, 10);
-          await storage.updateUserPassword(user.id, hashedPassword);
-          console.log(`تم تحديث تشفير كلمة المرور للمستخدم: ${username}`);
-        }
-      }
-      
-      if (!isValidPassword) {
-        console.log(`فشل المصادقة للمستخدم: ${username} - كلمة المرور غير صحيحة`);
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-      
-      console.log(`نجاح المصادقة للمستخدم: ${username} بالدور: ${user.role}`);
-      return done(null, user);
-    } catch (err) {
-      console.error(`خطأ أثناء المصادقة للمستخدم: ${username}`, err);
-      return done(err);
-    }
-  }));
-
-  passport.serializeUser((user: any, done) => {
-    done(null, user.id);
-  });
-
-  passport.deserializeUser(async (id: number, done) => {
-    try {
-      console.log(`محاولة استرجاع المستخدم من الجلسة، معرف: ${id}`);
-      const user = await storage.getUser(id);
-      if (!user) {
-        console.log(`فشل في العثور على المستخدم بمعرف: ${id}`);
-        return done(null, false);
-      }
-      console.log(`تم استرجاع المستخدم بنجاح: ${user.username}, دور: ${user.role}`);
-      done(null, user);
-    } catch (err) {
-      console.error(`خطأ في استرجاع المستخدم من الجلسة:`, err);
-      done(err);
-    }
-  });
+  // تم إزالة passport configuration - يستخدم JWT الآن
 
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
-    const sessionId = req.sessionID;
-    console.log(`طلب ${req.path} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
-    console.log(`Session data:`, req.session);
-    console.log(`User from req:`, req.user);
-    console.log(`Session ID: ${sessionId}`);
-    console.log(`All cookies:`, req.headers.cookie);
+    console.log(`طلب ${req.method} ${req.path} - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
     
-    if (req.isAuthenticated() && req.user) {
-      console.log(`المستخدم مصرح، معرف الجلسة: ${sessionId}`);
+    if (req.user) {
+      console.log(`المستخدم مصرح: ${req.user.username}, دور: ${req.user.role}`);
       return next();
     }
     
-    console.log(`طلب ${req.path} - المستخدم غير مصرح, sessionID: ${sessionId}`);
+    console.log(`طلب ${req.path} - المستخدم غير مصرح`);
     res.status(401).json({ message: 'Not authenticated' });
   };
   
   // التحقق من صلاحيات المسؤول
   const isAdmin = (req: Request, res: Response, next: Function) => {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Unauthorized' });
     }
     
-    if (req.user && req.user.role === 'admin') {
+    if (req.user.role === 'admin') {
       return next();
     }
     
@@ -302,14 +190,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createCompanyProfile(profileData);
       }
       
-      // Auto-login after registration
-      req.login(user, (err) => {
-        if (err) {
-          return res.status(500).json({ message: 'Error logging in after registration' });
-        }
-        // إزالة كلمة المرور من استجابة التسجيل
-        const { password, ...userWithoutPassword } = user;
-        return res.status(201).json({ user: userWithoutPassword });
+      // إنشاء JWT token للمستخدم الجديد
+      const token = generateToken(user.id);
+      
+      // إزالة كلمة المرور من استجابة التسجيل
+      const { password, ...userWithoutPassword } = user;
+      return res.status(201).json({ 
+        user: userWithoutPassword,
+        token 
       });
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -320,47 +208,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post('/api/auth/login', (req: Request, res: Response, next) => {
-    passport.authenticate('local', (err: any, user: any, info: any) => {
-      if (err) {
-        console.error('خطأ في المصادقة:', err);
-        return res.status(500).json({ message: 'Authentication error' });
-      }
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      console.log(`محاولة تسجيل دخول للمستخدم: ${req.body.username}`);
       
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ message: 'Username and password required' });
+      }
+
+      const user = await storage.getUserByUsername(username);
       if (!user) {
-        console.log('فشل تسجيل الدخول:', info?.message || 'Invalid credentials');
+        console.log(`لم يتم العثور على مستخدم باسم: ${username}`);
         return res.status(401).json({ message: 'Invalid username or password' });
       }
       
-      // تسجيل الدخول وحفظ الجلسة
-      req.login(user, (loginErr) => {
-        if (loginErr) {
-          console.error('خطأ في حفظ الجلسة:', loginErr);
-          return res.status(500).json({ message: 'Login session error' });
+      console.log(`تم العثور على المستخدم: ${username}, يتم التحقق من كلمة المرور...`);
+      
+      // التحقق من كلمة المرور
+      let isValidPassword = false;
+      
+      if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
+        console.log(`كلمة المرور مشفرة للمستخدم: ${username}، استخدام bcrypt للتحقق`);
+        isValidPassword = await bcrypt.compare(password, user.password);
+        console.log(`نتيجة التحقق باستخدام bcrypt: ${isValidPassword ? 'ناجح' : 'فاشل'}`);
+      } else {
+        console.log(`كلمة المرور غير مشفرة للمستخدم: ${username}، استخدام المقارنة المباشرة`);
+        isValidPassword = user.password === password;
+        console.log(`نتيجة التحقق المباشر: ${isValidPassword ? 'ناجح' : 'فاشل'}`);
+        
+        if (isValidPassword) {
+          console.log(`ترحيل كلمة المرور للمستخدم: ${username} إلى bcrypt`);
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await storage.updateUserPassword(user.id, hashedPassword);
+          console.log(`تم تحديث تشفير كلمة المرور للمستخدم: ${username}`);
         }
-        
-        console.log('تسجيل دخول ناجح للمستخدم:', user.username);
-        console.log('معرف الجلسة:', req.sessionID);
-        
-        // حفظ الجلسة بشكل صريح
-        req.session.save((saveErr) => {
-          if (saveErr) {
-            console.error('خطأ في حفظ الجلسة:', saveErr);
-            return res.status(500).json({ message: 'Session save error' });
-          }
-          
-          const { password, ...userWithoutPassword } = user;
-          console.log('إرسال استجابة تسجيل الدخول:', { user: userWithoutPassword });
-          res.json({ user: userWithoutPassword });
-        });
+      }
+      
+      if (!isValidPassword) {
+        console.log(`فشل المصادقة للمستخدم: ${username} - كلمة المرور غير صحيحة`);
+        return res.status(401).json({ message: 'Invalid username or password' });
+      }
+      
+      // إنشاء JWT token
+      const token = generateToken(user.id);
+      console.log(`نجاح المصادقة للمستخدم: ${username} بالدور: ${user.role}`);
+      console.log(`تم إنشاء JWT token للمستخدم: ${username}`);
+      
+      // إزالة كلمة المرور من استجابة تسجيل الدخول
+      const { password: _, ...userWithoutPassword } = user;
+      
+      console.log(`تسجيل دخول ناجح للمستخدم: ${username}`);
+      console.log(`إرسال استجابة تسجيل الدخول مع token`);
+      
+      return res.json({ 
+        user: userWithoutPassword,
+        token 
       });
-    })(req, res, next);
+    } catch (error) {
+      console.error('خطأ تسجيل الدخول:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
   });
 
   app.post('/api/auth/logout', (req: Request, res: Response) => {
-    req.logout(() => {
-      res.json({ success: true });
-    });
+    console.log('طلب تسجيل خروج، إزالة token من الواجهة الأمامية');
+    res.json({ success: true });
   });
   
   // Password reset routes
@@ -519,20 +432,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.get('/api/auth/user', async (req: Request, res: Response) => {
-    const sessionId = req.sessionID;
-    console.log(`طلب /api/auth/user - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
-    console.log(`Session data:`, req.session?.passport);
-    console.log(`User from req:`, req.user);
-    console.log(`Session ID:`, sessionId);
-    console.log(`All cookies:`, req.headers.cookie);
+    console.log(`طلب /api/auth/user - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
     
-    if (req.isAuthenticated() && req.user) {
-      const user = req.user as any;
-      console.log(`استرجاع معلومات المستخدم: ${user.username}, الدور: ${user.role}, معرف: ${user.id}`);
+    if (req.user) {
+      console.log(`استرجاع معلومات المستخدم: ${req.user.username}, الدور: ${req.user.role}, معرف: ${req.user.id}`);
       
       try {
         // التأكد من أن البيانات محدثة من قاعدة البيانات
-        const freshUser = await storage.getUser(user.id);
+        const freshUser = await storage.getUser(req.user.id);
         if (freshUser) {
           const { password, ...userWithoutPassword } = freshUser;
           console.log('إرسال معلومات المستخدم المحدثة: ', { user: userWithoutPassword });
@@ -547,15 +454,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
     
-    console.log(`طلب /api/auth/user - المستخدم غير مصرح, sessionID: ${sessionId}`);
+    console.log(`طلب /api/auth/user - المستخدم غير مصرح`);
     return res.status(401).json({ message: 'Not authenticated' });
   });
 
   // جلب جميع المستخدمين (للمسؤول فقط)
-  app.get('/api/users/all', async (req: Request, res: Response) => {
+  app.get('/api/users/all', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      // تحقق ما إذا كان المستخدم مسجل الدخول ومسؤول
-      if (!req.isAuthenticated() || req.user?.role !== 'admin') {
+      // تحقق ما إذا كان المستخدم مسؤول
+      if (req.user?.role !== 'admin') {
         return res.status(403).json({ message: 'Forbidden' });
       }
       

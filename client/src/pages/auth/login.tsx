@@ -70,8 +70,8 @@ const Login = ({ auth }: LoginProps) => {
     onSuccess: (responseData) => {
       console.log("تسجيل دخول ناجح، البيانات المستلمة:", responseData);
       
-      // تحسين استخراج بيانات المستخدم
-      if (!responseData || (!responseData.user && !responseData.username)) {
+      // تحسين استخراج بيانات المستخدم والتوكن
+      if (!responseData || !responseData.user || !responseData.token) {
         console.error("خطأ: البيانات المستلمة غير صالحة:", responseData);
         toast({
           title: "خطأ في النظام",
@@ -81,11 +81,15 @@ const Login = ({ auth }: LoginProps) => {
         return;
       }
       
-      // استخراج بيانات المستخدم من الاستجابة بشكل صحيح
-      const userData = responseData.user || responseData;
+      // حفظ التوكن في localStorage
+      localStorage.setItem('auth_token', responseData.token);
+      
+      // استخراج بيانات المستخدم من الاستجابة
+      const userData = responseData.user;
       setData(responseData);
       
       console.log("بيانات المستخدم المستخرجة:", userData);
+      console.log("تم حفظ JWT token في localStorage");
       
       // عرض رسالة نجاح
       toast({
@@ -105,16 +109,22 @@ const Login = ({ auth }: LoginProps) => {
         const role = userData.role;
         console.log("توجيه المستخدم بدور:", role);
         
-        // إعادة تحميل الصفحة للتأكد من تحديث الجلسة
-        console.log('تسجيل دخول ناجح، إعادة تحميل الصفحة لتحديث الجلسة...');
-        
-        // حفظ نوع الحساب لإعادة التوجيه بعد التحميل
-        localStorage.setItem('login_redirect', role);
-        
-        // إعادة تحميل الصفحة لضمان تحديث الكوكيز
+        // التوجيه المباشر بدون إعادة تحميل الصفحة
         setTimeout(() => {
-          window.location.reload();
-        }, 500);
+          if (role === "admin") {
+            console.log("بدء التوجيه للوحة المسؤول...");
+            navigate("/dashboard/admin");
+          } else if (role === "entrepreneur") {
+            console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
+            navigate("/dashboard/entrepreneur");
+          } else if (role === "company") {
+            console.log("بدء التوجيه لداشبورد الشركة...");
+            navigate("/dashboard/company");
+          } else {
+            console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
+            navigate("/");
+          }
+        }, 100);
       });
     },
     onError: (error: any) => {

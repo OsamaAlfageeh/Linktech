@@ -102,26 +102,13 @@ export const useAuth = (): AuthContextType => {
     }
   }, [data, error, isLoading]);
 
-  // إعادة التوجيه بعد تسجيل الدخول الناجح
+  // تنظيف token في حالة فشل المصادقة
   useEffect(() => {
-    if (data && data.user) {
-      const redirectRole = localStorage.getItem('login_redirect');
-      if (redirectRole) {
-        localStorage.removeItem('login_redirect');
-        console.log(`إعادة التوجيه بعد تحديث الجلسة للدور: ${redirectRole}`);
-        
-        setTimeout(() => {
-          if (redirectRole === "admin") {
-            navigate("/dashboard/admin");
-          } else if (redirectRole === "entrepreneur") {
-            navigate("/dashboard/entrepreneur");
-          } else if (redirectRole === "company") {
-            navigate("/dashboard/company");
-          }
-        }, 100);
-      }
+    if (error && error instanceof Error && error.message.includes('401')) {
+      localStorage.removeItem('auth_token');
+      console.log('تم حذف token منتهي الصلاحية من localStorage');
     }
-  }, [data, navigate]);
+  }, [error]);
 
   // Logout mutation
   const logoutMutation = useMutation({
