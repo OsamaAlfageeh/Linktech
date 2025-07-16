@@ -103,11 +103,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // إعداد CORS محسن لبيئة Replit
   app.use((req, res, next) => {
     const origin = req.headers.origin;
-    if (origin) {
+    
+    // في بيئة Replit، نسمح بجميع النطاقات الفرعية لـ replit.dev
+    if (origin && (origin.includes('.replit.dev') || origin.includes('localhost'))) {
       res.header('Access-Control-Allow-Origin', origin);
-    } else {
-      // في حالة عدم وجود origin header (مثل curl)
+    } else if (!origin) {
+      // للطلبات المباشرة (مثل curl)
       res.header('Access-Control-Allow-Origin', '*');
+    } else {
+      // للبيئة المحلية أو المطوّرين
+      res.header('Access-Control-Allow-Origin', origin);
     }
     
     res.header('Access-Control-Allow-Credentials', 'true');
@@ -198,8 +203,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const isAuthenticated = (req: Request, res: Response, next: Function) => {
     const sessionId = req.sessionID;
     console.log(`طلب ${req.path} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
-    console.log(`جلسة المستخدم:`, req.session?.passport);
-    console.log(`بيانات المستخدم:`, req.user);
+    console.log(`Session data:`, req.session);
+    console.log(`User from req:`, req.user);
+    console.log(`Session ID: ${sessionId}`);
+    console.log(`All cookies:`, req.headers.cookie);
     
     if (req.isAuthenticated() && req.user) {
       console.log(`المستخدم مصرح، معرف الجلسة: ${sessionId}`);
