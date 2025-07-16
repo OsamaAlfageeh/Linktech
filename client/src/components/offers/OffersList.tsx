@@ -60,9 +60,6 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
   const { toast } = useToast();
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  
-  // إضافة تسجيل للتشخيص
-  console.log("OffersList - projectId:", projectId, "isOwner:", isOwner);
 
   // جلب العروض الخاصة بالمشروع
   const { data: offers, isLoading, error, refetch } = useQuery({
@@ -147,12 +144,8 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
     );
   }
 
-  // إضافة تسجيل للعروض
-  console.log("OffersList - offers:", offers, "isOwner:", isOwner);
-  
   // إذا لم تكن هناك عروض
   if (!offers || (Array.isArray(offers) && offers.length === 0)) {
-    console.log("No offers or empty array - isOwner:", isOwner);
     if (!isOwner) {
       // اعرض الإحصائيات إذا كانت متوفرة
       if (offers && 'count' in offers) {
@@ -180,7 +173,6 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       return (
         <div className="text-center py-8">
           <p>لا يمكن عرض تفاصيل العروض إلا للشركات المقدمة للعروض أو لصاحب المشروع</p>
-          <p className="text-sm text-gray-500 mt-2">تشخيص: isOwner = {isOwner.toString()}</p>
         </div>
       );
     }
@@ -194,13 +186,17 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
     );
   }
 
-  // إذا وصلنا هنا، فهناك عروض ويجب عرضها
-  console.log("Has offers, proceeding to display:", offers.length, "offers");
-
   // عرض قائمة العروض
   return (
     <div>
       <h2 className="text-2xl font-bold mb-6 text-center">العروض المقدمة على المشروع</h2>
+      
+      {/* عرض عدد العروض كاختبار */}
+      <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+        <p className="text-center">
+          يوجد <strong>{Array.isArray(offers) ? offers.length : 0}</strong> عرض على هذا المشروع
+        </p>
+      </div>
       
       <div className="grid gap-6">
         {Array.isArray(offers) && offers.map((offer) => (

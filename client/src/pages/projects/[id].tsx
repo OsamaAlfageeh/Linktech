@@ -414,7 +414,6 @@ const ProjectDetails = () => {
                   
                   {/* Display offers list */}
                   <div className="mt-8">
-                    {console.log("Project details - auth.user?.id:", auth.user?.id, "project.userId:", project.userId, "isOwner:", auth.isAuthenticated && (auth.user?.id === project.userId || auth.user?.role === "admin"))}
                     <OffersList 
                       projectId={project.id} 
                       isOwner={auth.isAuthenticated && (auth.user?.id === project.userId || auth.user?.role === "admin")}
