@@ -70,6 +70,7 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import MemoryStore from "memorystore";
 import bcrypt from "bcryptjs";
+import crypto from "crypto";
 
 const SessionStore = MemoryStore(session);
 
@@ -85,42 +86,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // تكوين الجلسة بشكل صحيح لبيئة Replit
   app.use(session({
     secret: process.env.SESSION_SECRET || 'linktechapp-secret-key-2024',
-    resave: false, // تحسين الأداء
-    saveUninitialized: true, // تغيير إلى true لبيئة Replit
+    resave: true, // تغيير إلى true لضمان حفظ الجلسة
+    saveUninitialized: true, // true لبيئة Replit
     rolling: true, // تجديد مدة الجلسة مع كل طلب
     cookie: { 
       secure: false, // false للـ HTTP في التطوير
-      maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
+      maxAge: 7 * 24 * 60 * 60 * 1000, // أسبوع كامل
       httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
-      sameSite: 'none', // none لبيئة Replit مع credentials
-      domain: undefined, // لا نحدد domain في بيئة التطوير
-      path: '/' // تأكيد أن الكوكيز متاحة لكامل الموقع
+      sameSite: 'none', // none لبيئة Replit
+      domain: undefined, // لا نحدد domain
+      path: '/' // الكوكيز متاحة لكامل الموقع
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
     }),
-    name: 'connect.sid' // استخدام الاسم الافتراضي
+    name: 'connect.sid', // اسم الكوكيز
+    genid: function() {
+      // توليد معرف جلسة أكثر قوة
+      return crypto.randomBytes(16).toString('hex');
+    }
   }));
   
-  // إعداد CORS محسن لبيئة Replit مع ضبط أفضل للكوكيز
+  // إعداد CORS خاص لبيئة Replit مع إجبار الكوكيز على العمل
   app.use((req, res, next) => {
-    const origin = req.headers.origin;
+    const origin = req.headers.origin || req.headers.referer;
     
-    // في بيئة Replit، نقبل جميع النطاقات لضمان عمل الكوكيز
-    res.header('Access-Control-Allow-Origin', origin || req.headers.host || '*');
+    // إعداد CORS مُحسن لبيئة Replit
+    if (origin) {
+      res.header('Access-Control-Allow-Origin', origin);
+    } else {
+      // للطلبات بدون origin header
+      res.header('Access-Control-Allow-Origin', req.headers.host || '*');
+    }
+    
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control, Pragma, Cookie, Set-Cookie');
     res.header('Access-Control-Expose-Headers', 'Set-Cookie, Cache-Control, Content-Language, Content-Length, Content-Type, Expires, Last-Modified, Pragma');
     
-    // إضافة رؤوس إضافية لدعم أفضل للكوكيز
+    // رؤوس إضافية لإجبار المتصفحات على قبول الكوكيز
     res.header('Vary', 'Origin, Accept-Encoding');
+    res.header('Cross-Origin-Embedder-Policy', 'unsafe-none');
+    res.header('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
     
+    // لوجنا كل طلب options للتشخيص
     if (req.method === 'OPTIONS') {
+      console.log(`OPTIONS request from origin: ${origin}`);
       res.sendStatus(200);
     } else {
       next();
     }
+  });
+
+  // Middleware خاص لإجبار الكوكيز على العمل في بيئة Replit
+  app.use((req, res, next) => {
+    // لوج معلومات الجلسة والكوكيز للتشخيص
+    console.log(`طلب ${req.method} ${req.path} - معرف الجلسة: ${req.sessionID}`);
+    console.log(`الكوكيز الواردة:`, req.headers.cookie);
+    
+    // تخصيص إعدادات الكوكيز لكل استجابة
+    const originalJson = res.json;
+    res.json = function(body: any) {
+      // تحسين إعدادات Set-Cookie header
+      if (req.sessionID) {
+        const cookieOptions = [
+          `connect.sid=${req.sessionID}`,
+          'Path=/',
+          'SameSite=None',
+          'Secure=false',
+          `Max-Age=${7 * 24 * 60 * 60}` // أسبوع
+        ].join('; ');
+        
+        this.header('Set-Cookie', cookieOptions);
+        console.log(`تعيين كوكيز الجلسة: ${cookieOptions}`);
+      }
+      
+      return originalJson.call(this, body);
+    };
+    
+    next();
   });
 
   app.use(passport.initialize());
