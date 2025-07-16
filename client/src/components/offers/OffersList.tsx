@@ -60,17 +60,13 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
   const { toast } = useToast();
   const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  
+  // إضافة تسجيل للتشخيص
+  console.log("OffersList - projectId:", projectId, "isOwner:", isOwner);
 
   // جلب العروض الخاصة بالمشروع
   const { data: offers, isLoading, error, refetch } = useQuery({
     queryKey: [`/api/projects/${projectId}/offers`],
-    queryFn: async () => {
-      const res = await fetch(`/api/projects/${projectId}/offers`);
-      if (!res.ok) {
-        throw new Error("فشل جلب العروض");
-      }
-      return res.json();
-    },
     enabled: Boolean(projectId), // تفعيل الاستعلام فقط عندما يكون هناك معرف للمشروع
     staleTime: 0, // جعل البيانات سريعة التقادم للحصول على أحدث البيانات دائماً
   });
@@ -151,8 +147,12 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
     );
   }
 
+  // إضافة تسجيل للعروض
+  console.log("OffersList - offers:", offers, "isOwner:", isOwner);
+  
   // إذا لم تكن هناك عروض
   if (!offers || (Array.isArray(offers) && offers.length === 0)) {
+    console.log("No offers or empty array - isOwner:", isOwner);
     if (!isOwner) {
       // اعرض الإحصائيات إذا كانت متوفرة
       if (offers && 'count' in offers) {
@@ -180,6 +180,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       return (
         <div className="text-center py-8">
           <p>لا يمكن عرض تفاصيل العروض إلا للشركات المقدمة للعروض أو لصاحب المشروع</p>
+          <p className="text-sm text-gray-500 mt-2">تشخيص: isOwner = {isOwner.toString()}</p>
         </div>
       );
     }
@@ -192,6 +193,9 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       </Card>
     );
   }
+
+  // إذا وصلنا هنا، فهناك عروض ويجب عرضها
+  console.log("Has offers, proceeding to display:", offers.length, "offers");
 
   // عرض قائمة العروض
   return (
