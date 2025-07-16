@@ -137,14 +137,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     isLoading: usersLoading,
     refetch: refetchUsers,
   } = useQuery({
-    queryKey: ["/api/users"],
-    queryFn: async () => {
-      const response = await fetch("/api/users/all");
-      if (!response.ok) {
-        throw new Error("Failed to fetch users");
-      }
-      return response.json();
-    },
+    queryKey: ["/api/users/all"],
     // تمكين الاستعلام فقط عند وجود مصادقة كمسؤول
     enabled: isAuthenticated && user?.role === "admin",
   });
@@ -155,14 +148,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     isLoading: projectsLoading,
     refetch: refetchProjects,
   } = useQuery({
-    queryKey: ["/api/projects/all"],
-    queryFn: async () => {
-      const response = await fetch("/api/projects");
-      if (!response.ok) {
-        throw new Error("Failed to fetch projects");
-      }
-      return response.json();
-    },
+    queryKey: ["/api/projects"],
     enabled: isAuthenticated && user?.role === "admin",
   });
 
@@ -172,14 +158,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     isLoading: companiesLoading,
     refetch: refetchCompanies,
   } = useQuery({
-    queryKey: ["/api/companies/all"],
-    queryFn: async () => {
-      const response = await fetch("/api/companies");
-      if (!response.ok) {
-        throw new Error("Failed to fetch companies");
-      }
-      return response.json();
-    },
+    queryKey: ["/api/companies"],
     enabled: isAuthenticated && user?.role === "admin",
   });
   
@@ -190,33 +169,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     refetch: refetchSettings,
   } = useQuery({
     queryKey: ["/api/site-settings"],
-    queryFn: async () => {
-      const response = await fetch("/api/site-settings");
-      if (!response.ok) {
-        throw new Error("فشل في جلب إعدادات الموقع");
-      }
-      return response.json();
-    },
     enabled: isAuthenticated && user?.role === "admin"
   });
 
   // جلب إحصائيات التواصل
   const { data: contactStats, isLoading: contactStatsLoading, error: contactStatsError } = useQuery({
     queryKey: ['/api/contact-stats'],
-    queryFn: async () => {
-      console.log('جاري جلب إحصائيات التواصل...');
-      const response = await fetch('/api/contact-stats', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('خطأ في جلب إحصائيات التواصل:', response.status, errorText);
-        throw new Error(`فشل في جلب إحصائيات التواصل: ${response.status}`);
-      }
-      const data = await response.json();
-      console.log('إحصائيات التواصل المستلمة:', data);
-      return data;
-    },
     enabled: isAuthenticated && user?.role === "admin",
     retry: 2
   });
@@ -232,8 +190,13 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       // جمع العروض من جميع المشاريع
       if (!projects || projects.length === 0) return [];
       
+      const token = localStorage.getItem('auth_token');
       const projectOffersPromises = projects.map(async (project: any) => {
-        const response = await fetch(`/api/projects/${project.id}/offers`);
+        const response = await fetch(`/api/projects/${project.id}/offers`, {
+          headers: {
+            "Authorization": `Bearer ${token}`,
+          },
+        });
         if (!response.ok) {
           console.error(`فشل في جلب عروض المشروع ${project.id}`);
           return [];
@@ -272,10 +235,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   // تعديل باستخدام: useMutation لتحديث إعدادات الموقع
   const updateSiteSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string, value: string }) => {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/site-settings/${key}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
         },
         body: JSON.stringify({ value }),
       });
