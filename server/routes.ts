@@ -86,13 +86,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(session({
     secret: process.env.SESSION_SECRET || 'linktechapp-secret-key-2024',
     resave: false, // تحسين الأداء
-    saveUninitialized: false, // تحسين الأمان
+    saveUninitialized: true, // تغيير إلى true لبيئة Replit
     rolling: true, // تجديد مدة الجلسة مع كل طلب
     cookie: { 
       secure: false, // false للـ HTTP في التطوير
       maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
       httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
-      sameSite: 'lax', // تغيير من none إلى lax للمتصفحات الحديثة
+      sameSite: 'none', // none لبيئة Replit مع credentials
       domain: undefined, // لا نحدد domain في بيئة التطوير
       path: '/' // تأكيد أن الكوكيز متاحة لكامل الموقع
     },
