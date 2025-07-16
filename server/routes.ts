@@ -85,14 +85,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // تكوين الجلسة بشكل صحيح لبيئة Replit
   app.use(session({
     secret: process.env.SESSION_SECRET || 'linktechapp-secret-key-2024',
-    resave: true, // تغيير إلى true لضمان حفظ الجلسة
-    saveUninitialized: true, // تغيير إلى true لحفظ الجلسات الجديدة
+    resave: false, // تحسين الأداء
+    saveUninitialized: false, // تحسين الأمان
     rolling: true, // تجديد مدة الجلسة مع كل طلب
     cookie: { 
       secure: false, // false للـ HTTP في التطوير
       maxAge: 24 * 60 * 60 * 1000, // 24 ساعة
       httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
-      sameSite: 'none' // تغيير إلى none لبيئة Replit
+      sameSite: 'lax' // تغيير من none إلى lax للمتصفحات الحديثة
     },
     store: new SessionStore({
       checkPeriod: 86400000 // تنظيف الجلسات المنتهية كل 24 ساعة
