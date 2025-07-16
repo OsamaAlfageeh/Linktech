@@ -105,22 +105,16 @@ const Login = ({ auth }: LoginProps) => {
         const role = userData.role;
         console.log("توجيه المستخدم بدور:", role);
         
-        // استخدام setTimeout لضمان تحديث الحالة أولاً
+        // إعادة تحميل الصفحة للتأكد من تحديث الجلسة
+        console.log('تسجيل دخول ناجح، إعادة تحميل الصفحة لتحديث الجلسة...');
+        
+        // حفظ نوع الحساب لإعادة التوجيه بعد التحميل
+        localStorage.setItem('login_redirect', role);
+        
+        // إعادة تحميل الصفحة لضمان تحديث الكوكيز
         setTimeout(() => {
-          if (role === "admin") {
-            console.log("بدء التوجيه للوحة المسؤول...");
-            navigate("/dashboard/admin");
-          } else if (role === "entrepreneur") {
-            console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
-            navigate("/dashboard/entrepreneur");
-          } else if (role === "company") {
-            console.log("بدء التوجيه لداشبورد الشركة...");
-            navigate("/dashboard/company");
-          } else {
-            console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
-            navigate("/");
-          }
-        }, 1000);
+          window.location.reload();
+        }, 500);
       });
     },
     onError: (error: any) => {

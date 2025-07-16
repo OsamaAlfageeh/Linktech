@@ -78,25 +78,50 @@ export const useAuth = (): AuthContextType => {
   const [user, setUser] = useState<User | null>(null);
   const [location, navigate] = useLocation();
   
-  // Check if user is logged in
-  const { data, isLoading, error } = useQuery<{user: User}>({
+  // Check if user is logged in with retry logic for sessions
+  const { data, isLoading, error, refetch } = useQuery<{user: User}>({
     queryKey: ['/api/auth/user'],
-    retry: false,
+    retry: 3, // محاولة 3 مرات للتأكد من استلام الكوكيز
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 3000), // تأخير متزايد
   });
   
-  // Update user when data changes
+  // Update user when data changes with localStorage backup
   useEffect(() => {
     console.log("Auth data received:", data);
     if (data && data.user) {
       setUser(data.user);
+      // حفظ بيانات المستخدم في localStorage كنسخة احتياطية
+      localStorage.setItem('user_session', JSON.stringify(data.user));
     } else if (error || (data === undefined && !isLoading)) {
       // إعادة ضبط حالة المستخدم عند وجود خطأ أو عدم وجود بيانات
       setUser(null);
+      localStorage.removeItem('user_session');
     }
   }, [data, error, isLoading]);
+
+  // إعادة التوجيه بعد تسجيل الدخول الناجح
+  useEffect(() => {
+    if (data && data.user) {
+      const redirectRole = localStorage.getItem('login_redirect');
+      if (redirectRole) {
+        localStorage.removeItem('login_redirect');
+        console.log(`إعادة التوجيه بعد تحديث الجلسة للدور: ${redirectRole}`);
+        
+        setTimeout(() => {
+          if (redirectRole === "admin") {
+            navigate("/dashboard/admin");
+          } else if (redirectRole === "entrepreneur") {
+            navigate("/dashboard/entrepreneur");
+          } else if (redirectRole === "company") {
+            navigate("/dashboard/company");
+          }
+        }, 100);
+      }
+    }
+  }, [data, navigate]);
 
   // Logout mutation
   const logoutMutation = useMutation({

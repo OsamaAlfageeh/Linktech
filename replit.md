@@ -103,6 +103,16 @@ LinkTech is a full-stack web application that serves as a marketplace connecting
 
 ## Recent Changes
 
+- July 16, 2025: إصلاح نهائي لنظام الجلسات وتسجيل الدخول
+  - حل مشكلة "require is not defined" في ES modules
+  - تطبيق إعدادات كوكيز متكيفة مع بيئة التطوير والإنتاج
+  - استخدام sameSite: 'lax' في التطوير و 'none' في الإنتاج
+  - إضافة آلية إعادة تحميل الصفحة بعد تسجيل الدخول الناجح
+  - نظام localStorage احتياطي لضمان استمرارية الجلسة
+  - إصلاح توقيت إعادة التوجيه للداشبورد المناسب
+  - تحسين retry logic في React Query مع تأخير متزايد
+  - اختبار cURL يؤكد عمل النظام بشكل صحيح (admin/admin123)
+
 - July 12, 2025: إنشاء نظام "عملاء نفخر بهم" المنفصل
   - تم إنشاء جدول featured_clients منفصل بدلاً من استخدام الشركات الموثقة
   - أضيف صفحة إدارة "عملاء نفخر بهم" في لوحة الإدارة (/admin/featured-clients-management)

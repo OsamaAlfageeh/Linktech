@@ -90,10 +90,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     saveUninitialized: true, // true لبيئة Replit
     rolling: true, // تجديد مدة الجلسة مع كل طلب
     cookie: { 
-      secure: false, // false للـ HTTP في التطوير
+      secure: process.env.NODE_ENV === 'production' ? true : false, // secure في الإنتاج
       maxAge: 7 * 24 * 60 * 60 * 1000, // أسبوع كامل
       httpOnly: false, // false للسماح بالوصول من الجافاسكريبت
-      sameSite: 'none', // none لبيئة Replit
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // lax في التطوير، none في الإنتاج
       domain: undefined, // لا نحدد domain
       path: '/' // الكوكيز متاحة لكامل الموقع
     },
@@ -149,11 +149,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json = function(body: any) {
       // تحسين إعدادات Set-Cookie header
       if (req.sessionID) {
+        const isProduction = process.env.NODE_ENV === 'production';
         const cookieOptions = [
           `connect.sid=${req.sessionID}`,
           'Path=/',
-          'SameSite=None',
-          'Secure=false',
+          `SameSite=${isProduction ? 'None' : 'Lax'}`,
+          `Secure=${isProduction}`,
           `Max-Age=${7 * 24 * 60 * 60}` // أسبوع
         ].join('; ');
         
