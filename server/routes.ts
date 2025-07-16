@@ -497,10 +497,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company profile routes - الشركات لا تظهر أبداً للزوار أو العملاء
   app.get('/api/companies', async (req: Request, res: Response) => {
     try {
-      console.log(`طلب قائمة الشركات - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب قائمة الشركات - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       // المستخدم مسجل دخول والمستخدم هو مسؤول، نعرض جميع الشركات
-      if (req.isAuthenticated() && (req.user as any).role === 'admin') {
+      if (req.user && (req.user as any).role === 'admin') {
         console.log(`المستخدم مسؤول، عرض جميع الشركات`);
         
         const companyProfiles = await storage.getCompanyProfiles();
@@ -525,7 +525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // الشركات تظهر للمستخدمين المسجلين
         console.log(`طلب قائمة الشركات من مستخدم ليس مسؤول أو زائر غير مسجل`);
         
-        if (req.isAuthenticated()) {
+        if (req.user) {
           // للمستخدمين المسجلين - ارسال قائمة الشركات (محجوبة جزئياً) 
           const companyProfiles = await storage.getCompanyProfiles();
           
@@ -558,7 +558,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // الحصول على بيانات الشركة بواسطة معرف المستخدم
   app.get('/api/companies/user/:userId', isAuthenticated, async (req: Request, res: Response) => {
     try {
-      console.log(`طلب ملف الشركة للمستخدم رقم ${req.params.userId} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب ملف الشركة للمستخدم رقم ${req.params.userId} - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       const userId = parseInt(req.params.userId);
       if (isNaN(userId)) {
@@ -604,7 +604,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.get('/api/companies/:id', async (req: Request, res: Response) => {
     try {
-      console.log(`طلب تفاصيل الشركة برقم ${req.params.id} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب تفاصيل الشركة برقم ${req.params.id} - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       const companyId = parseInt(req.params.id);
       if (isNaN(companyId)) {
@@ -898,10 +898,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
   app.get('/api/projects', async (req: Request, res: Response) => {
     try {
-      console.log(`طلب قائمة المشاريع - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب قائمة المشاريع - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       // فقط المستخدمين المسجلين يمكنهم مشاهدة المشاريع
-      if (!req.isAuthenticated()) {
+      if (!req.user) {
         console.log(`رفض طلب غير مصرح للوصول إلى قائمة المشاريع`);
         return res.json([]); // إرجاع مصفوفة فارغة للمستخدمين غير المسجلين
       }
@@ -965,10 +965,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/projects/:id', async (req: Request, res: Response) => {
     try {
-      console.log(`طلب تفاصيل المشروع برقم ${req.params.id} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب تفاصيل المشروع برقم ${req.params.id} - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       // فقط المستخدمين المسجلين يمكنهم مشاهدة تفاصيل المشاريع
-      if (!req.isAuthenticated()) {
+      if (!req.user) {
         console.log(`رفض طلب غير مصرح للوصول إلى تفاصيل المشروع ${req.params.id}`);
         return res.status(401).json({ message: 'Unauthorized access to project details' });
       }
@@ -1047,10 +1047,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/users/:userId/projects', async (req: Request, res: Response) => {
     try {
-      console.log(`طلب مشاريع المستخدم ${req.params.userId} - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب مشاريع المستخدم ${req.params.userId} - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       // فقط المستخدمين المسجلين يمكنهم مشاهدة مشاريع المستخدمين
-      if (!req.isAuthenticated()) {
+      if (!req.user) {
         console.log(`رفض طلب غير مصرح للوصول إلى مشاريع المستخدم ${req.params.userId}`);
         return res.json([]); // إرجاع مصفوفة فارغة للمستخدمين غير المسجلين
       }
@@ -1495,7 +1495,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // لاحظ: لا نستخدم isAuthenticated هنا بل سنتحقق يدويًا لتسهيل التنزيل
   app.get('/api/nda/:id/download-pdf', async (req: Request, res: Response) => {
     // التحقق من المصادقة - يدويًا بدون middleware
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       console.log('محاولة تنزيل PDF بدون مصادقة، sessionID:', req.sessionID);
       // في حالة الطلب عبر iframe أو مباشر، نستخدم إعادة التوجيه بدلاً من الخطأ
       if (req.query.t) {
@@ -2049,7 +2049,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // 4. الحصول على المشاريع الرائجة (عالية الطلب)
   app.get('/api/recommendations/trending-projects', async (req: Request, res: Response) => {
     try {
-      console.log(`طلب المشاريع الرائجة - حالة المصادقة: ${req.isAuthenticated() ? 'مصرح' : 'غير مصرح'}`);
+      console.log(`طلب المشاريع الرائجة - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       // تم تعديل الشروط للسماح بعرض المشاريع الرائجة في الواجهة العامة
       // لا نحتاج للتحقق من تسجيل الدخول لهذا المسار لأنه يستخدم في الصفحة الرئيسية
@@ -2059,7 +2059,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const trendingProjects = await getTrendingProjects(limit);
       
       // التعامل مع المستخدمين المسجلين
-      if (req.isAuthenticated()) {
+      if (req.user) {
         const user = req.user as any;
         console.log(`جلب المشاريع الرائجة للمستخدم ${user.username} (الدور: ${user.role})`);
         
@@ -2097,7 +2097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const recommendedCompanies = await getEnhancedRecommendationsForProject(projectId, limit);
       
       // إذا كان هناك مستخدم مسجل الدخول وهو صاحب المشروع، أظهر المعلومات مع تعمية الشركات
-      if (req.isAuthenticated()) {
+      if (req.user) {
         const user = req.user as any;
         const project = await storage.getProject(projectId);
         
@@ -2200,7 +2200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // التحقق من صلاحية الوصول - يمكن فقط لصاحب المشروع أو مسؤول النظام رؤية التحليل
-      if (req.isAuthenticated()) {
+      if (req.user) {
         const user = req.user as any;
         
         if (project.userId === user.id || user.role === 'admin') {
@@ -2261,7 +2261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // إذا كان زائر، أظهر فقط عدد العروض المقدمة
       let offers = await storage.getProjectOffersByProjectId(projectId);
       
-      if (req.isAuthenticated()) {
+      if (req.user) {
         const user = req.user as any;
         
         if (project.userId === user.id) {
@@ -3237,7 +3237,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // التحقق من صلاحيات المستخدم للمقالات غير المنشورة
       if (post.status !== 'published') {
-        if (!req.isAuthenticated() || req.user.role !== 'admin') {
+        if (!req.user || req.user.role !== 'admin') {
           return res.status(403).json({ message: 'Forbidden - Post is not published' });
         }
       }
@@ -3266,7 +3266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // التحقق من صلاحيات المستخدم للمقالات غير المنشورة
       if (post.status !== 'published') {
-        if (!req.isAuthenticated() || req.user.role !== 'admin') {
+        if (!req.user || req.user.role !== 'admin') {
           return res.status(403).json({ message: 'Forbidden - Post is not published' });
         }
       }
@@ -3967,7 +3967,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Page URL is required' });
       }
 
-      const userId = req.isAuthenticated() ? req.user.id : undefined;
+      const userId = req.user ? req.user.id : undefined;
       
       await trackVisit(req, {
         pageUrl,
