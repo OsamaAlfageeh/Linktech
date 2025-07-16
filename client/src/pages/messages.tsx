@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Helmet } from 'react-helmet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { useLocation } from 'wouter';
 import {
   Card,
@@ -150,16 +151,6 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading, error: messagesError, refetch: refetchMessages } = useQuery({
     queryKey: ['/api/messages'],
-    queryFn: async () => {
-      const response = await fetch('/api/messages', { credentials: 'include' });
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('غير مصرح - يرجى تسجيل الدخول مرة أخرى');
-        }
-        throw new Error('فشل في جلب الرسائل');
-      }
-      return response.json();
-    },
     enabled: auth.isAuthenticated && !!auth.user?.id,
     refetchInterval: 5000, // تحديث كل 5 ثوان
     retry: 2,
@@ -169,22 +160,6 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // جلب المحادثة المحددة
   const { data: conversationData, isLoading: conversationLoading, error: conversationError, refetch: refetchConversation } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation, projectId],
-    queryFn: async () => {
-      if (!selectedConversation || !auth.isAuthenticated) return [];
-      
-      const url = projectId 
-        ? `/api/messages/conversation/${selectedConversation}?projectId=${projectId}`
-        : `/api/messages/conversation/${selectedConversation}`;
-      
-      const response = await fetch(url, { credentials: 'include' });
-      if (!response.ok) {
-        if (response.status === 401) {
-          throw new Error('غير مصرح');
-        }
-        throw new Error('فشل في جلب المحادثة');
-      }
-      return response.json();
-    },
     enabled: !!selectedConversation && auth.isAuthenticated,
     refetchInterval: 3000, // تحديث كل 3 ثوان
     retry: 2,
@@ -194,25 +169,14 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // إرسال رسالة
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, toUserId, projectId }: { content: string; toUserId: number; projectId?: number | null }) => {
-      const response = await fetch('/api/messages', {
+      return apiRequest('/api/messages', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({
+        body: {
           content,
           toUserId,
           projectId
-        }),
+        },
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw error;
-      }
-
-      return response.json();
     },
     onSuccess: (newMessage) => {
       setNewMessage('');
