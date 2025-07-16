@@ -121,6 +121,10 @@ export const useAuth = (): AuthContextType => {
     },
     onSuccess: () => {
       console.log("تم تسجيل الخروج بنجاح");
+      // حذف JWT token من localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('user_session');
+      console.log("تم حذف JWT token من localStorage");
       queryClient.invalidateQueries({queryKey: ['/api/auth/user']});
       setUser(null);
       navigate("/");
