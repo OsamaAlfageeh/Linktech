@@ -170,6 +170,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // جلب المحادثة المحددة
   const { data: conversationData, isLoading: conversationLoading, error: conversationError, refetch: refetchConversation } = useQuery<Message[]>({
     queryKey: ['/api/messages/conversation', selectedConversation, projectId],
+    queryFn: async () => {
+      if (!selectedConversation) return [];
+      
+      const url = `/api/messages/conversation/${selectedConversation}${projectId ? `?projectId=${projectId}` : ''}`;
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to fetch conversation: ${response.status}`);
+      }
+      
+      return response.json();
+    },
     enabled: !!selectedConversation && auth.isAuthenticated,
     refetchInterval: 3000, // تحديث كل 3 ثوان
     retry: 2,
@@ -196,7 +212,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       
       // تحديث البيانات
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation, projectId] });
       
       toast({
         title: "تم إرسال الرسالة",
