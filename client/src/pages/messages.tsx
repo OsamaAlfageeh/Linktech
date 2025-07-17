@@ -384,14 +384,15 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           <CardContent className="flex-grow overflow-y-auto p-0">
             {/* زر بدء محادثة جديدة */}
             <div className="p-3 border-b bg-gradient-to-r from-blue-50 to-indigo-50">
-              <Button 
-                onClick={() => window.location.href = '/projects'} 
-                className="w-full flex items-center justify-center gap-2"
-                variant="outline"
-              >
-                <MessageCircle className="h-4 w-4" />
-                بدء محادثة جديدة
-              </Button>
+              <Link href="/projects">
+                <Button 
+                  className="w-full flex items-center justify-center gap-2"
+                  variant="outline"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  تصفح المشاريع للتواصل
+                </Button>
+              </Link>
               <p className="text-xs text-muted-foreground text-center mt-2">
                 تفضل بزيارة صفحة المشاريع لبدء محادثة مع أصحاب المشاريع أو الشركات
               </p>

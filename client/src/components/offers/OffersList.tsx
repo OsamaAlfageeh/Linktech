@@ -48,6 +48,7 @@ interface Offer {
   companyRating?: number;
   companyEmail?: string;
   companyUsername?: string;
+  companyUserId?: number;
   companyContactRevealed?: boolean;
 }
 
@@ -319,12 +320,12 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                           </a>
                         </div>
                       )}
-                      {offer.companyUsername && (
+                      {offer.companyUserId && (
                         <div className="mt-2">
                           <Button 
                             variant="outline" 
                             className="w-full" 
-                            onClick={() => window.location.href = `/messages?userId=${offer.companyUsername}`}
+                            onClick={() => window.location.href = `/messages?userId=${offer.companyUserId}&projectId=${projectId}`}
                           >
                             <MessageSquare className="ml-2 h-4 w-4" />
                             التواصل عبر الرسائل

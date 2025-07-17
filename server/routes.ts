@@ -2281,6 +2281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   companyRating: companyProfile?.rating,
                   companyEmail: companyUser?.email,
                   companyUsername: companyUser?.username,
+                  companyUserId: companyUser?.id,
                   companyContactRevealed: true
                 };
               }
