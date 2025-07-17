@@ -129,20 +129,16 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     );
   }
 
-  // استخلاص userId من المسار إذا تم تعيينه
+  // استخلاص معاملات URL لبدء محادثة جديدة
   const [, params] = useLocation();
-  const userId = window.location.pathname.includes('/messages/') 
-    ? parseInt(window.location.pathname.split('/messages/')[1]) 
-    : null;
+  const urlParams = new URLSearchParams(window.location.search);
+  const userIdFromUrl = urlParams.get('userId') ? parseInt(urlParams.get('userId') || '0') : null;
+  const projectIdFromUrl = urlParams.get('projectId') ? parseInt(urlParams.get('projectId') || '0') : null;
   
-  const [selectedConversation, setSelectedConversation] = useState<number | null>(userId);
+  const [selectedConversation, setSelectedConversation] = useState<number | null>(userIdFromUrl);
   const [newMessage, setNewMessage] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [projectId, setProjectId] = useState<number | null>(
-    new URLSearchParams(window.location.search).get('projectId') 
-      ? parseInt(new URLSearchParams(window.location.search).get('projectId') || '0')
-      : null
-  );
+  const [projectId, setProjectId] = useState<number | null>(projectIdFromUrl);
   const { toast } = useToast();
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   
@@ -155,6 +151,20 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     refetchInterval: 5000, // تحديث كل 5 ثوان
     retry: 2,
     retryDelay: 1000,
+  });
+
+  // جلب بيانات المستخدم المحدد إذا كان متوفراً في URL
+  const { data: targetUserData } = useQuery({
+    queryKey: ['/api/users', userIdFromUrl],
+    enabled: !!userIdFromUrl && auth.isAuthenticated,
+    retry: 1,
+  });
+
+  // جلب بيانات المشروع المحدد إذا كان متوفراً في URL
+  const { data: targetProjectData } = useQuery({
+    queryKey: ['/api/projects', projectIdFromUrl],
+    enabled: !!projectIdFromUrl && auth.isAuthenticated,
+    retry: 1,
   });
 
   // جلب المحادثة المحددة
@@ -450,18 +460,28 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   </Button>
 
                   <Avatar className="h-8 w-8 md:h-10 md:w-10">
-                    <AvatarImage src={conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.avatar || undefined} alt="صورة المستخدم" />
+                    <AvatarImage src={
+                      conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.avatar || 
+                      targetUserData?.avatar || 
+                      undefined
+                    } alt="صورة المستخدم" />
                     <AvatarFallback>
-                      {getInitials(conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || "مستخدم")}
+                      {getInitials(
+                        conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || 
+                        targetUserData?.name || 
+                        "مستخدم"
+                      )}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-grow">
                     <CardTitle className="text-base md:text-lg truncate">
-                      {conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || "مستخدم"}
+                      {conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || 
+                       targetUserData?.name || 
+                       "مستخدم"}
                     </CardTitle>
-                    {conversations.find(c => c.otherUserId === selectedConversation)?.project?.title && (
+                    {(conversations.find(c => c.otherUserId === selectedConversation)?.project?.title || targetProjectData?.title) && (
                       <p className="text-xs md:text-sm text-muted-foreground truncate">
-                        مشروع: {conversations.find(c => c.otherUserId === selectedConversation)?.project?.title}
+                        مشروع: {conversations.find(c => c.otherUserId === selectedConversation)?.project?.title || targetProjectData?.title}
                       </p>
                     )}
                   </div>
@@ -501,12 +521,25 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                     <span className="mr-2">جاري تحميل الرسائل...</span>
                   </div>
                 ) : (
-                  [...(Array.isArray(conversationData) ? conversationData : []), ...localMessages]
-                    .filter((message, index, array) => 
-                      array.findIndex(m => m.id === message.id) === index
-                    )
-                    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
-                    .map((message, index) => (
+                  // عرض رسالة ترحيب إذا لم تكن هناك رسائل سابقة
+                  [...(Array.isArray(conversationData) ? conversationData : []), ...localMessages].length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-8 text-center">
+                      <MessageCircle className="w-12 h-12 text-muted-foreground mb-4" />
+                      <h3 className="font-medium text-lg mb-2">محادثة جديدة</h3>
+                      <p className="text-muted-foreground mb-4">
+                        {targetProjectData ? `بدء محادثة حول مشروع "${targetProjectData.title}"` : 'بدء محادثة جديدة'}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        اكتب رسالتك الأولى في الأسفل للبدء
+                      </p>
+                    </div>
+                  ) : (
+                    [...(Array.isArray(conversationData) ? conversationData : []), ...localMessages]
+                      .filter((message, index, array) => 
+                        array.findIndex(m => m.id === message.id) === index
+                      )
+                      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                      .map((message, index) => (
                     <div 
                       key={`message-${message.id}-${index}`}
                       className={`flex ${message.fromUserId === auth.user.id ? 'justify-end' : 'justify-start'} mb-2 md:mb-3`}
@@ -529,7 +562,8 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                         </div>
                       </div>
                     </div>
-                  ))
+                      ))
+                  )
                 )}
               </CardContent>
               
