@@ -179,14 +179,12 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   // إرسال رسالة
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, toUserId, projectId }: { content: string; toUserId: number; projectId?: number | null }) => {
-      return apiRequest('/api/messages', {
-        method: 'POST',
-        body: {
-          content,
-          toUserId,
-          projectId
-        },
+      const response = await apiRequest('POST', '/api/messages', {
+        content,
+        toUserId,
+        projectId
       });
+      return response.json();
     },
     onSuccess: (newMessage) => {
       setNewMessage('');
