@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Helmet } from "react-helmet";
 import { useLocation } from "wouter";
 import { useForm } from "react-hook-form";
@@ -549,11 +549,6 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                     onSuccess={() => {
                       setIsEditDialogOpen(false);
                       setEditProjectId(null);
-                      queryClient.invalidateQueries({ queryKey: [`/api/users/${auth.user?.id}/projects`] });
-                      toast({
-                        title: "تم تحديث المشروع بنجاح",
-                        description: "تم حفظ تغييراتك على المشروع.",
-                      });
                     }}
                   />
                 )}
@@ -709,6 +704,7 @@ interface EditProjectFormProps {
 
 const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps) => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   // تم إزالة متغير مرفقات التعديل
   const [loadingProject, setLoadingProject] = useState(true);
   
@@ -762,10 +758,21 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
       const response = await apiRequest("PATCH", `/api/projects/${projectId}`, projectData);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (updatedProject) => {
+      // Invalidate all relevant caches
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/users/${updatedProject.userId}/projects`] });
+      
+      toast({
+        title: "تم تحديث المشروع بنجاح",
+        description: "تم حفظ تغييراتك على المشروع.",
+      });
+      
       onSuccess();
     },
     onError: (error) => {
+      console.error("Error updating project:", error);
       toast({
         title: "حدث خطأ",
         description: "لم نتمكن من تحديث المشروع، يرجى المحاولة مرة أخرى.",
