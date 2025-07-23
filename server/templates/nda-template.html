@@ -1,108 +1,151 @@
 <!DOCTYPE html>
-<html dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>اتفاقية عدم إفصاح</title>
+    <title>Non-Disclosure Agreement</title>
     <style>
-        @font-face {
-            font-family: 'Cairo';
-            src: url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
-        }
         body {
-            font-family: 'Cairo', Arial, sans-serif;
+            font-family: 'Arial', sans-serif;
             margin: 2cm;
-            line-height: 1.5;
-            direction: rtl;
-            text-align: right;
-            padding: 20px;
+            line-height: 1.6;
+            color: #333;
             font-size: 14px;
         }
         .header {
             text-align: center;
             margin-bottom: 30px;
+            border-bottom: 2px solid #2563eb;
+            padding-bottom: 20px;
         }
         .title {
             font-size: 24px;
             font-weight: bold;
             margin-bottom: 10px;
+            color: #2563eb;
         }
         .project-title {
             font-size: 18px;
             margin-bottom: 20px;
+            color: #666;
         }
         .section-title {
             font-size: 16px;
             font-weight: bold;
-            margin-top: 20px;
-            margin-bottom: 10px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            color: #2563eb;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 5px;
         }
         .parties {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
+            background-color: #f8fafc;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #2563eb;
         }
         .party {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            border: 1px solid #e2e8f0;
+        }
+        .introduction {
+            margin-bottom: 25px;
+            padding: 15px;
+            background-color: #f1f5f9;
+            border-radius: 5px;
         }
         .terms {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
         }
         .term {
-            margin-bottom: 10px;
+            margin-bottom: 15px;
+            padding: 15px;
+            background-color: #f8fafc;
+            border-radius: 5px;
+            border-left: 3px solid #2563eb;
+            counter-increment: term-counter;
+        }
+        .term::before {
+            content: counter(term-counter) ". ";
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .terms {
+            counter-reset: term-counter;
         }
         .signatures {
             margin-top: 40px;
+            background-color: #f8fafc;
+            padding: 25px;
+            border-radius: 8px;
+            border: 2px solid #2563eb;
+        }
+        .signature-status {
+            text-align: center;
+            font-size: 16px;
+            padding: 15px;
+            background-color: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 5px;
+            color: #92400e;
+            margin-bottom: 15px;
         }
         .signature-info {
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            font-size: 14px;
         }
         .footer {
             margin-top: 40px;
             text-align: center;
             font-size: 12px;
-        }
-        .note {
-            font-style: italic;
+            color: #64748b;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
         }
     </style>
 </head>
 <body>
     <div class="header">
-        <div class="title">اتفاقية عدم إفصاح</div>
-        <div class="project-title">المشروع: {{PROJECT_TITLE}}</div>
+        <div class="title">Non-Disclosure Agreement (NDA)</div>
+        <div class="project-title">Project: {{PROJECT_TITLE}}</div>
     </div>
 
     <div class="parties">
-        <div class="section-title">أطراف الاتفاقية:</div>
+        <div class="section-title">Agreement Parties:</div>
         <div class="party">
-            <strong>الطرف الأول (صاحب المشروع):</strong> {{PROJECT_OWNER_NAME}}
+            <strong>First Party (Project Owner):</strong> {{PROJECT_OWNER_NAME}}
         </div>
         <div class="party">
-            <strong>الطرف الثاني (الشركة):</strong> {{COMPANY_NAME}}
+            <strong>Second Party (Company):</strong> {{COMPANY_NAME}}
         </div>
     </div>
 
     <div class="introduction">
-        تم إبرام هذه الاتفاقية بتاريخ {{CURRENT_DATE}} بين الطرفين المذكورين أعلاه، ويشار إليهما معاً بـ "الطرفين".
+        This agreement was concluded on {{CURRENT_DATE}} between the parties mentioned above, collectively referred to as "the Parties".
     </div>
 
     <div class="terms">
-        <div class="section-title">بنود الاتفاقية:</div>
-        <div class="term">1. يتعهد الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع.</div>
-        <div class="term">2. يلتزم الطرف الثاني بعدم الإفصاح عن أي معلومات لأي طرف ثالث دون موافقة كتابية مسبقة من الطرف الأول.</div>
-        <div class="term">3. يستخدم الطرف الثاني المعلومات السرية فقط لغرض تقييم والعمل على المشروع وليس لأي غرض آخر.</div>
-        <div class="term">4. تبقى هذه الاتفاقية سارية المفعول لمدة سنة واحدة من تاريخ التوقيع.</div>
+        <div class="section-title">Agreement Terms:</div>
+        <div class="term">The Second Party commits to maintaining the confidentiality of all information related to the project.</div>
+        <div class="term">The Second Party undertakes not to disclose any information to any third party without prior written consent from the First Party.</div>
+        <div class="term">The Second Party uses confidential information only for the purpose of evaluating and working on the project and not for any other purpose.</div>
+        <div class="term">This agreement remains valid for a period of one year from the date of signing.</div>
     </div>
 
     <div class="signatures">
-        <div class="section-title">التوقيعات:</div>
+        <div class="section-title">Signatures:</div>
         <div class="signature-status">{{SIGNATURE_STATUS}}</div>
         {{SIGNATURE_INFO}}
     </div>
 
     <div class="footer">
-        <div>هذه الوثيقة تم إنشاؤها بواسطة منصة لينكتك.</div>
-        <div>وهي ملزمة قانونياً بمجرد توقيعها من قبل الطرفين.</div>
-        <div>تاريخ إنشاء المستند: {{GENERATION_DATE}}</div>
+        <div>This document was created by LinkTech Platform.</div>
+        <div>It is legally binding once signed by both parties.</div>
+        <div>Document creation date: {{GENERATION_DATE}}</div>
     </div>
 </body>
 </html>

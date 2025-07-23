@@ -1694,27 +1694,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // وظيفة مساعدة لإعادة تشكيل النص العربي 
       // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
-      function reshapeArabicText(text: string): string {
-        try {
-          // النهج المحسن لمعالجة النص العربي
-          
-          // 1. إعادة تشكيل النص العربي (دمج الحروف بشكل صحيح)
-          const reshaped = arabicReshaper.reshape(text);
-          
-          // 2. تصحيح اتجاه النص من اليمين إلى اليسار
-          const bidiText = bidi.getDisplay(reshaped);
-          
-          return bidiText;
-        } catch (error) {
-          console.error('خطأ في تحويل النص العربي:', error);
-          return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
-        }
+      function processText(text: string): string {
+        // Simple text processing for English - no need for Arabic reshaper
+        return text;
       }
       
-      // إضافة مسار الخط العربي المطلق
-      const arabicFontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
-      
-      // إنشاء وثيقة PDF جديدة مع دعم اللغة العربية
+      // إنشاء وثيقة PDF جديدة باللغة الإنجليزية
       const doc = new PDFDocument({
         size: 'A4',
         margin: 50,
@@ -1722,17 +1707,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         bufferPages: true,
         layout: 'portrait',
         info: {
-          Title: `اتفاقية عدم إفصاح - NDA`,
-          Author: 'منصة لينكتك',
-          Subject: 'اتفاقية عدم إفصاح',
+          Title: `Non-Disclosure Agreement - NDA`,
+          Author: 'LinkTech Platform',
+          Subject: 'Non-Disclosure Agreement',
         }
       });
       
-      // تسجيل الخط العربي
-      doc.registerFont('Arabic', arabicFontPath);
-      
-      // استخدام الخط العربي
-      doc.font('Arabic');
+      // استخدام الخط الافتراضي
+      doc.font('Helvetica');
       
       // إنشاء stream للحصول على البايتات
       const chunks: Buffer[] = [];
@@ -1748,84 +1730,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // إضافة عنوان المستند
-      doc.fontSize(22).text(reshapeArabicText('اتفاقية عدم الإفصاح'), { 
-        align: 'center',
-        direction: 'rtl' // استخدام اتجاه من اليمين إلى اليسار
+      doc.fontSize(22).text('Non-Disclosure Agreement (NDA)', { 
+        align: 'center'
       });
       doc.moveDown();
       
       // إضافة عنوان المشروع
-      const projectTitle = reshapeArabicText(`المشروع: ${project.title}`);
-      doc.fontSize(16).text(projectTitle, { 
-        align: 'center',
-        direction: 'rtl'
+      doc.fontSize(16).text(`Project: ${project.title}`, { 
+        align: 'center'
       });
       doc.moveDown(2);
       
       // معلومات الأطراف
-      const partiesTitle = reshapeArabicText('أطراف الاتفاقية:');
-      doc.fontSize(14).text(partiesTitle, { 
-        align: 'right', 
-        underline: true,
-        direction: 'rtl'
+      doc.fontSize(14).text('Agreement Parties:', { 
+        align: 'left', 
+        underline: true
       });
       doc.moveDown();
       
-      const firstPartyText = reshapeArabicText(`الطرف الأول (صاحب المشروع): ${projectOwner}`);
-      doc.fontSize(12).text(firstPartyText, { align: 'right', direction: 'rtl' });
+      doc.fontSize(12).text(`First Party (Project Owner): ${projectOwner}`, { align: 'left' });
       doc.moveDown();
       
-      const secondPartyText = reshapeArabicText(`الطرف الثاني (الشركة): ${companyNameStr}`);
-      doc.fontSize(12).text(secondPartyText, { align: 'right', direction: 'rtl' });
+      doc.fontSize(12).text(`Second Party (Company): ${companyNameStr}`, { align: 'left' });
       doc.moveDown(2);
       
       // محتوى الاتفاقية
-      const termsTitle = reshapeArabicText('بنود الاتفاقية:');
-      doc.fontSize(14).text(termsTitle, { align: 'right', underline: true, direction: 'rtl' });
+      doc.fontSize(14).text('Agreement Terms:', { align: 'left', underline: true });
       doc.moveDown();
       
-      const term1 = reshapeArabicText('١. يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات والبيانات المتعلقة بالمشروع المذكور أعلاه، وعدم الإفصاح عنها لأي طرف ثالث دون موافقة خطية مسبقة من الطرف الأول.');
-      doc.fontSize(11).text(term1, { align: 'right', direction: 'rtl' });
+      doc.fontSize(11).text('1. The Second Party commits to maintaining the confidentiality of all information and data related to the aforementioned project, and not disclosing it to any third party without prior written consent from the First Party.', { align: 'left' });
       doc.moveDown();
       
-      const term2 = reshapeArabicText('٢. تشمل المعلومات السرية على سبيل المثال لا الحصر: خطط العمل، التصاميم، الرسومات، البرمجيات، الأفكار، المفاهيم، والتفاصيل التقنية والتجارية.');
-      doc.fontSize(11).text(term2, { align: 'right', direction: 'rtl' });
+      doc.fontSize(11).text('2. Confidential information includes, but is not limited to: work plans, designs, drawings, software, ideas, concepts, and technical and commercial details.', { align: 'left' });
       doc.moveDown();
       
-      const term3 = reshapeArabicText('٣. تستمر التزامات السرية لمدة سنتين من تاريخ توقيع هذه الاتفاقية.');
-      doc.fontSize(11).text(term3, { align: 'right', direction: 'rtl' });
+      doc.fontSize(11).text('3. Confidentiality obligations shall continue for a period of two years from the date of signing this agreement.', { align: 'left' });
       doc.moveDown(2);
       
       // معلومات التوقيع
-      const signatureTitle = reshapeArabicText('حالة التوقيع:');
-      doc.fontSize(14).text(signatureTitle, { align: 'right', underline: true, direction: 'rtl' });
+      doc.fontSize(14).text('Signature Status:', { align: 'left', underline: true });
       doc.moveDown();
       
       if (nda.status === 'signed' && nda.signedAt) {
-        const signDateStr = new Date(nda.signedAt).toLocaleDateString('ar-SA');
-        const signedText = reshapeArabicText(`تم توقيع هذه الاتفاقية بتاريخ: ${signDateStr}`);
-        doc.fontSize(12).text(signedText, { align: 'right', direction: 'rtl' });
+        const signDateStr = new Date(nda.signedAt).toLocaleDateString('en-US');
+        doc.fontSize(12).text(`This agreement was signed on: ${signDateStr}`, { align: 'left' });
         
         const signerInfo = nda.companySignatureInfo as any || {};
         if (signerInfo.signerName) {
-          const signerNameText = reshapeArabicText(`تم التوقيع بواسطة: ${signerInfo.signerName}`);
-          doc.fontSize(12).text(signerNameText, { align: 'right', direction: 'rtl' });
+          doc.fontSize(12).text(`Signed by: ${signerInfo.signerName}`, { align: 'left' });
         }
         if (signerInfo.signerTitle) {
-          const signerTitleText = reshapeArabicText(`المنصب: ${signerInfo.signerTitle}`);
-          doc.fontSize(12).text(signerTitleText, { align: 'right', direction: 'rtl' });
+          doc.fontSize(12).text(`Position: ${signerInfo.signerTitle}`, { align: 'left' });
         }
       } else {
-        const draftText = reshapeArabicText('حالة الاتفاقية: مسودة (غير موقعة)');
-        doc.fontSize(12).text(draftText, { align: 'right', direction: 'rtl' });
+        doc.fontSize(12).text(`Agreement Status: ${signatureStatus}`, { align: 'left' });
       }
       
       doc.moveDown(2);
       
       // تذييل الصفحة
-      const todayDate = new Date().toLocaleDateString('ar-SA');
-      const footerText = reshapeArabicText(`تم إنشاء هذا المستند بواسطة منصة لينكتك - ${todayDate}`);
-      doc.fontSize(10).text(footerText, { align: 'center', direction: 'rtl' });
+      const todayDate = new Date().toLocaleDateString('en-US');
+      doc.fontSize(10).text(`This document was created by LinkTech Platform - ${todayDate}`, { align: 'center' });
       
       // إنهاء المستند
       doc.end();
