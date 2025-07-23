@@ -1530,7 +1530,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من صلاحية الوصول
       const isProjectOwner = project.userId === user.id;
       const isAdmin = user.role === 'admin';
-      const isCompanySigner = nda.companyId === user.id;
+      
+      // للشركات، نحتاج للتحقق من معرف الشركة وليس معرف المستخدم
+      let isCompanySigner = false;
+      if (user.role === 'company') {
+        const userCompany = await storage.getCompanyProfileByUserId(user.id);
+        isCompanySigner = userCompany && nda.companyId === userCompany.id;
+        console.log(`فحص صلاحية الشركة: معرف المستخدم ${user.id}, معرف الشركة ${userCompany?.id}, معرف شركة الاتفاقية ${nda.companyId}, النتيجة: ${isCompanySigner}`);
+      }
+      
+      console.log(`فحص الصلاحيات: مالك المشروع=${isProjectOwner}, مسؤول=${isAdmin}, الشركة الموقعة=${isCompanySigner}`);
       
       if (!isProjectOwner && !isAdmin && !isCompanySigner) {
         return res.status(403).json({ message: 'غير مصرح لك بالوصول إلى هذه الاتفاقية' });
