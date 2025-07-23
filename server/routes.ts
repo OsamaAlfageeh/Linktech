@@ -1521,7 +1521,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // التحقق من صلاحية الوصول - فقط صاحب المشروع أو الشركة الموقعة أو المسؤول
-      const user = req.user as any;
       const project = await storage.getProject(nda.projectId);
       
       if (!project) {
