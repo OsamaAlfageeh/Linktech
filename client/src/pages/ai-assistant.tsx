@@ -108,7 +108,7 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
     queryKey: ['/api/ai/my-analyses'],
     enabled: showPreviousAnalyses,
     queryFn: async () => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/ai/my-analyses', {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -123,7 +123,7 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
 
   const analyzeProjectMutation = useMutation({
     mutationFn: async (data: any) => {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/ai/analyze-project', {
         method: 'POST',
         headers: {
