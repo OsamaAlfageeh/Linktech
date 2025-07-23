@@ -1562,6 +1562,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('تم السماح بالتنزيل للمستخدم:', user.username);
       
+      // وظيفة لتحويل النص العربي إلى نص باللغة الإنجليزية لـ PDF
+      function sanitizeTextForPDF(text: string): string {
+        if (!text) return 'Not specified';
+        
+        // إذا كان النص يحتوي على أحرف عربية، نحوله لنص إنجليزي
+        const arabicRegex = /[\u0600-\u06FF]/;
+        if (arabicRegex.test(text)) {
+          // قاموس للتحويل من العربية للإنجليزية
+          const translations: Record<string, string> = {
+            'شركة عمر': 'Omar Company',
+            'شركة': 'Company',
+            'عمر': 'Omar',
+            'محمد': 'Mohammad',
+            'محمد جمال': 'Mohammad Jamal',
+            'mohammad2': 'Mohammad2',
+            'غير محدد': 'Not specified',
+            'مسودة (غير موقعة)': 'Draft (Not Signed)',
+            'موقعة ومفعلة': 'Signed and Active',
+            'غير محددة': 'Status Unknown'
+          };
+          
+          // البحث عن ترجمة مباشرة
+          if (translations[text]) {
+            return translations[text];
+          }
+          
+          // إذا لم توجد ترجمة، نحول النص لنسخة مبسطة
+          return text.replace(/[\u0600-\u06FF]/g, '?').replace(/\?+/g, 'Arabic Text');
+        }
+        
+        return text;
+      }
+      
       // الحصول على معلومات الشركة إذا كانت متاحة
       let company = null;
       if (nda.companyId) {
@@ -1569,7 +1602,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // تعيين رؤوس الاستجابة وإرسال الملف
-      const fileName = encodeURIComponent(`اتفاقية-عدم-إفصاح-${ndaId}.pdf`);
+      const fileName = encodeURIComponent(`NDA-Agreement-${ndaId}.pdf`);
       
       // تعيين رؤوس CORS لدعم طلبات iframe
       res.setHeader('Access-Control-Allow-Origin', '*');
@@ -1587,12 +1620,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تحديد بعض المعلومات
       // استخراج معلومات الشركة
       const companyInfo = nda.companySignatureInfo ? nda.companySignatureInfo : {};
-      const companyNameStr = company ? (company.name || 'غير محدد') : 
+      const companyNameRaw = company ? (company.name || 'غير محدد') : 
                             (companyInfo && typeof companyInfo === 'object' && 'companyName' in companyInfo ? 
                              companyInfo.companyName : 'غير محدد');
+      const companyNameStr = sanitizeTextForPDF(companyNameRaw);
       
       // استخراج اسم صاحب المشروع
-      const projectOwner = project.userId ? (await storage.getUser(project.userId))?.name || 'غير محدد' : 'غير محدد';
+      const projectOwnerRaw = project.userId ? (await storage.getUser(project.userId))?.name || 'غير محدد' : 'غير محدد';
+      const projectOwner = sanitizeTextForPDF(projectOwnerRaw);
       
       // استخدام PDFKit بدلاً من Puppeteer
       console.log('استخدام PDFKit لإنشاء ملف PDF');
@@ -1777,13 +1812,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const signerInfo = nda.companySignatureInfo as any || {};
         if (signerInfo.signerName) {
-          doc.fontSize(12).text(`Signed by: ${signerInfo.signerName}`, { align: 'left' });
+          const cleanSignerName = sanitizeTextForPDF(signerInfo.signerName);
+          doc.fontSize(12).text(`Signed by: ${cleanSignerName}`, { align: 'left' });
         }
         if (signerInfo.signerTitle) {
-          doc.fontSize(12).text(`Position: ${signerInfo.signerTitle}`, { align: 'left' });
+          const cleanSignerTitle = sanitizeTextForPDF(signerInfo.signerTitle);
+          doc.fontSize(12).text(`Position: ${cleanSignerTitle}`, { align: 'left' });
         }
       } else {
-        doc.fontSize(12).text(`Agreement Status: ${signatureStatus}`, { align: 'left' });
+        const cleanStatus = sanitizeTextForPDF('Draft (Not Signed)');
+        doc.fontSize(12).text(`Agreement Status: ${cleanStatus}`, { align: 'left' });
       }
       
       doc.moveDown(2);
