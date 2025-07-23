@@ -319,7 +319,7 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                                 const a = document.createElement('a');
                                 a.style.display = 'none';
                                 a.href = url;
-                                a.download = `project-analysis-${analysis.id}.md`;
+                                a.download = `project-analysis-${analysis.id}.txt`;
                                 document.body.appendChild(a);
                                 a.click();
                                 
@@ -735,7 +735,7 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                         const a = document.createElement('a');
                         a.style.display = 'none';
                         a.href = url;
-                        a.download = `project-analysis-${analysisResult.id}.md`;
+                        a.download = `project-analysis-${analysisResult.id}.txt`;
                         document.body.appendChild(a);
                         a.click();
                         

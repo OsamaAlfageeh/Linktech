@@ -4317,11 +4317,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`تم إنشاء التقرير بنجاح، الطول: ${reportContent.length} حرف`);
 
       // إنشاء اسم ملف آمن بدون أحرف عربية
-      const safeFilename = `project-analysis-${analysisId}.md`;
-      const encodedFilename = encodeURIComponent(`تحليل-المشروع-${analysisId}.md`);
+      const safeFilename = `project-analysis-${analysisId}.txt`;
+      const encodedFilename = encodeURIComponent(`تحليل-المشروع-${analysisId}.txt`);
       
       // إعداد headers لإجبار التحميل
-      res.setHeader('Content-Type', 'application/octet-stream');
+      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
       res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
