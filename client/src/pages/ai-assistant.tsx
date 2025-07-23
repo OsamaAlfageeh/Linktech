@@ -299,23 +299,33 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                               try {
                                 console.log('بدء تحميل التقرير للتحليل رقم:', analysis.id);
                                 
-                                // استخدام window.open لفتح الملف مباشرة
-                                const downloadUrl = `/api/ai/analysis/${analysis.id}/report?download=1`;
-                                console.log('فتح رابط التحميل:', downloadUrl);
+                                // استخدام fetch مع JWT token
+                                const token = localStorage.getItem('auth_token');
+                                const response = await fetch(`/api/ai/analysis/${analysis.id}/report?download=1`, {
+                                  headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                  },
+                                });
                                 
-                                // فتح الرابط في نافذة جديدة لتجنب مشاكل CORS
-                                const downloadWindow = window.open(downloadUrl, '_blank');
-                                
-                                if (!downloadWindow) {
-                                  // إذا فشلت النافذة الجديدة، استخدم الطريقة التقليدية
-                                  const a = document.createElement('a');
-                                  a.style.display = 'none';
-                                  a.href = downloadUrl;
-                                  a.download = `project-analysis-${analysis.id}.md`;
-                                  document.body.appendChild(a);
-                                  a.click();
-                                  document.body.removeChild(a);
+                                if (!response.ok) {
+                                  throw new Error(`خطأ في تحميل التقرير: ${response.statusText}`);
                                 }
+                                
+                                // تحويل الاستجابة إلى blob
+                                const blob = await response.blob();
+                                
+                                // إنشاء رابط تحميل
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.style.display = 'none';
+                                a.href = url;
+                                a.download = `project-analysis-${analysis.id}.md`;
+                                document.body.appendChild(a);
+                                a.click();
+                                
+                                // تنظيف الذاكرة
+                                window.URL.revokeObjectURL(url);
+                                document.body.removeChild(a);
                                 
                                 toast({
                                   title: "تم التحميل بنجاح",
@@ -705,27 +715,37 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
                       try {
                         console.log('بدء تحميل التقرير للتحليل رقم:', analysisResult.id);
                         
-                        // استخدام window.open لفتح الملف مباشرة
-                        const downloadUrl = `/api/ai/analysis/${analysisResult.id}/report?download=1`;
-                        console.log('فتح رابط التحميل:', downloadUrl);
+                        // استخدام fetch مع JWT token
+                        const token = localStorage.getItem('auth_token');
+                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report?download=1`, {
+                          headers: {
+                            'Authorization': `Bearer ${token}`,
+                          },
+                        });
                         
-                        // فتح الرابط في نافذة جديدة لتجنب مشاكل CORS
-                        const downloadWindow = window.open(downloadUrl, '_blank');
-                        
-                        if (!downloadWindow) {
-                          // إذا فشلت النافذة الجديدة، استخدم الطريقة التقليدية
-                          const a = document.createElement('a');
-                          a.style.display = 'none';
-                          a.href = downloadUrl;
-                          a.download = `project-analysis-${analysisResult.id || 'new'}.md`;
-                          document.body.appendChild(a);
-                          a.click();
-                          document.body.removeChild(a);
+                        if (!response.ok) {
+                          throw new Error(`خطأ في تحميل التقرير: ${response.statusText}`);
                         }
                         
+                        // تحويل الاستجابة إلى blob
+                        const blob = await response.blob();
+                        
+                        // إنشاء رابط تحميل
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = url;
+                        a.download = `project-analysis-${analysisResult.id}.md`;
+                        document.body.appendChild(a);
+                        a.click();
+                        
+                        // تنظيف الذاكرة
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                        
                         toast({
-                          title: "بدء التحميل",
-                          description: "جاري تحميل التقرير المفصل",
+                          title: "تم التحميل بنجاح",
+                          description: "تم تحميل التقرير المفصل",
                         });
                       } catch (error) {
                         console.error('خطأ في تحميل التقرير:', error);
