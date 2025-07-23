@@ -97,34 +97,33 @@ const Login = ({ auth }: LoginProps) => {
         description: `مرحباً بعودتك، ${userData.name || userData.username}!`,
       });
       
+      // تحديث حالة المصادقة فوراً
+      auth.login(userData);
+      
       // تنظيف ذاكرة التخزين المؤقت وإعادة تحميل البيانات
       import("@/lib/queryClient").then(({ queryClient }) => {
+        // إزالة جميع استعلامات المصادقة من الكاش
+        queryClient.removeQueries({ queryKey: ['/api/auth/user'] });
         queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
-        queryClient.refetchQueries({ queryKey: ['/api/auth/user'] });
         
-        // تحديث حالة المصادقة بعد تنظيف ذاكرة التخزين المؤقت
-        auth.login(userData);
-        
-        // توجيه المستخدم حسب دوره
+        // توجيه المستخدم حسب دوره فوراً
         const role = userData.role;
         console.log("توجيه المستخدم بدور:", role);
         
-        // التوجيه المباشر بدون إعادة تحميل الصفحة
-        setTimeout(() => {
-          if (role === "admin") {
-            console.log("بدء التوجيه للوحة المسؤول...");
-            navigate("/dashboard/admin");
-          } else if (role === "entrepreneur") {
-            console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
-            navigate("/dashboard/entrepreneur");
-          } else if (role === "company") {
-            console.log("بدء التوجيه لداشبورد الشركة...");
-            navigate("/dashboard/company");
-          } else {
-            console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
-            navigate("/");
-          }
-        }, 100);
+        // استخدام window.location.href لضمان إعادة التحميل الكامل والتوجيه الصحيح
+        if (role === "admin") {
+          console.log("بدء التوجيه للوحة المسؤول...");
+          window.location.href = "/dashboard/admin";
+        } else if (role === "entrepreneur") {
+          console.log("بدء التوجيه لداشبورد ريادي الأعمال...");
+          window.location.href = "/dashboard/entrepreneur";
+        } else if (role === "company") {
+          console.log("بدء التوجيه لداشبورد الشركة...");
+          window.location.href = "/dashboard/company";
+        } else {
+          console.log("دور غير معروف، التوجيه إلى الصفحة الرئيسية");
+          window.location.href = "/";
+        }
       });
     },
     onError: (error: any) => {

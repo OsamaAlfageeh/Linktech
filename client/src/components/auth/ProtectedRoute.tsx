@@ -18,12 +18,13 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   const [authChecked, setAuthChecked] = useState(false);
   
   // Direct auth query without dependency on useAuth hook
-  const { data: authData, isLoading, error } = useQuery<{user: any}>({
+  const { data: authData, isLoading, error, refetch } = useQuery<{user: any}>({
     queryKey: ['/api/auth/user'],
     retry: false,
     staleTime: 0,
     refetchOnWindowFocus: true,
     refetchOnMount: true,
+    refetchOnReconnect: true,
   });
   
   useEffect(() => {
@@ -36,6 +37,20 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       setAuthChecked(true);
     }
   }, [authData, error, isLoading]);
+
+  // Force refetch when localStorage token changes (for fresh login)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem('auth_token');
+      if (token && !userState) {
+        console.log("Token detected, refetching auth data...");
+        refetch();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, [userState, refetch]);
   
   // Function to check if user has the required role
   const hasRequiredRole = (user: any): boolean => {
