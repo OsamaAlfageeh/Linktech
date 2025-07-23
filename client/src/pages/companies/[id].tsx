@@ -65,21 +65,9 @@ const CompanyDetails = () => {
   const auth = useAuth();
   const isAdmin = auth?.user?.role === "admin";
 
-  // التحقق من تسجيل الدخول والتوجيه للصفحة الرئيسية إذا لم يكن المستخدم مسجلاً
-  useEffect(() => {
-    console.log("حالة المصادقة في صفحة تفاصيل الشركة:", auth);
-    // إضافة فحص إضافي للتأكد من اكتمال تحميل حالة المصادقة
-    // لا نتحقق من حالة المصادقة إلا بعد اكتمال تحميل البيانات من الخادم
-    if (auth !== undefined && !auth?.isAuthenticated) {
-      console.log("المستخدم غير مسجّل، يتم التوجيه لصفحة تسجيل الدخول");
-      toast({
-        title: "غير مسموح بالوصول",
-        description: "يجب تسجيل الدخول للوصول إلى صفحة الشركة",
-        variant: "destructive"
-      });
-      navigate("/auth/login");
-    }
-  }, [auth, navigate, toast]);
+  // We don't need mandatory authentication for viewing company profiles
+  // Company profiles should be public and accessible without login
+  // Only contact/messaging features require authentication
 
   // فحص حالة الدفع للشركة عند تحميل الصفحة
   useEffect(() => {
@@ -438,25 +426,18 @@ const CompanyDetails = () => {
                 <div className="mt-6">
                   <Button 
                     onClick={() => {
-                      // التحقق من تسجيل الدخول قبل الانتقال إلى صفحة الدردشة
-                      fetch('/api/auth/user')
-                        .then(res => {
-                          if (res.status === 200) {
-                            // المستخدم مسجل الدخول، الانتقال إلى صفحة الدردشة
-                            navigate(`/messages?userId=${company.userId}`);
-                          } else {
-                            // المستخدم غير مسجل، توجيهه إلى صفحة تسجيل الدخول
-                            toast({
-                              title: "تسجيل الدخول مطلوب",
-                              description: "يجب تسجيل الدخول أولاً للتواصل مع الشركة",
-                            });
-                            navigate("/auth/login");
-                          }
-                        })
-                        .catch(() => {
-                          // في حالة حدوث خطأ، توجيهه إلى صفحة تسجيل الدخول
-                          navigate("/auth/login");
+                      // التحقق من تسجيل الدخول باستخدام حالة المصادقة الحالية
+                      if (auth?.isAuthenticated && auth?.user) {
+                        // المستخدم مسجل الدخول، الانتقال إلى صفحة الدردشة
+                        navigate(`/messages?userId=${company.userId}`);
+                      } else {
+                        // المستخدم غير مسجل، توجيهه إلى صفحة تسجيل الدخول
+                        toast({
+                          title: "تسجيل الدخول مطلوب",
+                          description: "يجب تسجيل الدخول أولاً للتواصل مع الشركة",
                         });
+                        navigate("/auth/login");
+                      }
                     }} 
                     className="w-full md:w-auto"
                   >
