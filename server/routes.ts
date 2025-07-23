@@ -1492,21 +1492,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // تنزيل اتفاقية عدم الإفصاح بصيغة PDF
-  // لاحظ: لا نستخدم isAuthenticated هنا بل سنتحقق يدويًا لتسهيل التنزيل
+  // يدعم التحقق من المصادقة عبر JWT token في query parameter أو Authorization header
   app.get('/api/nda/:id/download-pdf', async (req: Request, res: Response) => {
-    // التحقق من المصادقة - يدويًا بدون middleware
-    if (!req.user) {
-      console.log('محاولة تنزيل PDF بدون مصادقة، sessionID:', req.sessionID);
-      // في حالة الطلب عبر iframe أو مباشر، نستخدم إعادة التوجيه بدلاً من الخطأ
-      if (req.query.t) {
-        console.log('الطلب من iframe أو window.open، إعادة توجيه إلى صفحة تسجيل الدخول');
-        return res.redirect('/auth');
-      } else {
-        return res.status(401).json({ message: 'يرجى تسجيل الدخول أولاً' });
+    let user = req.user;
+    
+    // إذا لم يكن هناك مستخدم من middleware، نحاول الحصول على التوكن من query parameter
+    if (!user && req.query.token) {
+      const decoded = verifyToken(req.query.token as string);
+      if (decoded) {
+        user = await storage.getUser(decoded.userId);
       }
     }
     
-    console.log('محاولة تنزيل PDF من المستخدم:', (req.user as any).username, 'sessionID:', req.sessionID);
+    // التحقق من المصادقة
+    if (!user) {
+      console.log('محاولة تنزيل PDF بدون مصادقة صحيحة');
+      return res.status(401).json({ message: 'يرجى تسجيل الدخول أولاً' });
+    }
+    
+    console.log('محاولة تنزيل PDF من المستخدم:', user.username);
     
     try {
       const ndaId = parseInt(req.params.id);

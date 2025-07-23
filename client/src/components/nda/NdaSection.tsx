@@ -139,72 +139,38 @@ export function NdaSection({
                         onClick={() => {
                           console.log("تم النقر على زر تنزيل PDF للاتفاقية رقم:", nda.id);
                           
-                          // استخدام apiRequest بدلاً من window.open المباشر للحفاظ على رمز الجلسة
+                          // تنزيل PDF باستخدام JWT token
                           const handlePdfDownload = async () => {
                             try {
-                              console.log("بدء طلب تنزيل PDF...");
-                              const response = await fetch(`/api/nda/${nda.id}/download-pdf`, {
-                                method: 'GET',
-                                credentials: 'include',
-                              });
-                              
-                              console.log("استجابة الخادم:", response.status, response.statusText);
-                              console.log("نوع المحتوى:", response.headers.get('content-type'));
-                              
-                              if (!response.ok) {
-                                throw new Error(`خطأ في التنزيل: ${response.statusText}`);
+                              // الحصول على JWT token من localStorage
+                              const token = localStorage.getItem('auth_token');
+                              if (!token) {
+                                alert('يرجى تسجيل الدخول مرة أخرى لتنزيل الملف');
+                                return;
                               }
                               
-                              // تحويل الاستجابة إلى blob
-                              console.log("تحويل الاستجابة إلى blob...");
-                              const blob = await response.blob();
-                              console.log("نوع البلوب:", blob.type, "حجم البلوب:", blob.size);
+                              console.log("بدء طلب تنزيل PDF...");
                               
-                              // إنشاء URL للبلوب
-                              const url = window.URL.createObjectURL(blob);
-                              console.log("تم إنشاء URL للبلوب:", url);
+                              // إنشاء رابط مباشر للتنزيل مع JWT token
+                              const downloadUrl = `/api/nda/${nda.id}/download-pdf?token=${encodeURIComponent(token)}`;
+                              const link = document.createElement('a');
+                              link.href = downloadUrl;
+                              link.download = `اتفاقية-عدم-إفصاح-${nda.id}.pdf`;
+                              link.target = '_blank';
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
                               
-                              // إنشاء رابط مؤقت لتنزيل الملف
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `اتفاقية-عدم-إفصاح-${nda.id}.pdf`;
-                              console.log("تم تعيين اسم الملف للتنزيل:", a.download);
-                              
-                              // طريقة بديلة (1) - توفير خيارات إضافية
-                              a.target = '_blank';
-                              a.rel = 'noopener noreferrer';
-                              a.style.display = 'none';
-                              
-                              console.log("إضافة عنصر الرابط للصفحة والنقر عليه...");
-                              document.body.appendChild(a);
-                              a.click();
-                              
-                              // تنظيف بعد التنزيل
-                              console.log("تنظيف الموارد بعد التنزيل...");
-                              setTimeout(() => {
-                                window.URL.revokeObjectURL(url);
-                                document.body.removeChild(a);
-                                console.log("اكتمل التنزيل وتم تنظيف الموارد");
-                              }, 100);
+                              console.log("تم تنزيل الملف بنجاح");
                             } catch (error) {
                               console.error('خطأ في تنزيل ملف PDF:', error);
                               alert('حدث خطأ أثناء محاولة تنزيل ملف الاتفاقية. يرجى المحاولة مرة أخرى.');
                             }
                           };
                           
-                          // استخدام طريقة مختلفة - تنزيل مباشر عن طريق iframe
+                          // بدء التنزيل مع تأكيد من المستخدم
                           if (confirm('هل تريد تنزيل ملف PDF لاتفاقية عدم الإفصاح؟')) {
-                            // إنشاء iframe مؤقت للتنزيل
-                            const iframe = document.createElement('iframe');
-                            iframe.style.display = 'none';
-                            iframe.src = `/api/nda/${nda.id}/download-pdf?t=${Date.now()}`;
-                            document.body.appendChild(iframe);
-                            
-                            // إزالة iframe بعد التنزيل
-                            setTimeout(() => {
-                              document.body.removeChild(iframe);
-                              console.log('تمت إزالة iframe بعد التنزيل');
-                            }, 5000);
+                            handlePdfDownload();
                           }
                         }}
                       >
@@ -281,8 +247,15 @@ export function NdaSection({
                           
                           console.log("تم النقر على زر تنزيل PDF للاتفاقية رقم:", ndaData.id);
                           
-                          // استخدام طريقة مختلفة - تنزيل مباشر عن طريق iframe
+                          // تنزيل PDF باستخدام JWT token
                           if (confirm('سيتم تنزيل ملف PDF لاتفاقية عدم الإفصاح باللغة الإنجليزية لضمان التوافقية مع جميع الأجهزة. هل تريد المتابعة؟')) {
+                            // الحصول على JWT token من localStorage
+                            const token = localStorage.getItem('auth_token');
+                            if (!token) {
+                              alert('يرجى تسجيل الدخول مرة أخرى لتنزيل الملف');
+                              return;
+                            }
+                            
                             // إظهار إشعار للمستخدم
                             const toast = document.createElement('div');
                             toast.innerText = 'جاري تنزيل ملف PDF...';
@@ -297,18 +270,21 @@ export function NdaSection({
                             toast.style.direction = 'rtl';
                             document.body.appendChild(toast);
                             
-                            // إنشاء iframe مؤقت للتنزيل
-                            const iframe = document.createElement('iframe');
-                            iframe.style.display = 'none';
-                            iframe.src = `/api/nda/${ndaData.id}/download-pdf?t=${Date.now()}`;
-                            document.body.appendChild(iframe);
+                            // إنشاء رابط مباشر للتنزيل مع JWT token
+                            const downloadUrl = `/api/nda/${ndaData.id}/download-pdf?token=${encodeURIComponent(token)}`;
+                            const link = document.createElement('a');
+                            link.href = downloadUrl;
+                            link.download = `اتفاقية-عدم-إفصاح-${ndaData.id}.pdf`;
+                            link.target = '_blank';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
                             
-                            // إزالة iframe والإشعار بعد التنزيل
+                            // إزالة الإشعار بعد التنزيل
                             setTimeout(() => {
-                              document.body.removeChild(iframe);
                               document.body.removeChild(toast);
-                              console.log('تمت إزالة iframe والإشعار بعد التنزيل');
-                            }, 5000);
+                              console.log('تمت إزالة الإشعار بعد التنزيل');
+                            }, 3000);
                           }
                         }}
                       >
