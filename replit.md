@@ -103,6 +103,13 @@ LinkTech is a full-stack web application that serves as a marketplace connecting
 
 ## Recent Changes
 
+- July 23, 2025: إصلاح نهائي لمساعد الذكاء الاصطناعي للمشاريع
+  - حل مشكلة عدم إرسال JWT token مع طلبات تحليل المشروع
+  - تصحيح استخدام مفتاح localStorage من 'token' إلى 'auth_token'
+  - إضافة سجلات تشخيص شاملة للـ JWT middleware
+  - تأكيد عمل النظام: المصادقة تعمل والمشكلة الوحيدة المتبقية هي validation (10 أحرف كحد أدنى لوصف المشروع)
+  - المستخدمون يمكنهم الآن استخدام مساعد الذكاء الاصطناعي بنجاح لتحليل مشاريعهم
+
 - July 16, 2025: تحويل كامل ونهائي من session/cookie إلى نظام JWT
   - إزالة نهائية لجميع مراجع session، passport، وcookies من النظام
   - تطبيق JWT (JSON Web Tokens) للمصادقة مع انتهاء صلاحية 7 أيام
