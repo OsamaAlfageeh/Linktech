@@ -146,10 +146,13 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
         setActiveTab("projects");
         setEditProjectId(projectId);
         setIsEditDialogOpen(true);
-        // Don't clean up URL yet to allow refresh during edit
+        // Clean up the URL after setting up the dialog
+        setTimeout(() => {
+          navigate("/dashboard/entrepreneur?tab=projects", { replace: true });
+        }, 100);
       }
     }
-  }, [navigate]);
+  }, [navigate, location]);
 
   // Fetch projects for this entrepreneur
   const {
@@ -526,6 +529,36 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                 </DialogContent>
               </Dialog>
             </div>
+
+            {/* Edit Project Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+              <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>تعديل المشروع</DialogTitle>
+                  <DialogDescription>
+                    تحديث تفاصيل مشروعك وإعداداته.
+                  </DialogDescription>
+                </DialogHeader>
+                {editProjectId && (
+                  <EditProjectForm
+                    projectId={editProjectId}
+                    onClose={() => {
+                      setIsEditDialogOpen(false);
+                      setEditProjectId(null);
+                    }}
+                    onSuccess={() => {
+                      setIsEditDialogOpen(false);
+                      setEditProjectId(null);
+                      queryClient.invalidateQueries({ queryKey: [`/api/users/${auth.user?.id}/projects`] });
+                      toast({
+                        title: "تم تحديث المشروع بنجاح",
+                        description: "تم حفظ تغييراتك على المشروع.",
+                      });
+                    }}
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
 
             {isLoadingProjects ? (
               <div className="space-y-4">
