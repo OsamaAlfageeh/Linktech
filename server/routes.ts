@@ -2522,13 +2522,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectOwner = await storage.getUser(project.userId);
       
       // إنشاء رسالة إلى الشركة تحتوي على تفاصيل التواصل
+      // فقط إذا لم تكن هناك محادثة موجودة بالفعل لهذا المشروع
       if (companyUser && projectOwner) {
-        await storage.createMessage({
-          content: `تم قبول عرضك على مشروع "${project.title}" ودفع العربون. يمكنك التواصل مع ${projectOwner.name} عبر البريد الإلكتروني: ${projectOwner.email}`,
-          fromUserId: projectOwner.id,
-          toUserId: companyUser.id,
-          projectId: project.id
-        });
+        // التحقق من وجود محادثة مسبقة بين المستخدمين لهذا المشروع
+        const existingConversation = await storage.getConversation(
+          projectOwner.id, 
+          companyUser.id, 
+          project.id
+        );
+        
+        // إنشاء رسالة فقط إذا لم تكن هناك رسائل مسبقة لهذا المشروع
+        // أو إذا لم تحتوي المحادثة على رسالة قبول العرض
+        const hasAcceptanceMessage = existingConversation.some(msg => 
+          msg.content.includes("تم قبول عرضك على مشروع") && 
+          msg.content.includes(project.title)
+        );
+        
+        if (!hasAcceptanceMessage) {
+          await storage.createMessage({
+            content: `تم قبول عرضك على مشروع "${project.title}" ودفع العربون. يمكنك التواصل مع ${projectOwner.name} عبر البريد الإلكتروني: ${projectOwner.email}`,
+            fromUserId: projectOwner.id,
+            toUserId: companyUser.id,
+            projectId: project.id
+          });
+        }
       }
       
       // تحديث حالة المشروع إلى 'in-progress'
