@@ -89,15 +89,26 @@ const jwtAuth = async (req: Request, res: Response, next: Function) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
   
+  console.log(`JWT Middleware: ${req.method} ${req.path}`);
+  console.log(`Authorization header: ${authHeader}`);
+  console.log(`Extracted token: ${token ? 'Present' : 'Missing'}`);
+  
   if (!token) {
+    console.log('No token found, continuing without authentication');
     return next(); // مواصلة بدون مصادقة
   }
   
   const decoded = verifyToken(token);
+  console.log(`Token verification result: ${decoded ? 'Valid' : 'Invalid'}`);
+  
   if (decoded) {
+    console.log(`Decoded token userId: ${decoded.userId}`);
     const user = await storage.getUser(decoded.userId);
+    console.log(`User lookup result: ${user ? `Found user ${user.username}` : 'User not found'}`);
+    
     if (user) {
       req.user = user;
+      console.log(`Set req.user to: ${user.username} (${user.role})`);
     }
   }
   
