@@ -106,15 +106,29 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
   // استعلام للحصول على التحليلات السابقة
   const { data: previousAnalyses, isLoading: loadingPrevious } = useQuery<PreviousAnalysis[]>({
     queryKey: ['/api/ai/my-analyses'],
-    enabled: showPreviousAnalyses
+    enabled: showPreviousAnalyses,
+    queryFn: async () => {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/ai/my-analyses', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) {
+        throw new Error('Failed to fetch previous analyses');
+      }
+      return response.json();
+    }
   });
 
   const analyzeProjectMutation = useMutation({
     mutationFn: async (data: any) => {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/ai/analyze-project', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(data),
       });
