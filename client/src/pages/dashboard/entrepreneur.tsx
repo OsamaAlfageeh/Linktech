@@ -190,7 +190,11 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
       return response.json();
     },
     onSuccess: () => {
+      // Invalidate all project-related queries to refresh the lists
       queryClient.invalidateQueries({queryKey: [`/api/users/${auth.user?.id}/projects`]});
+      queryClient.invalidateQueries({queryKey: ['/api/projects']});
+      queryClient.invalidateQueries({queryKey: ['/api/recommendations/trending-projects']});
+      
       toast({
         title: "تم إنشاء المشروع بنجاح",
         description: "تم نشر مشروعك وأصبح متاحاً للشركات للاطلاع عليه.",
