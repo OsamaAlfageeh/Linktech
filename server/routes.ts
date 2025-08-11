@@ -4454,6 +4454,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Contact Messages API - Create new contact message (public endpoint)
+  app.post('/api/contact-messages', async (req: Request, res: Response) => {
+    try {
+      console.log('استلام طلب إنشاء رسالة تواصل جديدة:', JSON.stringify(req.body));
+      
+      // تحويل البيانات من تنسيق الواجهة الأمامية إلى تنسيق قاعدة البيانات
+      const frontendData = req.body;
+      const messageData = {
+        name: frontendData.name,
+        email: frontendData.email,
+        phone: frontendData.phone || null,
+        message: frontendData.message,
+        subject: frontendData.messageDetails?.subject || frontendData.subject || 'استفسار عام'
+      };
+      
+      console.log('بيانات الرسالة بعد التحويل:', JSON.stringify(messageData));
+      
+      // التحقق من صحة البيانات باستخدام مخطط Zod
+      const validatedData = insertContactMessageSchema.parse(messageData);
+      console.log('تم التحقق من صحة البيانات بنجاح');
+      
+      // حفظ الرسالة في قاعدة البيانات
+      const savedMessage = await storage.createContactMessage(validatedData);
+      console.log('تم حفظ رسالة التواصل بنجاح، معرف:', savedMessage.id);
+      
+      res.status(201).json({ 
+        success: true, 
+        message: 'تم إرسال رسالتك بنجاح، سنقوم بالرد عليك قريباً',
+        id: savedMessage.id 
+      });
+    } catch (error) {
+      console.error('خطأ في إنشاء رسالة التواصل:', error);
+      
+      if (error instanceof z.ZodError) {
+        console.log('خطأ في التحقق من البيانات:', error.errors);
+        return res.status(400).json({ 
+          message: 'بيانات غير صالحة', 
+          errors: error.errors 
+        });
+      }
+      
+      res.status(500).json({ message: 'حدث خطأ أثناء إرسال الرسالة، يرجى المحاولة مرة أخرى' });
+    }
+  });
+
   // Contact Messages Management API
   app.get('/api/contact-messages', isAuthenticated, async (req: Request, res: Response) => {
     try {
