@@ -1,5 +1,40 @@
 import { Router, Request, Response } from 'express';
 import { generateProjectNdaPdf } from '../generateNDA';
+import jwt from 'jsonwebtoken';
+import { storage } from '../storage';
+
+// JWT middleware للمصادقة
+const authenticateToken = async (req: any, res: Response, next: any) => {
+  try {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+
+    if (!token) {
+      return res.status(401).json({ 
+        error: 'Access token required',
+        message: 'رمز الوصول مطلوب' 
+      });
+    }
+
+    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
+    const user = await storage.getUser(decoded.userId);
+    
+    if (!user) {
+      return res.status(401).json({ 
+        error: 'User not found',
+        message: 'المستخدم غير موجود' 
+      });
+    }
+
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(403).json({ 
+      error: 'Invalid token',
+      message: 'رمز وصول غير صالح' 
+    });
+  }
+};
 
 const router = Router();
 
@@ -101,8 +136,46 @@ router.post('/send-invitation', async (req: Request, res: Response) => {
   }
 });
 
+// إنشاء اتفاقية عدم الإفصاح للتنزيل المحلي
+router.post('/generate-nda', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('إنشاء اتفاقية عدم الإفصاح للتنزيل...');
+    
+    const { projectData, companyData } = req.body;
+    
+    if (!projectData || !companyData) {
+      return res.status(400).json({
+        error: 'Missing required data',
+        message: 'بيانات المشروع والشركة مطلوبة'
+      });
+    }
+
+    // إنشاء ملف PDF
+    const pdfBuffer = await generateProjectNdaPdf(projectData, companyData);
+    
+    // إعداد headers للتنزيل
+    const filename = `NDA-${projectData.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Length', pdfBuffer.length);
+    
+    console.log(`تم إنشاء ملف PDF بنجاح: ${filename}, الحجم: ${pdfBuffer.length} بايت`);
+    
+    // إرسال الملف
+    res.send(pdfBuffer);
+    
+  } catch (error: any) {
+    console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'فشل في إنشاء اتفاقية عدم الإفصاح'
+    });
+  }
+});
+
 // Generate and upload NDA document to Sadiq
-router.post('/generate-and-upload-nda', async (req: Request, res: Response) => {
+router.post('/generate-and-upload-nda', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { accessToken, projectData, companyData } = req.body;
     
