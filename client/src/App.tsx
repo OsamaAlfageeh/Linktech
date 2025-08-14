@@ -42,6 +42,7 @@ import PersonalInfo from "@/pages/personal-info";
 import PremiumClients from "@/pages/premium-clients";
 import AiAssistant from "@/pages/ai-assistant";
 import CompaniesLanding from "@/pages/companies-landing";
+import TestSadiq from "@/pages/test-sadiq";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -307,6 +308,9 @@ function App() {
           
           {/* صفحة هبوط للشركات */}
           <Route path="/companies-landing" component={CompaniesLanding} />
+          
+          {/* صفحة اختبار تكامل صادق */}
+          <Route path="/test-sadiq" component={TestSadiq} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />
