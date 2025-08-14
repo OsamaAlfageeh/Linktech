@@ -5,6 +5,7 @@
 import { Request, Response, Router } from 'express';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
+import path from 'path';
 
 /**
  * دالة بسيطة لعكس النص للعرض الصحيح

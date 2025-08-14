@@ -3,35 +3,55 @@ import { generateProjectNdaPdf } from '../generateNDA';
 import jwt from 'jsonwebtoken';
 import { storage } from '../storage';
 
-// JWT middleware للمصادقة
+// JWT middleware للمصادقة (نسخة محدثة متطابقة مع النظام الرئيسي)
 const authenticateToken = async (req: any, res: Response, next: any) => {
   try {
+    console.log('JWT Middleware: POST /api/sadiq/generate-nda');
     const authHeader = req.headers['authorization'];
+    console.log('Authorization header:', authHeader ? authHeader.substring(0, 50) + '...' : 'undefined');
+    
     const token = authHeader && authHeader.split(' ')[1];
+    console.log('Extracted token:', token ? 'Present' : 'Missing');
 
     if (!token) {
+      console.log('No token found');
       return res.status(401).json({ 
         error: 'Access token required',
         message: 'رمز الوصول مطلوب' 
       });
     }
 
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    const user = await storage.getUser(decoded.userId);
-    
-    if (!user) {
-      return res.status(401).json({ 
-        error: 'User not found',
-        message: 'المستخدم غير موجود' 
+    try {
+      const decoded: any = jwt.verify(token, 'linktech-jwt-secret-2024');
+      console.log('Token verification result: Valid');
+      console.log('Decoded token userId:', decoded.userId);
+      
+      const user = await storage.getUser(decoded.userId);
+      console.log('User lookup result:', user ? `Found user ${user.username}` : 'User not found');
+      
+      if (!user) {
+        return res.status(401).json({ 
+          error: 'User not found',
+          message: 'المستخدم غير موجود' 
+        });
+      }
+
+      console.log(`Set req.user to: ${user.username} (${user.role})`);
+      req.user = user;
+      next();
+    } catch (jwtError) {
+      console.log('Token verification result: Invalid');
+      console.error('JWT verification error:', jwtError);
+      return res.status(403).json({ 
+        error: 'Invalid token',
+        message: 'رمز وصول غير صالح' 
       });
     }
-
-    req.user = user;
-    next();
   } catch (error) {
-    return res.status(403).json({ 
-      error: 'Invalid token',
-      message: 'رمز وصول غير صالح' 
+    console.error('Authentication middleware error:', error);
+    return res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'خطأ في المصادقة' 
     });
   }
 };
@@ -140,18 +160,35 @@ router.post('/send-invitation', async (req: Request, res: Response) => {
 router.post('/generate-nda', authenticateToken, async (req: Request, res: Response) => {
   try {
     console.log('إنشاء اتفاقية عدم الإفصاح للتنزيل...');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
     
     const { projectData, companyData } = req.body;
     
     if (!projectData || !companyData) {
+      console.log('Missing required data - projectData:', !!projectData, 'companyData:', !!companyData);
       return res.status(400).json({
         error: 'Missing required data',
         message: 'بيانات المشروع والشركة مطلوبة'
       });
     }
 
+    console.log('Starting PDF generation with:', {
+      projectTitle: projectData.title,
+      companyName: companyData.name
+    });
+
     // إنشاء ملف PDF
     const pdfBuffer = await generateProjectNdaPdf(projectData, companyData);
+    
+    console.log('PDF generation completed, buffer size:', pdfBuffer.length);
+    
+    if (pdfBuffer.length < 100) {
+      console.error('PDF buffer too small, likely an error occurred');
+      return res.status(500).json({
+        error: 'PDF generation failed',
+        message: 'فشل في إنشاء ملف PDF - حجم غير صحيح'
+      });
+    }
     
     // إعداد headers للتنزيل
     const filename = `NDA-${projectData.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
@@ -160,16 +197,18 @@ router.post('/generate-nda', authenticateToken, async (req: Request, res: Respon
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
     res.setHeader('Content-Length', pdfBuffer.length);
     
-    console.log(`تم إنشاء ملف PDF بنجاح: ${filename}, الحجم: ${pdfBuffer.length} بايت`);
+    console.log(`✅ تم إنشاء ملف PDF بنجاح: ${filename}, الحجم: ${pdfBuffer.length} بايت`);
     
     // إرسال الملف
     res.send(pdfBuffer);
     
   } catch (error: any) {
-    console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
+    console.error('❌ خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       error: 'Internal server error',
-      message: 'فشل في إنشاء اتفاقية عدم الإفصاح'
+      message: 'فشل في إنشاء اتفاقية عدم الإفصاح',
+      details: error.message
     });
   }
 });

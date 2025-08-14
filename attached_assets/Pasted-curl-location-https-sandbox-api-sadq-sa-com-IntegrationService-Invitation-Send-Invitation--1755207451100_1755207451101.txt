@@ -1,0 +1,50 @@
+curl --location 'https://sandbox-api.sadq-sa.com/IntegrationService/Invitation/Send-Invitation' \
+--header 'accept: application/json' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Bearer eyJhbGciOiJSUzI1NiIsImtpZCI6IkMzQTlCRkU0N0NFRUNERTY1OEIwRjE3NDczMDc5MTRFMzg5MjI2REZSUzI1NiIsInR5cCI6ImF0K2p3dCIsIng1dCI6Inc2bV81SHp1emVaWXNQRjBjd2VSVGppU0p0OCJ9.eyJuYmYiOjE3MTMzMzg4MzEsImV4cCI6MTcxMzQzODAzMSwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgxIiwiYXVkIjpbImlkZW50aXR5IiwicGF5bWVudCIsInNpZ25pbmciLCJ0ZW5hbmN5IiwiVGhpcmRQYXJ0eVNpZ24iLCJBZG1pbkRhc2hib2FyZCIsIkFjdGl2aXR5IiwiSW50ZWdyYXRpb25TZXJ2aWNlIiwiQUlTZXJ2aWNlIl0sImNsaWVudF9pZCI6IkludGVncmF0aW9uY2xpZW50Iiwic3ViIjoiMjJjN2E4NDAtZjc4Yi00MjgyLWE3MzMtMzY4YTM2NDk1ZmViIiwiYXV0aF90aW1lIjoxNzEzMzM4ODMxLCJpZHAiOiJsb2NhbCIsImh0dHA6Ly9zY2hlbWFzLnhtbHNvYXAub3JnL3dzLzIwMDUvMDUvaWRlbnRpdHkvY2xhaW1zL25hbWVpZGVudGlmaWVyIjoiMjJjN2E4NDAtZjc4Yi00MjgyLWE3MzMtMzY4YTM2NDk1ZmViIiwic3Vic2NyaXB0aW9uIjoie1wiTW9kdWxlc1wiOlsyNiw0NSwyNCwzNSwyNSwzNiwzOCw0Nyw0NCwzOCwxMiw0MywxNywyNiw1MCw0MCwyLDMxLDI5LDIwLDE2LDI3LDIyLDQyLDQsNDEsMjMsMjgsMTYsMzYsNDAsNDgsMzksNywxMCw0Nyw2LDMwLDMzLDM3LDIxLDEzLDgsNDgsMTUsNSwyOCw0MiwzNCw0OSw0MywxOSwzOSwyNywxMSw5LDQxLDMzLDgsMSwyNSw0NSwxOCwyOSwxNSwxMSwzMSwyNCwxOCwxMCwzMiw5LDE0LDUwLDQ5LDM3LDEyLDE5LDM1LDMyLDQsMjIsMzAsNyw2LDUsMjAsNDQsMzQsMTddLFwiTnVtYmVyT2ZSZWNlaXZpbmdSZWNpcGllbnRcIjo5OTk5OTk5OTksXCJTdXBwb3J0ZWREb2N1bWVudHNcIjpcInBkZix3b3JkLHBvd2VycG9pbnRcIixcIkRvY3VtZW50c1NpemVcIjo0MC4wLFwiQnVsa1NlbmRBbmRTaWduXCI6MjAsXCJRdW90YVwiOjEwMDAwMCxcIkN1c3RvbWVyU3VwcG9ydFwiOjN9IiwiaGF2ZVNpZ25pbmdPbkJlaGFsZk9mQUNvbXBhbnkiOiJGYWxzZSIsImFjY291bnRpZCI6IjUxZGYxZjk2LWM3Y2UtNDc0MC04N2ZkLTBjYjFmM2M1Yjk5NSIsIm5hbWUiOiJNYWhtb3VkIiwiZ2l2ZW5fbmFtZSI6Ik1haG1vdWQiLCJmYW1pbHlfbmFtZSI6Ik1hbnRhd2F5IiwibWlkZGxlX25hbWUiOiIgICIsImVtYWlsIjoiTU1hbnRhd3lAaGVhbHRoaW5zaWdodHNncm91cC5jb20iLCJwaG9uZV9udW1iZXIiOiIrOTY2NTQxNjY3NzU4IiwiaXNBZG1pbiI6IlRydWUiLCJpc3B1YmxpY2FjY291bnQiOiJGYWxzZSIsImdlbmRlciI6IjEiLCJBY2NvdW50TmFtZSI6Ik1pbmlzdHJ5IG9mIEhlYWx0aC1zYW5kYm94IiwiTmF0aW9uYWxpZCI6Ijg5Njc0NTMiLCJpZHR5cGUiOiIxIiwic3Vic2NyaXB0aW9uTmFtZSI6IkVudGVycHJpc2UiLCJzdWJzY3JpcHRpb25OYW1lQXIiOiJFbnRlcnByaXNlIiwiSXNGb3JJbnRlZ3JhdGlvbiI6IlRydWUiLCJpc01hbmFnZXJSZXF1aXJlZFJldmlld2VyIjoiRmFsc2UiLCJ1c2VyUXVvdGEiOiIwIiwiYWxsb3dUb1VzZUFjY291bnRRdW90YSI6IlRydWUiLCJDb21tZXJjaWFsTnVtYmVyIjoiIiwiRGVwYXJ0bWVudENvdW50IjoiMCIsImp0aSI6IjM3OUQ0OUM3NkY1NUI5QjczNDdCMDEyQjFCREMyMkE5IiwiaWF0IjoxNzEzMzM4ODMxLCJzY29wZSI6WyJhcGlzY29wZSJdLCJhbXIiOlsiY3VzdG9tIl19.Av7Fv1kzO4nXQQQGTVxrhwnhCDCMcRHemu5SF0so8hDOCqG23Dg2AE_TLSJo9C7424mAXtPUHbXuRZuz6L2VhAE8V_QSc688PKlEKd1pzn46WitZstuVENb_XxjUxhHnoY2juRmiv8C06Pl69vG_8BLPqkgn2jV7HP0HlGt6K9vUuidg37pMV-PEoqIkIjA3j3pNOz_hDJ_Chc3uBBwl50OksaA3qXi732seomEdm3yXqkUUV_-_00Ra-AxRyZbaBfqPgYJTJ2XZxF-feqxNiHpFRmcfcUh6N2Am-zr7JiQ9ziNe3PB8lIGGNgsdgHyUb4QMSqKuvaVp7mtg8VZZjA' \
+--data-raw '{
+  "documentId": "{{documentId}}",
+  "destinations": [
+    {
+      "DestinationName": "example one  ConsentOnly true ",
+      "destinationEmail": "test@domain.sa",
+      "destinationPhoneNumber": "",
+      "nationalId": "",
+      "signeOrder": 0,
+      "ConsentOnly":true,    
+      "signatories": [],
+      "availableTo": "2029-08-29" ,
+      "authenticationType": 0,
+      "InvitationLanguage" : 1 ,
+       "RedirectUrl":"",
+      "AllowUserToAddDestination":""
+    },
+      {
+         "destinationName":"example one  ConsentOnly true ",
+         "destinationEmail":"signer email ",
+         "destinationPhoneNumber":"",
+         "nationalId":"",
+          "signeOrder": 0,
+          "ConsentOnly":false,    
+         "signatories":[
+            {
+               "signatureHigh":80,
+               "signatureWidth":160,
+               "pageNumber":12,
+               "text":"",
+               "type":"Signature",
+               "positionX":70,
+               "positionY":500
+            }
+         ],
+         
+         "availableTo":"2024-10-15T00:00:00Z",
+         "authenticationType":0,
+          "InvitationLanguage" : 1 ,
+       "RedirectUrl":"",
+      "AllowUserToAddDestination":""
+      }
+  ],
+  "invitationMessage": "Dear User  please sign the document attched below  ",
+  "invitationSubject": ""
+}'
