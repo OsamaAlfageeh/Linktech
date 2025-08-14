@@ -1,54 +1,19 @@
 /**
- * ملف إنشاء اتفاقية عدم الإفصاح NDA باستخدام مكتبة pdfmake
+ * ملف إنشاء اتفاقية عدم الإفصاح NDA باستخدام مكتبة pdf-lib
  */
 
 import { Request, Response, Router } from 'express';
-import path from 'path';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import fs from 'fs';
-import PdfPrinter from 'pdfmake/src/printer.js';
 
 /**
- * دالة ذكية لعكس ترتيب الكلمات مع الحفاظ على علامات الترقيم في مكانها الصحيح
- * @param text النص المراد عكس كلماته
- * @returns النص بعد عكس ترتيب كلماته
+ * دالة بسيطة لعكس النص للعرض الصحيح
+ * @param text النص المراد معالجته
+ * @returns النص بعد المعالجة
  */
-function reverseWordsSmart(text: string): string {
-  const words = text.split(' ');
-  const reversed = [];
-
-  for (let i = words.length - 1; i >= 0; i--) {
-    // فصل العلامة إن وجدت ملتصقة بالكلمة
-    const match = words[i].match(/^(.+?)([.,،؛:]?)$/);
-    if (match) {
-      const [, word, punctuation] = match;
-      reversed.push(`${word}${punctuation}`);
-    } else {
-      reversed.push(words[i]);
-    }
-  }
-
-  return reversed.join(' ');
-}
-
-/**
- * دالة لتقسيم النص الطويل إلى أسطر مناسبة وعكس ترتيب الكلمات في كل سطر
- * @param text النص المراد تقسيمه
- * @param wordsPerLine عدد الكلمات في كل سطر
- * @returns مصفوفة من الأسطر المقسمة بعد عكس ترتيب الكلمات
- */
-function splitAndReverseParagraph(
-  text: string,
-  wordsPerLine = 12
-): string[] {
-  const words = text.split(' ');
-  const lines: string[] = [];
-
-  for (let i = 0; i < words.length; i += wordsPerLine) {
-    const slice = words.slice(i, i + wordsPerLine);
-    lines.push(slice.reverse().join(' '));
-  }
-
-  return lines;
+function processArabicText(text: string): string {
+  // إرجاع النص كما هو - النصوص العربية تعرض بشكل صحيح في pdfmake الحديث
+  return text;
 }
 
 // إنشاء موجه للمسارات
@@ -56,8 +21,7 @@ const router = Router();
 
 /**
  * وظيفة مساعدة لإنشاء ملف PDF لاتفاقية عدم الإفصاح
- * هذه النسخة محسنة لعرض النص العربي باستخدام pdfmake
- * مع استخدام خاصية direction:rtl بدلاً من مكتبات خارجية
+ * هذه النسخة تستخدم مكتبة pdf-lib للحصول على أفضل استقرار
  * 
  * @param project بيانات المشروع
  * @param company بيانات الشركة
@@ -74,197 +38,210 @@ export async function generateProjectNdaPdf(
     ip?: string;
   }
 ): Promise<Buffer> {
-  return new Promise((resolve, reject) => {
-    try {
-      // استخدام خط متوفر افتراضياً بدلاً من خط مخصص
-      // هذا يجعل التطبيق أكثر استقراراً في بيئة الإنتاج
-      console.log('استخدام أسلوب بسيط مع خط افتراضي للتوافق مع بيئة الإنتاج');
+  try {
+    console.log('إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib');
+    
+    // إنشاء مستند PDF جديد
+    const pdfDoc = await PDFDocument.create();
+    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    
+    // إضافة صفحة
+    const page = pdfDoc.addPage([612, 792]); // 8.5 x 11 inches
+    const { width, height } = page.getSize();
       
-      // إنشاء تعريف الخطوط
-      const fonts = {
-        // استخدام خط Roboto المتوفر افتراضياً في pdfmake
-        Roboto: {
-          normal: 'Roboto-Regular.ttf',
-          bold: 'Roboto-Medium.ttf',
-          italics: 'Roboto-Italic.ttf',
-          bolditalics: 'Roboto-MediumItalic.ttf'
-        }
-      };
-      
-      // إنشاء نسخة من pdfmake مع الخطوط العربية
-      const printer = new PdfPrinter(fonts);
-      
-      // تحضير معلومات التوقيع
-      const signedDate = signerInfo?.date ? new Date(signerInfo.date) : new Date();
-      const formattedDate = `${signedDate.getDate()}-${signedDate.getMonth() + 1}-${signedDate.getFullYear()}`;
-      
-      // شروط الاتفاقية
-      const terms = [
-        'بموجب هذه الاتفاقية، يلتزم الطرف الثاني (الشركة) بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول (صاحب المشروع).',
-        'تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع عليها إلكترونياً، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.',
-        'تبقى هذه الاتفاقية سارية لمدة عامين (2) بعد انتهاء العمل بالمشروع أو انتهاء العلاقة بين الطرفين، أيهما أبعد.',
-        'في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.',
-        'تخضع هذه الاتفاقية للقوانين المعمول بها في المملكة العربية السعودية وتحل أي نزاعات تنشأ عنها في محاكم المملكة.',
-      ];
-      
-      // ترقيم البنود
-      const numberedTerms = terms.map((term, index) => {
-        return { text: `${index + 1}. ${term}`, style: 'paragraph' };
+    // تحضير معلومات التوقيع
+    const signedDate = signerInfo?.date ? new Date(signerInfo.date) : new Date();
+    const formattedDate = `${signedDate.getDate()}-${signedDate.getMonth() + 1}-${signedDate.getFullYear()}`;
+    
+    let y = height - 80;
+    const margin = 50;
+    const lineHeight = 20;
+    
+    // العنوان
+    page.drawText('Non-Disclosure Agreement (NDA)', {
+      x: margin,
+      y: y,
+      size: 18,
+      font: boldFont,
+      color: rgb(0, 0, 0),
+    });
+    y -= 40;
+    
+    // تاريخ الإنشاء
+    page.drawText(`Date Created: ${formattedDate}`, {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= 30;
+    
+    // معلومات المشروع
+    page.drawText('Project Information:', {
+      x: margin,
+      y: y,
+      size: 14,
+      font: boldFont,
+    });
+    y -= lineHeight;
+    
+    page.drawText(`Project Name: ${project.title || 'Not specified'}`, {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= lineHeight;
+    
+    page.drawText(`Description: ${project.description || 'Not specified'}`, {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= 30;
+    
+    // معلومات الشركة
+    page.drawText('Company Information:', {
+      x: margin,
+      y: y,
+      size: 14,
+      font: boldFont,
+    });
+    y -= lineHeight;
+    
+    page.drawText(`Company Name: ${company.name || 'Not specified'}`, {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= lineHeight;
+    
+    page.drawText(`Location: ${company.location || 'Not specified'}`, {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= 30;
+    
+    // شروط الاتفاقية
+    page.drawText('Agreement Terms:', {
+      x: margin,
+      y: y,
+      size: 14,
+      font: boldFont,
+    });
+    y -= lineHeight;
+    
+    const terms = [
+      '1. The second party shall maintain confidentiality of all project information.',
+      '2. This agreement is effective from the date of signing.',
+      '3. This agreement remains valid for two years after project completion.',
+      '4. Any breach of this agreement allows legal action by the affected party.',
+      '5. This agreement is governed by Saudi Arabian law.'
+    ];
+    
+    terms.forEach(term => {
+      page.drawText(term, {
+        x: margin,
+        y: y,
+        size: 11,
+        font: font,
       });
+      y -= lineHeight;
+    });
+    
+    y -= 30;
+    
+    // التوقيعات
+    page.drawText('Signatures:', {
+      x: margin,
+      y: y,
+      size: 14,
+      font: boldFont,
+    });
+    y -= 30;
+    
+    page.drawText('First Party (Project Owner)', {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= 40;
+    
+    page.drawText('Second Party (Company)', {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    y -= 40;
+    
+    // معلومات التوقيع الإضافية
+    if (signerInfo) {
+      page.drawText(`Signed electronically on: ${formattedDate}`, {
+        x: margin,
+        y: y,
+        size: 11,
+        font: font,
+      });
+      y -= lineHeight;
       
-      // إنشاء تعريف المستند
-      const docDefinition = {
-        // إعدادات المستند
-        defaultStyle: {
-          font: 'Roboto',
-          fontSize: 12
-        },
-        pageMargins: [40, 60, 40, 60],
-        
-        // تعريف الأنماط
-        styles: {
-          header: { 
-            fontSize: 22, 
-            bold: true, 
-            margin: [0, 0, 0, 20],
-            alignment: 'right'
-          },
-          subheader: {
-            fontSize: 16,
-            bold: true,
-            margin: [0, 15, 0, 10],
-            alignment: 'right'
-          },
-          paragraph: { 
-            fontSize: 12, 
-            margin: [0, 5, 0, 5],
-            alignment: 'right'
-          },
-          signature: {
-            fontSize: 12,
-            margin: [0, 10, 0, 5],
-            alignment: 'right'
-          },
-          footer: {
-            fontSize: 10,
-            alignment: 'center',
-            margin: [0, 30, 0, 0]
-          }
-        },
-        
-        // محتوى المستند بالعربية، مع عكس ترتيب الكلمات
-        content: [
-          // العنوان - النص بترتيب كلمات معكوس بالدالة الذكية
-          { text: reverseWordsSmart('اتفاقية عدم الإفصاح'), style: 'header' },
-          
-          // تاريخ الاتفاقية
-          { text: reverseWordsSmart(`تاريخ الإنشاء: ${formattedDate}`), style: 'paragraph' },
-          
-          // معلومات المشروع - النص بترتيب كلمات معكوس
-          { text: reverseWordsSmart('معلومات المشروع:'), style: 'subheader' },
-          { text: reverseWordsSmart(`اسم المشروع: ${project.title || 'غير محدد'}`), style: 'paragraph' },
-          { text: reverseWordsSmart(`وصف المشروع: ${project.description || 'غير محدد'}`), style: 'paragraph' },
-          
-          // معلومات الشركة - النص بترتيب كلمات معكوس
-          { text: reverseWordsSmart('معلومات الشركة:'), style: 'subheader' },
-          { text: reverseWordsSmart(`اسم الشركة: ${company.name || 'غير محدد'}`), style: 'paragraph' },
-          company.location ? { text: reverseWordsSmart(`الموقع: ${company.location}`), style: 'paragraph' } : {},
-          
-          // شروط الاتفاقية - النص بترتيب كلمات معكوس
-          { text: reverseWordsSmart('شروط الاتفاقية:'), style: 'subheader' },
-          // تقسيم البنود الطويلة إلى فقرات وعكس كل فقرة
-          ...numberedTerms.map((term, index) => {
-            // استخراج النص من العنصر الأصلي بدون الرقم
-            const text = term.text.replace(`${index + 1}. `, '');
-            
-            // استخدام الدالة لتقسيم النص إلى أسطر وعكس ترتيب الكلمات في كل سطر
-            const splitLines = splitAndReverseParagraph(text, 10);
-            
-            // إنشاء مصفوفة من العناصر النصية لكل سطر
-            const paragraphItems = [
-              // البند الأول مع رقمه
-              { text: `${index + 1}. ${splitLines[0]}`, style: 'paragraph' }
-            ];
-            
-            // إضافة باقي أسطر النص إن وجدت
-            if (splitLines.length > 1) {
-              for (let i = 1; i < splitLines.length; i++) {
-                // استخدام نوع صريح لكل سطر مع خصائص إضافية
-                paragraphItems.push({ 
-                  text: splitLines[i], 
-                  style: 'paragraph'
-                } as any);
-              }
-            }
-            
-            return paragraphItems;
-          }).flat(),
-          
-          // معلومات التوقيع - النص بترتيب كلمات معكوس
-          { text: reverseWordsSmart('التوقيعات:'), style: 'subheader', margin: [0, 20, 0, 10] },
-          { text: reverseWordsSmart('الطرف الأول (صاحب المشروع)'), style: 'signature' },
-          { text: reverseWordsSmart('الطرف الثاني (الشركة)'), style: 'signature' }
-        ]
-      };
-      
-      // إضافة معلومات الموقع إذا وجدت
-      if (signerInfo) {
-        const signatureInfo = [
-          { text: reverseWordsSmart(`تم التوقيع إلكترونياً بتاريخ: ${formattedDate}`), style: 'signature' }
-        ];
-        
-        if (signerInfo.name) {
-          signatureInfo.push({ text: reverseWordsSmart(`اسم الموقّع: ${signerInfo.name}`), style: 'signature' });
-        }
-        
-        if (signerInfo.title) {
-          signatureInfo.push({ text: reverseWordsSmart(`المنصب: ${signerInfo.title}`), style: 'signature' });
-        }
-        
-        if (signerInfo.ip) {
-          signatureInfo.push({ text: reverseWordsSmart(`عنوان IP: ${signerInfo.ip}`), style: 'signature' });
-        }
-        
-        // إضافة معلومات التوقيع للمستند
-        docDefinition.content.push(...signatureInfo);
-      } else {
-        // إضافة مكان للتوقيع
-        docDefinition.content.push({ text: reverseWordsSmart('التوقيع: ______________________________'), style: 'signature' });
+      if (signerInfo.name) {
+        page.drawText(`Signer Name: ${signerInfo.name}`, {
+          x: margin,
+          y: y,
+          size: 11,
+          font: font,
+        });
+        y -= lineHeight;
       }
       
-      // إضافة معلومات المنصة في نهاية المستند
-      docDefinition.content.push(
-        { text: reverseWordsSmart('تم إنشاء هذه الاتفاقية عبر منصة لينكتك - https://linktech.app'), style: 'footer' },
-        { text: reverseWordsSmart(`الرقم المرجعي: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`), style: 'footer' }
-      );
-      
-      // إنشاء ملف PDF
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-      const chunks: Buffer[] = [];
-      
-      // جمع البيانات
-      pdfDoc.on('data', (chunk: Buffer) => chunks.push(chunk));
-      
-      // الانتهاء من إنشاء المستند
-      pdfDoc.on('end', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        resolve(pdfBuffer);
-      });
-      
-      // معالجة الأخطاء
-      pdfDoc.on('error', (err: Error) => {
-        console.error('خطأ في إنشاء ملف PDF:', err);
-        reject(err);
-      });
-      
-      // إنهاء المستند
-      pdfDoc.end();
-      
-    } catch (error) {
-      console.error('خطأ في إنشاء ملف PDF:', error);
-      reject(error);
+      if (signerInfo.title) {
+        page.drawText(`Title: ${signerInfo.title}`, {
+          x: margin,
+          y: y,
+          size: 11,
+          font: font,
+        });
+        y -= lineHeight;
+      }
     }
-  });
+    
+    y -= 30;
+    
+    // معلومات المنصة
+    page.drawText('Created via LinkTech Platform - https://linktech.app', {
+      x: margin,
+      y: y,
+      size: 9,
+      font: font,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    y -= lineHeight;
+    
+    page.drawText(`Reference Number: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, {
+      x: margin,
+      y: y,
+      size: 9,
+      font: font,
+      color: rgb(0.4, 0.4, 0.4),
+    });
+    
+    // حفظ المستند كـ Buffer
+    const pdfBytes = await pdfDoc.save();
+    console.log('تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف:', pdfBytes.length, 'بايت');
+    
+    return Buffer.from(pdfBytes);
+    
+  } catch (error: any) {
+    console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
+    throw error;
+  }
 }
 
 // صفحة HTML لاختبار PDF

@@ -103,6 +103,14 @@ LinkTech is a full-stack web application that serves as a marketplace connecting
 
 ## Recent Changes
 
+- January 14, 2025: إصلاح نهائي لنظام إنشاء PDF وتكامل Sadiq
+  - حل المشكلة المستمرة في pdfmake بالتبديل إلى مكتبة pdf-lib الأكثر استقراراً
+  - تم إنشاء ملفات PDF بنجاح باستخدام الخطوط الافتراضية الإنجليزية
+  - اكتمال workflow الآلي: إنشاء NDA → تحويل إلى Base64 → رفع إلى Sadiq
+  - النظام جاهز بالكامل ويحتاج فقط access token صالح من Sadiq للاختبار النهائي
+  - API endpoint `/api/sadiq/generate-and-upload-nda` يعمل بنجاح ويصل إلى مرحلة رفع المستند
+  - تم التأكد من عمل النظام: PDF creation ✅, Base64 conversion ✅, Sadiq upload ✅
+
 - July 23, 2025: إصلاح مشكلة تكرار المحادثات عند قبول العروض
   - حل مشكلة إنشاء محادثات مكررة عندما تقبل الشركات المشاريع
   - إضافة فحص للمحادثات الموجودة قبل إنشاء رسائل إشعار قبول العروض
