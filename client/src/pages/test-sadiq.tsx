@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle, AlertCircle, Loader2, FileText, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function TestSadiq() {
@@ -12,9 +12,22 @@ export default function TestSadiq() {
   const [accessToken, setAccessToken] = useState<string>('');
   const [documentId, setDocumentId] = useState<string>('');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
+  const [isGeneratingDocument, setIsGeneratingDocument] = useState(false);
   const [isSendingInvitation, setIsSendingInvitation] = useState(false);
   const [authResult, setAuthResult] = useState<any>(null);
+  const [documentResult, setDocumentResult] = useState<any>(null);
   const [invitationResult, setInvitationResult] = useState<any>(null);
+  
+  // Project and company data for NDA generation
+  const [projectData, setProjectData] = useState({
+    title: 'تطبيق إدارة المشاريع',
+    description: 'تطبيق متكامل لإدارة المشاريع والمهام'
+  });
+  
+  const [companyData, setCompanyData] = useState({
+    name: 'شركة التقنية المتقدمة',
+    location: 'الرياض - المملكة العربية السعودية'
+  });
   
   // Test data for destinations
   const [entrepreneur, setEntrepreneur] = useState({
@@ -61,6 +74,55 @@ export default function TestSadiq() {
       });
     } finally {
       setIsAuthenticating(false);
+    }
+  };
+
+  const handleGenerateAndUploadNDA = async () => {
+    if (!accessToken) {
+      toast({
+        title: 'مطلوب رمز المصادقة',
+        description: 'يرجى المصادقة أولاً للحصول على رمز الوصول',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    setIsGeneratingDocument(true);
+    try {
+      const response = await fetch('/api/sadiq/generate-and-upload-nda', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`
+        },
+        body: JSON.stringify({
+          accessToken,
+          projectData,
+          companyData
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error('Document generation failed');
+      }
+      
+      const result = await response.json();
+      setDocumentResult(result);
+      setDocumentId(result.documentId);
+      
+      toast({
+        title: 'تم إنشاء الوثيقة بنجاح',
+        description: `تم رفع اتفاقية عدم الإفصاح إلى صادق - معرف الوثيقة: ${result.documentId}`,
+      });
+    } catch (error) {
+      console.error('Document generation error:', error);
+      toast({
+        title: 'خطأ في إنشاء الوثيقة',
+        description: 'فشل في إنشاء ورفع اتفاقية عدم الإفصاح',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsGeneratingDocument(false);
     }
   };
 
@@ -219,16 +281,112 @@ export default function TestSadiq() {
           </CardContent>
         </Card>
 
-        {/* Document ID Section */}
+        {/* Project Data Section */}
         <Card>
           <CardHeader>
-            <CardTitle>2. معرف الوثيقة</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5 text-blue-500" />
+              2. بيانات المشروع لإنشاء اتفاقية عدم الإفصاح
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">
-                  معرف الوثيقة من لوحة تحكم صادق
+                  عنوان المشروع
+                </label>
+                <Input
+                  value={projectData.title}
+                  onChange={(e) => setProjectData({...projectData, title: e.target.value})}
+                  placeholder="أدخل عنوان المشروع..."
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  وصف المشروع
+                </label>
+                <Textarea
+                  value={projectData.description}
+                  onChange={(e) => setProjectData({...projectData, description: e.target.value})}
+                  placeholder="أدخل وصف مفصل للمشروع..."
+                  rows={3}
+                />
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    اسم الشركة
+                  </label>
+                  <Input
+                    value={companyData.name}
+                    onChange={(e) => setCompanyData({...companyData, name: e.target.value})}
+                    placeholder="اسم الشركة..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    موقع الشركة
+                  </label>
+                  <Input
+                    value={companyData.location}
+                    onChange={(e) => setCompanyData({...companyData, location: e.target.value})}
+                    placeholder="موقع الشركة..."
+                  />
+                </div>
+              </div>
+              
+              <Button 
+                onClick={handleGenerateAndUploadNDA}
+                disabled={isGeneratingDocument || !accessToken}
+                className="w-full"
+                variant="outline"
+              >
+                {isGeneratingDocument ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    جاري إنشاء ورفع الوثيقة...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="mr-2 h-4 w-4" />
+                    إنشاء ورفع اتفاقية عدم الإفصاح
+                  </>
+                )}
+              </Button>
+              
+              {documentResult && (
+                <Alert>
+                  <CheckCircle className="h-4 w-4" />
+                  <AlertDescription>
+                    <div className="text-sm space-y-2">
+                      <p><strong>معرف الوثيقة:</strong> {documentResult.documentId}</p>
+                      <p><strong>اسم الملف:</strong> {documentResult.documentName}</p>
+                      <div>
+                        <strong>حقول التوقيع:</strong>
+                        <ul className="list-disc list-inside mt-1 text-xs">
+                          {documentResult.signatureFields?.map((field: any, index: number) => (
+                            <li key={index}>{field.name} - {field.placeholder}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Manual Document ID Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>أو: إدخال معرف وثيقة يدوياً</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">
+                  معرف الوثيقة من لوحة تحكم صادق (اختياري)
                 </label>
                 <Input
                   value={documentId}
@@ -236,6 +394,9 @@ export default function TestSadiq() {
                   placeholder="أدخل معرف الوثيقة هنا..."
                   className="text-left"
                 />
+                <p className="text-xs text-neutral-500 mt-1">
+                  في حالة عدم إنشاء وثيقة جديدة أعلاه، يمكنك إدخال معرف وثيقة موجودة
+                </p>
               </div>
             </div>
           </CardContent>
@@ -244,7 +405,7 @@ export default function TestSadiq() {
         {/* Parties Information */}
         <Card>
           <CardHeader>
-            <CardTitle>3. بيانات الأطراف</CardTitle>
+            <CardTitle>3. بيانات الأطراف للتوقيع</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 gap-6">

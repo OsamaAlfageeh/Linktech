@@ -192,9 +192,8 @@ export async function generateProjectNdaPdf(
                 // استخدام نوع صريح لكل سطر مع خصائص إضافية
                 paragraphItems.push({ 
                   text: splitLines[i], 
-                  style: 'paragraph', 
-                  margin: [15, 0, 0, 0] as [number, number, number, number]
-                });
+                  style: 'paragraph'
+                } as any);
               }
             }
             
