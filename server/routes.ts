@@ -936,15 +936,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const allProjects = await storage.getProjects();
           console.log(`عدد المشاريع الكلي: ${allProjects.length}`);
           
-          // طباعة معلومات جميع المشاريع للتشخيص
-          console.log('تفاصيل جميع المشاريع المتاحة في النظام:');
-          for (const p of allProjects) {
-            const pOwner = await storage.getUser(p.userId);
-            console.log(`- مشروع #${p.id}: "${p.title}" - المالك: ${pOwner?.username} (${pOwner?.role})`);
-          }
-          
           // المشاريع المتاحة للشركات هي جميع المشاريع المنشأة من قبل رواد الأعمال
-          // بما أن جميع المشاريع في النظام حالياً منشأة من قبل رواد الأعمال، فسنعرضها كلها للشركات
           projects = allProjects;
           
           console.log(`عدد المشاريع المتاحة للشركة: ${projects.length}`);

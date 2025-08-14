@@ -68,12 +68,6 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
   const { data: projects, isLoading, error, refetch } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
-    onSuccess: (data) => {
-      console.log('تم استلام بيانات المشاريع بنجاح:', data);
-    },
-    onError: (err) => {
-      console.error('حدث خطأ أثناء جلب المشاريع:', err);
-    },
     // إعادة جلب البيانات تلقائيًا عند تغير حالة المصادقة
     enabled: auth?.isAuthenticated === true
   });
@@ -88,13 +82,13 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
   // Filter and sort projects
   const filteredProjects = projects
-    ? projects.filter(project => {
+    ? projects.filter((project: Project) => {
         const matchesSearch = project.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                              project.description.toLowerCase().includes(searchQuery.toLowerCase());
         
         const matchesSkill = selectedSkill === "_all" || selectedSkill === ""
           ? true
-          : (project.skills || []).some(skill => skill.toLowerCase() === selectedSkill.toLowerCase());
+          : (project.skills || []).some((skill: string) => skill.toLowerCase() === selectedSkill.toLowerCase());
         
         return matchesSearch && matchesSkill;
       })
@@ -125,7 +119,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
 
   // Extract unique skills from all projects
   const allSkills = projects
-    ? Array.from(new Set(projects.flatMap(project => project.skills || [])))
+    ? Array.from(new Set(projects.flatMap((project: Project) => project.skills || [])))
     : [];
 
   return (
@@ -179,7 +173,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="_all">جميع التصنيفات</SelectItem>
-                      {allSkills.map((skill, index) => (
+                      {allSkills.map((skill: string, index: number) => (
                         <SelectItem key={index} value={skill}>{skill}</SelectItem>
                       ))}
                     </SelectContent>
