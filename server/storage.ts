@@ -53,6 +53,7 @@ export interface IStorage {
   // Project operations
   getProject(id: number): Promise<Project | undefined>;
   getProjects(): Promise<Project[]>;
+  getProjectsWithUserData(): Promise<(Project & { username?: string; name?: string })[]>;
   getProjectsByUserId(userId: number): Promise<Project[]>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<Project>): Promise<Project | undefined>;
@@ -1257,6 +1258,27 @@ export class DatabaseStorage implements IStorage {
 
   async getProjects(): Promise<Project[]> {
     return await db.query.projects.findMany();
+  }
+
+  async getProjectsWithUserData(): Promise<(Project & { username?: string; name?: string })[]> {
+    const projects = await db.query.projects.findMany({
+      orderBy: [desc(schema.projects.createdAt)],
+      with: {
+        user: {
+          columns: {
+            username: true,
+            name: true
+          }
+        }
+      }
+    });
+    
+    return projects.map(project => ({
+      ...project,
+      username: project.user?.username,
+      name: project.user?.name,
+      user: undefined // Remove nested user object
+    }));
   }
 
   async getProjectsByUserId(userId: number): Promise<Project[]> {

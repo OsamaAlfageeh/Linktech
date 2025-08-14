@@ -933,33 +933,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         try {
           // الشركات تستطيع مشاهدة المشاريع المتاحة فقط (مشاريع رواد الأعمال)
-          const allProjects = await storage.getProjects();
-          console.log(`عدد المشاريع الكلي: ${allProjects.length}`);
-          
-          // المشاريع المتاحة للشركات هي جميع المشاريع المنشأة من قبل رواد الأعمال
-          projects = allProjects;
+          // استخدام الطريقة المحسنة التي تجلب بيانات المستخدم مع المشاريع في استعلام واحد
+          const projectsWithUserData = await storage.getProjectsWithUserData();
+          projects = projectsWithUserData;
           
           console.log(`عدد المشاريع المتاحة للشركة: ${projects.length}`);
+          
+          console.log(`إرسال ${projects.length} مشروع للمستخدم ${user.username}`);
+          return res.json(projects);
         } catch (error) {
           console.error('خطأ أثناء محاولة الحصول على المشاريع للشركة:', error);
-          projects = [];
+          return res.json([]);
         }
+      } else {
+        // للمستخدمين العاديين والمسؤولين، استخدام الطريقة العادية
+        // الحصول على بيانات المستخدم المرتبطة بكل مشروع
+        const projectsWithUserData = await Promise.all(
+          projects.map(async (project) => {
+            const projectUser = await storage.getUser(project.userId);
+            return {
+              ...project,
+              username: projectUser?.username,
+              name: projectUser?.name
+            };
+          })
+        );
+        
+        console.log(`إرسال ${projectsWithUserData.length} مشروع للمستخدم ${user.username}`);
+        res.json(projectsWithUserData);
       }
-      
-      // الحصول على بيانات المستخدم المرتبطة بكل مشروع
-      const projectsWithUserData = await Promise.all(
-        projects.map(async (project) => {
-          const projectUser = await storage.getUser(project.userId);
-          return {
-            ...project,
-            username: projectUser?.username,
-            name: projectUser?.name
-          };
-        })
-      );
-      
-      console.log(`إرسال ${projectsWithUserData.length} مشروع للمستخدم ${user.username}`);
-      res.json(projectsWithUserData);
     } catch (error) {
       console.error('خطأ في استرجاع المشاريع:', error);
       res.status(500).json({ message: 'Internal server error' });

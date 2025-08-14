@@ -117,9 +117,9 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
     return 0;
   });
 
-  // Extract unique skills from all projects
+  // Extract unique skills from all projects (filter out empty strings)
   const allSkills = projects
-    ? Array.from(new Set(projects.flatMap((project: Project) => project.skills || [])))
+    ? Array.from(new Set(projects.flatMap((project: Project) => project.skills || []).filter(skill => skill && skill.trim() !== "")))
     : [];
 
   return (
