@@ -364,4 +364,263 @@ router.post('/upload-document', async (req: Request, res: Response) => {
   }
 });
 
+// Helper function to hide partial names
+function hidePartialName(name: string): string {
+  if (!name || name.length < 2) return name;
+  
+  const words = name.trim().split(' ');
+  return words.map(word => {
+    if (word.length <= 2) return word;
+    const visibleLength = Math.ceil(word.length / 2);
+    const hiddenLength = word.length - visibleLength;
+    return word.substring(0, visibleLength) + '*'.repeat(hiddenLength);
+  }).join(' ');
+}
+
+// NEW WORKFLOW: Generate NDA as base64 for bulk upload
+router.post('/generate-nda-base64', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('إنشاء اتفاقية عدم الإفصاح كـ base64...');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
+    const { projectData, companyData, entrepreneurName, companyRepName } = req.body;
+    
+    if (!projectData?.title || !companyData?.name || !entrepreneurName || !companyRepName) {
+      return res.status(400).json({
+        error: 'Missing required data',
+        message: 'بيانات المشروع والشركة وأسماء الأطراف مطلوبة'
+      });
+    }
+
+    console.log('Starting PDF generation with signing parties:', { 
+      projectTitle: projectData.title, 
+      companyName: companyData.name,
+      entrepreneurName,
+      companyRepName
+    });
+
+    // إنشاء ملف PDF باستخدام المكتبة المحسنة
+    const pdfBuffer = await generateProjectNdaPdf(projectData, companyData);
+    console.log('PDF generation completed, buffer size:', pdfBuffer.length);
+
+    // تحويل إلى base64
+    const base64String = pdfBuffer.toString('base64');
+    console.log('Base64 conversion completed, length:', base64String.length);
+
+    // إنشاء اسم ملف فريد
+    const timestamp = Date.now();
+    const filename = `NDA-${projectData.title.replace(/\s+/g, '-')}-${timestamp}.pdf`;
+    
+    console.log(`✅ تم إنشاء ملف PDF كـ base64 بنجاح: ${filename}`);
+
+    // إرسال النتيجة مع base64 وأسماء الأطراف (مخفية جزئياً)
+    res.json({
+      success: true,
+      base64: base64String,
+      filename,
+      fileSize: pdfBuffer.length,
+      signingParties: {
+        entrepreneur: hidePartialName(entrepreneurName),
+        companyRep: hidePartialName(companyRepName)
+      },
+      originalNames: {
+        entrepreneur: entrepreneurName,
+        companyRep: companyRepName
+      }
+    });
+
+  } catch (error: any) {
+    console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);
+    res.status(500).json({
+      error: 'PDF generation failed',
+      message: 'فشل في إنشاء ملف اتفاقية عدم الإفصاح',
+      details: error.message
+    });
+  }
+});
+
+// NEW WORKFLOW: Upload document to Sadiq using Bulk Initiate Envelope
+router.post('/upload-document-new', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('رفع اتفاقية عدم الإفصاح إلى صادق...');
+    const { accessToken, base64, filename } = req.body;
+    
+    if (!accessToken || !base64 || !filename) {
+      return res.status(400).json({
+        error: 'Missing required data',
+        message: 'رمز الوصول والملف والاسم مطلوبة'
+      });
+    }
+
+    const uploadUrl = 'https://sandbox-api.sadq-sa.com/IntegrationService/Document/Bulk/Initiate-envelope-Base64';
+    
+    const uploadPayload = {
+      webhookId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      referenceNumber: `contract-${Date.now()}`,
+      files: [
+        {
+          file: base64,
+          fileName: filename,
+          password: ""
+        }
+      ]
+    };
+
+    console.log('Uploading to Sadiq with payload structure ready...');
+
+    const response = await fetch(uploadUrl, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(uploadPayload)
+    });
+
+    if (!response.ok) {
+      console.error('خطأ في رفع الوثيقة:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('تفاصيل خطأ الرفع:', errorText);
+      return res.status(response.status).json({ 
+        error: 'Document upload failed',
+        details: errorText 
+      });
+    }
+
+    const uploadResult = await response.json();
+    console.log('تم رفع الوثيقة بنجاح:', uploadResult);
+    
+    // Extract document ID from the response
+    const documentId = uploadResult.data?.bulkFileResponse?.[0]?.documentId;
+    
+    if (!documentId) {
+      console.error('No document ID found in response:', uploadResult);
+      return res.status(500).json({
+        error: 'No document ID received',
+        message: 'لم يتم الحصول على معرف الوثيقة من صادق'
+      });
+    }
+
+    console.log(`✅ تم الحصول على معرف الوثيقة: ${documentId}`);
+
+    res.json({
+      success: true,
+      documentId,
+      envelopeId: uploadResult.data?.envelopeId,
+      referenceNumber: uploadResult.data?.bulkFileResponse?.[0]?.referenceNumber,
+      fullResponse: uploadResult
+    });
+
+  } catch (error: any) {
+    console.error('خطأ في رفع الوثيقة:', error);
+    res.status(500).json({
+      error: 'Upload failed',
+      message: 'فشل في رفع الوثيقة إلى صادق',
+      details: error.message
+    });
+  }
+});
+
+// NEW WORKFLOW: Send invitations using the updated format
+router.post('/send-invitations', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    console.log('إرسال دعوات التوقيع عبر صادق...');
+    const { accessToken, documentId, entrepreneurEmail, companyEmail, invitationMessage } = req.body;
+    
+    if (!accessToken || !documentId || !entrepreneurEmail || !companyEmail) {
+      return res.status(400).json({
+        error: 'Missing required data',
+        message: 'رمز الوصول ومعرف الوثيقة وعناوين البريد الإلكتروني مطلوبة'
+      });
+    }
+
+    const invitationUrl = 'https://sandbox-api.sadq-sa.com/IntegrationService/Invitation/Send-Invitation';
+    
+    const invitationPayload = {
+      documentId,
+      destinations: [
+        {
+          destinationName: "Project Owner",
+          destinationEmail: entrepreneurEmail,
+          destinationPhoneNumber: "",
+          nationalId: "",
+          signeOrder: 0,
+          ConsentOnly: true,
+          signatories: [],
+          availableTo: "2029-08-29",
+          authenticationType: 0,
+          InvitationLanguage: 1,
+          RedirectUrl: "",
+          AllowUserToAddDestination: false
+        },
+        {
+          destinationName: "Company Representative",
+          destinationEmail: companyEmail,
+          destinationPhoneNumber: "",
+          nationalId: "",
+          signeOrder: 1,
+          ConsentOnly: true,
+          signatories: [
+            {
+              signatureHigh: 80,
+              signatureWidth: 160,
+              pageNumber: 1,
+              text: "",
+              type: "Signature",
+              positionX: 70,
+              positionY: 500
+            }
+          ],
+          availableTo: "2024-10-15T00:00:00Z",
+          authenticationType: 0,
+          InvitationLanguage: 1,
+          RedirectUrl: "",
+          AllowUserToAddDestination: false
+        }
+      ],
+      invitationMessage: invitationMessage || "Dear User, please sign the document attached below",
+      invitationSubject: "NDA Signature Request - LinkTech Platform"
+    };
+
+    console.log('Sending invitation with payload ready...');
+
+    const response = await fetch(invitationUrl, {
+      method: 'POST',
+      headers: {
+        'accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+      body: JSON.stringify(invitationPayload)
+    });
+
+    if (!response.ok) {
+      console.error('خطأ في إرسال الدعوة:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('تفاصيل خطأ الدعوة:', errorText);
+      return res.status(response.status).json({ 
+        error: 'Invitation failed',
+        details: errorText 
+      });
+    }
+
+    const invitationResult = await response.json();
+    console.log('تم إرسال دعوة التوقيع بنجاح عبر صادق');
+    
+    res.json({
+      success: true,
+      result: invitationResult
+    });
+
+  } catch (error: any) {
+    console.error('خطأ في إرسال دعوة التوقيع:', error);
+    res.status(500).json({ 
+      error: 'Internal server error',
+      message: 'فشل في إرسال دعوة التوقيع عبر صادق',
+      details: error.message
+    });
+  }
+});
+
 export default router;

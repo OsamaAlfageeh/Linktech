@@ -20,6 +20,13 @@ export default function TestSadiq() {
   });
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSendingInvitation, setIsSendingInvitation] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [generatedData, setGeneratedData] = useState<any>(null);
+  const [uploadedDocumentId, setUploadedDocumentId] = useState('');
+  const [signingParties, setSigningParties] = useState({
+    entrepreneurName: '',
+    companyRepName: ''
+  });
   const [invitationData, setInvitationData] = useState({
     entrepreneurEmail: '',
     companyEmail: '',
@@ -27,11 +34,11 @@ export default function TestSadiq() {
   });
   const { toast } = useToast();
 
-  const generateNDAFile = async () => {
-    if (!projectData.title.trim() || !companyData.name.trim()) {
+  const generateNDAAsBase64 = async () => {
+    if (!projectData.title.trim() || !companyData.name.trim() || !signingParties.entrepreneurName.trim() || !signingParties.companyRepName.trim()) {
       toast({
         title: "خطأ في البيانات",
-        description: "يرجى ملء جميع البيانات المطلوبة",
+        description: "يرجى ملء جميع البيانات المطلوبة بما في ذلك أسماء الأطراف",
         variant: "destructive"
       });
       return;
@@ -49,7 +56,7 @@ export default function TestSadiq() {
         return;
       }
 
-      const response = await fetch('/api/sadiq/generate-nda', {
+      const response = await fetch('/api/sadiq/generate-nda-base64', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +64,9 @@ export default function TestSadiq() {
         },
         body: JSON.stringify({
           projectData,
-          companyData
+          companyData,
+          entrepreneurName: signingParties.entrepreneurName,
+          companyRepName: signingParties.companyRepName
         })
       });
 
@@ -65,21 +74,12 @@ export default function TestSadiq() {
         throw new Error('Failed to generate NDA');
       }
 
-      // Download the file
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.style.display = 'none';
-      a.href = url;
-      a.download = `NDA-${projectData.title.replace(/\s+/g, '-')}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      const result = await response.json();
+      setGeneratedData(result);
 
       toast({
         title: "تم إنشاء الملف",
-        description: "تم تنزيل اتفاقية عدم الإفصاح بنجاح"
+        description: `تم إنشاء اتفاقية عدم الإفصاح بنجاح (${result.fileSize} بايت)`
       });
 
     } catch (error) {
@@ -91,6 +91,57 @@ export default function TestSadiq() {
       });
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const uploadToSadiq = async () => {
+    if (!generatedData || !accessToken) {
+      toast({
+        title: "خطأ",
+        description: "يجب توليد الملف والمصادقة أولاً",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await fetch('/api/sadiq/upload-document-new', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          accessToken,
+          base64: generatedData.base64,
+          filename: generatedData.filename
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload document');
+      }
+
+      const result = await response.json();
+      setUploadedDocumentId(result.documentId);
+
+      toast({
+        title: "تم الرفع",
+        description: `تم رفع الوثيقة بنجاح، معرف الوثيقة: ${result.documentId.substring(0, 8)}...`
+      });
+
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "خطأ في الرفع",
+        description: "فشل في رفع الوثيقة إلى صادق",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -159,10 +210,10 @@ export default function TestSadiq() {
       return;
     }
 
-    if (!documentId || !invitationData.entrepreneurEmail || !invitationData.companyEmail) {
+    if (!uploadedDocumentId || !invitationData.entrepreneurEmail || !invitationData.companyEmail) {
       toast({
         title: "خطأ في البيانات",
-        description: "يرجى ملء جميع الحقول المطلوبة",
+        description: "يرجى رفع الوثيقة وملء عناوين البريد الإلكتروني",
         variant: "destructive"
       });
       return;
@@ -172,7 +223,7 @@ export default function TestSadiq() {
       setIsSendingInvitation(true);
       const token = localStorage.getItem('auth_token');
 
-      const response = await fetch('/api/sadiq/send-invitation', {
+      const response = await fetch('/api/sadiq/send-invitations', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -180,59 +231,10 @@ export default function TestSadiq() {
         },
         body: JSON.stringify({
           accessToken,
-          documentId,
-          destinations: [
-            {
-              destinationName: "Project Owner",
-              destinationEmail: invitationData.entrepreneurEmail,
-              destinationPhoneNumber: "",
-              nationalId: "",
-              signeOrder: 0,
-              ConsentOnly: false,
-              signatories: [
-                {
-                  signatureHigh: 80,
-                  signatureWidth: 160,
-                  pageNumber: 1,
-                  text: "",
-                  type: "Signature",
-                  positionX: 70,
-                  positionY: 300
-                }
-              ],
-              availableTo: "2025-12-31T00:00:00Z",
-              authenticationType: 0,
-              InvitationLanguage: 1,
-              RedirectUrl: "",
-              AllowUserToAddDestination: ""
-            },
-            {
-              destinationName: "Company Representative",
-              destinationEmail: invitationData.companyEmail,
-              destinationPhoneNumber: "",
-              nationalId: "",
-              signeOrder: 1,
-              ConsentOnly: false,
-              signatories: [
-                {
-                  signatureHigh: 80,
-                  signatureWidth: 160,
-                  pageNumber: 1,
-                  text: "",
-                  type: "Signature",
-                  positionX: 70,
-                  positionY: 200
-                }
-              ],
-              availableTo: "2025-12-31T00:00:00Z",
-              authenticationType: 0,
-              InvitationLanguage: 1,
-              RedirectUrl: "",
-              AllowUserToAddDestination: ""
-            }
-          ],
-          invitationMessage: invitationData.invitationMessage,
-          invitationSubject: "NDA Signature Request - LinkTech Platform"
+          documentId: uploadedDocumentId,
+          entrepreneurEmail: invitationData.entrepreneurEmail,
+          companyEmail: invitationData.companyEmail,
+          invitationMessage: invitationData.invitationMessage
         })
       });
 
@@ -264,8 +266,8 @@ export default function TestSadiq() {
   return (
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Sadiq Integration Test</h1>
-        <p className="text-gray-600">Generate NDA documents and manage Sadiq document IDs</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Sadiq Integration</h1>
+        <p className="text-gray-600">Automated workflow: Generate NDA → Authenticate → Upload → Send Invitations</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
@@ -274,10 +276,10 @@ export default function TestSadiq() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
-              Generate NDA Document
+              Generate NDA as Base64
             </CardTitle>
             <CardDescription>
-              Create an NDA document with signature placeholders for manual upload to Sadiq dashboard
+              Create an NDA document as base64 with signing party names (partially hidden for privacy)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -322,57 +324,87 @@ export default function TestSadiq() {
               />
             </div>
 
-            <Button 
-              onClick={generateNDAFile} 
-              disabled={isGenerating}
-              className="w-full"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {isGenerating ? 'Generating...' : 'Generate & Download NDA'}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Document ID Management Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Upload className="h-5 w-5" />
-              Sadiq Document ID
-            </CardTitle>
-            <CardDescription>
-              After uploading the NDA to Sadiq dashboard, enter the document ID here
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
             <div>
-              <Label htmlFor="document-id">Document ID from Sadiq</Label>
+              <Label htmlFor="entrepreneur-name">Entrepreneur Name</Label>
               <Input
-                id="document-id"
-                value={documentId}
-                onChange={(e) => setDocumentId(e.target.value)}
-                placeholder="Enter document ID from Sadiq dashboard"
+                id="entrepreneur-name"
+                value={signingParties.entrepreneurName}
+                onChange={(e) => setSigningParties(prev => ({ ...prev, entrepreneurName: e.target.value }))}
+                placeholder="Enter entrepreneur name"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="company-rep-name">Company Representative Name</Label>
+              <Input
+                id="company-rep-name"
+                value={signingParties.companyRepName}
+                onChange={(e) => setSigningParties(prev => ({ ...prev, companyRepName: e.target.value }))}
+                placeholder="Enter company representative name"
               />
             </div>
 
             <Button 
-              onClick={useDocumentId}
-              variant="outline"
+              onClick={generateNDAAsBase64}
               className="w-full"
+              disabled={isGenerating}
             >
-              Save Document ID
+              <Download className="h-4 w-4 mr-2" />
+              {isGenerating ? 'Generating Base64...' : 'Generate NDA as Base64'}
             </Button>
 
-            <div className="text-sm text-gray-600 space-y-2">
-              <p><strong>Steps:</strong></p>
-              <ol className="list-decimal list-inside space-y-1">
-                <li>Generate NDA document using the form above</li>
-                <li>Download the PDF file</li>
-                <li>Upload it manually to your Sadiq dashboard</li>
-                <li>Copy the document ID from Sadiq</li>
-                <li>Enter the ID above and save it</li>
-              </ol>
-            </div>
+            {generatedData && (
+              <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                <p><strong>✅ NDA Generated Successfully!</strong></p>
+                <p>File size: {generatedData.fileSize} bytes</p>
+                <p>Signing parties: {generatedData.signingParties.entrepreneur} & {generatedData.signingParties.companyRep}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Upload to Sadiq Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Upload to Sadiq
+            </CardTitle>
+            <CardDescription>
+              Upload the generated NDA document to Sadiq platform
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={uploadToSadiq}
+              variant="outline"
+              className="w-full"
+              disabled={!generatedData || !accessToken || isUploading}
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              {isUploading ? 'Uploading...' : 'Upload Document to Sadiq'}
+            </Button>
+
+            {uploadedDocumentId && (
+              <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
+                <p><strong>✅ Document Uploaded Successfully!</strong></p>
+                <p>Document ID: {uploadedDocumentId.substring(0, 8)}...{uploadedDocumentId.substring(-8)}</p>
+              </div>
+            )}
+
+            {!generatedData && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
+                <p><strong>⚠️ Generate NDA First</strong></p>
+                <p>Generate the NDA document before uploading</p>
+              </div>
+            )}
+
+            {!accessToken && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
+                <p><strong>⚠️ Authentication Required</strong></p>
+                <p>Authenticate with Sadiq first</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -467,11 +499,18 @@ export default function TestSadiq() {
             <Button 
               onClick={sendInvitations}
               className="w-full"
-              disabled={isSendingInvitation || !accessToken}
+              disabled={isSendingInvitation || !accessToken || !uploadedDocumentId}
             >
               <Send className="h-4 w-4 mr-2" />
               {isSendingInvitation ? 'Sending...' : 'Send Signature Invitations'}
             </Button>
+
+            {!uploadedDocumentId && (
+              <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
+                <p><strong>⚠️ Upload Document First</strong></p>
+                <p>Upload the document to Sadiq before sending invitations</p>
+              </div>
+            )}
 
             {!accessToken && (
               <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
@@ -493,28 +532,37 @@ export default function TestSadiq() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
               <div className="bg-blue-50 p-4 rounded">
-                <h4 className="font-semibold text-blue-900">Step 1: Generate & Upload</h4>
+                <h4 className="font-semibold text-blue-900">Step 1: Generate Base64</h4>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-blue-700">
-                  <li>Generate NDA document</li>
-                  <li>Download PDF file</li>
-                  <li>Upload to Sadiq dashboard</li>
-                  <li>Save document ID</li>
+                  <li>Fill project details</li>
+                  <li>Enter signing party names</li>
+                  <li>Generate NDA as base64</li>
+                  <li>Names partially hidden</li>
                 </ol>
               </div>
               
               <div className="bg-green-50 p-4 rounded">
                 <h4 className="font-semibold text-green-900">Step 2: Authenticate</h4>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-green-700">
-                  <li>Click authenticate with Sadiq</li>
-                  <li>Get access token</li>
-                  <li>Ready for invitations</li>
+                  <li>Click authenticate</li>
+                  <li>Get Sadiq access token</li>
+                  <li>Ready for upload</li>
+                </ol>
+              </div>
+              
+              <div className="bg-orange-50 p-4 rounded">
+                <h4 className="font-semibold text-orange-900">Step 3: Upload Document</h4>
+                <ol className="list-decimal list-inside mt-2 space-y-1 text-orange-700">
+                  <li>Upload base64 to Sadiq</li>
+                  <li>Get document ID</li>
+                  <li>Auto envelope creation</li>
                 </ol>
               </div>
               
               <div className="bg-purple-50 p-4 rounded">
-                <h4 className="font-semibold text-purple-900">Step 3: Send Invitations</h4>
+                <h4 className="font-semibold text-purple-900">Step 4: Send Invitations</h4>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-purple-700">
                   <li>Enter email addresses</li>
                   <li>Customize message</li>
