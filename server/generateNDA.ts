@@ -69,14 +69,7 @@ export async function generateProjectNdaPdf(
     });
     y -= 40;
     
-    // تاريخ الإنشاء
-    page.drawText(`Date Created: ${formattedDate}`, {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    y -= 30;
+    // إزالة تاريخ الإنشاء ليصبح الملف قابلاً لإعادة الاستخدام
     
     // معلومات المشروع
     page.drawText('Project Information:', {
@@ -182,36 +175,7 @@ export async function generateProjectNdaPdf(
     });
     y -= 40;
     
-    // معلومات التوقيع الإضافية
-    if (signerInfo) {
-      page.drawText(`Signed electronically on: ${formattedDate}`, {
-        x: margin,
-        y: y,
-        size: 11,
-        font: font,
-      });
-      y -= lineHeight;
-      
-      if (signerInfo.name) {
-        page.drawText(`Signer Name: ${signerInfo.name}`, {
-          x: margin,
-          y: y,
-          size: 11,
-          font: font,
-        });
-        y -= lineHeight;
-      }
-      
-      if (signerInfo.title) {
-        page.drawText(`Title: ${signerInfo.title}`, {
-          x: margin,
-          y: y,
-          size: 11,
-          font: font,
-        });
-        y -= lineHeight;
-      }
-    }
+    // إزالة معلومات التوقيع التلقائية - سيتم إضافتها لاحقاً في صادق
     
     y -= 30;
     
