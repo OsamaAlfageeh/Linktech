@@ -291,13 +291,8 @@ router.get('/api/generate-nda', async (req: Request, res: Response) => {
       location: 'الرياض - المملكة العربية السعودية'
     };
     
-    // إنشاء ملف PDF
-    const pdfBuffer = await generateProjectNdaPdf(sampleProject, sampleCompany, {
-      name: 'محمد علي',
-      title: 'مدير المشاريع',
-      date: new Date(),
-      ip: '192.168.1.1'
-    });
+    // إنشاء ملف PDF بدون معلومات توقيع لإنشاء قالب قابل لإعادة الاستخدام
+    const pdfBuffer = await generateProjectNdaPdf(sampleProject, sampleCompany);
     
     // استخدام اسم ملف بالإنجليزية لتجنب مشاكل التشفير
     const pdfFilename = 'linktech-nda.pdf';
