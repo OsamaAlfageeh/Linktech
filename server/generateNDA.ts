@@ -51,9 +51,7 @@ export async function generateProjectNdaPdf(
     const page = pdfDoc.addPage([612, 792]); // 8.5 x 11 inches
     const { width, height } = page.getSize();
       
-    // تحضير معلومات التوقيع
-    const signedDate = signerInfo?.date ? new Date(signerInfo.date) : new Date();
-    const formattedDate = `${signedDate.getDate()}-${signedDate.getMonth() + 1}-${signedDate.getFullYear()}`;
+    // إزالة جميع مراجع التاريخ لإنشاء قالب قابل لإعادة الاستخدام
     
     let y = height - 80;
     const margin = 50;
