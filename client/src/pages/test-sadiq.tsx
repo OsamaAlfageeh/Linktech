@@ -94,7 +94,7 @@ export default function TestSadiq() {
     }
   };
 
-  const uploadToSadiq = async () => {
+  const initiateEnvelope = async () => {
     if (!generatedData || !accessToken) {
       toast({
         title: "خطأ",
@@ -108,7 +108,7 @@ export default function TestSadiq() {
     try {
       const token = localStorage.getItem('auth_token');
       
-      const response = await fetch('/api/sadiq/upload-document-new', {
+      const response = await fetch('/api/sadiq/bulk-initiate-envelope', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,22 +122,22 @@ export default function TestSadiq() {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to upload document');
+        throw new Error('Failed to initiate envelope');
       }
 
       const result = await response.json();
       setUploadedDocumentId(result.documentId);
 
       toast({
-        title: "تم الرفع",
-        description: `تم رفع الوثيقة بنجاح، معرف الوثيقة: ${result.documentId.substring(0, 8)}...`
+        title: "تم إنشاء المظروف",
+        description: `تم إنشاء مظروف صادق وحصلنا على معرف الوثيقة: ${result.documentId.substring(0, 8)}...`
       });
 
     } catch (error) {
-      console.error('Upload error:', error);
+      console.error('Envelope initiate error:', error);
       toast({
-        title: "خطأ في الرفع",
-        description: "فشل في رفع الوثيقة إلى صادق",
+        title: "خطأ في إنشاء المظروف",
+        description: "فشل في إنشاء مظروف صادق",
         variant: "destructive"
       });
     } finally {
@@ -267,7 +267,7 @@ export default function TestSadiq() {
     <div className="container mx-auto py-8 px-4 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Complete Sadiq Integration</h1>
-        <p className="text-gray-600">Automated workflow: Generate NDA → Authenticate → Upload → Send Invitations</p>
+        <p className="text-gray-600">Automated workflow: Generate NDA → Authenticate → Create Envelope → Send Invitations</p>
       </div>
 
       <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-2">
@@ -363,39 +363,40 @@ export default function TestSadiq() {
           </CardContent>
         </Card>
 
-        {/* Upload to Sadiq Section */}
+        {/* Initiate Envelope Section */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Upload className="h-5 w-5" />
-              Upload to Sadiq
+              Initiate Sadiq Envelope
             </CardTitle>
             <CardDescription>
-              Upload the generated NDA document to Sadiq platform
+              Create envelope and get document ID in one step using Bulk Initiate Envelope
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Button 
-              onClick={uploadToSadiq}
+              onClick={initiateEnvelope}
               variant="outline"
               className="w-full"
               disabled={!generatedData || !accessToken || isUploading}
             >
               <Upload className="h-4 w-4 mr-2" />
-              {isUploading ? 'Uploading...' : 'Upload Document to Sadiq'}
+              {isUploading ? 'Creating Envelope...' : 'Create Sadiq Envelope'}
             </Button>
 
             {uploadedDocumentId && (
               <div className="text-sm text-green-600 bg-green-50 p-3 rounded">
-                <p><strong>✅ Document Uploaded Successfully!</strong></p>
+                <p><strong>✅ Envelope Created Successfully!</strong></p>
                 <p>Document ID: {uploadedDocumentId.substring(0, 8)}...{uploadedDocumentId.substring(-8)}</p>
+                <p>Ready to send invitations</p>
               </div>
             )}
 
             {!generatedData && (
               <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
                 <p><strong>⚠️ Generate NDA First</strong></p>
-                <p>Generate the NDA document before uploading</p>
+                <p>Generate the NDA document before creating envelope</p>
               </div>
             )}
 
@@ -507,8 +508,8 @@ export default function TestSadiq() {
 
             {!uploadedDocumentId && (
               <div className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
-                <p><strong>⚠️ Upload Document First</strong></p>
-                <p>Upload the document to Sadiq before sending invitations</p>
+                <p><strong>⚠️ Create Envelope First</strong></p>
+                <p>Create the Sadiq envelope to get document ID before sending invitations</p>
               </div>
             )}
 
@@ -553,11 +554,11 @@ export default function TestSadiq() {
               </div>
               
               <div className="bg-orange-50 p-4 rounded">
-                <h4 className="font-semibold text-orange-900">Step 3: Upload Document</h4>
+                <h4 className="font-semibold text-orange-900">Step 3: Create Envelope</h4>
                 <ol className="list-decimal list-inside mt-2 space-y-1 text-orange-700">
-                  <li>Upload base64 to Sadiq</li>
-                  <li>Get document ID</li>
-                  <li>Auto envelope creation</li>
+                  <li>Bulk initiate envelope</li>
+                  <li>Upload + get document ID</li>
+                  <li>Single API call</li>
                 </ol>
               </div>
               

@@ -439,10 +439,10 @@ router.post('/generate-nda-base64', authenticateToken, async (req: Request, res:
   }
 });
 
-// NEW WORKFLOW: Upload document to Sadiq using Bulk Initiate Envelope
-router.post('/upload-document-new', authenticateToken, async (req: Request, res: Response) => {
+// CORRECTED WORKFLOW: Bulk Initiate Envelope (Upload + Get Document ID in one step)
+router.post('/bulk-initiate-envelope', authenticateToken, async (req: Request, res: Response) => {
   try {
-    console.log('رفع اتفاقية عدم الإفصاح إلى صادق...');
+    console.log('إنشاء مظروف صادق مع رفع الوثيقة...');
     const { accessToken, base64, filename } = req.body;
     
     if (!accessToken || !base64 || !filename) {
@@ -452,11 +452,11 @@ router.post('/upload-document-new', authenticateToken, async (req: Request, res:
       });
     }
 
-    const uploadUrl = 'https://sandbox-api.sadq-sa.com/IntegrationService/Document/Bulk/Initiate-envelope-Base64';
+    const bulkInitiateUrl = 'https://sandbox-api.sadq-sa.com/IntegrationService/Document/Bulk/Initiate-envelope-Base64';
     
-    const uploadPayload = {
+    const payload = {
       webhookId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-      referenceNumber: `contract-${Date.now()}`,
+      referenceNumber: `linktech-contract-${Date.now()}`,
       files: [
         {
           file: base64,
@@ -466,57 +466,57 @@ router.post('/upload-document-new', authenticateToken, async (req: Request, res:
       ]
     };
 
-    console.log('Uploading to Sadiq with payload structure ready...');
+    console.log('Initiating envelope with Sadiq...');
 
-    const response = await fetch(uploadUrl, {
+    const response = await fetch(bulkInitiateUrl, {
       method: 'POST',
       headers: {
         'accept': 'application/json',
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
       },
-      body: JSON.stringify(uploadPayload)
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
-      console.error('خطأ في رفع الوثيقة:', response.status, response.statusText);
+      console.error('خطأ في إنشاء المظروف:', response.status, response.statusText);
       const errorText = await response.text();
-      console.error('تفاصيل خطأ الرفع:', errorText);
+      console.error('تفاصيل خطأ المظروف:', errorText);
       return res.status(response.status).json({ 
-        error: 'Document upload failed',
+        error: 'Bulk envelope initiate failed',
         details: errorText 
       });
     }
 
-    const uploadResult = await response.json();
-    console.log('تم رفع الوثيقة بنجاح:', uploadResult);
+    const result = await response.json();
+    console.log('تم إنشاء المظروف بنجاح:', result);
     
     // Extract document ID from the response
-    const documentId = uploadResult.data?.bulkFileResponse?.[0]?.documentId;
+    const documentId = result.data?.bulkFileResponse?.[0]?.documentId;
     
     if (!documentId) {
-      console.error('No document ID found in response:', uploadResult);
+      console.error('No document ID found in response:', result);
       return res.status(500).json({
         error: 'No document ID received',
         message: 'لم يتم الحصول على معرف الوثيقة من صادق'
       });
     }
 
-    console.log(`✅ تم الحصول على معرف الوثيقة: ${documentId}`);
+    console.log(`✅ تم الحصول على معرف الوثيقة من المظروف: ${documentId}`);
 
     res.json({
       success: true,
       documentId,
-      envelopeId: uploadResult.data?.envelopeId,
-      referenceNumber: uploadResult.data?.bulkFileResponse?.[0]?.referenceNumber,
-      fullResponse: uploadResult
+      envelopeId: result.data?.envelopeId,
+      referenceNumber: result.data?.bulkFileResponse?.[0]?.referenceNumber,
+      fullResponse: result
     });
 
   } catch (error: any) {
-    console.error('خطأ في رفع الوثيقة:', error);
+    console.error('خطأ في إنشاء المظروف:', error);
     res.status(500).json({
-      error: 'Upload failed',
-      message: 'فشل في رفع الوثيقة إلى صادق',
+      error: 'Envelope initiate failed',
+      message: 'فشل في إنشاء مظروف صادق',
       details: error.message
     });
   }
