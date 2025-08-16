@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Download, FileText, Upload, Key, Send, Mail } from 'lucide-react';
+import { Download, FileText, Upload, Key, Send, Mail, CheckCircle, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function TestSadiq() {
@@ -32,6 +32,9 @@ export default function TestSadiq() {
     companyEmail: '',
     invitationMessage: 'نرجو منك توقيع اتفاقية عدم الإفصاح المرفقة أدناه'
   });
+  const [statusResult, setStatusResult] = useState<any>(null);
+  const [referenceNumber, setReferenceNumber] = useState<string>('');
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const { toast } = useToast();
 
   const generateNDAAsBase64 = async () => {
@@ -128,9 +131,14 @@ export default function TestSadiq() {
       const result = await response.json();
       setUploadedDocumentId(result.documentId);
 
+      // حفظ رقم المرجع لمتابعة الحالة
+      if (result.referenceNumber) {
+        setReferenceNumber(result.referenceNumber);
+      }
+
       toast({
         title: "تم إنشاء المظروف",
-        description: `تم إنشاء مظروف صادق وحصلنا على معرف الوثيقة: ${result.documentId.substring(0, 8)}...`
+        description: `تم إنشاء مظروف صادق وحصلنا على معرف الوثيقة: ${result.documentId.substring(0, 8)}...${result.referenceNumber ? `\nرقم المرجع: ${result.referenceNumber}` : ''}`
       });
 
     } catch (error) {
@@ -260,6 +268,62 @@ export default function TestSadiq() {
       });
     } finally {
       setIsSendingInvitation(false);
+    }
+  };
+
+  const checkEnvelopeStatus = async () => {
+    if (!referenceNumber.trim()) {
+      toast({
+        title: "خطأ",
+        description: "لا يوجد رقم مرجع للمظروف. يجب إنشاء مظروف أولاً",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!accessToken) {
+      toast({
+        title: "خطأ",
+        description: "يجب المصادقة أولاً للحصول على رمز الوصول",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsCheckingStatus(true);
+    try {
+      const token = localStorage.getItem('auth_token');
+      
+      const response = await fetch(`/api/sadiq/envelope-status/${referenceNumber}?accessToken=${accessToken}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to check envelope status');
+      }
+
+      const result = await response.json();
+      setStatusResult(result);
+      
+      toast({
+        title: "تم فحص الحالة",
+        description: `حالة المظروف: ${result.status || 'غير محددة'}`
+      });
+      
+      console.log('Status check result:', result);
+      
+    } catch (error) {
+      console.error('Status check error:', error);
+      toast({
+        title: "خطأ في فحص الحالة",
+        description: "فشل في فحص حالة المظروف",
+        variant: "destructive"
+      });
+    } finally {
+      setIsCheckingStatus(false);
     }
   };
 
@@ -573,6 +637,79 @@ export default function TestSadiq() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Envelope Status Tracking */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <CheckCircle className="h-5 w-5" />
+            Envelope Status Tracking
+          </CardTitle>
+          <CardDescription>
+            Track the status of your envelope using the reference number
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="reference-number">Reference Number</Label>
+            <Input
+              id="reference-number"
+              value={referenceNumber}
+              onChange={(e) => setReferenceNumber(e.target.value)}
+              placeholder="Enter envelope reference number"
+            />
+          </div>
+
+          <Button 
+            onClick={checkEnvelopeStatus} 
+            disabled={isCheckingStatus || !referenceNumber.trim() || !accessToken}
+            className="w-full"
+          >
+            {isCheckingStatus ? (
+              <>
+                <Clock className="mr-2 h-4 w-4 animate-spin" />
+                Checking Status...
+              </>
+            ) : (
+              <>
+                <CheckCircle className="mr-2 h-4 w-4" />
+                Check Envelope Status
+              </>
+            )}
+          </Button>
+
+          {statusResult && (
+            <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+              <h4 className="font-semibold text-sm text-gray-700 mb-2">Status Result:</h4>
+              <div className="space-y-2 text-sm">
+                <div><strong>Reference Number:</strong> {statusResult.referenceNumber}</div>
+                <div><strong>Status:</strong> 
+                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
+                    statusResult.isComplete ? 'bg-green-100 text-green-800' : 
+                    statusResult.isPending ? 'bg-yellow-100 text-yellow-800' : 
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {statusResult.status || 'Unknown'}
+                  </span>
+                </div>
+                <div><strong>Last Updated:</strong> {new Date(statusResult.lastUpdated).toLocaleString()}</div>
+                {statusResult.signingProgress?.length > 0 && (
+                  <div>
+                    <strong>Signing Progress:</strong>
+                    <ul className="mt-1 ml-4">
+                      {statusResult.signingProgress.map((progress: any, index: number) => (
+                        <li key={index} className="text-xs">
+                          {progress.signerEmail}: {progress.status}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

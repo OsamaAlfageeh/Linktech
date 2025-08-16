@@ -516,11 +516,14 @@ router.post('/bulk-initiate-envelope', authenticateToken, async (req: Request, r
 
     console.log(`✅ تم الحصول على معرف الوثيقة من المظروف: ${documentId}`);
 
+    const referenceNumber = result.data?.bulkFileResponse?.[0]?.referenceNumber || payload.referenceNumber;
+    
     res.json({
       success: true,
       documentId,
       envelopeId: result.data?.envelopeId,
-      referenceNumber: result.data?.bulkFileResponse?.[0]?.referenceNumber,
+      referenceNumber: referenceNumber,
+      statusCheckUrl: referenceNumber ? `/api/sadiq/envelope-status/${referenceNumber}` : null,
       fullResponse: result
     });
 
@@ -631,6 +634,99 @@ router.post('/send-invitations', authenticateToken, async (req: Request, res: Re
       error: 'Internal server error',
       message: 'فشل في إرسال دعوة التوقيع عبر صادق',
       details: error.message
+    });
+  }
+});
+
+// تتبع حالة المظروف باستخدام رقم المرجع
+router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { referenceNumber } = req.params;
+    const { accessToken } = req.query;
+
+    if (!accessToken) {
+      return res.status(400).json({
+        error: 'Access token required',
+        message: 'رمز الوصول مطلوب لتتبع حالة المظروف'
+      });
+    }
+
+    console.log(`فحص حالة المظروف برقم المرجع: ${referenceNumber}`);
+
+    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
+
+    const response = await fetch(statusUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      console.error('خطأ في تتبع حالة المظروف:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('تفاصيل خطأ تتبع الحالة:', errorText);
+      return res.status(response.status).json({ 
+        error: 'Status check failed',
+        details: errorText,
+        message: 'فشل في تتبع حالة المظروف'
+      });
+    }
+
+    const statusResult = await response.json();
+    console.log('حالة المظروف الحالية:', JSON.stringify(statusResult, null, 2));
+
+    // تحسين الاستجابة لتشمل معلومات مفيدة
+    const processedStatus = {
+      referenceNumber,
+      status: statusResult.status || statusResult.envelopeStatus,
+      lastUpdated: new Date().toISOString(),
+      signingProgress: statusResult.signingProgress || [],
+      isComplete: statusResult.status === 'completed' || statusResult.status === 'signed',
+      isPending: statusResult.status === 'pending' || statusResult.status === 'awaiting_signature',
+      rawResponse: statusResult
+    };
+
+    res.json(processedStatus);
+
+  } catch (error: any) {
+    console.error('خطأ في تتبع حالة المظروف:', error);
+    res.status(500).json({
+      error: 'Status check failed',
+      message: 'فشل في تتبع حالة المظروف',
+      details: error.message
+    });
+  }
+});
+
+// إنشاء webhook لتلقي تحديثات حالة المظروف من صادق
+router.post('/webhook/envelope-status', async (req: Request, res: Response) => {
+  try {
+    console.log('تلقي تحديث حالة المظروف من صادق:', JSON.stringify(req.body, null, 2));
+    
+    const { referenceNumber, status, envelopeId, signingProgress } = req.body;
+    
+    // يمكن إضافة منطق لحفظ حالة المظروف في قاعدة البيانات هنا
+    console.log(`تحديث حالة المظروف ${referenceNumber}: ${status}`);
+    
+    // إرسال إشعار للمستخدمين إذا اكتمل التوقيع
+    if (status === 'completed' || status === 'signed') {
+      console.log(`✅ تم إكمال التوقيع للمظروف ${referenceNumber}`);
+      // يمكن إضافة إرسال إشعارات هنا
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'تم تلقي تحديث الحالة بنجاح',
+      processed: true 
+    });
+    
+  } catch (error: any) {
+    console.error('خطأ في معالجة webhook حالة المظروف:', error);
+    res.status(500).json({
+      error: 'Webhook processing failed',
+      message: 'فشل في معالجة تحديث حالة المظروف'
     });
   }
 });
