@@ -682,31 +682,79 @@ export default function TestSadiq() {
 
           {statusResult && (
             <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-semibold text-sm text-gray-700 mb-2">Status Result:</h4>
-              <div className="space-y-2 text-sm">
-                <div><strong>Reference Number:</strong> {statusResult.referenceNumber}</div>
-                <div><strong>Status:</strong> 
-                  <span className={`ml-2 px-2 py-1 rounded text-xs ${
+              <h4 className="font-semibold text-sm text-gray-700 mb-3">Envelope Status Details:</h4>
+              
+              {/* Status Overview */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span><strong>Status:</strong></span>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     statusResult.isComplete ? 'bg-green-100 text-green-800' : 
+                    statusResult.isInProgress ? 'bg-blue-100 text-blue-800' :
                     statusResult.isPending ? 'bg-yellow-100 text-yellow-800' : 
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {statusResult.status || 'Unknown'}
+                    {statusResult.status}
                   </span>
                 </div>
-                <div><strong>Last Updated:</strong> {new Date(statusResult.lastUpdated).toLocaleString()}</div>
-                {statusResult.signingProgress?.length > 0 && (
-                  <div>
-                    <strong>Signing Progress:</strong>
-                    <ul className="mt-1 ml-4">
-                      {statusResult.signingProgress.map((progress: any, index: number) => (
-                        <li key={index} className="text-xs">
-                          {progress.signerEmail}: {progress.status}
-                        </li>
-                      ))}
-                    </ul>
+
+                <div className="flex items-center justify-between">
+                  <span><strong>Progress:</strong></span>
+                  <span className="text-sm">
+                    {statusResult.signedCount}/{statusResult.totalSignatories} signed 
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({statusResult.completionPercentage}%)
+                    </span>
+                  </span>
+                </div>
+
+                <div><strong>Reference:</strong> {statusResult.referenceNumber}</div>
+                <div><strong>Created:</strong> {statusResult.createDate ? new Date(statusResult.createDate).toLocaleString() : 'Unknown'}</div>
+              </div>
+
+              {/* Signatories Progress */}
+              {statusResult.signatories?.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="font-medium text-gray-700 mb-2">Signatories:</h5>
+                  <div className="space-y-2">
+                    {statusResult.signatories.map((signer: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
+                        <div className="flex-1">
+                          <div className="text-sm font-medium">
+                            {signer.name || signer.nameAr || 'Unknown'}
+                          </div>
+                          <div className="text-xs text-gray-500">{signer.email}</div>
+                        </div>
+                        <span className={`px-2 py-1 rounded text-xs ${
+                          signer.status === 'SIGNED' ? 'bg-green-100 text-green-800' :
+                          signer.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {signer.status}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                )}
+                </div>
+              )}
+
+              {/* Documents */}
+              {statusResult.documents?.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="font-medium text-gray-700 mb-2">Documents:</h5>
+                  <div className="space-y-1">
+                    {statusResult.documents.map((doc: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-white rounded border text-xs">
+                        <span className="font-medium">{doc.fileName}</span>
+                        <span className="text-gray-500">{doc.sizeInKB} KB</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-3 text-xs text-gray-500">
+                Last checked: {new Date(statusResult.lastUpdated).toLocaleString()}
               </div>
             </div>
           )}

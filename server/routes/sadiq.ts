@@ -677,14 +677,59 @@ router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: R
     const statusResult = await response.json();
     console.log('حالة المظروف الحالية:', JSON.stringify(statusResult, null, 2));
 
-    // تحسين الاستجابة لتشمل معلومات مفيدة
+    // معالجة الاستجابة من صادق وتحسينها
+    const envelopeData = statusResult.data;
+    const signatories = envelopeData?.signatories || [];
+    const documents = envelopeData?.documents || [];
+    
+    // حساب إحصائيات التوقيع
+    const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
+    const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
+    const totalSignatories = signatories.length;
+    
+    // تحديد الحالة العامة
+    const isComplete = envelopeData?.status === 'completed' || envelopeData?.status === 'Completed';
+    const isInProgress = envelopeData?.status === 'In-progress';
+    const isPending = pendingCount > 0;
+    
     const processedStatus = {
       referenceNumber,
-      status: statusResult.status || statusResult.envelopeStatus,
+      envelopeId: envelopeData?.id,
+      status: envelopeData?.status || 'Unknown',
+      createDate: envelopeData?.createDate,
       lastUpdated: new Date().toISOString(),
-      signingProgress: statusResult.signingProgress || [],
-      isComplete: statusResult.status === 'completed' || statusResult.status === 'signed',
-      isPending: statusResult.status === 'pending' || statusResult.status === 'awaiting_signature',
+      
+      // إحصائيات التوقيع
+      signedCount,
+      pendingCount,
+      totalSignatories,
+      completionPercentage: totalSignatories > 0 ? Math.round((signedCount / totalSignatories) * 100) : 0,
+      
+      // معلومات الموقعين
+      signatories: signatories.map((signer: any) => ({
+        id: signer.id,
+        name: signer.fullName,
+        nameAr: signer.fullNameAr,
+        email: signer.email,
+        status: signer.status,
+        signOrder: signer.signOrder,
+        phoneNumber: signer.phoneNumber
+      })),
+      
+      // معلومات الوثائق
+      documents: documents.map((doc: any) => ({
+        id: doc.id,
+        fileName: doc.fileName,
+        uploadDate: doc.uploadDate,
+        sizeInKB: doc.sizeInKB,
+        isSigned: doc.isSigned
+      })),
+      
+      // حالات منطقية
+      isComplete,
+      isInProgress,
+      isPending,
+      
       rawResponse: statusResult
     };
 
