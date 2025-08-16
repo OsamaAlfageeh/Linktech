@@ -776,4 +776,58 @@ router.post('/webhook/envelope-status', async (req: Request, res: Response) => {
   }
 });
 
+// تحميل الوثيقة من صادق
+router.get('/download-document/:documentId', async (req: Request, res: Response) => {
+  try {
+    const { documentId } = req.params;
+    const accessToken = req.query.accessToken as string;
+
+    if (!accessToken) {
+      return res.status(400).json({ error: 'Access token is required' });
+    }
+
+    console.log(`تحميل الوثيقة برقم المعرف: ${documentId}`);
+
+    const response = await fetch(`https://sandbox-api.sadq-sa.com/IntegrationService/Document/DownloadBase64/${documentId}`, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const downloadResult = await response.json();
+    console.log('نتيجة تحميل الوثيقة:', JSON.stringify(downloadResult, null, 2));
+
+    if (downloadResult.errorCode !== 0) {
+      return res.status(400).json({ 
+        error: 'فشل في تحميل الوثيقة', 
+        message: downloadResult.message 
+      });
+    }
+
+    const documentData = downloadResult.data;
+    
+    // إرسال الوثيقة كاستجابة مباشرة للتحميل
+    const fileBuffer = Buffer.from(documentData.file, 'base64');
+    
+    res.setHeader('Content-Type', documentData.contentType || 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${documentData.fileName}"`);
+    res.setHeader('Content-Length', fileBuffer.length);
+    
+    res.send(fileBuffer);
+
+  } catch (error) {
+    console.error('خطأ في تحميل الوثيقة:', error);
+    res.status(500).json({ 
+      error: 'فشل في تحميل الوثيقة', 
+      details: error instanceof Error ? error.message : 'Unknown error' 
+    });
+  }
+});
+
 export default router;

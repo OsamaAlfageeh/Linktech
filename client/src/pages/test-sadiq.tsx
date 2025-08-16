@@ -37,6 +37,43 @@ export default function TestSadiq() {
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const { toast } = useToast();
 
+  // وظيفة تحميل الوثيقة
+  const downloadDocument = async (documentId: string, fileName: string) => {
+    if (!accessToken) {
+      toast({
+        title: "❌ خطأ",
+        description: "يرجى إدخال رمز الوصول أولاً",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const downloadUrl = `/api/sadiq/download-document/${documentId}?accessToken=${encodeURIComponent(accessToken)}`;
+      
+      // إنشاء رابط تحميل مؤقت
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      toast({
+        title: "✅ تم التحميل",
+        description: `تم بدء تحميل الملف: ${fileName}`
+      });
+    } catch (error) {
+      console.error('خطأ في تحميل الوثيقة:', error);
+      toast({
+        title: "❌ خطأ في التحميل",
+        description: "فشل في تحميل الوثيقة",
+        variant: "destructive"
+      });
+    }
+  };
+
   const generateNDAAsBase64 = async () => {
     if (!projectData.title.trim() || !companyData.name.trim() || !signingParties.entrepreneurName.trim() || !signingParties.companyRepName.trim()) {
       toast({
@@ -745,8 +782,21 @@ export default function TestSadiq() {
                   <div className="space-y-1">
                     {statusResult.documents.map((doc: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-white rounded border text-xs">
-                        <span className="font-medium">{doc.fileName}</span>
-                        <span className="text-gray-500">{doc.sizeInKB} KB</span>
+                        <div className="flex-1">
+                          <div className="font-medium">{doc.fileName}</div>
+                          <div className="text-gray-500">{doc.sizeInKB} KB</div>
+                        </div>
+                        {(statusResult.isComplete || statusResult.isInProgress) && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => downloadDocument(doc.id, doc.fileName)}
+                            className="ml-2"
+                          >
+                            <Download className="w-3 h-3 mr-1" />
+                            Download
+                          </Button>
+                        )}
                       </div>
                     ))}
                   </div>
