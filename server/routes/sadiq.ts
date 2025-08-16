@@ -177,8 +177,12 @@ router.post('/generate-nda', authenticateToken, async (req: Request, res: Respon
       companyName: companyData.name
     });
 
-    // إنشاء ملف PDF
-    const pdfBuffer = await generateProjectNdaPdf(projectData, companyData);
+    // إنشاء ملف PDF مع أسماء افتراضية (للتحميل المحلي فقط)
+    const defaultPartialNames = {
+      entrepreneur: '[Project Owner]',
+      companyRep: '[Company Representative]'
+    };
+    const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, defaultPartialNames);
     
     console.log('PDF generation completed, buffer size:', pdfBuffer.length);
     
@@ -239,8 +243,12 @@ router.post('/generate-and-upload-nda', authenticateToken, async (req: Request, 
       location: companyData?.location || '[موقع الشركة]'
     };
 
-    // Generate PDF buffer
-    const pdfBuffer = await generateProjectNdaPdf(defaultProject, defaultCompany);
+    // إنشاء ملف PDF مع أسماء افتراضية مخفية جزئياً
+    const defaultPartialNames = {
+      entrepreneur: '[Proj*** Own***]',
+      companyRep: '[Com*** Rep***]'
+    };
+    const pdfBuffer = await generateProjectNdaPdf(defaultProject, defaultCompany, defaultPartialNames);
     
     // Convert to base64
     const documentBase64 = pdfBuffer.toString('base64');
@@ -399,8 +407,12 @@ router.post('/generate-nda-base64', authenticateToken, async (req: Request, res:
       companyRepName
     });
 
-    // إنشاء ملف PDF باستخدام المكتبة المحسنة
-    const pdfBuffer = await generateProjectNdaPdf(projectData, companyData);
+    // إنشاء ملف PDF باستخدام المكتبة المحسنة مع الأسماء المخفية جزئياً
+    const partialNames = {
+      entrepreneur: hidePartialName(entrepreneurName),
+      companyRep: hidePartialName(companyRepName)
+    };
+    const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, partialNames);
     console.log('PDF generation completed, buffer size:', pdfBuffer.length);
 
     // تحويل إلى base64

@@ -32,6 +32,10 @@ const router = Router();
 export async function generateProjectNdaPdf(
   project: any, 
   company: any, 
+  partialNames?: {
+    entrepreneur: string;
+    companyRep: string;
+  },
   signerInfo?: {
     name?: string;
     title?: string;
@@ -157,21 +161,37 @@ export async function generateProjectNdaPdf(
     });
     y -= 30;
     
-    page.drawText('First Party (Project Owner)', {
+    // الطرف الأول - اسم مخفي جزئياً للحماية
+    const entrepreneurName = partialNames?.entrepreneur || '[Project Owner Name]';
+    page.drawText(`First Party (Project Owner): ${entrepreneurName}`, {
       x: margin,
       y: y,
       size: 12,
       font: font,
     });
-    y -= 40;
+    page.drawText('Signature: _______________________', {
+      x: margin,
+      y: y - 15,
+      size: 11,
+      font: font,
+    });
+    y -= 50;
     
-    page.drawText('Second Party (Company)', {
+    // الطرف الثاني - اسم مخفي جزئياً للحماية
+    const companyRepName = partialNames?.companyRep || '[Company Representative Name]';
+    page.drawText(`Second Party (${company.name}): ${companyRepName}`, {
       x: margin,
       y: y,
       size: 12,
       font: font,
     });
-    y -= 40;
+    page.drawText('Signature: _______________________', {
+      x: margin,
+      y: y - 15,
+      size: 11,
+      font: font,
+    });
+    y -= 50;
     
     // إزالة معلومات التوقيع التلقائية - سيتم إضافتها لاحقاً في صادق
     
