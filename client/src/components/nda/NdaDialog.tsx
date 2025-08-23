@@ -35,12 +35,24 @@ export function NdaDialog({
 }: NdaDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [signerEmail, setSignerEmail] = useState("");
-  const [signerPhone, setSignerPhone] = useState("");
+  
+  // معلومات صاحب المشروع
+  const [entrepreneurName, setEntrepreneurName] = useState("");
+  const [entrepreneurEmail, setEntrepreneurEmail] = useState("");
+  const [entrepreneurPhone, setEntrepreneurPhone] = useState("");
+  
+  // معلومات ممثل الشركة
+  const [companyRepName, setCompanyRepName] = useState("");
+  const [companyRepEmail, setCompanyRepEmail] = useState("");
+  const [companyRepPhone, setCompanyRepPhone] = useState("");
+  
   const [agreed, setAgreed] = useState(false);
 
   const createNdaMutation = useMutation({
-    mutationFn: async (data: { signerEmail: string; signerPhone: string }) => {
+    mutationFn: async (data: {
+      entrepreneur: { name: string; email: string; phone: string };
+      companyRep: { name: string; email: string; phone: string };
+    }) => {
       const response = await apiRequest(
         "POST",
         `/api/projects/${projectId}/nda`,
@@ -53,8 +65,11 @@ export function NdaDialog({
         queryKey: [`/api/projects/${projectId}`],
       });
       toast({
-        title: "تم إرسال دعوة التوقيع بنجاح",
-        description: "تم إرسال رابط التوقيع الإلكتروني إلى بريدك الإلكتروني. يرجى التحقق من البريد والمتابعة لإكمال التوقيع.",
+        title: "تم إنشاء اتفاقية عدم الإفصاح وإرسال دعوات التوقيع",
+        description: `تم إرسال دعوات التوقيع الإلكتروني إلى كلا الطرفين:
+        - ${entrepreneurEmail}
+        - ${companyRepEmail}
+        يرجى التحقق من البريد الإلكتروني لإكمال عملية التوقيع.`,
       });
       onOpenChange(false);
       if (onSuccess) {
@@ -72,6 +87,26 @@ export function NdaDialog({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // التحقق من البيانات المطلوبة
+    if (!entrepreneurName || !entrepreneurEmail || !entrepreneurPhone) {
+      toast({
+        title: "بيانات ناقصة",
+        description: "يرجى إدخال جميع بيانات صاحب المشروع",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (!companyRepName || !companyRepEmail || !companyRepPhone) {
+      toast({
+        title: "بيانات ناقصة", 
+        description: "يرجى إدخال جميع بيانات ممثل الشركة",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!agreed) {
       toast({
         title: "يرجى الموافقة على الشروط",
@@ -81,27 +116,17 @@ export function NdaDialog({
       return;
     }
 
-    if (!signerEmail.trim()) {
-      toast({
-        title: "يرجى إدخال البريد الإلكتروني",
-        description: "يجب إدخال البريد الإلكتروني لإرسال دعوة التوقيع.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    if (!signerPhone.trim()) {
-      toast({
-        title: "يرجى إدخال رقم الهاتف",
-        description: "يجب إدخال رقم الهاتف للتحقق من الهوية.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     createNdaMutation.mutate({
-      signerEmail,
-      signerPhone,
+      entrepreneur: {
+        name: entrepreneurName,
+        email: entrepreneurEmail,
+        phone: entrepreneurPhone,
+      },
+      companyRep: {
+        name: companyRepName,
+        email: companyRepEmail,
+        phone: companyRepPhone,
+      },
     });
   };
 
@@ -174,34 +199,94 @@ export function NdaDialog({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="signerEmail">البريد الإلكتروني</Label>
-              <Input
-                id="signerEmail"
-                type="email"
-                value={signerEmail}
-                onChange={(e) => setSignerEmail(e.target.value)}
-                placeholder="example@company.com"
-                required
-              />
-              <p className="text-xs text-gray-500">
-                سيتم إرسال رابط التوقيع الإلكتروني إلى هذا البريد
-              </p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {/* معلومات صاحب المشروع */}
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h3 className="font-semibold mb-3 text-green-800">
+                معلومات صاحب المشروع (الطرف الأول)
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="entrepreneurName">الاسم الكامل</Label>
+                  <Input
+                    id="entrepreneurName"
+                    type="text"
+                    value={entrepreneurName}
+                    onChange={(e) => setEntrepreneurName(e.target.value)}
+                    placeholder="أحمد محمد السعودي"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="entrepreneurEmail">البريد الإلكتروني</Label>
+                  <Input
+                    id="entrepreneurEmail"
+                    type="email"
+                    value={entrepreneurEmail}
+                    onChange={(e) => setEntrepreneurEmail(e.target.value)}
+                    placeholder="owner@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="entrepreneurPhone">رقم الهاتف</Label>
+                  <Input
+                    id="entrepreneurPhone"
+                    type="tel"
+                    value={entrepreneurPhone}
+                    onChange={(e) => setEntrepreneurPhone(e.target.value)}
+                    placeholder="+966512345678"
+                    required
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="signerPhone">رقم الهاتف</Label>
-              <Input
-                id="signerPhone"
-                type="tel"
-                value={signerPhone}
-                onChange={(e) => setSignerPhone(e.target.value)}
-                placeholder="+966512345678"
-                required
-              />
-              <p className="text-xs text-gray-500">
-                سيتم استخدام هذا الرقم للتحقق من الهوية عبر نفاذ
+            {/* معلومات ممثل الشركة */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+              <h3 className="font-semibold mb-3 text-blue-800">
+                معلومات ممثل الشركة (الطرف الثاني)
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="companyRepName">الاسم الكامل</Label>
+                  <Input
+                    id="companyRepName"
+                    type="text"
+                    value={companyRepName}
+                    onChange={(e) => setCompanyRepName(e.target.value)}
+                    placeholder="محمد علي التقني"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="companyRepEmail">البريد الإلكتروني</Label>
+                  <Input
+                    id="companyRepEmail"
+                    type="email"
+                    value={companyRepEmail}
+                    onChange={(e) => setCompanyRepEmail(e.target.value)}
+                    placeholder="rep@company.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="companyRepPhone">رقم الهاتف</Label>
+                  <Input
+                    id="companyRepPhone"
+                    type="tel"
+                    value={companyRepPhone}
+                    onChange={(e) => setCompanyRepPhone(e.target.value)}
+                    placeholder="+966523456789"
+                    required
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
+              <p className="text-sm text-amber-800">
+                <strong>ملاحظة:</strong> سيتم إرسال دعوات التوقيع الإلكتروني إلى كلا الطرفين. يجب على كل طرف التحقق من هويته عبر نفاذ لإكمال التوقيع.
               </p>
             </div>
 

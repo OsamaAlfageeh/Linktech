@@ -1130,7 +1130,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       const projectId = parseInt(req.params.projectId);
-      const { signerEmail, signerPhone } = req.body;
+      const { entrepreneur, companyRep } = req.body;
+      
+      // التحقق من البيانات المطلوبة لكلا الطرفين
+      if (!entrepreneur?.name || !entrepreneur?.email || !entrepreneur?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات صاحب المشروع مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
+      
+      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
       
       // التحقق من وجود المشروع
       const project = await storage.getProject(projectId);
@@ -1141,11 +1154,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // تأكد من أن المستخدم هو شركة
       if (user.role !== 'company') {
         return res.status(403).json({ message: 'فقط الشركات يمكنها توقيع اتفاقيات عدم الإفصاح' });
-      }
-      
-      // التحقق من البيانات المطلوبة
-      if (!signerEmail || !signerPhone) {
-        return res.status(400).json({ message: 'البريد الإلكتروني ورقم الهاتف مطلوبان' });
       }
       
       // الحصول على ملف تعريف الشركة
@@ -1167,9 +1175,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         companySignatureInfo: {
           companyId: companyProfile.id,
           companyName: user.name,
-          signerEmail: signerEmail,
-          signerPhone: signerPhone,
+          signerName: companyRep.name,
+          signerEmail: companyRep.email,
+          signerPhone: companyRep.phone,
           signerIp: req.ip,
+          timestamp: new Date().toISOString()
+        },
+        // إضافة بيانات صاحب المشروع
+        entrepreneurInfo: {
+          name: entrepreneur.name,
+          email: entrepreneur.email,
+          phone: entrepreneur.phone,
           timestamp: new Date().toISOString()
         },
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // تنتهي بعد 30 يوم
@@ -1193,8 +1209,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           location: companyProfile.address || 'المملكة العربية السعودية'
         };
         const signingPartiesData = {
-          entrepreneur: '[سيتم التحقق عبر نفاذ]',
-          companyRep: '[سيتم التحقق عبر نفاذ]'
+          entrepreneur: entrepreneur.name,
+          companyRep: companyRep.name
         };
         
         const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
@@ -1215,17 +1231,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           },
           signatories: [
             {
-              fullName: projectOwner.name || projectOwner.username,
-              email: projectOwner.email,
-              phoneNumber: projectOwner.phone || '+966500000000',
+              fullName: entrepreneur.name,
+              email: entrepreneur.email,
+              phoneNumber: entrepreneur.phone,
               signOrder: 0,
               nationalId: '',
               gender: 'NONE'
             },
             {
-              fullName: '[سيتم التحقق عبر نفاذ]',
-              email: signerEmail,
-              phoneNumber: signerPhone,
+              fullName: companyRep.name,
+              email: companyRep.email,
+              phoneNumber: companyRep.phone,
               signOrder: 1,
               nationalId: '',
               gender: 'NONE'

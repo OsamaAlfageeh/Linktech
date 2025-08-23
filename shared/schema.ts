@@ -382,7 +382,8 @@ export const ndaAgreements = pgTable("nda_agreements", {
   projectId: integer("project_id").notNull().references(() => projects.id),
   pdfUrl: text("pdf_url"), // URL or path to the generated PDF
   status: text("status").notNull().default("pending"), // pending, signed, expired
-  companySignatureInfo: jsonb("company_signature_info"), // IP, browser, timestamp
+  companySignatureInfo: jsonb("company_signature_info"), // Company signer details, IP, browser, timestamp
+  entrepreneurInfo: jsonb("entrepreneur_info"), // Entrepreneur details for Sadiq integration
   signedAt: timestamp("signed_at"), // When the company signed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // Optional expiration date
