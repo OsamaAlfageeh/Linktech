@@ -2068,7 +2068,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Test Sadiq authentication
+  // Test Sadiq authentication with comprehensive information
   app.get('/api/test-sadiq-auth', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const { sadiqAuth } = await import('./sadiqAuthService');
@@ -2077,15 +2077,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({
         success: true,
         message: 'تم الاتصال بصادق بنجاح',
-        tokenLength: token.length,
-        tokenPreview: token.substring(0, 50) + '...'
+        authentication: {
+          method: 'dynamic_token_management',
+          tokenLength: token.length,
+          tokenPreview: token.substring(0, 50) + '...',
+          cacheStatus: 'active',
+          timestamp: new Date().toISOString()
+        },
+        capabilities: [
+          'رفع الوثائق',
+          'إرسال دعوات التوقيع',
+          'التحقق من حالة المغلفات',
+          'تنزيل الوثائق الموقعة'
+        ]
       });
     } catch (error) {
       console.error('خطأ في اختبار صادق:', error);
       res.status(500).json({
         success: false,
         message: 'فشل في الاتصال بصادق',
-        error: error.message
+        error: error.message.split('\n')[0], // First line only for clean response
+        help: 'تأكد من إضافة SADIQ_ACCESS_TOKEN أو صحة بيانات SADIQ_EMAIL و SADIQ_PASSWORD'
+      });
+    }
+  });
+
+  // Test complete NDA workflow
+  app.post('/api/test-nda-workflow', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      if (user.role !== 'admin') {
+        return res.status(403).json({ message: 'هذا الاختبار متاح للمسؤولين فقط' });
+      }
+
+      console.log('🧪 بدء اختبار سير العمل الكامل لاتفاقية عدم الإفصاح');
+      
+      // Import required modules
+      const { sadiqAuth } = await import('./sadiqAuthService');
+      const { generateProjectNdaPdf } = await import('./generateNDA');
+
+      // Step 1: Get access token
+      const token = await sadiqAuth.getAccessToken();
+      
+      // Step 2: Generate PDF
+      const testData = {
+        project: { title: 'مشروع اختباري', description: 'وصف المشروع الاختباري' },
+        company: { name: 'شركة الاختبار', location: 'المملكة العربية السعودية' },
+        signing: { entrepreneur: '[اختبار]', companyRep: '[اختبار]' }
+      };
+      
+      const pdfBuffer = await generateProjectNdaPdf(testData.project, testData.company, testData.signing);
+      
+      // Step 3: Upload to Sadiq
+      const uploadResult = await sadiqAuth.uploadDocument(
+        pdfBuffer.toString('base64'), 
+        `test-nda-${Date.now()}.pdf`
+      );
+
+      console.log('✅ تم اختبار سير العمل بنجاح');
+      
+      res.json({
+        success: true,
+        message: 'تم اختبار سير العمل الكامل بنجاح',
+        results: {
+          authentication: 'نجح',
+          pdfGeneration: `${pdfBuffer.length} بايت`,
+          documentUpload: uploadResult.id,
+          timestamp: new Date().toISOString()
+        }
+      });
+      
+    } catch (error) {
+      console.error('❌ فشل اختبار سير العمل:', error);
+      res.status(500).json({
+        success: false,
+        message: 'فشل في اختبار سير العمل',
+        error: error.message.split('\n')[0]
       });
     }
   });

@@ -22,12 +22,12 @@ Preferred communication style: Simple, everyday language.
 - **Backend Runtime**: Node.js with TypeScript
 - **Backend Framework**: Express.js
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: Passport.js (session-based, moving to JWT)
+- **Authentication**: JWT-based authentication system
 - **Real-time Communication**: WebSockets for live messaging
 - **Payment & Escrow**: Stripe integration with a 2.5% commission system and automated payment release.
 - **Content Management**: Blog system with admin moderation, contact forms, and newsletter management.
-- **NDA Generation**: Utilizes PDF libraries for secure NDA generation.
-- **AI Assistant**: Project AI assistant for analysis.
+- **Digital Signature Integration**: Complete Sadiq API integration with dynamic authentication service, automated token management, document lifecycle tracking, and Nafath identity verification.
+- **AI Assistant**: Project AI assistant for analysis powered by Anthropic API.
 
 ### Feature Specifications
 - **User Roles**: Entrepreneur, Company, Admin with role-based access control.
@@ -36,15 +36,17 @@ Preferred communication style: Simple, everyday language.
 - **Offer System**: Companies submit proposals.
 - **Messaging**: Real-time chat.
 - **Testimonials**: Review and rating system.
-- **Data Flow**: Covers user registration, project creation, AI-powered company matching, offer submission, NDA generation, secure payment via escrow, project execution with messaging, and final completion.
-- **Security Measures**: Content filtering, SQL injection protection, session security, input validation, CORS configuration.
+- **NDA Digital Signatures**: Full Sadiq integration with dynamic authentication, document upload, invitation management, status tracking, and signed document retrieval.
+- **Data Flow**: Covers user registration, project creation, AI-powered company matching, offer submission, dynamic NDA generation with Sadiq integration, secure payment via escrow, project execution with messaging, and final completion.
+- **Security Measures**: Content filtering, SQL injection protection, session security, input validation, CORS configuration, dynamic token management for external services.
 
 ### System Design Choices
 - **State Management**: TanStack Query (React Query) for server state.
-- **Database Schema**: Includes Users, Company Profiles, Projects, Messages, Project Offers, Testimonials, Blog System.
-- **Authentication**: Transitioned from session/cookie to JWT for enhanced security and statelessness.
+- **Database Schema**: Includes Users, Company Profiles, Projects, Messages, Project Offers, Testimonials, Blog System, NDA Agreements with Sadiq tracking fields.
+- **Authentication**: JWT-based system for internal auth, dynamic token management for external services (Sadiq).
+- **External Service Integration**: Smart authentication service with automatic token refresh, fallback mechanisms, and comprehensive error handling.
 - **Deployment**: Configured for Replit with autoscale deployment, PostgreSQL 16, Vite for frontend, ESBuild for backend, and Node.js 20.
-- **Performance**: Database connection pooling, lazy loading, code splitting, CDN integration.
+- **Performance**: Database connection pooling, lazy loading, code splitting, CDN integration, intelligent token caching.
 
 ## External Dependencies
 

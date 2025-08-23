@@ -35,26 +35,36 @@ class SadiqAuthService {
 
     // Try to get fresh token via authentication
     try {
-      console.log('🔄 الحصول على رمز وصول جديد من صادق...');
+      console.log('🔄 محاولة الحصول على رمز وصول جديد من صادق...');
       const token = await this.authenticateWithSadiq();
       return token;
     } catch (authError) {
-      console.warn('⚠️ فشل في المصادقة التلقائية، التحقق من وجود رمز وصول يدوي...');
+      console.warn('⚠️ المصادقة التلقائية لم تنجح، التحقق من رمز وصول يدوي...');
       
-      // Fallback to manual token if available
+      // Fallback to manual token if available  
       const manualToken = process.env.SADIQ_ACCESS_TOKEN;
-      if (manualToken) {
-        console.log('✅ استخدام رمز الوصول اليدوي المحفوظ');
-        // Cache the manual token for a reasonable time (1 hour)
+      if (manualToken && manualToken.length > 50) {
+        console.log('✅ استخدام رمز الوصول المحفوظ مؤقتاً');
         this.tokenCache = {
           accessToken: manualToken,
-          expiresAt: Date.now() + (60 * 60 * 1000) // 1 hour
+          expiresAt: Date.now() + (2 * 60 * 60 * 1000) // Cache for 2 hours
         };
         return manualToken;
       }
       
-      // If no fallback token, throw the original error
-      throw authError;
+      // More helpful error message
+      const errorMsg = `
+      ❌ لم يتم العثور على رمز وصول صالح لصادق
+      
+      لحل هذه المشكلة:
+      1. تأكد من صحة SADIQ_EMAIL و SADIQ_PASSWORD في الأسرار
+      2. أو أضف SADIQ_ACCESS_TOKEN الحالي في الأسرار
+      3. يمكنك الحصول على رمز وصول من حسابك في صادق وإضافته مؤقتاً
+      
+      الخطأ الأصلي: ${authError.message}
+      `;
+      
+      throw new Error(errorMsg);
     }
   }
 
@@ -72,46 +82,95 @@ class SadiqAuthService {
 
       console.log(`📧 تسجيل الدخول في صادق باستخدام: ${email.substring(0, 3)}***`);
 
-      const response = await fetch(`${this.BASE_URL}${this.TOKEN_ENDPOINT}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json'
+      // Try multiple possible authentication endpoints with different client configurations
+      const authConfigs = [
+        {
+          endpoint: 'https://sandbox-identity.sadq-sa.com/connect/token',
+          params: {
+            grant_type: 'password',
+            username: email,
+            password: password,
+            client_id: 'Integrationclient',
+            scope: 'Integrationscope'
+          }
         },
-        body: new URLSearchParams({
-          grant_type: 'password',
-          username: email,
-          password: password,
-          client_id: 'Integrationclient',
-          scope: 'Integrationscope',
-          client_secret: '' // Some systems require this even if empty
-        })
-      });
+        {
+          endpoint: 'https://sandbox-identity.sadq-sa.com/connect/token',
+          params: {
+            grant_type: 'password',
+            username: email,
+            password: password,
+            client_id: 'Integrationclient',
+            scope: 'apiscope'
+          }
+        },
+        {
+          endpoint: 'https://sandbox-identity.sadq-sa.com/connect/token',
+          params: {
+            grant_type: 'password',
+            username: email,
+            password: password,
+            client_id: 'IntegrationClient', // Different case
+            scope: 'Integrationscope'
+          }
+        },
+        {
+          endpoint: 'https://api.sadq-sa.com/connect/token',
+          params: {
+            grant_type: 'password',
+            username: email,
+            password: password,
+            client_id: 'Integrationclient',
+            scope: 'Integrationscope'
+          }
+        }
+      ];
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('❌ فشل في المصادقة مع صادق:', response.status, errorText);
-        throw new Error(`Sadiq authentication failed: ${response.status} ${errorText}`);
+      for (const config of authConfigs) {
+        console.log(`🔄 محاولة الاتصال بـ: ${config.endpoint} مع client: ${config.params.client_id}`);
+        
+        try {
+          const response = await fetch(config.endpoint, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+              'Accept': 'application/json'
+            },
+            body: new URLSearchParams(config.params)
+          });
+
+          if (response.ok) {
+            const tokenData: SadiqTokenResponse = await response.json();
+            
+            if (tokenData.error) {
+              console.error(`❌ خطأ في المصادقة من ${config.endpoint}:`, tokenData.errorMessage);
+              continue; // Try next endpoint
+            }
+
+            // Success! Cache the token with buffer time (subtract 5 minutes from expiry)
+            const expiresAt = Date.now() + ((tokenData.expires_in - 300) * 1000);
+            this.tokenCache = {
+              accessToken: tokenData.access_token,
+              expiresAt: expiresAt
+            };
+
+            console.log(`✅ تم تسجيل الدخول في صادق بنجاح من: ${config.endpoint}`);
+            console.log(`⏰ صالح حتى: ${new Date(expiresAt).toLocaleString('ar-SA')}`);
+            
+            return tokenData.access_token;
+          } else {
+            console.log(`❌ ${config.endpoint} فشل بحالة: ${response.status}`);
+            // Continue to next endpoint
+          }
+        } catch (endpointError) {
+          const error = endpointError as Error;
+          console.log(`❌ خطأ في الاتصال بـ ${config.endpoint}:`, error.message);
+          // Continue to next endpoint
+        }
       }
 
-      const tokenData: SadiqTokenResponse = await response.json();
-
-      if (tokenData.error) {
-        console.error('❌ خطأ في المصادقة:', tokenData.errorMessage);
-        throw new Error(`Sadiq authentication error: ${tokenData.errorMessage}`);
-      }
-
-      // Cache the token with buffer time (subtract 5 minutes from expiry)
-      const expiresAt = Date.now() + ((tokenData.expires_in - 300) * 1000);
-      this.tokenCache = {
-        accessToken: tokenData.access_token,
-        expiresAt: expiresAt
-      };
-
-      console.log('✅ تم تسجيل الدخول في صادق بنجاح');
-      console.log(`⏰ صالح حتى: ${new Date(expiresAt).toLocaleString('ar-SA')}`);
-
-      return tokenData.access_token;
+      // If all endpoints failed
+      throw new Error('جميع نقاط المصادقة فشلت - تأكد من صحة بيانات تسجيل الدخول');
 
     } catch (error) {
       console.error('❌ خطأ في المصادقة مع صادق:', error);
