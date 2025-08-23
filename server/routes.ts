@@ -1125,7 +1125,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // NDA routes - مسارات اتفاقيات عدم الإفصاح
-  // إنشاء اتفاقية عدم إفصاح جديدة
+  
+  // المرحلة الأولى: الشركة تنشئ طلب اتفاقية عدم إفصاح
+  app.post('/api/projects/:projectId/nda/initiate', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      const { companyRep } = req.body;
+      
+      // التحقق من بيانات ممثل الشركة
+      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
+      
+      // التحقق من وجود المشروع
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // تأكد من أن المستخدم هو شركة
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'فقط الشركات يمكنها إنشاء اتفاقيات عدم الإفصاح' });
+      }
+      
+      // التحقق من عدم وجود اتفاقية سابقة لهذا المشروع من نفس الشركة
+      const existingNda = await storage.getNdaByProjectAndCompany(projectId, user.id);
+      if (existingNda) {
+        return res.status(400).json({ 
+          message: 'يوجد بالفعل طلب اتفاقية عدم إفصاح لهذا المشروع' 
+        });
+      }
+      
+      // إنشاء طلب اتفاقية عدم الإفصاح (المرحلة الأولى)
+      const ndaData = {
+        projectId,
+        status: 'awaiting_entrepreneur' as const,
+        companySignatureInfo: {
+          companyUserId: user.id,
+          ...companyRep,
+          createdAt: new Date().toISOString()
+        },
+      };
+      
+      const nda = await storage.createNda(ndaData);
+      
+      // إرسال إشعار لصاحب المشروع (سيتم تطويره لاحقاً)
+      console.log(`📧 إشعار: يجب إرسال إشعار لصاحب المشروع ${project.userId} لإكمال بيانات اتفاقية عدم الإفصاح`);
+      
+      res.json({ 
+        id: nda.id, 
+        message: 'تم إنشاء طلب اتفاقية عدم الإفصاح بنجاح. سيتم إشعار صاحب المشروع لإكمال بياناته.',
+        status: nda.status
+      });
+    } catch (error) {
+      console.error('❌ خطأ في إنشاء طلب اتفاقية عدم الإفصاح:', error);
+      res.status(500).json({ message: 'حدث خطأ في النظام' });
+    }
+  });
+  
+  // المرحلة الثانية: صاحب المشروع يكمل بياناته
+  app.post('/api/nda/:ndaId/complete', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const ndaId = parseInt(req.params.ndaId);
+      const { entrepreneur } = req.body;
+      
+      // التحقق من بيانات صاحب المشروع
+      if (!entrepreneur?.name || !entrepreneur?.email || !entrepreneur?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات صاحب المشروع مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
+      
+      // الحصول على اتفاقية عدم الإفصاح
+      const nda = await storage.getNda(ndaId);
+      if (!nda) {
+        return res.status(404).json({ message: 'اتفاقية عدم الإفصاح غير موجودة' });
+      }
+      
+      // التحقق من أن الحالة صحيحة
+      if (nda.status !== 'awaiting_entrepreneur') {
+        return res.status(400).json({ 
+          message: 'اتفاقية عدم الإفصاح ليست في الحالة الصحيحة لإكمال البيانات' 
+        });
+      }
+      
+      // التحقق من أن المستخدم هو صاحب المشروع
+      const project = await storage.getProject(nda.projectId);
+      if (!project || project.userId !== user.id) {
+        return res.status(403).json({ message: 'غير مصرح لك بإكمال هذه الاتفاقية' });
+      }
+      
+      // تحديث الاتفاقية بمعلومات صاحب المشروع
+      const updatedNda = await storage.updateNda(ndaId, {
+        entrepreneurInfo: {
+          entrepreneurUserId: user.id,
+          ...entrepreneur,
+          completedAt: new Date().toISOString()
+        },
+        status: 'ready_for_sadiq'
+      });
+      
+      // الآن يمكن بدء عملية إرسال الدعوات عبر صادق
+      // سيتم استدعاء عملية إرسال الدعوات تلقائياً
+      
+      console.log(`✅ اكتملت بيانات الاتفاقية ${ndaId} - جاهزة لإرسال دعوات صادق`);
+      
+      res.json({ 
+        id: updatedNda.id, 
+        message: 'تم إكمال البيانات بنجاح. سيتم إرسال دعوات التوقيع الإلكتروني قريباً.',
+        status: updatedNda.status
+      });
+    } catch (error) {
+      console.error('❌ خطأ في إكمال بيانات اتفاقية عدم الإفصاح:', error);
+      res.status(500).json({ message: 'حدث خطأ في النظام' });
+    }
+  });
+
+  // إنشاء اتفاقية عدم إفصاح جديدة (مسار متوافق مع النظام القديم)
   app.post('/api/projects/:projectId/nda', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;

@@ -722,6 +722,50 @@ export class MemStorage implements IStorage {
     this.ndaAgreements.set(id, updatedAgreement);
     return updatedAgreement;
   }
+
+  // New methods for two-stage NDA workflow
+  async getNdaByProjectAndCompany(projectId: number, companyUserId: number): Promise<NdaAgreement | undefined> {
+    return Array.from(this.ndaAgreements.values()).find(
+      (nda) => nda.projectId === projectId && 
+        (nda.companySignatureInfo as any)?.companyUserId === companyUserId
+    );
+  }
+
+  async getNda(id: number): Promise<NdaAgreement | undefined> {
+    return this.ndaAgreements.get(id);
+  }
+
+  async createNda(ndaData: Partial<NdaAgreement>): Promise<NdaAgreement> {
+    const id = this.ndaAgreementIdCounter++;
+    const now = new Date();
+    const newNda: NdaAgreement = {
+      id,
+      projectId: ndaData.projectId!,
+      status: ndaData.status || 'awaiting_entrepreneur',
+      companySignatureInfo: ndaData.companySignatureInfo || null,
+      entrepreneurInfo: ndaData.entrepreneurInfo || null,
+      createdAt: now,
+      signedAt: null,
+      expiresAt: null,
+      pdfUrl: null,
+      sadiqEnvelopeId: null,
+      sadiqReferenceNumber: null,
+      sadiqDocumentId: null,
+      envelopeStatus: null,
+      ...ndaData
+    };
+    this.ndaAgreements.set(id, newNda);
+    return newNda;
+  }
+
+  async updateNda(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined> {
+    const nda = this.ndaAgreements.get(id);
+    if (!nda) return undefined;
+    
+    const updatedNda = { ...nda, ...updates };
+    this.ndaAgreements.set(id, updatedNda);
+    return updatedNda;
+  }
   
   async signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined> {
     const agreement = this.ndaAgreements.get(id);

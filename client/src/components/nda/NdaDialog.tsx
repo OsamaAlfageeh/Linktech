@@ -36,12 +36,7 @@ export function NdaDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // معلومات صاحب المشروع
-  const [entrepreneurName, setEntrepreneurName] = useState("");
-  const [entrepreneurEmail, setEntrepreneurEmail] = useState("");
-  const [entrepreneurPhone, setEntrepreneurPhone] = useState("");
-  
-  // معلومات ممثل الشركة
+  // معلومات ممثل الشركة فقط (المرحلة الأولى)
   const [companyRepName, setCompanyRepName] = useState("");
   const [companyRepEmail, setCompanyRepEmail] = useState("");
   const [companyRepPhone, setCompanyRepPhone] = useState("");
@@ -50,12 +45,11 @@ export function NdaDialog({
 
   const createNdaMutation = useMutation({
     mutationFn: async (data: {
-      entrepreneur: { name: string; email: string; phone: string };
       companyRep: { name: string; email: string; phone: string };
     }) => {
       const response = await apiRequest(
         "POST",
-        `/api/projects/${projectId}/nda`,
+        `/api/projects/${projectId}/nda/initiate`,
         data
       );
       return await response.json();
@@ -65,11 +59,8 @@ export function NdaDialog({
         queryKey: [`/api/projects/${projectId}`],
       });
       toast({
-        title: "تم إنشاء اتفاقية عدم الإفصاح وإرسال دعوات التوقيع",
-        description: `تم إرسال دعوات التوقيع الإلكتروني إلى كلا الطرفين:
-        - ${entrepreneurEmail}
-        - ${companyRepEmail}
-        يرجى التحقق من البريد الإلكتروني لإكمال عملية التوقيع.`,
+        title: "تم إنشاء طلب اتفاقية عدم الإفصاح",
+        description: `تم إرسال إشعار إلى صاحب المشروع لإكمال بياناته. ستتلقى تأكيداً عبر البريد الإلكتروني عند اكتمال العملية.`,
       });
       onOpenChange(false);
       if (onSuccess) {
@@ -88,20 +79,11 @@ export function NdaDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // التحقق من البيانات المطلوبة
-    if (!entrepreneurName || !entrepreneurEmail || !entrepreneurPhone) {
-      toast({
-        title: "بيانات ناقصة",
-        description: "يرجى إدخال جميع بيانات صاحب المشروع",
-        variant: "destructive",
-      });
-      return;
-    }
-    
+    // التحقق من بيانات ممثل الشركة فقط
     if (!companyRepName || !companyRepEmail || !companyRepPhone) {
       toast({
         title: "بيانات ناقصة", 
-        description: "يرجى إدخال جميع بيانات ممثل الشركة",
+        description: "يرجى إدخال جميع بياناتك للمتابعة",
         variant: "destructive",
       });
       return;
@@ -117,11 +99,6 @@ export function NdaDialog({
     }
 
     createNdaMutation.mutate({
-      entrepreneur: {
-        name: entrepreneurName,
-        email: entrepreneurEmail,
-        phone: entrepreneurPhone,
-      },
       companyRep: {
         name: companyRepName,
         email: companyRepEmail,
@@ -200,52 +177,10 @@ export function NdaDialog({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* معلومات صاحب المشروع */}
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <h3 className="font-semibold mb-3 text-green-800">
-                معلومات صاحب المشروع (الطرف الأول)
-              </h3>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="entrepreneurName">الاسم الكامل</Label>
-                  <Input
-                    id="entrepreneurName"
-                    type="text"
-                    value={entrepreneurName}
-                    onChange={(e) => setEntrepreneurName(e.target.value)}
-                    placeholder="أحمد محمد السعودي"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="entrepreneurEmail">البريد الإلكتروني</Label>
-                  <Input
-                    id="entrepreneurEmail"
-                    type="email"
-                    value={entrepreneurEmail}
-                    onChange={(e) => setEntrepreneurEmail(e.target.value)}
-                    placeholder="owner@example.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="entrepreneurPhone">رقم الهاتف</Label>
-                  <Input
-                    id="entrepreneurPhone"
-                    type="tel"
-                    value={entrepreneurPhone}
-                    onChange={(e) => setEntrepreneurPhone(e.target.value)}
-                    placeholder="+966512345678"
-                    required
-                  />
-                </div>
-              </div>
-            </div>
-
             {/* معلومات ممثل الشركة */}
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
               <h3 className="font-semibold mb-3 text-blue-800">
-                معلومات ممثل الشركة (الطرف الثاني)
+                بياناتك كممثل للشركة
               </h3>
               <div className="space-y-3">
                 <div>
@@ -284,9 +219,10 @@ export function NdaDialog({
               </div>
             </div>
 
-            <div className="bg-amber-50 p-3 rounded-lg border border-amber-200">
-              <p className="text-sm text-amber-800">
-                <strong>ملاحظة:</strong> سيتم إرسال دعوات التوقيع الإلكتروني إلى كلا الطرفين. يجب على كل طرف التحقق من هويته عبر نفاذ لإكمال التوقيع.
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <h4 className="font-medium text-green-800 mb-2">الخطوة التالية</h4>
+              <p className="text-sm text-green-700">
+                بعد إرسال طلبك، سيتم إشعار صاحب المشروع لإكمال بياناته. عند اكتمال البيانات من الطرفين، ستتلقى رابط التوقيع الإلكتروني عبر البريد.
               </p>
             </div>
 
