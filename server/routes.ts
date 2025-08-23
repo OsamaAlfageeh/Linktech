@@ -1130,6 +1130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       const projectId = parseInt(req.params.projectId);
+      const { signerEmail, signerPhone } = req.body;
       
       // التحقق من وجود المشروع
       const project = await storage.getProject(projectId);
@@ -1142,38 +1143,149 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'فقط الشركات يمكنها توقيع اتفاقيات عدم الإفصاح' });
       }
       
+      // التحقق من البيانات المطلوبة
+      if (!signerEmail || !signerPhone) {
+        return res.status(400).json({ message: 'البريد الإلكتروني ورقم الهاتف مطلوبان' });
+      }
+      
       // الحصول على ملف تعريف الشركة
       const companyProfile = await storage.getCompanyProfileByUserId(user.id);
       if (!companyProfile) {
         return res.status(404).json({ message: 'ملف تعريف الشركة غير موجود' });
       }
-      
-      // إنشاء بيانات اتفاقية عدم الإفصاح - تعيين الحالة مباشرة كـ "active" بدلاً من "pending"
+
+      // الحصول على بيانات صاحب المشروع للاتفاقية
+      const projectOwner = await storage.getUser(project.userId);
+      if (!projectOwner) {
+        return res.status(404).json({ message: 'صاحب المشروع غير موجود' });
+      }
+
+      // إنشاء بيانات اتفاقية عدم الإفصاح بحالة "pending" في انتظار التوقيع من صادق
       const ndaData = insertNdaAgreementSchema.parse({
         projectId,
-        status: 'active', // تغيير الحالة لتكون سارية فوراً بدون الحاجة لمراجعة
+        status: 'pending', // في انتظار التوقيع الإلكتروني
         companySignatureInfo: {
           companyId: companyProfile.id,
           companyName: user.name,
-          signerName: req.body.signerName || user.name,
-          signerTitle: req.body.signerTitle || 'ممثل الشركة',
+          signerEmail: signerEmail,
+          signerPhone: signerPhone,
           signerIp: req.ip,
           timestamp: new Date().toISOString()
         },
-        signedAt: new Date(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // تنتهي بعد 30 يوم
       });
       
-      // إنشاء اتفاقية عدم الإفصاح
+      // إنشاء اتفاقية عدم الإفصاح في قاعدة البيانات
       const nda = await storage.createNdaAgreement(ndaData);
+
+      try {
+        // استيراد خدمة المصادقة مع صادق
+        const { sadiqAuth } = await import('./sadiqAuthService');
+
+        // إنشاء ملف PDF لاتفاقية عدم الإفصاح
+        const { generateProjectNdaPdf } = await import('./generateNDA');
+        const projectData = {
+          title: project.title,
+          description: project.description
+        };
+        const companyData = {
+          name: companyProfile.name || user.name,
+          location: companyProfile.address || 'المملكة العربية السعودية'
+        };
+        const signingPartiesData = {
+          entrepreneur: '[سيتم التحقق عبر نفاذ]',
+          companyRep: '[سيتم التحقق عبر نفاذ]'
+        };
+        
+        const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
+        const base64Pdf = pdfBuffer.toString('base64');
+
+        // رفع الملف إلى صادق باستخدام خدمة المصادقة
+        const fileName = `NDA-${project.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+        const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
+        const documentId = uploadResult.id;
+
+        // إعداد بيانات الموقعين للدعوة
+        const referenceNumber = `linktech-nda-project-${projectId}-${Date.now()}`;
+        const invitationData = {
+          referenceNumber,
+          envelopeDocument: {
+            documentId,
+            signOrder: 0
+          },
+          signatories: [
+            {
+              fullName: projectOwner.name || projectOwner.username,
+              email: projectOwner.email,
+              phoneNumber: projectOwner.phone || '+966500000000',
+              signOrder: 0,
+              nationalId: '',
+              gender: 'NONE'
+            },
+            {
+              fullName: '[سيتم التحقق عبر نفاذ]',
+              email: signerEmail,
+              phoneNumber: signerPhone,
+              signOrder: 1,
+              nationalId: '',
+              gender: 'NONE'
+            }
+          ],
+          requestFields: [],
+          invitationMessage: 'نرجو منك توقيع اتفاقية عدم الإفصاح المرفقة أدناه للمتابعة في المشروع'
+        };
+
+        // إرسال الدعوات للتوقيع باستخدام خدمة المصادقة
+        const invitationResult = await sadiqAuth.sendSigningInvitations(invitationData);
+
+        // تحديث اتفاقية عدم الإفصاح ببيانات صادق
+        const updatedNdaData = {
+          sadiqEnvelopeId: invitationResult.envelopeId,
+          sadiqReferenceNumber: referenceNumber,
+          sadiqDocumentId: documentId,
+          envelopeStatus: 'invitation_sent'
+        };
+
+        // تحديث قاعدة البيانات ببيانات صادق
+        await storage.updateNdaAgreement(nda.id, updatedNdaData);
+
+        // تحديث المشروع بإضافة علامة تتطلب اتفاقية عدم إفصاح ورقم الاتفاقية
+        await storage.updateProject(projectId, {
+          requiresNda: true,
+          ndaId: nda.id
+        });
+
+        console.log(`✅ تم إرسال دعوة التوقيع الإلكتروني بنجاح لمشروع ${projectId}`);
+        console.log(`📧 الرقم المرجعي: ${referenceNumber}`);
+        console.log(`📄 معرف الوثيقة: ${documentId}`);
+
+        res.status(201).json({
+          ...nda,
+          sadiqReferenceNumber: referenceNumber,
+          message: 'تم إرسال دعوة التوقيع الإلكتروني بنجاح'
+        });
+
+      } catch (sadiqError) {
+        console.error('خطأ في التكامل مع صادق:', sadiqError);
+        
+        // في حالة فشل التكامل مع صادق، نعيد الاتفاقية للحالة التقليدية
+        await storage.updateNdaAgreement(nda.id, {
+          status: 'active',
+          signedAt: new Date()
+        });
+
+        await storage.updateProject(projectId, {
+          requiresNda: true,
+          ndaId: nda.id
+        });
+
+        res.status(201).json({
+          ...nda,
+          message: 'تم إنشاء اتفاقية عدم الإفصاح (التوقيع التقليدي)',
+          warning: 'فشل التكامل مع النظام الإلكتروني، تم اللجوء للتوقيع التقليدي'
+        });
+      }
       
-      // تحديث المشروع بإضافة علامة تتطلب اتفاقية عدم إفصاح ورقم الاتفاقية
-      await storage.updateProject(projectId, {
-        requiresNda: true,
-        ndaId: nda.id
-      });
-      
-      res.status(201).json(nda);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: 'خطأ في التحقق من البيانات', errors: error.errors });
@@ -1879,6 +1991,102 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('خطأ في استرجاع اتفاقيات عدم الإفصاح للمشروع:', error);
       res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+
+  // Check NDA status and update from Sadiq
+  app.get('/api/nda/:id/status', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const ndaId = parseInt(req.params.id);
+      const nda = await storage.getNdaAgreement(ndaId);
+      
+      if (!nda) {
+        return res.status(404).json({ message: 'اتفاقية عدم الإفصاح غير موجودة' });
+      }
+
+      // If we have Sadiq reference number, check status
+      if (nda.sadiqReferenceNumber) {
+        try {
+          const { sadiqAuth } = await import('./sadiqAuthService');
+          const sadiqStatus = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
+          
+          // Update status in database
+          await storage.updateNdaAgreement(ndaId, {
+            envelopeStatus: sadiqStatus.status,
+            ...(sadiqStatus.status === 'completed' && { status: 'signed', signedAt: new Date() })
+          });
+
+          res.json({
+            ...nda,
+            sadiqStatus: sadiqStatus,
+            status: sadiqStatus.status === 'completed' ? 'signed' : nda.status
+          });
+        } catch (sadiqError) {
+          console.error('خطأ في التحقق من حالة صادق:', sadiqError);
+          res.json(nda); // Return current status if Sadiq check fails
+        }
+      } else {
+        res.json(nda);
+      }
+    } catch (error) {
+      console.error('خطأ في التحقق من حالة اتفاقية عدم الإفصاح:', error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+
+  // Download signed NDA document from Sadiq
+  app.get('/api/nda/:id/download-signed', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const ndaId = parseInt(req.params.id);
+      const nda = await storage.getNdaAgreement(ndaId);
+      
+      if (!nda) {
+        return res.status(404).json({ message: 'اتفاقية عدم الإفصاح غير موجودة' });
+      }
+
+      if (!nda.sadiqDocumentId) {
+        return res.status(400).json({ message: 'لا يوجد مستند إلكتروني لهذه الاتفاقية' });
+      }
+
+      // Download signed document from Sadiq
+      const { sadiqAuth } = await import('./sadiqAuthService');
+      const base64Content = await sadiqAuth.downloadSignedDocument(nda.sadiqDocumentId);
+      
+      // Convert base64 to buffer
+      const pdfBuffer = Buffer.from(base64Content, 'base64');
+      
+      // Set response headers for PDF download
+      const filename = `NDA-Signed-${ndaId}-${Date.now()}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      
+      res.send(pdfBuffer);
+    } catch (error) {
+      console.error('خطأ في تنزيل اتفاقية عدم الإفصاح الموقعة:', error);
+      res.status(500).json({ message: 'خطأ في تنزيل الوثيقة الموقعة' });
+    }
+  });
+
+  // Test Sadiq authentication
+  app.get('/api/test-sadiq-auth', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { sadiqAuth } = await import('./sadiqAuthService');
+      const token = await sadiqAuth.getAccessToken();
+      
+      res.json({
+        success: true,
+        message: 'تم الاتصال بصادق بنجاح',
+        tokenLength: token.length,
+        tokenPreview: token.substring(0, 50) + '...'
+      });
+    } catch (error) {
+      console.error('خطأ في اختبار صادق:', error);
+      res.status(500).json({
+        success: false,
+        message: 'فشل في الاتصال بصادق',
+        error: error.message
+      });
     }
   });
   

@@ -97,6 +97,7 @@ export interface IStorage {
   getNdaAgreement(id: number): Promise<NdaAgreement | undefined>;
   getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined>;
   createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement>;
+  updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined>;
   updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined>;
   signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined>;
   getNdaAgreements(): Promise<NdaAgreement[]>;
@@ -684,8 +685,11 @@ export class MemStorage implements IStorage {
       createdAt: now,
       status: 'pending',
       signedAt: null,
-      signatureInfo: null,
-      pdfUrl: null
+      pdfUrl: null,
+      sadiqEnvelopeId: null,
+      sadiqReferenceNumber: null,
+      sadiqDocumentId: null,
+      envelopeStatus: null
     };
     this.ndaAgreements.set(id, newAgreement);
     
@@ -699,6 +703,15 @@ export class MemStorage implements IStorage {
     }
     
     return newAgreement;
+  }
+
+  async updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined> {
+    const agreement = this.ndaAgreements.get(id);
+    if (!agreement) return undefined;
+    
+    const updatedAgreement = { ...agreement, ...updates };
+    this.ndaAgreements.set(id, updatedAgreement);
+    return updatedAgreement;
   }
   
   async updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined> {
@@ -1601,7 +1614,6 @@ export class DatabaseStorage implements IStorage {
         ...agreement,
         status: 'pending',
         signedAt: null,
-        signatureInfo: null,
         pdfUrl: null
       })
       .returning();
@@ -1617,6 +1629,14 @@ export class DatabaseStorage implements IStorage {
     }
     
     return newAgreement;
+  }
+
+  async updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined> {
+    const [updatedAgreement] = await db.update(schema.ndaAgreements)
+      .set(updates)
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedAgreement;
   }
   
   async updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined> {

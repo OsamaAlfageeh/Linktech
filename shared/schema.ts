@@ -386,6 +386,11 @@ export const ndaAgreements = pgTable("nda_agreements", {
   signedAt: timestamp("signed_at"), // When the company signed
   createdAt: timestamp("created_at").defaultNow().notNull(),
   expiresAt: timestamp("expires_at"), // Optional expiration date
+  // Sadiq integration fields
+  sadiqEnvelopeId: text("sadiq_envelope_id"), // Sadiq envelope ID
+  sadiqReferenceNumber: text("sadiq_reference_number"), // Sadiq reference number
+  sadiqDocumentId: text("sadiq_document_id"), // Sadiq document ID
+  envelopeStatus: text("envelope_status"), // Sadiq envelope status (invitation_sent, in_progress, completed, etc.)
 });
 
 export const insertNewsletterSubscriberSchema = createInsertSchema(newsletterSubscribers).omit({ 

@@ -35,12 +35,12 @@ export function NdaDialog({
 }: NdaDialogProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const [signerName, setSignerName] = useState("");
-  const [signerTitle, setSignerTitle] = useState("ممثل الشركة");
+  const [signerEmail, setSignerEmail] = useState("");
+  const [signerPhone, setSignerPhone] = useState("");
   const [agreed, setAgreed] = useState(false);
 
   const createNdaMutation = useMutation({
-    mutationFn: async (data: { signerName: string; signerTitle: string }) => {
+    mutationFn: async (data: { signerEmail: string; signerPhone: string }) => {
       const response = await apiRequest(
         "POST",
         `/api/projects/${projectId}/nda`,
@@ -53,8 +53,8 @@ export function NdaDialog({
         queryKey: [`/api/projects/${projectId}`],
       });
       toast({
-        title: "تم توقيع اتفاقية عدم الإفصاح بنجاح",
-        description: "يمكنك الآن تقديم عرضك على هذا المشروع.",
+        title: "تم إرسال دعوة التوقيع بنجاح",
+        description: "تم إرسال رابط التوقيع الإلكتروني إلى بريدك الإلكتروني. يرجى التحقق من البريد والمتابعة لإكمال التوقيع.",
       });
       onOpenChange(false);
       if (onSuccess) {
@@ -63,8 +63,8 @@ export function NdaDialog({
     },
     onError: (error) => {
       toast({
-        title: "خطأ في توقيع اتفاقية عدم الإفصاح",
-        description: error.message || "حدث خطأ أثناء محاولة توقيع اتفاقية عدم الإفصاح. يرجى المحاولة مرة أخرى.",
+        title: "خطأ في إرسال دعوة التوقيع",
+        description: error.message || "حدث خطأ أثناء إرسال دعوة التوقيع. يرجى المحاولة مرة أخرى.",
         variant: "destructive",
       });
     },
@@ -81,18 +81,27 @@ export function NdaDialog({
       return;
     }
 
-    if (!signerName.trim()) {
+    if (!signerEmail.trim()) {
       toast({
-        title: "يرجى إدخال اسم الموقّع",
-        description: "يجب إدخال اسم الموقّع على اتفاقية عدم الإفصاح.",
+        title: "يرجى إدخال البريد الإلكتروني",
+        description: "يجب إدخال البريد الإلكتروني لإرسال دعوة التوقيع.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!signerPhone.trim()) {
+      toast({
+        title: "يرجى إدخال رقم الهاتف",
+        description: "يجب إدخال رقم الهاتف للتحقق من الهوية.",
         variant: "destructive",
       });
       return;
     }
 
     createNdaMutation.mutate({
-      signerName,
-      signerTitle,
+      signerEmail,
+      signerPhone,
     });
   };
 
@@ -105,7 +114,7 @@ export function NdaDialog({
             <DialogTitle>اتفاقية عدم الإفصاح</DialogTitle>
           </div>
           <DialogDescription>
-            للاطلاع على تفاصيل المشروع والمشاركة فيه، يجب عليك توقيع اتفاقية عدم الإفصاح أولاً
+            للاطلاع على تفاصيل المشروع والمشاركة فيه، يجب عليك توقيع اتفاقية عدم الإفصاح إلكترونياً عبر نفاذ
           </DialogDescription>
         </DialogHeader>
 
@@ -113,9 +122,9 @@ export function NdaDialog({
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start">
             <Lock className="h-5 w-5 text-blue-600 mt-0.5 ml-3 flex-shrink-0" />
             <div>
-              <h4 className="font-medium text-blue-800">معلومات المشروع سرية</h4>
+              <h4 className="font-medium text-blue-800">توقيع إلكتروني معتمد</h4>
               <p className="text-sm text-blue-700 mt-1">
-                مشروع "{projectTitle}" يتطلب الحفاظ على سرية المعلومات. بتوقيع هذه الاتفاقية، أنت توافق على عدم الإفصاح عن أي معلومات سرية تتعلق بهذا المشروع.
+                مشروع "{projectTitle}" يتطلب توقيع اتفاقية عدم إفصاح معتمدة إلكترونياً. سيتم التحقق من هويتك عبر نفاذ وإرسال رابط التوقيع إلى بريدك الإلكتروني.
               </p>
             </div>
           </div>
@@ -167,24 +176,33 @@ export function NdaDialog({
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="signerName">اسم الموقّع الكامل</Label>
+              <Label htmlFor="signerEmail">البريد الإلكتروني</Label>
               <Input
-                id="signerName"
-                value={signerName}
-                onChange={(e) => setSignerName(e.target.value)}
-                placeholder="اكتب اسمك الكامل كما في الهوية"
+                id="signerEmail"
+                type="email"
+                value={signerEmail}
+                onChange={(e) => setSignerEmail(e.target.value)}
+                placeholder="example@company.com"
                 required
               />
+              <p className="text-xs text-gray-500">
+                سيتم إرسال رابط التوقيع الإلكتروني إلى هذا البريد
+              </p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="signerTitle">المسمى الوظيفي</Label>
+              <Label htmlFor="signerPhone">رقم الهاتف</Label>
               <Input
-                id="signerTitle"
-                value={signerTitle}
-                onChange={(e) => setSignerTitle(e.target.value)}
-                placeholder="المسمى الوظيفي في الشركة"
+                id="signerPhone"
+                type="tel"
+                value={signerPhone}
+                onChange={(e) => setSignerPhone(e.target.value)}
+                placeholder="+966512345678"
+                required
               />
+              <p className="text-xs text-gray-500">
+                سيتم استخدام هذا الرقم للتحقق من الهوية عبر نفاذ
+              </p>
             </div>
 
             <div className="flex items-start space-x-2 space-x-reverse">
@@ -202,7 +220,7 @@ export function NdaDialog({
                   أقر وأوافق على جميع شروط وأحكام اتفاقية عدم الإفصاح وألتزم بها
                 </Label>
                 <p className="text-xs text-neutral-500 mt-1">
-                  سيتم تسجيل عنوان IP الخاص بك وتاريخ ووقت التوقيع كإثبات على موافقتك
+                  سيتم التحقق من هويتك رسمياً عبر نفاذ وحفظ جميع بيانات التوقيع الإلكتروني
                 </p>
               </div>
             </div>
@@ -243,12 +261,12 @@ export function NdaDialog({
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    جاري التوقيع...
+                    جاري الإرسال...
                   </div>
                 ) : (
                   <div className="flex items-center">
                     <FileCheck className="ml-2 h-5 w-5" />
-                    توقيع الاتفاقية
+                    إرسال دعوة التوقيع الإلكتروني
                   </div>
                 )}
               </Button>
