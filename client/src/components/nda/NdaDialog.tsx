@@ -36,21 +36,15 @@ export function NdaDialog({
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
-  // معلومات ممثل الشركة فقط (المرحلة الأولى)
-  const [companyRepName, setCompanyRepName] = useState("");
-  const [companyRepEmail, setCompanyRepEmail] = useState("");
-  const [companyRepPhone, setCompanyRepPhone] = useState("");
-  
   const [agreed, setAgreed] = useState(false);
 
   const createNdaMutation = useMutation({
-    mutationFn: async (data: {
-      companyRep: { name: string; email: string; phone: string };
-    }) => {
+    mutationFn: async () => {
+      // لا حاجة لإرسال بيانات الشركة - سيتم استخدام البيانات من الملف الشخصي تلقائياً
       const response = await apiRequest(
         "POST",
         `/api/projects/${projectId}/nda/initiate`,
-        data
+        {} // بيانات فارغة - الخادم سيملأها تلقائياً من الملف الشخصي
       );
       return await response.json();
     },
@@ -79,16 +73,6 @@ export function NdaDialog({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // التحقق من بيانات ممثل الشركة فقط
-    if (!companyRepName || !companyRepEmail || !companyRepPhone) {
-      toast({
-        title: "بيانات ناقصة", 
-        description: "يرجى إدخال جميع بياناتك للمتابعة",
-        variant: "destructive",
-      });
-      return;
-    }
-    
     if (!agreed) {
       toast({
         title: "يرجى الموافقة على الشروط",
@@ -98,13 +82,8 @@ export function NdaDialog({
       return;
     }
 
-    createNdaMutation.mutate({
-      companyRep: {
-        name: companyRepName,
-        email: companyRepEmail,
-        phone: companyRepPhone,
-      },
-    });
+    // إرسال الطلب بدون بيانات الشركة - سيتم استخدام البيانات من الملف الشخصي تلقائياً
+    createNdaMutation.mutate();
   };
 
   return (
@@ -177,44 +156,18 @@ export function NdaDialog({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* معلومات ممثل الشركة */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h3 className="font-semibold mb-3 text-blue-800">
-                بياناتك كممثل للشركة
-              </h3>
-              <div className="space-y-3">
+            {/* إشعار بأن البيانات ستستخدم من الملف الشخصي */}
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-start">
+                <FileCheck className="h-5 w-5 text-green-600 mt-0.5 ml-3 flex-shrink-0" />
                 <div>
-                  <Label htmlFor="companyRepName">الاسم الكامل</Label>
-                  <Input
-                    id="companyRepName"
-                    type="text"
-                    value={companyRepName}
-                    onChange={(e) => setCompanyRepName(e.target.value)}
-                    placeholder="محمد علي التقني"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="companyRepEmail">البريد الإلكتروني</Label>
-                  <Input
-                    id="companyRepEmail"
-                    type="email"
-                    value={companyRepEmail}
-                    onChange={(e) => setCompanyRepEmail(e.target.value)}
-                    placeholder="rep@company.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="companyRepPhone">رقم الهاتف</Label>
-                  <Input
-                    id="companyRepPhone"
-                    type="tel"
-                    value={companyRepPhone}
-                    onChange={(e) => setCompanyRepPhone(e.target.value)}
-                    placeholder="+966523456789"
-                    required
-                  />
+                  <h3 className="font-semibold mb-2 text-green-800">
+                    استخدام بيانات الملف الشخصي
+                  </h3>
+                  <p className="text-sm text-green-700">
+                    سيتم استخدام بياناتك الموجودة في ملف تعريف الشركة (الاسم، البريد الإلكتروني، رقم الهاتف) تلقائياً في اتفاقية عدم الإفصاح. 
+                    لا حاجة لإعادة إدخالها.
+                  </p>
                 </div>
               </div>
             </div>

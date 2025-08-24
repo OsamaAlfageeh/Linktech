@@ -1131,14 +1131,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       const projectId = parseInt(req.params.projectId);
-      const { companyRep } = req.body;
-      
-      // التحقق من بيانات ممثل الشركة
-      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
-        return res.status(400).json({ 
-          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
-        });
-      }
       
       // التحقق من وجود المشروع
       const project = await storage.getProject(projectId);
@@ -1150,6 +1142,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (user.role !== 'company') {
         return res.status(403).json({ message: 'فقط الشركات يمكنها إنشاء اتفاقيات عدم الإفصاح' });
       }
+
+      // الحصول على ملف تعريف الشركة لاستخدام بياناتها الموجودة
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      if (!companyProfile) {
+        return res.status(400).json({ 
+          message: 'يجب إكمال ملف تعريف الشركة أولاً لإنشاء اتفاقية عدم إفصاح' 
+        });
+      }
+
+      // التحقق من وجود البيانات الأساسية - نستخدم email من حساب المستخدم
+      if (!user.email) {
+        return res.status(400).json({ 
+          message: 'يجب إضافة البريد الإلكتروني في حساب المستخدم' 
+        });
+      }
+
+      if (!companyProfile.phone) {
+        return res.status(400).json({ 
+          message: 'يجب إضافة رقم الهاتف في ملف تعريف الشركة' 
+        });
+      }
       
       // التحقق من عدم وجود اتفاقية سابقة لهذا المشروع من نفس الشركة
       const existingNda = await storage.getNdaByProjectAndCompany(projectId, user.id);
@@ -1158,6 +1171,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           message: 'يوجد بالفعل طلب اتفاقية عدم إفصاح لهذا المشروع' 
         });
       }
+
+      // استخدام بيانات الشركة من الملف الشخصي تلقائياً (لا حاجة لإدخالها مرة أخرى)
+      const companyRepData = {
+        name: companyProfile.fullName || user.name || user.username,
+        email: user.email, // البريد من حساب المستخدم
+        phone: companyProfile.phone, // الهاتف من ملف الشركة
+        companyName: companyProfile.legalName || user.name || user.username
+      };
+
+      console.log(`✅ تم استخدام بيانات الشركة الموجودة: ${companyRepData.name} - ${companyRepData.email}`);
       
       // إنشاء طلب اتفاقية عدم الإفصاح (المرحلة الأولى)
       const ndaData = {
@@ -1165,7 +1188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'awaiting_entrepreneur' as const,
         companySignatureInfo: {
           companyUserId: user.id,
-          ...companyRep,
+          ...companyRepData,
           createdAt: new Date().toISOString()
         },
       };
@@ -1177,22 +1200,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: project.userId,
         type: 'nda_request',
         title: 'طلب اتفاقية عدم إفصاح جديد',
-        content: `طلبت شركة "${user.name || user.username}" إنشاء اتفاقية عدم إفصاح لمشروعك "${project.title}". يرجى إكمال بياناتك لبدء عملية التوقيع الإلكتروني.`,
+        content: `طلبت شركة "${companyRepData.companyName}" إنشاء اتفاقية عدم إفصاح لمشروعك "${project.title}". يرجى إكمال بياناتك لبدء عملية التوقيع الإلكتروني.`,
         actionUrl: `/nda/${nda.id}/complete`,
         metadata: { 
           projectId: project.id, 
           ndaId: nda.id,
           companyUserId: user.id,
-          companyName: user.name || user.username
+          companyName: companyRepData.companyName
         }
       });
       
       console.log(`📧 تم إرسال إشعار لصاحب المشروع ${project.userId} لإكمال بيانات اتفاقية عدم الإفصاح`);
+      console.log(`🏢 شركة ${companyRepData.companyName} بدأت طلب NDA (بيانات تلقائية من الملف الشخصي)`);
       
       res.json({ 
         id: nda.id, 
-        message: 'تم إنشاء طلب اتفاقية عدم الإفصاح بنجاح. سيتم إشعار صاحب المشروع لإكمال بياناته.',
-        status: nda.status
+        message: 'تم إنشاء طلب اتفاقية عدم الإفصاح بنجاح باستخدام بياناتك الموجودة. سيتم إشعار صاحب المشروع لإكمال بياناته.',
+        status: nda.status,
+        companyRepData // إرجاع البيانات المستخدمة للتأكيد
       });
     } catch (error) {
       console.error('❌ خطأ في إنشاء طلب اتفاقية عدم الإفصاح:', error);
@@ -1380,11 +1405,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
-        return res.status(400).json({ 
-          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
-        });
-      }
+      // إزالة التحقق من بيانات ممثل الشركة - سنستخدم البيانات من الملف الشخصي
+      // if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
+      //   return res.status(400).json({ 
+      //     message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+      //   });
+      // }
       
       // التحقق من وجود المشروع
       const project = await storage.getProject(projectId);
@@ -1403,11 +1429,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'ملف تعريف الشركة غير موجود' });
       }
 
+      // التحقق من وجود البيانات الأساسية في الملف الشخصي
+      if (!user.email || !companyProfile.phone) {
+        return res.status(400).json({ 
+          message: 'يجب إضافة البريد الإلكتروني في الحساب ورقم الهاتف في ملف الشركة' 
+        });
+      }
+
       // الحصول على بيانات صاحب المشروع للاتفاقية
       const projectOwner = await storage.getUser(project.userId);
       if (!projectOwner) {
         return res.status(404).json({ message: 'صاحب المشروع غير موجود' });
       }
+
+      // استخدام بيانات الشركة من الملف الشخصي تلقائياً (مسار legacy)
+      const autoCompanyRep = companyRep || {
+        name: companyProfile.fullName || user.name || user.username,
+        email: user.email,
+        phone: companyProfile.phone
+      };
+
+      console.log(`✅ [Legacy] استخدام بيانات الشركة الموجودة: ${autoCompanyRep.name} - ${autoCompanyRep.email}`);
 
       // إنشاء بيانات اتفاقية عدم الإفصاح بحالة "pending" في انتظار التوقيع من صادق
       const ndaData = insertNdaAgreementSchema.parse({
@@ -1415,10 +1457,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending', // في انتظار التوقيع الإلكتروني
         companySignatureInfo: {
           companyId: companyProfile.id,
-          companyName: user.name,
-          signerName: companyRep.name,
-          signerEmail: companyRep.email,
-          signerPhone: companyRep.phone,
+          companyName: companyProfile.legalName || user.name,
+          signerName: autoCompanyRep.name,
+          signerEmail: autoCompanyRep.email,
+          signerPhone: autoCompanyRep.phone,
           signerIp: req.ip,
           timestamp: new Date().toISOString()
         },
@@ -1451,7 +1493,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         const signingPartiesData = {
           entrepreneur: entrepreneur.name,
-          companyRep: companyRep.name
+          companyRep: autoCompanyRep.name
         };
         
         const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
@@ -1480,9 +1522,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               gender: 'NONE'
             },
             {
-              fullName: companyRep.name,
-              email: companyRep.email,
-              phoneNumber: companyRep.phone,
+              fullName: autoCompanyRep.name,
+              email: autoCompanyRep.email,
+              phoneNumber: autoCompanyRep.phone,
               signOrder: 1,
               nationalId: '',
               gender: 'NONE'
