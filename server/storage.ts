@@ -98,12 +98,19 @@ export interface IStorage {
   // NDA Agreement operations
   getNdaAgreement(id: number): Promise<NdaAgreement | undefined>;
   getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined>;
+  getNdaByProjectAndCompany(projectId: number, companyUserId: number): Promise<NdaAgreement | undefined>;
   createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement>;
   updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined>;
   updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined>;
   signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined>;
   getNdaAgreements(): Promise<NdaAgreement[]>;
   setNdaPdfUrl(id: number, pdfUrl: string): Promise<NdaAgreement | undefined>;
+  
+  // Notification operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotificationsByUserId(userId: number): Promise<Notification[]>;
+  markNotificationAsRead(id: number): Promise<Notification | undefined>;
+  markAllNotificationsAsRead(userId: number): Promise<void>;
   
   // Blog operations
   getBlogCategories(): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; }[]>;
