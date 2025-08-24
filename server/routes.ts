@@ -1172,8 +1172,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const nda = await storage.createNda(ndaData);
       
-      // إرسال إشعار لصاحب المشروع (سيتم تطويره لاحقاً)
-      console.log(`📧 إشعار: يجب إرسال إشعار لصاحب المشروع ${project.userId} لإكمال بيانات اتفاقية عدم الإفصاح`);
+      // إرسال إشعار لصاحب المشروع
+      await storage.createNotification({
+        userId: project.userId,
+        type: 'nda_request',
+        title: 'طلب اتفاقية عدم إفصاح جديد',
+        content: `طلبت شركة "${user.name || user.username}" إنشاء اتفاقية عدم إفصاح لمشروعك "${project.title}". يرجى إكمال بياناتك لبدء عملية التوقيع الإلكتروني.`,
+        actionUrl: `/nda/${nda.id}/complete`,
+        metadata: { 
+          projectId: project.id, 
+          ndaId: nda.id,
+          companyUserId: user.id,
+          companyName: user.name || user.username
+        }
+      });
+      
+      console.log(`📧 تم إرسال إشعار لصاحب المشروع ${project.userId} لإكمال بيانات اتفاقية عدم الإفصاح`);
       
       res.json({ 
         id: nda.id, 
@@ -1228,6 +1242,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
         status: 'ready_for_sadiq'
       });
+      
+      // إرسال إشعار للشركة بأن البيانات اكتملت
+      const companyUserId = (updatedNda.companySignatureInfo as any)?.companyUserId;
+      if (companyUserId) {
+        await storage.createNotification({
+          userId: companyUserId,
+          type: 'nda_completed',
+          title: 'اكتملت بيانات اتفاقية عدم الإفصاح',
+          content: `أكمل صاحب المشروع "${project.title}" بياناته. سيتم إرسال دعوات التوقيع الإلكتروني عبر صادق قريباً.`,
+          actionUrl: `/projects/${project.id}`,
+          metadata: { 
+            projectId: project.id, 
+            ndaId: updatedNda.id,
+            entrepreneurUserId: user.id
+          }
+        });
+      }
       
       // الآن يمكن بدء عملية إرسال الدعوات عبر صادق
       // سيتم استدعاء عملية إرسال الدعوات تلقائياً
@@ -4315,78 +4346,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       
-      // إنشاء بعض الإشعارات التجريبية حسب نوع المستخدم
-      const mockNotifications = [];
+      console.log(`طلب GET /api/notifications - حالة المصادقة: مصرح`);
+      console.log(`المستخدم مصرح: ${user.username}, دور: ${user.role}`);
       
-      if (user.role === 'entrepreneur') {
-        mockNotifications.push(
-          {
-            id: 1,
-            type: 'proposal',
-            title: 'عرض جديد على مشروعك',
-            content: 'تلقيت عرضاً جديداً من شركة تطوير على مشروع "تطبيق التجارة الإلكترونية"',
-            isRead: false,
-            createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            actionUrl: '/projects/1',
-            metadata: { projectId: 1, userId: 2 }
-          },
-          {
-            id: 2,
-            type: 'message',
-            title: 'رسالة جديدة',
-            content: 'تلقيت رسالة جديدة من شركة النخبة للتطوير',
-            isRead: false,
-            createdAt: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(),
-            actionUrl: '/messages/2',
-            metadata: { userId: 2 }
-          },
-          {
-            id: 3,
-            type: 'system',
-            title: 'تحديث على مشروعك',
-            content: 'تم تحديث حالة مشروعك إلى "قيد التطوير"',
-            isRead: true,
-            createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-            actionUrl: '/projects/1',
-            metadata: { projectId: 1 }
-          }
-        );
-      } else if (user.role === 'company') {
-        mockNotifications.push(
-          {
-            id: 1,
-            type: 'project',
-            title: 'مشروع جديد يناسب خبراتك',
-            content: 'تم إضافة مشروع جديد في مجال تطبيقات الهاتف المحمول',
-            isRead: false,
-            createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(),
-            actionUrl: '/projects/2',
-            metadata: { projectId: 2 }
-          },
-          {
-            id: 2,
-            type: 'message',
-            title: 'رسالة من رائد أعمال',
-            content: 'تلقيت رسالة جديدة من أحمد محمد بخصوص مشروع التجارة الإلكترونية',
-            isRead: false,
-            createdAt: new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString(),
-            actionUrl: '/messages/1',
-            metadata: { userId: 1 }
-          },
-          {
-            id: 3,
-            type: 'payment',
-            title: 'تأكيد استلام الدفعة',
-            content: 'تم استلام دفعة بقيمة 15,000 ريال سعودي لمشروع التطبيق التعليمي',
-            isRead: true,
-            createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            actionUrl: '/dashboard/company',
-            metadata: { amount: 15000, projectId: 3 }
-          }
-        );
-      }
+      // الحصول على الإشعارات الحقيقية من قاعدة البيانات
+      const notifications = await storage.getNotificationsByUserId(user.id);
       
-      res.json(mockNotifications);
+      res.json(notifications);
     } catch (error) {
       console.error('Error fetching notifications:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -4398,9 +4364,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const notificationId = parseInt(req.params.id);
       
-      // في التطبيق الحقيقي، هنا سيتم تحديث حالة الإشعار في قاعدة البيانات
-      console.log(`تم تعيين الإشعار ${notificationId} كمقروء`);
+      const notification = await storage.markNotificationAsRead(notificationId);
       
+      if (!notification) {
+        return res.status(404).json({ message: 'الإشعار غير موجود' });
+      }
+      
+      console.log(`تم تعيين الإشعار ${notificationId} كمقروء`);
       res.json({ success: true });
     } catch (error) {
       console.error('Error marking notification as read:', error);
@@ -4413,9 +4383,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       
-      // في التطبيق الحقيقي، هنا سيتم تحديث جميع الإشعارات كمقروءة
-      console.log(`تم تعيين جميع إشعارات المستخدم ${user.id} كمقروءة`);
+      await storage.markAllNotificationsAsRead(user.id);
       
+      console.log(`تم تعيين جميع إشعارات المستخدم ${user.id} كمقروءة`);
       res.json({ success: true });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);

@@ -21,6 +21,8 @@ import {
   contactMessages,
   FeaturedClient, InsertFeaturedClient,
   featuredClients,
+  Notification, InsertNotification,
+  notifications,
 
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
@@ -173,6 +175,7 @@ export class MemStorage implements IStorage {
   private newsletterSubscribers: Map<number, NewsletterSubscriber>;
   private ndaAgreements: Map<number, NdaAgreement>;
   private premiumClients: Map<number, PremiumClient>;
+  private notifications: Map<number, Notification>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -187,6 +190,7 @@ export class MemStorage implements IStorage {
   private newsletterSubscriberIdCounter: number = 1;
   private ndaAgreementIdCounter: number = 1;
   private premiumClientIdCounter: number = 1;
+  private notificationIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -200,6 +204,7 @@ export class MemStorage implements IStorage {
     this.newsletterSubscribers = new Map();
     this.ndaAgreements = new Map();
     this.premiumClients = new Map();
+    this.notifications = new Map();
     this.contactMessages = new Map();
     this.aiProjectAnalyses = new Map();
     this.analysisRatings = new Map();
@@ -765,6 +770,44 @@ export class MemStorage implements IStorage {
     const updatedNda = { ...nda, ...updates };
     this.ndaAgreements.set(id, updatedNda);
     return updatedNda;
+  }
+
+  // Notification methods
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const id = this.notificationIdCounter++;
+    const now = new Date();
+    const newNotification: Notification = {
+      ...notification,
+      id,
+      isRead: false,
+      createdAt: now,
+    };
+    this.notifications.set(id, newNotification);
+    return newNotification;
+  }
+
+  async getNotificationsByUserId(userId: number): Promise<Notification[]> {
+    return Array.from(this.notifications.values())
+      .filter(notification => notification.userId === userId)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const notification = this.notifications.get(id);
+    if (!notification) return undefined;
+    
+    const updatedNotification = { ...notification, isRead: true };
+    this.notifications.set(id, updatedNotification);
+    return updatedNotification;
+  }
+
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    for (const [id, notification] of this.notifications.entries()) {
+      if (notification.userId === userId && !notification.isRead) {
+        const updatedNotification = { ...notification, isRead: true };
+        this.notifications.set(parseInt(id), updatedNotification);
+      }
+    }
   }
   
   async signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined> {

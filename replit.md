@@ -37,12 +37,14 @@ Preferred communication style: Simple, everyday language.
 - **Messaging**: Real-time chat.
 - **Testimonials**: Review and rating system.
 - **NDA Digital Signatures**: Full Sadiq integration with dynamic authentication, document upload, invitation management, status tracking, and signed document retrieval.
+- **Real-Time Notification System**: Complete database-backed notification system integrated with two-stage NDA workflow. Notifications are created when companies initiate NDA requests and when entrepreneurs complete their information.
+- **Two-Stage NDA Workflow**: Realistic notification-based process where companies initiate NDA requests, entrepreneurs are notified to complete their information separately, and Sadiq integration proceeds automatically after both parties provide data.
 - **Data Flow**: Covers user registration, project creation, AI-powered company matching, offer submission, dynamic NDA generation with Sadiq integration, secure payment via escrow, project execution with messaging, and final completion.
 - **Security Measures**: Content filtering, SQL injection protection, session security, input validation, CORS configuration, dynamic token management for external services.
 
 ### System Design Choices
 - **State Management**: TanStack Query (React Query) for server state.
-- **Database Schema**: Includes Users, Company Profiles, Projects, Messages, Project Offers, Testimonials, Blog System, NDA Agreements with Sadiq tracking fields.
+- **Database Schema**: Includes Users, Company Profiles, Projects, Messages, Project Offers, Testimonials, Blog System, NDA Agreements with Sadiq tracking fields, Notifications system with real-time user alerts.
 - **Authentication**: JWT-based system for internal auth, dynamic token management for external services (Sadiq).
 - **External Service Integration**: Smart authentication service with automatic token refresh, fallback mechanisms, and comprehensive error handling.
 - **Deployment**: Configured for Replit with autoscale deployment, PostgreSQL 16, Vite for frontend, ESBuild for backend, and Node.js 20.

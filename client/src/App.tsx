@@ -43,6 +43,7 @@ import PremiumClients from "@/pages/premium-clients";
 import AiAssistant from "@/pages/ai-assistant";
 import CompaniesLanding from "@/pages/companies-landing";
 import TestSadiq from "@/pages/test-sadiq";
+import NdaCompletePage from "@/pages/nda-complete";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -231,6 +232,9 @@ function App() {
           
           {/* صفحة الإشعارات */}
           <ProtectedRoute path="/notifications" component={Notifications} />
+          
+          {/* صفحة إكمال اتفاقية عدم الإفصاح */}
+          <ProtectedRoute path="/nda/:ndaId/complete" component={NdaCompletePage} />
           
           {/* مسار صفحة المستخدم */}
           <Route path="/users/:id" component={UserProfile} />

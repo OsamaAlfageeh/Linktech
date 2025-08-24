@@ -204,9 +204,28 @@ export const userActivities = pgTable("user_activities", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Notifications schema
+export const notifications = pgTable("notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // "nda_request", "nda_completed", "proposal", "message", "system", etc.
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  isRead: boolean("is_read").notNull().default(false),
+  actionUrl: text("action_url"), // Optional URL for the action button
+  metadata: jsonb("metadata"), // Additional data like projectId, userId, etc.
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({ 
   id: true, 
   updatedAt: true 
+});
+
+export const insertNotificationSchema = createInsertSchema(notifications).omit({ 
+  id: true, 
+  isRead: true,
+  createdAt: true 
 });
 
 export const insertBadgeDefinitionSchema = createInsertSchema(badgeDefinitions).omit({ 
@@ -339,6 +358,10 @@ export type InsertBadgeDefinition = z.infer<typeof insertBadgeDefinitionSchema>;
 
 export type UserActivity = typeof userActivities.$inferSelect;
 export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
+
+// Export notification types
+export type Notification = typeof notifications.$inferSelect;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
 // Site Settings schema - removed duplicate, using the one defined later
 
