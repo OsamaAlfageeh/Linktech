@@ -82,7 +82,7 @@ export async function generateProjectNdaPdf(
     });
     y -= lineHeight;
     
-    page.drawText(`Project Name: ${project.title || 'Not specified'}`, {
+    page.drawText(`Project Name: ${project.title ? project.title.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Not specified'}`, {
       x: margin,
       y: y,
       size: 12,
@@ -90,7 +90,7 @@ export async function generateProjectNdaPdf(
     });
     y -= lineHeight;
     
-    page.drawText(`Description: ${project.description || 'Not specified'}`, {
+    page.drawText(`Description: ${project.description ? project.description.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Not specified'}`, {
       x: margin,
       y: y,
       size: 12,
@@ -107,7 +107,7 @@ export async function generateProjectNdaPdf(
     });
     y -= lineHeight;
     
-    page.drawText(`Company Name: ${company.name || 'Not specified'}`, {
+    page.drawText(`Company Name: ${company.name ? company.name.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Not specified'}`, {
       x: margin,
       y: y,
       size: 12,
@@ -115,7 +115,7 @@ export async function generateProjectNdaPdf(
     });
     y -= lineHeight;
     
-    page.drawText(`Location: ${company.location || 'Not specified'}`, {
+    page.drawText(`Location: ${company.location ? company.location.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Saudi Arabia'}`, {
       x: margin,
       y: y,
       size: 12,
@@ -161,8 +161,8 @@ export async function generateProjectNdaPdf(
     });
     y -= 30;
     
-    // الطرف الأول - اسم مخفي جزئياً للحماية
-    const entrepreneurName = partialNames?.entrepreneur || '[Project Owner Name]';
+    // First Party - Project Owner (sanitized name)
+    const entrepreneurName = (partialNames?.entrepreneur || '[Project Owner Name]').replace(/[\u0600-\u06FF]/g, '[Arabic Text]');
     page.drawText(`First Party (Project Owner): ${entrepreneurName}`, {
       x: margin,
       y: y,
@@ -177,9 +177,10 @@ export async function generateProjectNdaPdf(
     });
     y -= 50;
     
-    // الطرف الثاني - اسم مخفي جزئياً للحماية
-    const companyRepName = partialNames?.companyRep || '[Company Representative Name]';
-    page.drawText(`Second Party (${company.name}): ${companyRepName}`, {
+    // Second Party - Company Representative (sanitized names)
+    const companyRepName = (partialNames?.companyRep || '[Company Representative Name]').replace(/[\u0600-\u06FF]/g, '[Arabic Text]');
+    const sanitizedCompanyName = (company.name || 'Company').replace(/[\u0600-\u06FF]/g, '[Arabic Text]');
+    page.drawText(`Second Party (${sanitizedCompanyName}): ${companyRepName}`, {
       x: margin,
       y: y,
       size: 12,

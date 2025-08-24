@@ -1,0 +1,38 @@
+
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب POST /api/nda/6/complete - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...
+إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib
+خطأ في إنشاء اتفاقية عدم الإفصاح: Error: WinAnsi cannot encode "ا" (0x0627)
+    at Encoding.encodeUnicodeCodePoint (/home/runner/workspace/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js:23:23)
+    at StandardFontEmbedder.StandardFontEmbedder.encodeTextAsGlyphs (/home/runner/workspace/node_modules/pdf-lib/src/core/embedders/StandardFontEmbedder.ts:124:35)
+    at StandardFontEmbedder.StandardFontEmbedder.encodeText (/home/runner/workspace/node_modules/pdf-lib/src/core/embedders/StandardFontEmbedder.ts:50:25)
+    at PDFFont.PDFFont.encodeText (/home/runner/workspace/node_modules/pdf-lib/src/api/PDFFont.ts:72:26)
+    at PDFPage.PDFPage.drawText (/home/runner/workspace/node_modules/pdf-lib/src/api/PDFPage.ts:993:35)
+    at generateProjectNdaPdf (/home/runner/workspace/server/generateNDA.ts:118:10)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1315:27)
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: WinAnsi cannot encode "ا" (0x0627)
+    at Encoding.encodeUnicodeCodePoint (/home/runner/workspace/node_modules/@pdf-lib/standard-fonts/lib/Encoding.js:23:23)
+    at StandardFontEmbedder.StandardFontEmbedder.encodeTextAsGlyphs (/home/runner/workspace/node_modules/pdf-lib/src/core/embedders/StandardFontEmbedder.ts:124:35)
+    at StandardFontEmbedder.StandardFontEmbedder.encodeText (/home/runner/workspace/node_modules/pdf-lib/src/core/embedders/StandardFontEmbedder.ts:50:25)
+    at PDFFont.PDFFont.encodeText (/home/runner/workspace/node_modules/pdf-lib/src/api/PDFFont.ts:72:26)
+    at PDFPage.PDFPage.drawText (/home/runner/workspace/node_modules/pdf-lib/src/api/PDFPage.ts:993:35)
+    at generateProjectNdaPdf (/home/runner/workspace/server/generateNDA.ts:118:10)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1315:27)
+5:35:54 PM [express] POST /api/nda/6/complete 200 in 397ms :: {"id":6,"message":"تم إكمال البيانات، …
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTYwNTY3NDgsImV4cCI6MTc1NjY2MTU0OH0.-teOA2ylNW9LmOQ9dPFCXDqlUZYy11Q0p0ZWQmcUtUs
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+5:35:54 PM [express] GET /api/notifications 304 in 69ms :: [{"id":3,"userId":44,"type":"nda_request"…
+^CSIGINT received, shutting down gracefully
