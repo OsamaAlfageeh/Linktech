@@ -2279,6 +2279,138 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // NDA Agreement operations for DatabaseStorage
+  async getNdaAgreement(id: number): Promise<NdaAgreement | undefined> {
+    const ndas = await db.select().from(schema.ndaAgreements)
+      .where(eq(schema.ndaAgreements.id, id))
+      .limit(1);
+    return ndas[0];
+  }
+
+  async getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined> {
+    const ndas = await db.select().from(schema.ndaAgreements)
+      .where(eq(schema.ndaAgreements.projectId, projectId))
+      .limit(1);
+    return ndas[0];
+  }
+
+  async getNdaByProjectAndCompany(projectId: number, companyUserId: number): Promise<NdaAgreement | undefined> {
+    const ndas = await db.select().from(schema.ndaAgreements)
+      .where(eq(schema.ndaAgreements.projectId, projectId));
+    
+    // Since companySignatureInfo is JSON, we need to filter in application layer
+    return ndas.find(nda => {
+      const companyInfo = nda.companySignatureInfo as any;
+      return companyInfo?.companyUserId === companyUserId;
+    });
+  }
+
+  async createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement> {
+    const [newNda] = await db.insert(schema.ndaAgreements)
+      .values(agreement)
+      .returning();
+    return newNda;
+  }
+
+  async updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined> {
+    const [updatedNda] = await db.update(schema.ndaAgreements)
+      .set(updates)
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedNda;
+  }
+
+  async updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined> {
+    const [updatedNda] = await db.update(schema.ndaAgreements)
+      .set({ status })
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedNda;
+  }
+
+  async signNdaAgreement(id: number, signatureInfo: any): Promise<NdaAgreement | undefined> {
+    const [updatedNda] = await db.update(schema.ndaAgreements)
+      .set({ 
+        status: 'signed',
+        signedAt: new Date(),
+        companySignatureInfo: signatureInfo
+      })
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedNda;
+  }
+
+  async getNdaAgreements(): Promise<NdaAgreement[]> {
+    return await db.select().from(schema.ndaAgreements);
+  }
+
+  async setNdaPdfUrl(id: number, pdfUrl: string): Promise<NdaAgreement | undefined> {
+    const [updatedNda] = await db.update(schema.ndaAgreements)
+      .set({ pdfUrl })
+      .where(eq(schema.ndaAgreements.id, id))
+      .returning();
+    return updatedNda;
+  }
+
+  // For compatibility with two-stage workflow
+  async createNda(ndaData: Partial<NdaAgreement>): Promise<NdaAgreement> {
+    const [newNda] = await db.insert(schema.ndaAgreements)
+      .values({
+        projectId: ndaData.projectId!,
+        status: ndaData.status || 'awaiting_entrepreneur',
+        companySignatureInfo: ndaData.companySignatureInfo || null,
+        entrepreneurInfo: ndaData.entrepreneurInfo || null,
+        pdfUrl: null,
+        sadiqEnvelopeId: null,
+        sadiqReferenceNumber: null,
+        sadiqDocumentId: null,
+        envelopeStatus: null,
+        signedAt: null,
+        expiresAt: null,
+        ...ndaData
+      })
+      .returning();
+    return newNda;
+  }
+
+  async getNda(id: number): Promise<NdaAgreement | undefined> {
+    return await this.getNdaAgreement(id);
+  }
+
+  async updateNda(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined> {
+    return await this.updateNdaAgreement(id, updates);
+  }
+
+  // Notification operations for DatabaseStorage
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db.insert(schema.notifications)
+      .values(notification)
+      .returning();
+    return newNotification;
+  }
+
+  async getNotificationsByUserId(userId: number): Promise<Notification[]> {
+    return await db.select().from(schema.notifications)
+      .where(eq(schema.notifications.userId, userId))
+      .orderBy(desc(schema.notifications.createdAt));
+  }
+
+  async markNotificationAsRead(id: number): Promise<Notification | undefined> {
+    const [updatedNotification] = await db.update(schema.notifications)
+      .set({ isRead: true })
+      .where(eq(schema.notifications.id, id))
+      .returning();
+    return updatedNotification;
+  }
+
+  async markAllNotificationsAsRead(userId: number): Promise<void> {
+    await db.update(schema.notifications)
+      .set({ isRead: true })
+      .where(and(
+        eq(schema.notifications.userId, userId),
+        eq(schema.notifications.isRead, false)
+      ));
+  }
 
 }
 
