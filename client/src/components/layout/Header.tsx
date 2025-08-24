@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getInitials } from "@/lib/utils";
-import { Menu, User, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, UserPlus } from "lucide-react";
+import { Menu, User, LogOut, LayoutDashboard, MessageSquare, ShieldCheck, UserPlus, Bell } from "lucide-react";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type HeaderProps = {
   auth: {
@@ -151,6 +152,9 @@ const Header = ({ auth }: HeaderProps) => {
           {/* User Actions */}
           {auth.isAuthenticated ? (
             <div className="hidden md:flex items-center space-x-4 space-x-reverse">
+              {/* Notification Bell */}
+              <NotificationBell />
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="relative rounded-full h-8 w-8 p-0">
@@ -176,6 +180,12 @@ const Header = ({ auth }: HeaderProps) => {
                     <Link href="/messages" className="cursor-pointer flex w-full">
                       <MessageSquare className="ml-2 h-4 w-4" />
                       <span>الرسائل</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/notifications" className="cursor-pointer flex w-full">
+                      <Bell className="ml-2 h-4 w-4" />
+                      <span>الإشعارات</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
@@ -298,6 +308,14 @@ const Header = ({ auth }: HeaderProps) => {
                         >
                           <MessageSquare className="ml-2 h-5 w-5" />
                           <span>الرسائل</span>
+                        </Link>
+                        <Link 
+                          href="/notifications" 
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center text-lg font-medium"
+                        >
+                          <Bell className="ml-2 h-5 w-5" />
+                          <span>الإشعارات</span>
                         </Link>
                         <Button 
                           variant="destructive" 

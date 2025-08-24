@@ -31,6 +31,7 @@ import {
   Zap,
   ExternalLink
 } from "lucide-react";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type ModernHeaderProps = {
   auth: {
@@ -204,34 +205,7 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
               {auth.isAuthenticated && (
                 <>
                   {/* إشعارات */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="p-2 text-gray-600 hover:text-primary rounded-full hover:bg-gray-100 relative">
-                        <BellRing className="h-5 w-5" />
-                        <span className="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-500"></span>
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-80">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold">الإشعارات</h3>
-                      </div>
-                      <div className="py-2 max-h-[300px] overflow-y-auto">
-                        <div className="px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors">
-                          <p className="text-sm font-medium">تم قبول عرضك للمشروع</p>
-                          <p className="text-xs text-gray-500 mt-1">تم قبول عرضك لمشروع "تطبيق إدارة المخزون"</p>
-                          <p className="text-xs text-gray-400 mt-1">منذ 20 دقيقة</p>
-                        </div>
-                        <div className="px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors">
-                          <p className="text-sm font-medium">مشروع جديد مناسب</p>
-                          <p className="text-xs text-gray-500 mt-1">هناك مشروع جديد يتناسب مع مهاراتك</p>
-                          <p className="text-xs text-gray-400 mt-1">منذ ساعتين</p>
-                        </div>
-                      </div>
-                      <div className="px-4 py-2 border-t border-gray-100 text-center">
-                        <Link href="/notifications" className="text-xs text-primary hover:underline">عرض كافة الإشعارات</Link>
-                      </div>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <NotificationBell />
                   
                   {/* الرسائل - رمز فقط */}
                   <Link href="/messages" className="p-2 text-gray-600 hover:text-primary rounded-full hover:bg-gray-100 relative">
