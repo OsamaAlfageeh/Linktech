@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Bell, BellRing } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import UnreadIndicator from "./UnreadIndicator";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Notification {
   id: number;
@@ -27,12 +28,72 @@ interface NotificationBellProps {
 }
 
 const NotificationBell = ({ className = "" }: NotificationBellProps) => {
+  const queryClient = useQueryClient();
   const { data: notifications = [], refetch } = useQuery<Notification[]>({
     queryKey: ["/api/notifications"],
     refetchInterval: 30000, // Refetch every 30 seconds
   });
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
+
+  // Mutation to mark notification as read
+  const markAsReadMutation = useMutation({
+    mutationFn: async (notificationId: number) => {
+      return await apiRequest(`/api/notifications/${notificationId}/read`, {
+        method: "POST",
+      });
+    },
+    onSuccess: (_, notificationId) => {
+      // Update the cache immediately to reflect the read status
+      queryClient.setQueryData(["/api/notifications"], (oldData: Notification[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(notification => 
+          notification.id === notificationId 
+            ? { ...notification, isRead: true }
+            : notification
+        );
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to mark notification as read:", error);
+      // Optionally show a toast notification here
+    }
+  });
+
+  // Mutation to mark all notifications as read
+  const markAllAsReadMutation = useMutation({
+    mutationFn: async () => {
+      return await apiRequest("/api/notifications/mark-all-read", {
+        method: "POST",
+      });
+    },
+    onSuccess: () => {
+      // Update the cache to mark all notifications as read
+      queryClient.setQueryData(["/api/notifications"], (oldData: Notification[] | undefined) => {
+        if (!oldData) return oldData;
+        return oldData.map(notification => ({ ...notification, isRead: true }));
+      });
+    },
+    onError: (error) => {
+      console.error("Failed to mark all notifications as read:", error);
+    }
+  });
+
+  const handleNotificationClick = async (notification: Notification) => {
+    // Mark as read if not already read
+    if (!notification.isRead) {
+      markAsReadMutation.mutate(notification.id);
+    }
+    
+    // Navigate if there's an action URL
+    if (notification.actionUrl) {
+      window.location.href = notification.actionUrl;
+    }
+  };
+
+  const handleMarkAllAsRead = () => {
+    markAllAsReadMutation.mutate();
+  };
 
   const formatTimeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -88,9 +149,22 @@ const NotificationBell = ({ className = "" }: NotificationBellProps) => {
       <DropdownMenuContent align="end" className="w-80 max-h-96 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <h3 className="text-sm font-semibold">الإشعارات</h3>
-          {unreadCount > 0 && (
-            <UnreadIndicator count={unreadCount} />
-          )}
+          <div className="flex items-center gap-2">
+            {unreadCount > 0 && (
+              <>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMarkAllAsRead}
+                  disabled={markAllAsReadMutation.isPending}
+                  className="text-xs h-6 px-2"
+                >
+                  {markAllAsReadMutation.isPending ? "..." : "تعيين الكل كمقروء"}
+                </Button>
+                <UnreadIndicator count={unreadCount} />
+              </>
+            )}
+          </div>
         </div>
         
         <div className="max-h-[300px] overflow-y-auto">
@@ -106,11 +180,7 @@ const NotificationBell = ({ className = "" }: NotificationBellProps) => {
                 className={`px-4 py-3 hover:bg-gray-50 cursor-pointer transition-colors border-r-4 ${
                   notification.isRead ? 'border-transparent' : 'border-primary bg-blue-50/30'
                 }`}
-                onClick={() => {
-                  if (notification.actionUrl) {
-                    window.location.href = notification.actionUrl;
-                  }
-                }}
+                onClick={() => handleNotificationClick(notification)}
               >
                 <div className="flex items-start gap-3">
                   <span className="text-lg flex-shrink-0 mt-0.5">
