@@ -1260,16 +1260,106 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
-      // الآن يمكن بدء عملية إرسال الدعوات عبر صادق
-      // سيتم استدعاء عملية إرسال الدعوات تلقائياً
-      
-      console.log(`✅ اكتملت بيانات الاتفاقية ${ndaId} - جاهزة لإرسال دعوات صادق`);
-      
-      res.json({ 
-        id: updatedNda.id, 
-        message: 'تم إكمال البيانات بنجاح. سيتم إرسال دعوات التوقيع الإلكتروني قريباً.',
-        status: updatedNda.status
-      });
+      // الآن نبدأ عملية إرسال الدعوات عبر صادق
+      try {
+        // استيراد خدمة المصادقة مع صادق
+        const { sadiqAuth } = await import('./sadiqAuthService');
+        const { generateProjectNdaPdf } = await import('./generateNDA');
+
+        // تحضير بيانات الاتفاقية
+        const companyInfo = updatedNda.companySignatureInfo as any;
+        const entrepreneurInfo = updatedNda.entrepreneurInfo as any;
+
+        const projectData = {
+          title: project.title,
+          description: project.description
+        };
+        
+        const companyData = {
+          name: companyInfo.companyName || 'شركة البرمجة',
+          location: 'المملكة العربية السعودية'
+        };
+        
+        const signingPartiesData = {
+          entrepreneur: entrepreneurInfo.name,
+          companyRep: companyInfo.signerName
+        };
+
+        // إنشاء ملف PDF لاتفاقية عدم الإفصاح
+        console.log('📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...');
+        const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
+        const base64Pdf = pdfBuffer.toString('base64');
+
+        // رفع الملف إلى صادق
+        const fileName = `NDA-${project.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+        console.log('⬆️ رفع ملف PDF إلى صادق...');
+        const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
+        const documentId = uploadResult.id;
+
+        // إعداد بيانات الموقعين للدعوة
+        const referenceNumber = `linktech-nda-project-${project.id}-${Date.now()}`;
+        const invitationData = {
+          referenceNumber,
+          envelopeDocument: {
+            documentId,
+            signOrder: 0
+          },
+          signatories: [
+            {
+              fullName: entrepreneurInfo.name,
+              email: entrepreneurInfo.email,
+              phoneNumber: entrepreneurInfo.phone,
+              signOrder: 0,
+              nationalId: '',
+              gender: 'NONE'
+            },
+            {
+              fullName: companyInfo.signerName,
+              email: companyInfo.signerEmail,
+              phoneNumber: companyInfo.signerPhone,
+              signOrder: 1,
+              nationalId: '',
+              gender: 'NONE'
+            }
+          ],
+          requestFields: [],
+          invitationMessage: 'نرجو منك توقيع اتفاقية عدم الإفصاح المرفقة أدناه للمتابعة في المشروع'
+        };
+
+        // إرسال الدعوات للتوقيع
+        console.log('📧 إرسال دعوات التوقيع الإلكتروني...');
+        const invitationResult = await sadiqAuth.sendSigningInvitations(invitationData);
+
+        // تحديث اتفاقية عدم الإفصاح ببيانات صادق
+        await storage.updateNda(ndaId, {
+          sadiqEnvelopeId: invitationResult.envelopeId,
+          sadiqReferenceNumber: referenceNumber,
+          sadiqDocumentId: documentId,
+          envelopeStatus: 'invitation_sent',
+          status: 'invitations_sent'
+        });
+
+        console.log(`✅ تم إرسال دعوات التوقيع الإلكتروني بنجاح للاتفاقية ${ndaId}`);
+        console.log(`📧 تم إرسال دعوات لـ ${entrepreneurInfo.email} و ${companyInfo.signerEmail}`);
+        
+        res.json({ 
+          id: updatedNda.id, 
+          message: 'تم إكمال البيانات وإرسال دعوات التوقيع الإلكتروني بنجاح!',
+          status: 'invitations_sent',
+          sadiqEnvelopeId: invitationResult.envelopeId
+        });
+
+      } catch (sadiqError) {
+        console.error('❌ خطأ في إرسال دعوات التوقيع عبر صادق:', sadiqError);
+        
+        // إرسال رد بالخطأ مع تفاصيل مفيدة
+        res.json({ 
+          id: updatedNda.id, 
+          message: 'تم إكمال البيانات، لكن حدث خطأ في إرسال دعوات التوقيع. يرجى المحاولة مرة أخرى لاحقاً.',
+          status: updatedNda.status,
+          error: sadiqError.message
+        });
+      }
     } catch (error) {
       console.error('❌ خطأ في إكمال بيانات اتفاقية عدم الإفصاح:', error);
       res.status(500).json({ message: 'حدث خطأ في النظام' });
