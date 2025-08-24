@@ -39,9 +39,7 @@ const NotificationBell = ({ className = "" }: NotificationBellProps) => {
   // Mutation to mark notification as read
   const markAsReadMutation = useMutation({
     mutationFn: async (notificationId: number) => {
-      return await apiRequest(`/api/notifications/${notificationId}/read`, {
-        method: "POST",
-      });
+      return await apiRequest("POST", `/api/notifications/${notificationId}/read`);
     },
     onSuccess: (_, notificationId) => {
       // Update the cache immediately to reflect the read status
@@ -63,9 +61,7 @@ const NotificationBell = ({ className = "" }: NotificationBellProps) => {
   // Mutation to mark all notifications as read
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest("/api/notifications/mark-all-read", {
-        method: "POST",
-      });
+      return await apiRequest("POST", "/api/notifications/mark-all-read");
     },
     onSuccess: () => {
       // Update the cache to mark all notifications as read
