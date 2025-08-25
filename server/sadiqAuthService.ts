@@ -82,59 +82,33 @@ class SadiqAuthService {
 
       console.log(`📧 تسجيل الدخول في صادق باستخدام: ${email.substring(0, 3)}***`);
 
-      // Try multiple possible authentication endpoints with different client configurations
+      // Use the correct Sadiq authentication endpoint
       const authConfigs = [
         {
-          endpoint: 'https://sandbox-identity.sadq-sa.com/connect/token',
+          endpoint: 'https://sandbox-api.sadq-sa.com/Authentication/Authority/Token',
           params: {
-            grant_type: 'password',
+            grant_type: 'integration',
+            accountId: '98AA5961-3917-4595-A14B-ED5E99BDEBE4',
+            accountSecret: 'DcQ8FhLKTZC1QoTZXFJRMKqVMLoilUr6',
             username: email,
-            password: password,
-            client_id: 'Integrationclient',
-            scope: 'Integrationscope'
-          }
-        },
-        {
-          endpoint: 'https://sandbox-identity.sadq-sa.com/connect/token',
-          params: {
-            grant_type: 'password',
-            username: email,
-            password: password,
-            client_id: 'Integrationclient',
-            scope: 'apiscope'
-          }
-        },
-        {
-          endpoint: 'https://sandbox-identity.sadq-sa.com/connect/token',
-          params: {
-            grant_type: 'password',
-            username: email,
-            password: password,
-            client_id: 'IntegrationClient', // Different case
-            scope: 'Integrationscope'
-          }
-        },
-        {
-          endpoint: 'https://api.sadq-sa.com/connect/token',
-          params: {
-            grant_type: 'password',
-            username: email,
-            password: password,
-            client_id: 'Integrationclient',
-            scope: 'Integrationscope'
+            password: password
+          },
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Authorization': 'Basic SW50ZWdyYXRpb25jbGllbnQ6ZHZuY3h6dmNkc3NoYmJ6YXZyd2lkc2JkdmRnZmRoc2JjdmJkZ2Y='
           }
         }
       ];
 
       for (const config of authConfigs) {
-        console.log(`🔄 محاولة الاتصال بـ: ${config.endpoint} مع client: ${config.params.client_id}`);
+        console.log(`🔄 محاولة الاتصال بـ: ${config.endpoint}`);
         
         try {
           const response = await fetch(config.endpoint, {
             method: 'POST',
             headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-              'Accept': 'application/json'
+              'Accept': 'application/json',
+              ...config.headers
             },
             body: new URLSearchParams(config.params)
           });
