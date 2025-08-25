@@ -15,31 +15,31 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Shield, FileCheck, FileText, Lock, User, Phone, Mail, Users } from "lucide-react";
+import { Shield, FileCheck, Users, Phone, Mail } from "lucide-react";
 
-interface NdaDialogProps {
-  projectId: number;
+interface NdaEntrepreneurFormProps {
+  ndaId: number;
   projectTitle: string;
+  companyName: string;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess?: (ndaId: number) => void;
+  onSuccess?: () => void;
 }
 
-interface ContactFormData {
-  companyRep: {
-    name: string;
-    email: string;
-    phone: string;
-  };
+interface EntrepreneurFormData {
+  name: string;
+  email: string;
+  phone: string;
 }
 
-export function NdaDialog({
-  projectId,
+export function NdaEntrepreneurForm({
+  ndaId,
   projectTitle,
+  companyName,
   isOpen,
   onOpenChange,
   onSuccess,
-}: NdaDialogProps) {
+}: NdaEntrepreneurFormProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
@@ -51,13 +51,11 @@ export function NdaDialog({
     queryKey: ['/api/auth/user'],
   });
 
-  // Contact form state - only company's info
-  const [contactForm, setContactForm] = useState<ContactFormData>({
-    companyRep: {
-      name: auth?.user?.name || '',
-      email: auth?.user?.email || '',
-      phone: ''
-    }
+  // Entrepreneur contact form state
+  const [contactForm, setContactForm] = useState<EntrepreneurFormData>({
+    name: auth?.user?.name || '',
+    email: auth?.user?.email || '',
+    phone: ''
   });
 
   // Reset form when dialog opens
@@ -66,39 +64,38 @@ export function NdaDialog({
       setStep('contact-info');
       setAgreed(false);
       setContactForm({
-        companyRep: {
-          name: auth?.user?.name || '',
-          email: auth?.user?.email || '',
-          phone: ''
-        }
+        name: auth?.user?.name || '',
+        email: auth?.user?.email || '',
+        phone: ''
       });
     }
   }, [isOpen, auth?.user]);
 
-  // Initiate NDA request with company info only
-  const createNdaMutation = useMutation({
-    mutationFn: async (data: ContactFormData) => {
-      const response = await apiRequest("POST", `/api/projects/${projectId}/nda/initiate`, {
-        companyRep: data.companyRep
+  // Complete NDA with entrepreneur contact info
+  const completeNdaMutation = useMutation({
+    mutationFn: async (data: EntrepreneurFormData) => {
+      const response = await apiRequest("POST", `/api/nda/${ndaId}/complete`, {
+        entrepreneur: data
       });
       return await response.json();
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
-      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/nda`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/notifications'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/nda/${ndaId}`] });
       
       toast({
-        title: "تم إرسال طلب اتفاقية عدم الإفصاح",
-        description: "تم إرسال إشعار لرائد الأعمال لإكمال بياناته. ستكتمل العملية عند موافقته.",
+        title: "تم إكمال طلب اتفاقية عدم الإفصاح",
+        description: "تم إرسال الاتفاقية للتوقيع الإلكتروني عبر منصة صادق.",
       });
 
       onOpenChange(false);
-      onSuccess?.(data.id);
+      onSuccess?.();
     },
     onError: (error) => {
       toast({
         title: "حدث خطأ",
-        description: error.message || "لم نتمكن من إرسال طلب اتفاقية عدم الإفصاح.",
+        description: error.message || "لم نتمكن من إكمال طلب اتفاقية عدم الإفصاح.",
         variant: "destructive",
       });
     },
@@ -107,13 +104,11 @@ export function NdaDialog({
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate company rep fields only
-    const { companyRep } = contactForm;
-    
-    if (!companyRep.name || !companyRep.email || !companyRep.phone) {
+    // Validate entrepreneur fields
+    if (!contactForm.name || !contactForm.email || !contactForm.phone) {
       toast({
         title: "معلومات مطلوبة",
-        description: "يرجى إكمال جميع معلومات ممثل الشركة.",
+        description: "يرجى إكمال جميع معلوماتك الشخصية.",
         variant: "destructive",
       });
       return;
@@ -133,7 +128,7 @@ export function NdaDialog({
       return;
     }
 
-    createNdaMutation.mutate(contactForm);
+    completeNdaMutation.mutate(contactForm);
   };
 
   const handleInputChange = (
@@ -142,62 +137,70 @@ export function NdaDialog({
   ) => {
     setContactForm(prev => ({
       ...prev,
-      companyRep: {
-        ...prev.companyRep,
-        [field]: value
-      }
+      [field]: value
     }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            اتفاقية عدم الإفصاح - {projectTitle}
+            <Shield className="h-5 w-5" />
+            إكمال اتفاقية عدم الإفصاح - {projectTitle}
           </DialogTitle>
           <DialogDescription>
             {step === 'contact-info' 
-              ? 'يرجى إدخال معلومات الاتصال الخاصة بك. سيتم إرسال إشعار لرائد الأعمال لإكمال بياناته.'
-              : 'يرجى مراجعة والموافقة على إرسال طلب اتفاقية عدم الإفصاح'
+              ? 'يرجى إدخال معلومات الاتصال الخاصة بك لإتمام طلب اتفاقية عدم الإفصاح'
+              : 'يرجى مراجعة والموافقة على شروط اتفاقية عدم الإفصاح'
             }
           </DialogDescription>
         </DialogHeader>
 
         {step === 'contact-info' && (
           <form onSubmit={handleContactSubmit} className="space-y-6">
-            {/* Company Representative Info */}
+            {/* Company info (read-only display) */}
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <div className="flex items-center mb-3">
+                <Shield className="h-5 w-5 text-blue-600 ml-2" />
+                <h3 className="font-medium text-blue-800">طلب من شركة</h3>
+              </div>
+              <p className="text-sm text-blue-700">
+                شركة <strong>{companyName}</strong> طلبت توقيع اتفاقية عدم إفصاح لمشروعك "{projectTitle}".
+              </p>
+            </div>
+
+            {/* Entrepreneur Info */}
             <div className="space-y-4">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100">
                 <div className="flex items-center mb-3">
-                  <User className="h-5 w-5 text-blue-600 ml-2" />
-                  <h3 className="font-medium text-blue-800">معلومات ممثل الشركة</h3>
+                  <Users className="h-5 w-5 text-green-600 ml-2" />
+                  <h3 className="font-medium text-green-800">معلوماتك الشخصية</h3>
                 </div>
                 
                 <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label htmlFor="company-name">الاسم الكامل *</Label>
+                    <Label htmlFor="entrepreneur-name">الاسم الكامل *</Label>
                     <Input
-                      id="company-name"
-                      value={contactForm.companyRep.name}
+                      id="entrepreneur-name"
+                      value={contactForm.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
-                      placeholder="اسم ممثل الشركة"
+                      placeholder="اسمك الكامل"
                       required
                     />
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor="company-email">البريد الإلكتروني *</Label>
+                      <Label htmlFor="entrepreneur-email">البريد الإلكتروني *</Label>
                       <div className="relative">
                         <Mail className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
-                          id="company-email"
+                          id="entrepreneur-email"
                           type="email"
-                          value={contactForm.companyRep.email}
+                          value={contactForm.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
-                          placeholder="company@example.com"
+                          placeholder="your@email.com"
                           className="pr-10"
                           required
                         />
@@ -205,13 +208,13 @@ export function NdaDialog({
                     </div>
                     
                     <div>
-                      <Label htmlFor="company-phone">رقم الهاتف *</Label>
+                      <Label htmlFor="entrepreneur-phone">رقم الهاتف *</Label>
                       <div className="relative">
                         <Phone className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
                         <Input
-                          id="company-phone"
+                          id="entrepreneur-phone"
                           type="tel"
-                          value={contactForm.companyRep.phone}
+                          value={contactForm.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
                           placeholder="05xxxxxxxx"
                           className="pr-10"
@@ -224,17 +227,6 @@ export function NdaDialog({
               </div>
             </div>
 
-            {/* Entrepreneur notification info */}
-            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-              <div className="flex items-center mb-3">
-                <Users className="h-5 w-5 text-green-600 ml-2" />
-                <h3 className="font-medium text-green-800">الخطوة التالية</h3>
-              </div>
-              <p className="text-sm text-green-700">
-                سيتم إرسال إشعار لرائد الأعمال لإكمال معلومات الاتصال الخاصة به، وبعدها ستبدأ عملية التوقيع الإلكتروني عبر منصة صادق.
-              </p>
-            </div>
-
             <DialogFooter>
               <Button
                 type="button"
@@ -244,7 +236,7 @@ export function NdaDialog({
                 إلغاء
               </Button>
               <Button type="submit">
-                المتابعة إلى طلب الاتفاقية
+                المتابعة إلى الاتفاقية
               </Button>
             </DialogFooter>
           </form>
@@ -256,29 +248,29 @@ export function NdaDialog({
               <div className="flex items-start">
                 <Shield className="h-5 w-5 text-amber-600 mt-0.5 ml-3 flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium text-amber-800 mb-2">طلب اتفاقية عدم الإفصاح</h3>
+                  <h3 className="font-medium text-amber-800 mb-2">اتفاقية عدم الإفصاح</h3>
                   <p className="text-sm text-amber-700 mb-3">
-                    بالموافقة، ستقوم بإرسال طلب اتفاقية عدم إفصاح لمشروع "{projectTitle}". 
-                    سيتم إشعار رائد الأعمال لإكمال بياناته وبدء عملية التوقيع الإلكتروني.
+                    بالموافقة على هذه الاتفاقية، فإنك تتعهد بعدم الكشف عن أي معلومات سرية 
+                    أو مملوكة تتعلق بمشروع "{projectTitle}" مع شركة {companyName}.
                   </p>
                 </div>
               </div>
             </div>
 
             <div className="bg-gray-50 p-4 rounded-lg border">
-              <h4 className="font-medium text-gray-800 mb-3">معلومات الطلب:</h4>
+              <h4 className="font-medium text-gray-800 mb-3">معلومات الاتفاقية:</h4>
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">ممثل الشركة:</span>
-                  <span className="font-medium">{contactForm.companyRep.name} - {contactForm.companyRep.email}</span>
+                  <span className="text-gray-600">الشركة الطالبة:</span>
+                  <span className="font-medium">{companyName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">رائد الأعمال:</span>
+                  <span className="font-medium">{contactForm.name} - {contactForm.email}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">المشروع:</span>
                   <span className="font-medium">{projectTitle}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">حالة رائد الأعمال:</span>
-                  <span className="text-amber-600 font-medium">في انتظار إكمال البيانات</span>
                 </div>
               </div>
             </div>
@@ -291,7 +283,7 @@ export function NdaDialog({
                   onCheckedChange={(checked) => setAgreed(checked as boolean)}
                 />
                 <Label htmlFor="agree" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                  أوافق على إرسال طلب اتفاقية عدم الإفصاح وأتعهد بالالتزام بشروطها عند توقيعها
+                  أوافق على شروط اتفاقية عدم الإفصاح وألتزم بعدم الكشف عن المعلومات السرية
                 </Label>
               </div>
             </div>
@@ -306,17 +298,17 @@ export function NdaDialog({
               </Button>
               <Button
                 onClick={handleAgreementSubmit}
-                disabled={!agreed || createNdaMutation.isPending}
+                disabled={!agreed || completeNdaMutation.isPending}
               >
-                {createNdaMutation.isPending ? (
+                {completeNdaMutation.isPending ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
-                    جاري الإنشاء...
+                    جاري الإكمال...
                   </>
                 ) : (
                   <>
                     <FileCheck className="w-4 h-4 ml-2" />
-                    إرسال طلب اتفاقية عدم الإفصاح
+                    إكمال اتفاقية عدم الإفصاح
                   </>
                 )}
               </Button>
