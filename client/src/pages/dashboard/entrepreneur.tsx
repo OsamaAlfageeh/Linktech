@@ -47,6 +47,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   LayoutDashboard,
   FileEdit,
   MessagesSquare,
@@ -58,6 +68,7 @@ import {
   Banknote,
   Loader2,
   Edit,
+  Trash2,
 } from "lucide-react";
 
 type Project = {
@@ -120,6 +131,8 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editProjectId, setEditProjectId] = useState<number | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState<number | null>(null);
   // تم إزالة متغير المرفقات وكذلك متغير مرفقات التعديل
 
   // Check URL query parameters for actions (create or edit project)
@@ -213,6 +226,50 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
 
   const onSubmit = (data: ProjectFormValues) => {
     createProjectMutation.mutate(data);
+  };
+
+  // Delete project mutation
+  const deleteProjectMutation = useMutation({
+    mutationFn: async (projectId: number) => {
+      const response = await apiRequest("DELETE", `/api/projects/${projectId}`);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to delete project');
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      // Invalidate project queries to refresh the lists
+      queryClient.invalidateQueries({queryKey: [`/api/users/${auth.user?.id}/projects`]});
+      queryClient.invalidateQueries({queryKey: ['/api/projects']});
+      
+      toast({
+        title: "تم حذف المشروع بنجاح",
+        description: "تم حذف المشروع من قائمة مشاريعك.",
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "فشل في حذف المشروع",
+        description: error.message || "حدث خطأ أثناء محاولة حذف المشروع.",
+        variant: "destructive",
+      });
+      setDeleteDialogOpen(false);
+      setProjectToDelete(null);
+    },
+  });
+
+  const handleDeleteProject = (projectId: number) => {
+    setProjectToDelete(projectId);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (projectToDelete) {
+      deleteProjectMutation.mutate(projectToDelete);
+    }
   };
 
   // If user is not authenticated or not an entrepreneur, redirect to home
@@ -649,6 +706,15 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                           <Edit className="ml-1 h-3 w-3" />
                           تعديل
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-red-500 text-red-500 hover:bg-red-50"
+                          onClick={() => handleDeleteProject(project.id)}
+                        >
+                          <Trash2 className="ml-1 h-3 w-3" />
+                          حذف
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>
@@ -694,6 +760,38 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
             </Card>
           </TabsContent>
         </Tabs>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>تأكيد حذف المشروع</AlertDialogTitle>
+              <AlertDialogDescription>
+                هل أنت متأكد من رغبتك في حذف هذا المشروع؟ هذا الإجراء لا يمكن التراجع عنه.
+                <br />
+                <br />
+                <strong>ملاحظة:</strong> لا يمكن حذف المشاريع التي تحتوي على عروض مقبولة أو مكتملة من الشركات.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex justify-end space-x-2 space-x-reverse">
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                disabled={deleteProjectMutation.isPending}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {deleteProjectMutation.isPending ? (
+                  <div className="flex items-center">
+                    <Loader2 className="ml-2 h-4 w-4 animate-spin" />
+                    جاري الحذف...
+                  </div>
+                ) : (
+                  'حذف المشروع'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </>
   );

@@ -60,6 +60,7 @@ export interface IStorage {
   getProjectsByUserId(userId: number): Promise<Project[]>;
   createProject(project: InsertProject): Promise<Project>;
   updateProject(id: number, project: Partial<Project>): Promise<Project | undefined>;
+  deleteProject(id: number): Promise<boolean>;
   
   // Message operations
   getMessage(id: number): Promise<Message | undefined>;
@@ -398,6 +399,31 @@ export class MemStorage implements IStorage {
     const updatedProject = { ...project, ...updates };
     this.projects.set(id, updatedProject);
     return updatedProject;
+  }
+
+  async deleteProject(id: number): Promise<boolean> {
+    const project = this.projects.get(id);
+    if (!project) return false;
+    
+    // Check if project has any accepted or completed offers
+    const projectOffers = await this.getProjectOffersByProjectId(id);
+    const hasActiveOffers = projectOffers.some(offer => 
+      offer.status === 'accepted' || offer.status === 'completed'
+    );
+    
+    if (hasActiveOffers) {
+      return false; // Cannot delete project with active offers
+    }
+    
+    // Delete all pending offers first
+    const pendingOffers = projectOffers.filter(offer => offer.status === 'pending');
+    pendingOffers.forEach(offer => {
+      this.projectOffers.delete(offer.id);
+    });
+    
+    // Delete the project
+    this.projects.delete(id);
+    return true;
   }
   
   // Message operations
