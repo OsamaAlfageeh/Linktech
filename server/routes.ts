@@ -1187,6 +1187,128 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // NDA routes - مسارات اتفاقيات عدم الإفصاح
   
+  // التحقق من معلومات الاتصال المطلوبة لتوقيع اتفاقية عدم الإفصاح
+  app.post('/api/projects/:projectId/nda/validate-contact', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      
+      // التحقق من وجود المشروع
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // تأكد من أن المستخدم هو شركة
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'فقط الشركات يمكنها التحقق من معلومات الاتصال' });
+      }
+
+      // التحقق من معلومات الشركة
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      if (!companyProfile) {
+        return res.status(400).json({ 
+          message: 'يجب إكمال ملف تعريف الشركة أولاً' 
+        });
+      }
+
+      const hasEmail = !!user.email;
+      const hasPhone = !!companyProfile.phone;
+      
+      // التحقق من معلومات صاحب المشروع
+      const projectOwner = await storage.getUser(project.userId);
+      if (!projectOwner) {
+        return res.status(400).json({ 
+          message: 'لا يمكن العثور على معلومات صاحب المشروع' 
+        });
+      }
+
+      const projectOwnerPersonalInfo = await storage.getPersonalInformationByUserId(project.userId);
+      const projectOwnerHasEmail = !!projectOwner.email;
+      const projectOwnerHasPhone = !!projectOwnerPersonalInfo?.mobileNumber;
+
+      // إذا كانت معلومات الشركة كاملة ومعلومات صاحب المشروع كاملة
+      if (hasEmail && hasPhone && projectOwnerHasEmail && projectOwnerHasPhone) {
+        return res.json({
+          valid: true,
+          hasEmail: true,
+          hasPhone: true,
+          existingPhone: companyProfile.phone
+        });
+      }
+
+      // إذا كانت معلومات الشركة ناقصة
+      if (!hasEmail || !hasPhone) {
+        return res.json({
+          valid: false,
+          hasEmail,
+          hasPhone,
+          existingPhone: companyProfile.phone,
+          message: 'يجب إكمال معلومات الاتصال الخاصة بك'
+        });
+      }
+
+      // إذا كانت معلومات صاحب المشروع ناقصة
+      return res.status(400).json({
+        message: 'صاحب المشروع يجب أن يكمل معلوماته الشخصية (خاصة رقم الجوال) في ملفه الشخصي قبل توقيع اتفاقية عدم الإفصاح'
+      });
+
+    } catch (error) {
+      console.error('❌ خطأ في التحقق من معلومات الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ في النظام' });
+    }
+  });
+
+  // تحديث معلومات الاتصال للشركة
+  app.post('/api/projects/:projectId/nda/update-contact', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      const { email, phone } = req.body;
+      
+      // التحقق من وجود المشروع
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // تأكد من أن المستخدم هو شركة
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'فقط الشركات يمكنها تحديث معلومات الاتصال' });
+      }
+
+      // الحصول على ملف تعريف الشركة
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      if (!companyProfile) {
+        return res.status(400).json({ 
+          message: 'يجب إكمال ملف تعريف الشركة أولاً' 
+        });
+      }
+
+      // تحديث البريد الإلكتروني في حساب المستخدم إذا لزم الأمر
+      if (email && email !== user.email) {
+        await storage.updateUser(user.id, { email });
+      }
+
+      // تحديث رقم الهاتف في ملف الشركة إذا لزم الأمر
+      if (phone && phone !== companyProfile.phone) {
+        await storage.updateCompanyProfile(companyProfile.id, { phone });
+      }
+
+      res.json({ 
+        message: 'تم تحديث معلومات الاتصال بنجاح',
+        updated: {
+          email: email && email !== user.email,
+          phone: phone && phone !== companyProfile.phone
+        }
+      });
+
+    } catch (error) {
+      console.error('❌ خطأ في تحديث معلومات الاتصال:', error);
+      res.status(500).json({ message: 'حدث خطأ في النظام' });
+    }
+  });
+
   // المرحلة الأولى: الشركة تنشئ طلب اتفاقية عدم إفصاح
   app.post('/api/projects/:projectId/nda/initiate', isAuthenticated, async (req: Request, res: Response) => {
     try {

@@ -1,10 +1,10 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 
 import {
@@ -16,7 +16,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, FileCheck, FileText, Lock } from "lucide-react";
+import { Shield, FileCheck, FileText, Lock, User, Phone, Mail } from "lucide-react";
 
 interface NdaDialogProps {
   projectId: number;
@@ -37,14 +37,93 @@ export function NdaDialog({
   const queryClient = useQueryClient();
   
   const [agreed, setAgreed] = useState(false);
+  const [step, setStep] = useState<'validation' | 'agreement'>('validation');
+  
+  // Contact information state
+  const [contactInfo, setContactInfo] = useState({
+    email: '',
+    phone: ''
+  });
+  
+  // Validation state
+  const [needsEmail, setNeedsEmail] = useState(false);
+  const [needsPhone, setNeedsPhone] = useState(false);
+  
+  // Get current user info
+  const { data: auth } = useQuery<any>({
+    queryKey: ['/api/auth/user'],
+  });
 
+  // Validation mutation to check what contact info is missing
+  const validateContactMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest(
+        "POST",
+        `/api/projects/${projectId}/nda/validate-contact`,
+        {}
+      );
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      if (data.valid) {
+        // All contact info is complete, proceed to agreement step
+        setStep('agreement');
+      } else {
+        // Show input fields for missing information
+        setNeedsEmail(!data.hasEmail);
+        setNeedsPhone(!data.hasPhone);
+        
+        // Pre-fill existing information
+        if (data.hasEmail && auth?.user?.email) {
+          setContactInfo(prev => ({ ...prev, email: auth.user.email }));
+        }
+        if (data.existingPhone) {
+          setContactInfo(prev => ({ ...prev, phone: data.existingPhone }));
+        }
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في التحقق من البيانات",
+        description: error.message || "حدث خطأ أثناء التحقق من بياناتك.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update contact information mutation
+  const updateContactMutation = useMutation({
+    mutationFn: async (contactData: { email?: string; phone?: string }) => {
+      const response = await apiRequest(
+        "POST",
+        `/api/projects/${projectId}/nda/update-contact`,
+        contactData
+      );
+      return await response.json();
+    },
+    onSuccess: () => {
+      setStep('agreement');
+      toast({
+        title: "تم تحديث معلومات الاتصال",
+        description: "تم حفظ معلومات الاتصال الخاصة بك بنجاح.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "خطأ في تحديث البيانات",
+        description: error.message || "حدث خطأ أثناء تحديث معلومات الاتصال.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create NDA mutation
   const createNdaMutation = useMutation({
     mutationFn: async () => {
-      // لا حاجة لإرسال بيانات الشركة - سيتم استخدام البيانات من الملف الشخصي تلقائياً
       const response = await apiRequest(
         "POST",
         `/api/projects/${projectId}/nda/initiate`,
-        {} // بيانات فارغة - الخادم سيملأها تلقائياً من الملف الشخصي
+        {}
       );
       return await response.json();
     },
@@ -70,7 +149,51 @@ export function NdaDialog({
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Reset state when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      setStep('validation');
+      setAgreed(false);
+      setContactInfo({ email: '', phone: '' });
+      setNeedsEmail(false);
+      setNeedsPhone(false);
+      
+      // Validate contact information when dialog opens
+      validateContactMutation.mutate();
+    }
+  }, [isOpen]);
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate required contact information
+    if (needsEmail && !contactInfo.email.trim()) {
+      toast({
+        title: "البريد الإلكتروني مطلوب",
+        description: "يرجى إدخال عنوان بريد إلكتروني صحيح.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (needsPhone && !contactInfo.phone.trim()) {
+      toast({
+        title: "رقم الهاتف مطلوب",
+        description: "يرجى إدخال رقم هاتف صحيح.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Update contact information
+    const updateData: { email?: string; phone?: string } = {};
+    if (needsEmail) updateData.email = contactInfo.email;
+    if (needsPhone) updateData.phone = contactInfo.phone;
+    
+    updateContactMutation.mutate(updateData);
+  };
+
+  const handleAgreementSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!agreed) {
@@ -82,7 +205,6 @@ export function NdaDialog({
       return;
     }
 
-    // إرسال الطلب بدون بيانات الشركة - سيتم استخدام البيانات من الملف الشخصي تلقائياً
     createNdaMutation.mutate();
   };
 
@@ -92,14 +214,88 @@ export function NdaDialog({
         <DialogHeader>
           <div className="flex items-center mb-2">
             <Shield className="h-6 w-6 text-primary ml-2" />
-            <DialogTitle>اتفاقية عدم الإفصاح</DialogTitle>
+            <DialogTitle>
+              {step === 'validation' ? 'تأكيد معلومات الاتصال' : 'اتفاقية عدم الإفصاح'}
+            </DialogTitle>
           </div>
           <DialogDescription>
-            للاطلاع على تفاصيل المشروع والمشاركة فيه، يجب عليك توقيع اتفاقية عدم الإفصاح إلكترونياً عبر نفاذ
+            {step === 'validation' 
+              ? 'يرجى تأكيد أو إكمال معلومات الاتصال الخاصة بك قبل المتابعة'
+              : 'للاطلاع على تفاصيل المشروع والمشاركة فيه، يجب عليك توقيع اتفاقية عدم الإفصاح إلكترونياً عبر نفاذ'
+            }
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
+          {validateContactMutation.isPending && (
+            <div className="flex items-center justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <span className="mr-3">التحقق من البيانات...</span>
+            </div>
+          )}
+
+          {/* Contact Information Step */}
+          {step === 'validation' && !validateContactMutation.isPending && (needsEmail || needsPhone) && (
+            <form onSubmit={handleContactSubmit} className="space-y-6">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start">
+                <User className="h-5 w-5 text-blue-600 mt-0.5 ml-3 flex-shrink-0" />
+                <div>
+                  <h4 className="font-medium text-blue-800">إكمال معلومات الاتصال</h4>
+                  <p className="text-sm text-blue-700 mt-1">
+                    نحتاج إلى معلومات اتصال كاملة لإتمام عملية التوقيع الإلكتروني عبر نفاذ.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {needsEmail && (
+                  <div>
+                    <Label htmlFor="email" className="flex items-center">
+                      <Mail className="h-4 w-4 ml-1" />
+                      البريد الإلكتروني
+                    </Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="أدخل بريدك الإلكتروني"
+                      value={contactInfo.email}
+                      onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
+                      className="mt-1"
+                      required
+                    />
+                  </div>
+                )}
+
+                {needsPhone && (
+                  <div>
+                    <Label htmlFor="phone" className="flex items-center">
+                      <Phone className="h-4 w-4 ml-1" />
+                      رقم الهاتف
+                    </Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="أدخل رقم هاتفك (مثال: 0551234567)"
+                      value={contactInfo.phone}
+                      onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
+                      className="mt-1"
+                      required
+                    />
+                  </div>
+                )}
+              </div>
+
+              <DialogFooter>
+                <Button type="submit" disabled={updateContactMutation.isPending}>
+                  {updateContactMutation.isPending ? "جاري الحفظ..." : "حفظ والمتابعة"}
+                </Button>
+              </DialogFooter>
+            </form>
+          )}
+
+          {/* Agreement Step */}
+          {step === 'agreement' && (
+            <>
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start">
             <Lock className="h-5 w-5 text-blue-600 mt-0.5 ml-3 flex-shrink-0" />
             <div>
@@ -155,65 +351,63 @@ export function NdaDialog({
             </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* إشعار بأن البيانات ستستخدم من الملف الشخصي */}
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <div className="flex items-start">
-                <FileCheck className="h-5 w-5 text-green-600 mt-0.5 ml-3 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold mb-2 text-green-800">
-                    استخدام بيانات الملف الشخصي
-                  </h3>
+              <form onSubmit={handleAgreementSubmit} className="space-y-6">
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <div className="flex items-start">
+                    <FileCheck className="h-5 w-5 text-green-600 mt-0.5 ml-3 flex-shrink-0" />
+                    <div>
+                      <h3 className="font-semibold mb-2 text-green-800">
+                        معلومات الاتصال محدثة
+                      </h3>
+                      <p className="text-sm text-green-700">
+                        تم تأكيد جميع معلومات الاتصال المطلوبة للتوقيع الإلكتروني. سيتم استخدام هذه البيانات في اتفاقية عدم الإفصاح.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+                  <h4 className="font-medium text-green-800 mb-2">الخطوة التالية</h4>
                   <p className="text-sm text-green-700">
-                    سيتم استخدام بياناتك الموجودة في ملف تعريف الشركة (الاسم، البريد الإلكتروني، رقم الهاتف) تلقائياً في اتفاقية عدم الإفصاح. 
-                    لا حاجة لإعادة إدخالها.
+                    بعد إرسال طلبك، سيتم إشعار صاحب المشروع لإكمال بياناته. عند اكتمال البيانات من الطرفين، ستتلقى رابط التوقيع الإلكتروني عبر البريد.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-              <h4 className="font-medium text-green-800 mb-2">الخطوة التالية</h4>
-              <p className="text-sm text-green-700">
-                بعد إرسال طلبك، سيتم إشعار صاحب المشروع لإكمال بياناته. عند اكتمال البيانات من الطرفين، ستتلقى رابط التوقيع الإلكتروني عبر البريد.
-              </p>
-            </div>
+                <div className="flex items-start space-x-2 space-x-reverse">
+                  <Checkbox
+                    id="agreed"
+                    checked={agreed}
+                    onCheckedChange={(checked) => setAgreed(checked as boolean)}
+                    className="mt-1"
+                  />
+                  <div>
+                    <Label
+                      htmlFor="agreed"
+                      className="text-sm font-normal cursor-pointer"
+                    >
+                      أقر وأوافق على جميع شروط وأحكام اتفاقية عدم الإفصاح وألتزم بها
+                    </Label>
+                    <p className="text-xs text-neutral-500 mt-1">
+                      سيتم التحقق من هويتك رسمياً عبر نفاذ وحفظ جميع بيانات التوقيع الإلكتروني
+                    </p>
+                  </div>
+                </div>
 
-            <div className="flex items-start space-x-2 space-x-reverse">
-              <Checkbox
-                id="agreed"
-                checked={agreed}
-                onCheckedChange={(checked) => setAgreed(checked as boolean)}
-                className="mt-1"
-              />
-              <div>
-                <Label
-                  htmlFor="agreed"
-                  className="text-sm font-normal cursor-pointer"
-                >
-                  أقر وأوافق على جميع شروط وأحكام اتفاقية عدم الإفصاح وألتزم بها
-                </Label>
-                <p className="text-xs text-neutral-500 mt-1">
-                  سيتم التحقق من هويتك رسمياً عبر نفاذ وحفظ جميع بيانات التوقيع الإلكتروني
-                </p>
-              </div>
-            </div>
-
-            <DialogFooter className="mt-6">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                className="ml-2"
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                disabled={createNdaMutation.isPending}
-                className="bg-gradient-to-l from-blue-600 to-primary hover:from-blue-700 hover:to-primary-dark"
-              >
-                {createNdaMutation.isPending ? (
+                <DialogFooter className="mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    className="ml-2"
+                  >
+                    إلغاء
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={createNdaMutation.isPending}
+                    className="bg-gradient-to-l from-blue-600 to-primary hover:from-blue-700 hover:to-primary-dark"
+                  >
+                    {createNdaMutation.isPending ? (
                   <div className="flex items-center">
                     <svg
                       className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
@@ -244,8 +438,10 @@ export function NdaDialog({
                   </div>
                 )}
               </Button>
-            </DialogFooter>
-          </form>
+                </DialogFooter>
+              </form>
+            </>
+          )}
         </div>
       </DialogContent>
     </Dialog>
