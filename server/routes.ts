@@ -1212,16 +1212,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // التحقق من وجود البيانات الأساسية - نستخدم email من حساب المستخدم
+      // التحقق من وجود البيانات الأساسية للشركة
       if (!user.email) {
         return res.status(400).json({ 
-          message: 'يجب إضافة البريد الإلكتروني في حساب المستخدم' 
+          message: 'يجب إضافة البريد الإلكتروني في حساب المستخدم (الشركة)' 
         });
       }
 
       if (!companyProfile.phone) {
         return res.status(400).json({ 
           message: 'يجب إضافة رقم الهاتف في ملف تعريف الشركة' 
+        });
+      }
+
+      // التحقق من معلومات صاحب المشروع (رائد الأعمال)
+      const projectOwner = await storage.getUser(project.userId);
+      if (!projectOwner) {
+        return res.status(400).json({ 
+          message: 'لا يمكن العثور على معلومات صاحب المشروع' 
+        });
+      }
+
+      if (!projectOwner.email) {
+        return res.status(400).json({ 
+          message: 'صاحب المشروع يجب أن يكمل معلومات البريد الإلكتروني في حسابه قبل توقيع اتفاقية عدم الإفصاح' 
+        });
+      }
+
+      // التحقق من معلومات الاتصال الشخصية لصاحب المشروع
+      const entrepreneurPersonalInfo = await storage.getPersonalInformationByUserId(project.userId);
+      if (!entrepreneurPersonalInfo || !entrepreneurPersonalInfo.mobileNumber) {
+        return res.status(400).json({ 
+          message: 'صاحب المشروع يجب أن يكمل معلوماته الشخصية (خاصة رقم الجوال) في ملفه الشخصي قبل توقيع اتفاقية عدم الإفصاح' 
         });
       }
       
@@ -1368,7 +1390,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         const signingPartiesData = {
           entrepreneur: entrepreneurInfo.name,
-          companyRep: companyInfo.signerName
+          companyRep: companyInfo.name || companyInfo.signerName
         };
 
         // إنشاء ملف PDF لاتفاقية عدم الإفصاح
@@ -1400,9 +1422,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               gender: 'NONE'
             },
             {
-              fullName: companyInfo.signerName,
-              email: companyInfo.signerEmail,
-              phoneNumber: companyInfo.signerPhone,
+              fullName: companyInfo.name || companyInfo.signerName,
+              email: companyInfo.email || companyInfo.signerEmail,
+              phoneNumber: companyInfo.phone || companyInfo.signerPhone,
               signOrder: 1,
               nationalId: '',
               gender: 'NONE'
@@ -1426,7 +1448,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         console.log(`✅ تم إرسال دعوات التوقيع الإلكتروني بنجاح للاتفاقية ${ndaId}`);
-        console.log(`📧 تم إرسال دعوات لـ ${entrepreneurInfo.email} و ${companyInfo.signerEmail}`);
+        console.log(`📧 تم إرسال دعوات لـ ${entrepreneurInfo.email} و ${companyInfo.email || companyInfo.signerEmail}`);
         
         res.json({ 
           id: updatedNda.id, 

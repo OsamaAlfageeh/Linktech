@@ -23,7 +23,8 @@ import {
   featuredClients,
   Notification, InsertNotification,
   notifications,
-
+  PersonalInformation, InsertPersonalInformation,
+  personalInformation,
 } from "@shared/schema";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
@@ -52,6 +53,11 @@ export interface IStorage {
   getCompanyProfiles(): Promise<CompanyProfile[]>;
   getVerifiedCompanies(): Promise<CompanyProfile[]>;
   verifyCompany(id: number, verified: boolean): Promise<CompanyProfile | undefined>;
+  
+  // Personal information operations
+  getPersonalInformationByUserId(userId: number): Promise<PersonalInformation | undefined>;
+  createPersonalInformation(info: InsertPersonalInformation): Promise<PersonalInformation>;
+  updatePersonalInformation(userId: number, info: Partial<PersonalInformation>): Promise<PersonalInformation | undefined>;
   
   // Project operations
   getProject(id: number): Promise<Project | undefined>;
@@ -185,6 +191,7 @@ export class MemStorage implements IStorage {
   private ndaAgreements: Map<number, NdaAgreement>;
   private premiumClients: Map<number, PremiumClient>;
   private notifications: Map<number, Notification>;
+  private personalInformations: Map<number, PersonalInformation>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -200,6 +207,7 @@ export class MemStorage implements IStorage {
   private ndaAgreementIdCounter: number = 1;
   private premiumClientIdCounter: number = 1;
   private notificationIdCounter: number = 1;
+  private personalInformationIdCounter: number = 1;
   
   constructor() {
     this.users = new Map();
@@ -214,6 +222,7 @@ export class MemStorage implements IStorage {
     this.ndaAgreements = new Map();
     this.premiumClients = new Map();
     this.notifications = new Map();
+    this.personalInformations = new Map();
     this.contactMessages = new Map();
     this.aiProjectAnalyses = new Map();
     this.analysisRatings = new Map();
@@ -361,6 +370,40 @@ export class MemStorage implements IStorage {
     const updatedProfile = { ...profile, verified };
     this.companyProfiles.set(id, updatedProfile);
     return updatedProfile;
+  }
+  
+  // Personal information operations
+  async getPersonalInformationByUserId(userId: number): Promise<PersonalInformation | undefined> {
+    return Array.from(this.personalInformations.values()).find(
+      (info) => info.userId === userId,
+    );
+  }
+  
+  async createPersonalInformation(info: InsertPersonalInformation): Promise<PersonalInformation> {
+    const id = this.personalInformationIdCounter++;
+    const now = new Date();
+    const personalInfo: PersonalInformation = { 
+      ...info, 
+      id,
+      isComplete: true,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.personalInformations.set(id, personalInfo);
+    return personalInfo;
+  }
+  
+  async updatePersonalInformation(userId: number, info: Partial<PersonalInformation>): Promise<PersonalInformation | undefined> {
+    const existingInfo = await this.getPersonalInformationByUserId(userId);
+    if (!existingInfo) return undefined;
+    
+    const updatedInfo = { 
+      ...existingInfo, 
+      ...info, 
+      updatedAt: new Date() 
+    };
+    this.personalInformations.set(existingInfo.id, updatedInfo);
+    return updatedInfo;
   }
   
   // Project operations
@@ -1364,6 +1407,30 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.companyProfiles.id, id))
       .returning();
     return updatedProfile;
+  }
+
+  // Personal information operations
+  async getPersonalInformationByUserId(userId: number): Promise<PersonalInformation | undefined> {
+    const personalInfos = await db.query.personalInformation.findMany({
+      where: eq(personalInformation.userId, userId),
+      limit: 1
+    });
+    return personalInfos.length > 0 ? personalInfos[0] : undefined;
+  }
+
+  async createPersonalInformation(info: InsertPersonalInformation): Promise<PersonalInformation> {
+    const [insertedInfo] = await db.insert(personalInformation)
+      .values(info)
+      .returning();
+    return insertedInfo;
+  }
+
+  async updatePersonalInformation(userId: number, info: Partial<PersonalInformation>): Promise<PersonalInformation | undefined> {
+    const [updatedInfo] = await db.update(personalInformation)
+      .set(info)
+      .where(eq(personalInformation.userId, userId))
+      .returning();
+    return updatedInfo;
   }
 
   // Project operations
