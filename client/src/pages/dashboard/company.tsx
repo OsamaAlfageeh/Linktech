@@ -89,6 +89,7 @@ const profileSchema = z.object({
   skills: z.string().min(1, "التخصصات والمهارات مطلوبة"),
   website: z.string().optional(),
   location: z.string().optional(),
+  email: z.string().email("البريد الإلكتروني غير صالح").min(1, "البريد الإلكتروني مطلوب"),
 });
 
 // Personal info form schema
@@ -215,6 +216,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       form.setValue("skills", profile.skills.join(", "));
       form.setValue("website", profile.website || "");
       form.setValue("location", profile.location || "");
+      form.setValue("email", auth.user?.email || "");
       
       // ضبط قيم البيانات الشخصية إذا كانت موجودة
       personalInfoForm.setValue("fullName", profile.fullName || "");
@@ -223,7 +225,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       personalInfoForm.setValue("birthDate", profile.birthDate || "");
       personalInfoForm.setValue("address", profile.address || "");
     }
-  }, [profile, form, personalInfoForm]);
+  }, [profile, form, personalInfoForm, auth.user?.email]);
 
   // Update profile mutation
   // تحديث بيانات الملف الشخصي للشركة
@@ -232,18 +234,34 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       if (!profile?.id) throw new Error("Profile ID is missing");
       
       const skills = data.skills.split(",").map((skill) => skill.trim()).filter(skill => skill !== "");
-      const profileData = {
-        ...data,
+      const { email, ...profileData } = data;
+      const updatedProfileData = {
+        ...profileData,
         skills,
       };
       
-      console.log('Sending update to server:', JSON.stringify(profileData));
+      console.log('Sending update to server:', JSON.stringify(updatedProfileData));
       console.log('Profile ID:', profile.id);
       
-      const response = await apiRequest("PATCH", `/api/companies/${profile.id}`, profileData);
-      const result = await response.json();
-      console.log('Server response:', JSON.stringify(result));
-      return result;
+      // Update company profile
+      const profileResponse = await apiRequest("PATCH", `/api/companies/${profile.id}`, updatedProfileData);
+      const profileResult = await profileResponse.json();
+      
+      // Update user email if it changed
+      if (email && email !== auth.user?.email) {
+        console.log('Updating user email:', email);
+        const userResponse = await apiRequest("PATCH", `/api/users/${auth.user?.id}`, { email });
+        
+        if (!userResponse.ok) {
+          throw new Error("Failed to update email");
+        }
+        
+        // Refresh auth data to reflect email change
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      }
+      
+      console.log('Server response:', JSON.stringify(profileResult));
+      return profileResult;
     },
     onSuccess: async (data) => {
       console.log('تم استلام بيانات محدثة من الخادم:', JSON.stringify(data));
@@ -684,6 +702,24 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                 ) : isEditMode ? (
                   <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                      <FormField
+                        control={form.control}
+                        name="email"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>البريد الإلكتروني</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="email" 
+                                placeholder="company@example.com" 
+                                {...field} 
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
                       <FormField
                         control={form.control}
                         name="description"

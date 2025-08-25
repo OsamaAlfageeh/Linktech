@@ -506,6 +506,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user information
+  app.patch('/api/users/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const updates = req.body;
+      
+      // Only allow users to update their own information or admins to update any user
+      if (req.user?.id !== userId && req.user?.role !== 'admin') {
+        return res.status(403).json({ message: 'Forbidden' });
+      }
+      
+      // Remove sensitive fields that shouldn't be updated through this endpoint
+      const { password, role, id, createdAt, ...allowedUpdates } = updates;
+      
+      const updatedUser = await storage.updateUser(userId, allowedUpdates);
+      if (!updatedUser) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      const { password: _, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error('Error updating user:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Company profile routes - الشركات لا تظهر أبداً للزوار أو العملاء
   app.get('/api/companies', async (req: Request, res: Response) => {
     try {
