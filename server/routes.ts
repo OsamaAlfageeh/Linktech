@@ -1226,27 +1226,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // التحقق من معلومات صاحب المشروع (رائد الأعمال)
-      const projectOwner = await storage.getUser(project.userId);
-      if (!projectOwner) {
-        return res.status(400).json({ 
-          message: 'لا يمكن العثور على معلومات صاحب المشروع' 
-        });
-      }
-
-      if (!projectOwner.email) {
-        return res.status(400).json({ 
-          message: 'صاحب المشروع يجب أن يكمل معلومات البريد الإلكتروني في حسابه قبل توقيع اتفاقية عدم الإفصاح' 
-        });
-      }
-
-      // التحقق من معلومات الاتصال الشخصية لصاحب المشروع
-      const entrepreneurPersonalInfo = await storage.getPersonalInformationByUserId(project.userId);
-      if (!entrepreneurPersonalInfo || !entrepreneurPersonalInfo.mobileNumber) {
-        return res.status(400).json({ 
-          message: 'صاحب المشروع يجب أن يكمل معلوماته الشخصية (خاصة رقم الجوال) في ملفه الشخصي قبل توقيع اتفاقية عدم الإفصاح' 
-        });
-      }
+      // ملاحظة: في النظام المرحلي الجديد، رائد الأعمال سيقدم بياناته لاحقاً عند استلام الإشعار
+      // لا نحتاج للتحقق من بيانات رائد الأعمال هنا
       
       // التحقق من عدم وجود اتفاقية سابقة لهذا المشروع من نفس الشركة
       const existingNda = await storage.getNdaByProjectAndCompany(projectId, user.id);
