@@ -1187,137 +1187,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // NDA routes - مسارات اتفاقيات عدم الإفصاح
   
-  // التحقق من معلومات الاتصال المطلوبة لتوقيع اتفاقية عدم الإفصاح
-  app.post('/api/projects/:projectId/nda/validate-contact', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      const projectId = parseInt(req.params.projectId);
-      
-      // التحقق من وجود المشروع
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: 'المشروع غير موجود' });
-      }
-      
-      // تأكد من أن المستخدم هو شركة
-      if (user.role !== 'company') {
-        return res.status(403).json({ message: 'فقط الشركات يمكنها التحقق من معلومات الاتصال' });
-      }
-
-      // التحقق من معلومات الشركة
-      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
-      if (!companyProfile) {
-        return res.status(400).json({ 
-          message: 'يجب إكمال ملف تعريف الشركة أولاً' 
-        });
-      }
-
-      const hasEmail = !!user.email;
-      const hasPhone = !!companyProfile.phone;
-      
-      // التحقق من معلومات صاحب المشروع
-      const projectOwner = await storage.getUser(project.userId);
-      if (!projectOwner) {
-        return res.status(400).json({ 
-          message: 'لا يمكن العثور على معلومات صاحب المشروع' 
-        });
-      }
-
-      const projectOwnerPersonalInfo = await storage.getPersonalInformationByUserId(project.userId);
-      const projectOwnerHasEmail = !!projectOwner.email;
-      const projectOwnerHasPhone = !!projectOwnerPersonalInfo?.mobileNumber;
-
-      // إذا كانت معلومات الشركة كاملة ومعلومات صاحب المشروع كاملة
-      if (hasEmail && hasPhone && projectOwnerHasEmail && projectOwnerHasPhone) {
-        return res.json({
-          valid: true,
-          hasEmail: true,
-          hasPhone: true,
-          existingPhone: companyProfile.phone
-        });
-      }
-
-      // إذا كانت معلومات الشركة ناقصة
-      if (!hasEmail || !hasPhone) {
-        return res.json({
-          valid: false,
-          hasEmail,
-          hasPhone,
-          existingPhone: companyProfile.phone,
-          message: 'يجب إكمال معلومات الاتصال الخاصة بك'
-        });
-      }
-
-      // إذا كانت معلومات صاحب المشروع ناقصة
-      if (!projectOwnerHasEmail || !projectOwnerHasPhone) {
-        return res.json({
-          valid: false,
-          blocked: true,
-          hasEmail: true, // Company has email
-          hasPhone: true, // Company has phone
-          projectOwnerMissing: {
-            email: !projectOwnerHasEmail,
-            phone: !projectOwnerHasPhone
-          },
-          message: 'صاحب المشروع يجب أن يكمل معلوماته الشخصية قبل توقيع اتفاقية عدم الإفصاح'
-        });
-      }
-
-    } catch (error) {
-      console.error('❌ خطأ في التحقق من معلومات الاتصال:', error);
-      res.status(500).json({ message: 'حدث خطأ في النظام' });
-    }
-  });
-
-  // تحديث معلومات الاتصال للشركة
-  app.post('/api/projects/:projectId/nda/update-contact', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const user = req.user as any;
-      const projectId = parseInt(req.params.projectId);
-      const { email, phone } = req.body;
-      
-      // التحقق من وجود المشروع
-      const project = await storage.getProject(projectId);
-      if (!project) {
-        return res.status(404).json({ message: 'المشروع غير موجود' });
-      }
-      
-      // تأكد من أن المستخدم هو شركة
-      if (user.role !== 'company') {
-        return res.status(403).json({ message: 'فقط الشركات يمكنها تحديث معلومات الاتصال' });
-      }
-
-      // الحصول على ملف تعريف الشركة
-      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
-      if (!companyProfile) {
-        return res.status(400).json({ 
-          message: 'يجب إكمال ملف تعريف الشركة أولاً' 
-        });
-      }
-
-      // تحديث البريد الإلكتروني في حساب المستخدم إذا لزم الأمر
-      if (email && email !== user.email) {
-        await storage.updateUser(user.id, { email });
-      }
-
-      // تحديث رقم الهاتف في ملف الشركة إذا لزم الأمر
-      if (phone && phone !== companyProfile.phone) {
-        await storage.updateCompanyProfile(companyProfile.id, { phone });
-      }
-
-      res.json({ 
-        message: 'تم تحديث معلومات الاتصال بنجاح',
-        updated: {
-          email: email && email !== user.email,
-          phone: phone && phone !== companyProfile.phone
-        }
-      });
-
-    } catch (error) {
-      console.error('❌ خطأ في تحديث معلومات الاتصال:', error);
-      res.status(500).json({ message: 'حدث خطأ في النظام' });
-    }
-  });
 
   // المرحلة الأولى: الشركة تنشئ طلب اتفاقية عدم إفصاح
   app.post('/api/projects/:projectId/nda/initiate', isAuthenticated, async (req: Request, res: Response) => {
@@ -1616,16 +1485,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // التحقق من البيانات المطلوبة لكلا الطرفين
       if (!entrepreneur?.name || !entrepreneur?.email || !entrepreneur?.phone) {
         return res.status(400).json({ 
-          message: 'بيانات صاحب المشروع مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+          message: 'بيانات رائد الأعمال مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
         });
       }
       
-      // إزالة التحقق من بيانات ممثل الشركة - سنستخدم البيانات من الملف الشخصي
-      // if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
-      //   return res.status(400).json({ 
-      //     message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
-      //   });
-      // }
+      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
       
       // التحقق من وجود المشروع
       const project = await storage.getProject(projectId);
@@ -1657,14 +1525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'صاحب المشروع غير موجود' });
       }
 
-      // استخدام بيانات الشركة من الملف الشخصي تلقائياً (مسار legacy)
-      const autoCompanyRep = companyRep || {
-        name: companyProfile.fullName || user.name || user.username,
-        email: user.email,
-        phone: companyProfile.phone
-      };
-
-      console.log(`✅ [Legacy] استخدام بيانات الشركة الموجودة: ${autoCompanyRep.name} - ${autoCompanyRep.email}`);
+      console.log(`✅ استخدام بيانات النموذج: ${companyRep.name} - ${companyRep.email}`);
 
       // إنشاء بيانات اتفاقية عدم الإفصاح بحالة "pending" في انتظار التوقيع من صادق
       const ndaData = insertNdaAgreementSchema.parse({
@@ -1672,14 +1533,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'pending', // في انتظار التوقيع الإلكتروني
         companySignatureInfo: {
           companyId: companyProfile.id,
-          companyName: companyProfile.legalName || user.name,
-          signerName: autoCompanyRep.name,
-          signerEmail: autoCompanyRep.email,
-          signerPhone: autoCompanyRep.phone,
+          companyName: companyProfile.legalName || companyRep.name,
+          signerName: companyRep.name,
+          signerEmail: companyRep.email,
+          signerPhone: companyRep.phone,
           signerIp: req.ip,
           timestamp: new Date().toISOString()
         },
-        // إضافة بيانات صاحب المشروع
+        // بيانات رائد الأعمال من النموذج
         entrepreneurInfo: {
           name: entrepreneur.name,
           email: entrepreneur.email,
@@ -1708,7 +1569,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
         const signingPartiesData = {
           entrepreneur: entrepreneur.name,
-          companyRep: autoCompanyRep.name
+          companyRep: companyRep.name
         };
         
         const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
@@ -1737,9 +1598,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               gender: 'NONE'
             },
             {
-              fullName: autoCompanyRep.name,
-              email: autoCompanyRep.email,
-              phoneNumber: autoCompanyRep.phone,
+              fullName: companyRep.name,
+              email: companyRep.email,
+              phoneNumber: companyRep.phone,
               signOrder: 1,
               nationalId: '',
               gender: 'NONE'

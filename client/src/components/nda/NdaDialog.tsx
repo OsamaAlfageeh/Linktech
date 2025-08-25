@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -14,9 +14,8 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Shield, FileCheck, FileText, Lock, User, Phone, Mail } from "lucide-react";
+import { Shield, FileCheck, FileText, Lock, User, Phone, Mail, Users } from "lucide-react";
 
 interface NdaDialogProps {
   projectId: number;
@@ -24,6 +23,19 @@ interface NdaDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: (ndaId: number) => void;
+}
+
+interface ContactFormData {
+  companyRep: {
+    name: string;
+    email: string;
+    phone: string;
+  };
+  entrepreneur: {
+    name: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export function NdaDialog({
@@ -37,445 +49,352 @@ export function NdaDialog({
   const queryClient = useQueryClient();
   
   const [agreed, setAgreed] = useState(false);
-  const [step, setStep] = useState<'validation' | 'agreement'>('validation');
-  
-  // Contact information state
-  const [contactInfo, setContactInfo] = useState({
-    email: '',
-    phone: ''
-  });
-  
-  // Validation state
-  const [needsEmail, setNeedsEmail] = useState(false);
-  const [needsPhone, setNeedsPhone] = useState(false);
+  const [step, setStep] = useState<'contact-info' | 'agreement'>('contact-info');
   
   // Get current user info
   const { data: auth } = useQuery<any>({
     queryKey: ['/api/auth/user'],
   });
 
-  // Validation mutation to check what contact info is missing
-  const validateContactMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest(
-        "POST",
-        `/api/projects/${projectId}/nda/validate-contact`,
-        {}
-      );
-      return await response.json();
+  // Contact form state - always collect both parties' info
+  const [contactForm, setContactForm] = useState<ContactFormData>({
+    companyRep: {
+      name: auth?.user?.name || '',
+      email: auth?.user?.email || '',
+      phone: ''
     },
-    onSuccess: (data) => {
-      if (data.valid) {
-        // All contact info is complete, proceed to agreement step
-        setStep('agreement');
-      } else if (data.blocked) {
-        // Project owner is missing information - show blocked state
-        setStep('validation');
-        setNeedsEmail(false);
-        setNeedsPhone(false);
-        // The UI will show the blocked state - no need for toast
-      } else {
-        // Company is missing information - show input fields
-        setNeedsEmail(!data.hasEmail);
-        setNeedsPhone(!data.hasPhone);
-        
-        // Pre-fill existing information
-        if (data.hasEmail && auth?.user?.email) {
-          setContactInfo(prev => ({ ...prev, email: auth.user.email }));
-        }
-        if (data.existingPhone) {
-          setContactInfo(prev => ({ ...prev, phone: data.existingPhone }));
-        }
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "خطأ في التحقق من البيانات",
-        description: error.message || "حدث خطأ أثناء التحقق من بياناتك.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Update contact information mutation
-  const updateContactMutation = useMutation({
-    mutationFn: async (contactData: { email?: string; phone?: string }) => {
-      const response = await apiRequest(
-        "POST",
-        `/api/projects/${projectId}/nda/update-contact`,
-        contactData
-      );
-      return await response.json();
-    },
-    onSuccess: () => {
-      setStep('agreement');
-      toast({
-        title: "تم تحديث معلومات الاتصال",
-        description: "تم حفظ معلومات الاتصال الخاصة بك بنجاح.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "خطأ في تحديث البيانات",
-        description: error.message || "حدث خطأ أثناء تحديث معلومات الاتصال.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Create NDA mutation
-  const createNdaMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest(
-        "POST",
-        `/api/projects/${projectId}/nda/initiate`,
-        {}
-      );
-      return await response.json();
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({
-        queryKey: [`/api/projects/${projectId}`],
-      });
-      toast({
-        title: "تم إنشاء طلب اتفاقية عدم الإفصاح",
-        description: `تم إرسال إشعار إلى صاحب المشروع لإكمال بياناته. ستتلقى تأكيداً عبر البريد الإلكتروني عند اكتمال العملية.`,
-      });
-      onOpenChange(false);
-      if (onSuccess) {
-        onSuccess(data.id);
-      }
-    },
-    onError: (error) => {
-      toast({
-        title: "خطأ في إرسال دعوة التوقيع",
-        description: error.message || "حدث خطأ أثناء إرسال دعوة التوقيع. يرجى المحاولة مرة أخرى.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Reset state when dialog opens
-  useEffect(() => {
-    if (isOpen) {
-      setStep('validation');
-      setAgreed(false);
-      setContactInfo({ email: '', phone: '' });
-      setNeedsEmail(false);
-      setNeedsPhone(false);
-      
-      // Validate contact information when dialog opens
-      validateContactMutation.mutate();
+    entrepreneur: {
+      name: '',
+      email: '',
+      phone: ''
     }
-  }, [isOpen]);
+  });
+
+  // Reset form when dialog opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setStep('contact-info');
+      setAgreed(false);
+      setContactForm({
+        companyRep: {
+          name: auth?.user?.name || '',
+          email: auth?.user?.email || '',
+          phone: ''
+        },
+        entrepreneur: {
+          name: '',
+          email: '',
+          phone: ''
+        }
+      });
+    }
+  }, [isOpen, auth?.user]);
+
+  // Create NDA with contact information
+  const createNdaMutation = useMutation({
+    mutationFn: async (data: ContactFormData) => {
+      const response = await apiRequest("POST", `/api/projects/${projectId}/nda`, {
+        entrepreneur: data.entrepreneur,
+        companyRep: data.companyRep
+      });
+      return await response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/nda`] });
+      
+      toast({
+        title: "تم إنشاء اتفاقية عدم الإفصاح",
+        description: "تم إرسال الاتفاقية للتوقيع الإلكتروني عبر منصة صادق.",
+      });
+
+      onOpenChange(false);
+      onSuccess?.(data.id);
+    },
+    onError: (error) => {
+      toast({
+        title: "حدث خطأ",
+        description: error.message || "لم نتمكن من إنشاء اتفاقية عدم الإفصاح.",
+        variant: "destructive",
+      });
+    },
+  });
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate required contact information
-    if (needsEmail && !contactInfo.email.trim()) {
-      toast({
-        title: "البريد الإلكتروني مطلوب",
-        description: "يرجى إدخال عنوان بريد إلكتروني صحيح.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Validate all required fields
+    const { companyRep, entrepreneur } = contactForm;
     
-    if (needsPhone && !contactInfo.phone.trim()) {
+    if (!companyRep.name || !companyRep.email || !companyRep.phone) {
       toast({
-        title: "رقم الهاتف مطلوب",
-        description: "يرجى إدخال رقم هاتف صحيح.",
+        title: "معلومات مطلوبة",
+        description: "يرجى إكمال جميع معلومات ممثل الشركة.",
         variant: "destructive",
       });
       return;
     }
 
-    // Update contact information
-    const updateData: { email?: string; phone?: string } = {};
-    if (needsEmail) updateData.email = contactInfo.email;
-    if (needsPhone) updateData.phone = contactInfo.phone;
-    
-    updateContactMutation.mutate(updateData);
+    if (!entrepreneur.name || !entrepreneur.email || !entrepreneur.phone) {
+      toast({
+        title: "معلومات مطلوبة", 
+        description: "يرجى إكمال جميع معلومات رائد الأعمال.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Move to agreement step
+    setStep('agreement');
   };
 
-  const handleAgreementSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
+  const handleAgreementSubmit = () => {
     if (!agreed) {
       toast({
-        title: "يرجى الموافقة على الشروط",
-        description: "يجب عليك الموافقة على شروط اتفاقية عدم الإفصاح للمتابعة.",
+        title: "موافقة مطلوبة",
+        description: "يرجى الموافقة على شروط اتفاقية عدم الإفصاح.",
         variant: "destructive",
       });
       return;
     }
 
-    createNdaMutation.mutate();
+    createNdaMutation.mutate(contactForm);
+  };
+
+  const handleInputChange = (
+    party: 'companyRep' | 'entrepreneur',
+    field: 'name' | 'email' | 'phone',
+    value: string
+  ) => {
+    setContactForm(prev => ({
+      ...prev,
+      [party]: {
+        ...prev[party],
+        [field]: value
+      }
+    }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <div className="flex items-center mb-2">
-            <Shield className="h-6 w-6 text-primary ml-2" />
-            <DialogTitle>
-              {step === 'validation' ? 'تأكيد معلومات الاتصال' : 'اتفاقية عدم الإفصاح'}
-            </DialogTitle>
-          </div>
+          <DialogTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            اتفاقية عدم الإفصاح - {projectTitle}
+          </DialogTitle>
           <DialogDescription>
-            {step === 'validation' 
-              ? 'يرجى تأكيد أو إكمال معلومات الاتصال الخاصة بك قبل المتابعة'
-              : 'للاطلاع على تفاصيل المشروع والمشاركة فيه، يجب عليك توقيع اتفاقية عدم الإفصاح إلكترونياً عبر نفاذ'
+            {step === 'contact-info' 
+              ? 'يرجى إدخال معلومات الاتصال لكلا الطرفين لإتمام عملية توقيع اتفاقية عدم الإفصاح'
+              : 'يرجى مراجعة والموافقة على شروط اتفاقية عدم الإفصاح'
             }
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-6">
-          {validateContactMutation.isPending && (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              <span className="mr-3">التحقق من البيانات...</span>
-            </div>
-          )}
-
-          {/* Blocked State - Project Owner Missing Information */}
-          {step === 'validation' && !validateContactMutation.isPending && !needsEmail && !needsPhone && (
-            <div className="text-center py-8">
-              <div className="bg-orange-50 p-6 rounded-lg border border-orange-200 mb-6">
-                <div className="flex items-center justify-center mb-4">
-                  <User className="h-12 w-12 text-orange-600" />
+        {step === 'contact-info' && (
+          <form onSubmit={handleContactSubmit} className="space-y-6">
+            {/* Company Representative Info */}
+            <div className="space-y-4">
+              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                <div className="flex items-center mb-3">
+                  <User className="h-5 w-5 text-blue-600 ml-2" />
+                  <h3 className="font-medium text-blue-800">معلومات ممثل الشركة</h3>
                 </div>
-                <h3 className="font-medium text-orange-800 mb-2">في انتظار إكمال البيانات</h3>
-                <p className="text-sm text-orange-700 mb-4">
-                  صاحب المشروع بحاجة لإكمال معلومات الاتصال الخاصة به (البريد الإلكتروني ورقم الهاتف) قبل المتابعة في عملية توقيع اتفاقية عدم الإفصاح.
-                </p>
-                <p className="text-xs text-orange-600">
-                  سيتم إشعارك عند اكتمال البيانات المطلوبة
-                </p>
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => onOpenChange(false)}
-                >
-                  إغلاق
-                </Button>
-              </DialogFooter>
-            </div>
-          )}
-
-          {/* Contact Information Step */}
-          {step === 'validation' && !validateContactMutation.isPending && (needsEmail || needsPhone) && (
-            <form onSubmit={handleContactSubmit} className="space-y-6">
-              <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start">
-                <User className="h-5 w-5 text-blue-600 mt-0.5 ml-3 flex-shrink-0" />
-                <div>
-                  <h4 className="font-medium text-blue-800">إكمال معلومات الاتصال</h4>
-                  <p className="text-sm text-blue-700 mt-1">
-                    نحتاج إلى معلومات اتصال كاملة لإتمام عملية التوقيع الإلكتروني عبر نفاذ.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                {needsEmail && (
+                
+                <div className="grid grid-cols-1 gap-4">
                   <div>
-                    <Label htmlFor="email" className="flex items-center">
-                      <Mail className="h-4 w-4 ml-1" />
-                      البريد الإلكتروني
-                    </Label>
+                    <Label htmlFor="company-name">الاسم الكامل *</Label>
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="أدخل بريدك الإلكتروني"
-                      value={contactInfo.email}
-                      onChange={(e) => setContactInfo(prev => ({ ...prev, email: e.target.value }))}
-                      className="mt-1"
+                      id="company-name"
+                      value={contactForm.companyRep.name}
+                      onChange={(e) => handleInputChange('companyRep', 'name', e.target.value)}
+                      placeholder="اسم ممثل الشركة"
                       required
                     />
                   </div>
-                )}
-
-                {needsPhone && (
-                  <div>
-                    <Label htmlFor="phone" className="flex items-center">
-                      <Phone className="h-4 w-4 ml-1" />
-                      رقم الهاتف
-                    </Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      placeholder="أدخل رقم هاتفك (مثال: 0551234567)"
-                      value={contactInfo.phone}
-                      onChange={(e) => setContactInfo(prev => ({ ...prev, phone: e.target.value }))}
-                      className="mt-1"
-                      required
-                    />
-                  </div>
-                )}
-              </div>
-
-              <DialogFooter>
-                <Button type="submit" disabled={updateContactMutation.isPending}>
-                  {updateContactMutation.isPending ? "جاري الحفظ..." : "حفظ والمتابعة"}
-                </Button>
-              </DialogFooter>
-            </form>
-          )}
-
-          {/* Agreement Step */}
-          {step === 'agreement' && (
-            <>
-          <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-start">
-            <Lock className="h-5 w-5 text-blue-600 mt-0.5 ml-3 flex-shrink-0" />
-            <div>
-              <h4 className="font-medium text-blue-800">توقيع إلكتروني معتمد</h4>
-              <p className="text-sm text-blue-700 mt-1">
-                مشروع "{projectTitle}" يتطلب توقيع اتفاقية عدم إفصاح معتمدة إلكترونياً. سيتم التحقق من هويتك عبر نفاذ وإرسال رابط التوقيع إلى بريدك الإلكتروني.
-              </p>
-            </div>
-          </div>
-
-          <div className="bg-neutral-50 p-4 rounded-lg border border-neutral-200">
-            <h3 className="font-semibold mb-3 flex items-center">
-              <FileText className="h-5 w-5 ml-2 text-neutral-700" />
-              نص اتفاقية عدم الإفصاح
-            </h3>
-            <div className="text-sm text-neutral-700 space-y-3 max-h-48 overflow-y-auto p-3 bg-white rounded border border-neutral-200">
-              <p className="font-bold text-center text-lg">اتفاقية عدم إفصاح</p>
-              
-              <p>
-                <strong>المقدمة:</strong> هذه الاتفاقية ("الاتفاقية") محررة ومبرمة بتاريخ التوقيع الإلكتروني بينك ("الطرف المستلم") وبين صاحب المشروع ("الطرف المفصح").
-              </p>
-              
-              <p>
-                <strong>الغرض:</strong> لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف المفصح بالكشف عن معلومات سرية وملكية فكرية للطرف المستلم.
-              </p>
-              
-              <p>
-                <strong>المعلومات السرية:</strong> تشمل "المعلومات السرية" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.
-              </p>
-              
-              <p>
-                <strong>التزامات الطرف المستلم:</strong> يوافق الطرف المستلم على:
-              </p>
-              <ol className="list-decimal pr-6 space-y-1">
-                <li>الحفاظ على سرية جميع المعلومات السرية وعدم الكشف عنها لأي طرف ثالث.</li>
-                <li>استخدام المعلومات السرية فقط لغرض تقييم إمكانية التعاون في تنفيذ المشروع.</li>
-                <li>عدم نسخ أو تصوير أو تخزين أي من المعلومات السرية إلا بقدر ما هو ضروري لتحقيق الغرض من هذه الاتفاقية.</li>
-                <li>اتخاذ جميع الإجراءات المعقولة للحفاظ على سرية المعلومات السرية بنفس مستوى العناية الذي يستخدمه لحماية معلوماته السرية الخاصة.</li>
-                <li>إبلاغ الطرف المفصح فوراً في حالة علمه بأي استخدام أو كشف غير مصرح به للمعلومات السرية.</li>
-              </ol>
-              
-              <p>
-                <strong>مدة الاتفاقية:</strong> تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.
-              </p>
-              
-              <p>
-                <strong>القانون الحاكم:</strong> تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.
-              </p>
-              
-              <p>
-                <strong>توقيع إلكتروني:</strong> يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.
-              </p>
-            </div>
-          </div>
-
-              <form onSubmit={handleAgreementSubmit} className="space-y-6">
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <div className="flex items-start">
-                    <FileCheck className="h-5 w-5 text-green-600 mt-0.5 ml-3 flex-shrink-0" />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <h3 className="font-semibold mb-2 text-green-800">
-                        معلومات الاتصال محدثة
-                      </h3>
-                      <p className="text-sm text-green-700">
-                        تم تأكيد جميع معلومات الاتصال المطلوبة للتوقيع الإلكتروني. سيتم استخدام هذه البيانات في اتفاقية عدم الإفصاح.
-                      </p>
+                      <Label htmlFor="company-email">البريد الإلكتروني *</Label>
+                      <div className="relative">
+                        <Mail className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="company-email"
+                          type="email"
+                          value={contactForm.companyRep.email}
+                          onChange={(e) => handleInputChange('companyRep', 'email', e.target.value)}
+                          placeholder="company@example.com"
+                          className="pr-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="company-phone">رقم الهاتف *</Label>
+                      <div className="relative">
+                        <Phone className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="company-phone"
+                          type="tel"
+                          value={contactForm.companyRep.phone}
+                          onChange={(e) => handleInputChange('companyRep', 'phone', e.target.value)}
+                          placeholder="05xxxxxxxx"
+                          className="pr-10"
+                          required
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
+              </div>
+            </div>
 
-                <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                  <h4 className="font-medium text-green-800 mb-2">الخطوة التالية</h4>
-                  <p className="text-sm text-green-700">
-                    بعد إرسال طلبك، سيتم إشعار صاحب المشروع لإكمال بياناته. عند اكتمال البيانات من الطرفين، ستتلقى رابط التوقيع الإلكتروني عبر البريد.
+            {/* Entrepreneur Info */}
+            <div className="space-y-4">
+              <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+                <div className="flex items-center mb-3">
+                  <Users className="h-5 w-5 text-green-600 ml-2" />
+                  <h3 className="font-medium text-green-800">معلومات رائد الأعمال</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 gap-4">
+                  <div>
+                    <Label htmlFor="entrepreneur-name">الاسم الكامل *</Label>
+                    <Input
+                      id="entrepreneur-name"
+                      value={contactForm.entrepreneur.name}
+                      onChange={(e) => handleInputChange('entrepreneur', 'name', e.target.value)}
+                      placeholder="اسم رائد الأعمال"
+                      required
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="entrepreneur-email">البريد الإلكتروني *</Label>
+                      <div className="relative">
+                        <Mail className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="entrepreneur-email"
+                          type="email"
+                          value={contactForm.entrepreneur.email}
+                          onChange={(e) => handleInputChange('entrepreneur', 'email', e.target.value)}
+                          placeholder="entrepreneur@example.com"
+                          className="pr-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <Label htmlFor="entrepreneur-phone">رقم الهاتف *</Label>
+                      <div className="relative">
+                        <Phone className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="entrepreneur-phone"
+                          type="tel"
+                          value={contactForm.entrepreneur.phone}
+                          onChange={(e) => handleInputChange('entrepreneur', 'phone', e.target.value)}
+                          placeholder="05xxxxxxxx"
+                          className="pr-10"
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => onOpenChange(false)}
+              >
+                إلغاء
+              </Button>
+              <Button type="submit">
+                المتابعة إلى الاتفاقية
+              </Button>
+            </DialogFooter>
+          </form>
+        )}
+
+        {step === 'agreement' && (
+          <div className="space-y-6">
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-200">
+              <div className="flex items-start">
+                <Shield className="h-5 w-5 text-amber-600 mt-0.5 ml-3 flex-shrink-0" />
+                <div>
+                  <h3 className="font-medium text-amber-800 mb-2">اتفاقية عدم الإفصاح</h3>
+                  <p className="text-sm text-amber-700 mb-3">
+                    بالموافقة على هذه الاتفاقية، فإنك تتعهد بعدم الكشف عن أي معلومات سرية 
+                    أو مملوكة تتعلق بمشروع "{projectTitle}".
                   </p>
                 </div>
+              </div>
+            </div>
 
-                <div className="flex items-start space-x-2 space-x-reverse">
-                  <Checkbox
-                    id="agreed"
-                    checked={agreed}
-                    onCheckedChange={(checked) => setAgreed(checked as boolean)}
-                    className="mt-1"
-                  />
-                  <div>
-                    <Label
-                      htmlFor="agreed"
-                      className="text-sm font-normal cursor-pointer"
-                    >
-                      أقر وأوافق على جميع شروط وأحكام اتفاقية عدم الإفصاح وألتزم بها
-                    </Label>
-                    <p className="text-xs text-neutral-500 mt-1">
-                      سيتم التحقق من هويتك رسمياً عبر نفاذ وحفظ جميع بيانات التوقيع الإلكتروني
-                    </p>
-                  </div>
+            <div className="bg-gray-50 p-4 rounded-lg border">
+              <h4 className="font-medium text-gray-800 mb-3">الأطراف المشاركة:</h4>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">ممثل الشركة:</span>
+                  <span className="font-medium">{contactForm.companyRep.name} - {contactForm.companyRep.email}</span>
                 </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">رائد الأعمال:</span>
+                  <span className="font-medium">{contactForm.entrepreneur.name} - {contactForm.entrepreneur.email}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">المشروع:</span>
+                  <span className="font-medium">{projectTitle}</span>
+                </div>
+              </div>
+            </div>
 
-                <DialogFooter className="mt-6">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => onOpenChange(false)}
-                    className="ml-2"
-                  >
-                    إلغاء
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={createNdaMutation.isPending}
-                    className="bg-gradient-to-l from-blue-600 to-primary hover:from-blue-700 hover:to-primary-dark"
-                  >
-                    {createNdaMutation.isPending ? (
-                  <div className="flex items-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    جاري الإرسال...
-                  </div>
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="agree"
+                  checked={agreed}
+                  onCheckedChange={(checked) => setAgreed(checked as boolean)}
+                />
+                <Label htmlFor="agree" className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                  أوافق على شروط اتفاقية عدم الإفصاح وألتزم بعدم الكشف عن المعلومات السرية
+                </Label>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setStep('contact-info')}
+              >
+                العودة
+              </Button>
+              <Button
+                onClick={handleAgreementSubmit}
+                disabled={!agreed || createNdaMutation.isPending}
+              >
+                {createNdaMutation.isPending ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white ml-2"></div>
+                    جاري الإنشاء...
+                  </>
                 ) : (
-                  <div className="flex items-center">
-                    <FileCheck className="ml-2 h-5 w-5" />
-                    إرسال دعوة التوقيع الإلكتروني
-                  </div>
+                  <>
+                    <FileCheck className="w-4 h-4 ml-2" />
+                    إنشاء اتفاقية عدم الإفصاح
+                  </>
                 )}
               </Button>
-                </DialogFooter>
-              </form>
-            </>
-          )}
-        </div>
+            </DialogFooter>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );
