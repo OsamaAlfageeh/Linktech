@@ -68,8 +68,14 @@ export function NdaDialog({
       if (data.valid) {
         // All contact info is complete, proceed to agreement step
         setStep('agreement');
+      } else if (data.blocked) {
+        // Project owner is missing information - show blocked state
+        setStep('validation');
+        setNeedsEmail(false);
+        setNeedsPhone(false);
+        // The UI will show the blocked state - no need for toast
       } else {
-        // Show input fields for missing information
+        // Company is missing information - show input fields
         setNeedsEmail(!data.hasEmail);
         setNeedsPhone(!data.hasPhone);
         
@@ -231,6 +237,33 @@ export function NdaDialog({
             <div className="flex items-center justify-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
               <span className="mr-3">التحقق من البيانات...</span>
+            </div>
+          )}
+
+          {/* Blocked State - Project Owner Missing Information */}
+          {step === 'validation' && !validateContactMutation.isPending && !needsEmail && !needsPhone && (
+            <div className="text-center py-8">
+              <div className="bg-orange-50 p-6 rounded-lg border border-orange-200 mb-6">
+                <div className="flex items-center justify-center mb-4">
+                  <User className="h-12 w-12 text-orange-600" />
+                </div>
+                <h3 className="font-medium text-orange-800 mb-2">في انتظار إكمال البيانات</h3>
+                <p className="text-sm text-orange-700 mb-4">
+                  صاحب المشروع بحاجة لإكمال معلومات الاتصال الخاصة به (البريد الإلكتروني ورقم الهاتف) قبل المتابعة في عملية توقيع اتفاقية عدم الإفصاح.
+                </p>
+                <p className="text-xs text-orange-600">
+                  سيتم إشعارك عند اكتمال البيانات المطلوبة
+                </p>
+              </div>
+              <DialogFooter>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                >
+                  إغلاق
+                </Button>
+              </DialogFooter>
             </div>
           )}
 

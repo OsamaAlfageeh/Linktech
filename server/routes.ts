@@ -1249,9 +1249,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // إذا كانت معلومات صاحب المشروع ناقصة
-      return res.status(400).json({
-        message: 'صاحب المشروع يجب أن يكمل معلوماته الشخصية (خاصة رقم الجوال) في ملفه الشخصي قبل توقيع اتفاقية عدم الإفصاح'
-      });
+      if (!projectOwnerHasEmail || !projectOwnerHasPhone) {
+        return res.json({
+          valid: false,
+          blocked: true,
+          hasEmail: true, // Company has email
+          hasPhone: true, // Company has phone
+          projectOwnerMissing: {
+            email: !projectOwnerHasEmail,
+            phone: !projectOwnerHasPhone
+          },
+          message: 'صاحب المشروع يجب أن يكمل معلوماته الشخصية قبل توقيع اتفاقية عدم الإفصاح'
+        });
+      }
 
     } catch (error) {
       console.error('❌ خطأ في التحقق من معلومات الاتصال:', error);
