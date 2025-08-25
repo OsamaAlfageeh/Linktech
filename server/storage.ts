@@ -1448,6 +1448,39 @@ export class DatabaseStorage implements IStorage {
     return updatedProject;
   }
 
+  async deleteProject(id: number): Promise<boolean> {
+    try {
+      // Check if project has any accepted or completed offers
+      const projectOffers = await db.query.projectOffers.findMany({
+        where: eq(schema.projectOffers.projectId, id)
+      });
+      
+      const hasActiveOffers = projectOffers.some(offer => 
+        offer.status === 'accepted' || offer.status === 'completed'
+      );
+      
+      if (hasActiveOffers) {
+        return false; // Cannot delete project with active offers
+      }
+      
+      // Delete all pending offers first  
+      await db.delete(schema.projectOffers)
+        .where(and(
+          eq(schema.projectOffers.projectId, id),
+          eq(schema.projectOffers.status, 'pending')
+        ));
+      
+      // Delete the project
+      await db.delete(schema.projects)
+        .where(eq(schema.projects.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting project:', error);
+      return false;
+    }
+  }
+
   // Message operations
   async getMessage(id: number): Promise<Message | undefined> {
     const messages = await db.query.messages.findMany({
