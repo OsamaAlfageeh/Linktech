@@ -127,6 +127,7 @@ type ProjectFormValues = z.infer<typeof projectSchema>;
 const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   const [location, navigate] = useLocation();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
