@@ -177,28 +177,82 @@ class SadiqAuthService {
   async uploadDocument(base64Content: string, fileName: string): Promise<{id: string}> {
     console.log(`📄 رفع وثيقة إلى صادق: ${fileName}`);
     
-    const response = await this.makeAuthenticatedRequest('/IntegrationService/Document/UploadBase64', {
-      method: 'POST',
-      body: JSON.stringify({
-        data: {
-          file: base64Content,
-          fileName: fileName,
-          contentType: 'application/pdf'
+    // Try different endpoint formats that might work with Sadiq API
+    const endpoints = [
+      '/IntegrationService/Document/Upload',
+      '/api/Document/Upload',
+      '/Document/Upload',
+      '/IntegrationService/Documents/Upload',
+      '/api/v1/documents/upload'
+    ];
+
+    let lastError: Error | null = null;
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`🔄 محاولة رفع باستخدام endpoint: ${endpoint}`);
+        
+        // Try JSON format first
+        let response = await this.makeAuthenticatedRequest(endpoint, {
+          method: 'POST',
+          body: JSON.stringify({
+            file: base64Content,
+            fileName: fileName,
+            contentType: 'application/pdf'
+          })
+        });
+
+        // If JSON fails, try multipart/form-data format
+        if (!response.ok && response.status === 405) {
+          console.log(`🔄 محاولة رفع باستخدام multipart/form-data لـ: ${endpoint}`);
+          
+          // Create form data
+          const formData = new FormData();
+          
+          // Convert base64 to blob for form data
+          const pdfBuffer = Buffer.from(base64Content, 'base64');
+          const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+          formData.append('file', blob, fileName);
+          formData.append('fileName', fileName);
+          formData.append('contentType', 'application/pdf');
+
+          const accessToken = await this.getAccessToken();
+          response = await fetch(`${this.BASE_URL}${endpoint}`, {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Accept': 'application/json'
+              // Don't set Content-Type, let the browser set it for multipart
+            },
+            body: formData
+          });
         }
-      })
-    });
 
-    if (!response.ok) {
-      throw new Error(`Failed to upload document: ${response.status}`);
+        if (response.ok) {
+          const result = await response.json();
+          
+          // Handle different response formats
+          if (result.errorCode === 0 || result.success || result.id) {
+            const documentId = result.data?.id || result.id || result.documentId;
+            console.log(`✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: ${documentId}`);
+            return { id: documentId };
+          }
+          
+          if (result.errorCode !== 0) {
+            throw new Error(`Sadiq upload error: ${result.message}`);
+          }
+        } else {
+          console.log(`❌ فشل endpoint ${endpoint} مع حالة: ${response.status}`);
+          lastError = new Error(`Failed to upload document: ${response.status}`);
+        }
+      } catch (error) {
+        console.log(`❌ خطأ في endpoint ${endpoint}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        lastError = error instanceof Error ? error : new Error('Unknown error');
+      }
     }
 
-    const result = await response.json();
-    if (result.errorCode !== 0) {
-      throw new Error(`Sadiq upload error: ${result.message}`);
-    }
-
-    console.log(`✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: ${result.data.id}`);
-    return { id: result.data.id };
+    // If all endpoints failed, throw the last error
+    throw lastError || new Error('All upload endpoints failed');
   }
 
   /**
