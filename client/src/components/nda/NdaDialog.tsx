@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Shield, FileCheck, FileText, Lock, User, Phone, Mail, Users } from "lucide-react";
+import { validatePhoneNumber, validateEmail, validateName, validateContactForm } from '@/lib/validation';
 
 interface NdaDialogProps {
   projectId: number;
@@ -45,6 +46,11 @@ export function NdaDialog({
   
   const [agreed, setAgreed] = useState(false);
   const [step, setStep] = useState<'contact-info' | 'agreement'>('contact-info');
+  
+  // Validation states for company form
+  const [nameValidation, setNameValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
+  const [emailValidation, setEmailValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
+  const [phoneValidation, setPhoneValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
   
   // Get current user info
   const { data: auth } = useQuery<any>({
@@ -107,16 +113,31 @@ export function NdaDialog({
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate company rep fields only
-    const { companyRep } = contactForm;
+    // Comprehensive validation using expert validation system
+    const validation = validateContactForm(contactForm.companyRep);
     
-    if (!companyRep.name || !companyRep.email || !companyRep.phone) {
+    if (!validation.isValid) {
+      // Update validation states for UI feedback
+      setNameValidation(validation.errors.name ? { isValid: false, message: validation.errors.name } : { isValid: true });
+      setEmailValidation(validation.errors.email ? { isValid: false, message: validation.errors.email } : { isValid: true });
+      setPhoneValidation(validation.errors.phone ? { isValid: false, message: validation.errors.phone } : { isValid: true });
+      
+      // Show first error as toast
+      const firstError = Object.values(validation.errors)[0];
       toast({
-        title: "معلومات مطلوبة",
-        description: "يرجى إكمال جميع معلومات ممثل الشركة.",
+        title: "بيانات غير صحيحة",
+        description: firstError,
         variant: "destructive",
       });
       return;
+    }
+
+    // All validations passed, use formatted data
+    if (validation.formattedData) {
+      setContactForm(prev => ({
+        ...prev,
+        companyRep: validation.formattedData!
+      }));
     }
 
     // Move to agreement step
@@ -147,6 +168,18 @@ export function NdaDialog({
         [field]: value
       }
     }));
+    
+    // Enhanced real-time validation for all fields
+    if (field === 'name') {
+      const validation = validateName(value);
+      setNameValidation(validation);
+    } else if (field === 'email') {
+      const validation = validateEmail(value);
+      setEmailValidation(validation);
+    } else if (field === 'phone') {
+      const validation = validatePhoneNumber(value);
+      setPhoneValidation(validation);
+    }
   };
 
   return (
@@ -183,8 +216,22 @@ export function NdaDialog({
                       value={contactForm.companyRep.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       placeholder="اسم ممثل الشركة"
+                      className={`${
+                        contactForm.companyRep.name && !nameValidation.isValid 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : nameValidation.message && nameValidation.isValid
+                          ? 'border-green-500 focus:border-green-500'
+                          : ''
+                      }`}
                       required
                     />
+                    {contactForm.companyRep.name && nameValidation.message && (
+                      <p className={`text-sm mt-1 ${
+                        nameValidation.isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {nameValidation.message}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -198,10 +245,23 @@ export function NdaDialog({
                           value={contactForm.companyRep.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
                           placeholder="company@example.com"
-                          className="pr-10"
+                          className={`pr-10 ${
+                            contactForm.companyRep.email && !emailValidation.isValid 
+                              ? 'border-red-500 focus:border-red-500' 
+                              : emailValidation.message && emailValidation.isValid
+                              ? 'border-green-500 focus:border-green-500'
+                              : ''
+                          }`}
                           required
                         />
                       </div>
+                      {contactForm.companyRep.email && emailValidation.message && (
+                        <p className={`text-sm mt-1 ${
+                          emailValidation.isValid ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {emailValidation.message}
+                        </p>
+                      )}
                     </div>
                     
                     <div>
@@ -213,11 +273,24 @@ export function NdaDialog({
                           type="tel"
                           value={contactForm.companyRep.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
-                          placeholder="05xxxxxxxx"
-                          className="pr-10"
+                          placeholder="+966xxxxxxxx أو 05xxxxxxxx"
+                          className={`pr-10 ${
+                            contactForm.companyRep.phone && !phoneValidation.isValid 
+                              ? 'border-red-500 focus:border-red-500' 
+                              : phoneValidation.message && phoneValidation.isValid
+                              ? 'border-green-500 focus:border-green-500'
+                              : ''
+                          }`}
                           required
                         />
                       </div>
+                      {contactForm.companyRep.phone && phoneValidation.message && (
+                        <p className={`text-sm mt-1 ${
+                          phoneValidation.isValid ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {phoneValidation.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>

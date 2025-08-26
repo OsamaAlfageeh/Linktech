@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Shield, FileCheck, Users, Phone, Mail } from "lucide-react";
+import { validatePhoneNumber, validateEmail, validateName, validateContactForm } from '@/lib/validation';
 
 interface NdaEntrepreneurFormProps {
   ndaId: number;
@@ -32,40 +33,6 @@ interface EntrepreneurFormData {
   phone: string;
 }
 
-// Phone number validation
-const validatePhoneNumber = (phone: string): { isValid: boolean; message?: string } => {
-  if (!phone.trim()) {
-    return { isValid: false, message: "رقم الهاتف مطلوب" };
-  }
-
-  // Remove spaces, dashes, parentheses
-  const cleaned = phone.replace(/[\s\-\(\)]/g, '');
-  
-  // Check for valid international format
-  if (cleaned.match(/^\+\d{1,4}\d{7,14}$/)) {
-    // Saudi numbers are preferred for Sadiq integration
-    if (cleaned.startsWith('+966')) {
-      return { isValid: true };
-    }
-    // Other international numbers
-    return { 
-      isValid: true, 
-      message: "ملاحظة: أرقام السعودية (+966) مفضلة لضمان أفضل توافق مع منصة صادق" 
-    };
-  }
-  
-  // Check for Saudi domestic format (05xxxxxxxx)
-  if (cleaned.match(/^05\d{8}$/)) {
-    return { isValid: true };
-  }
-  
-  // Invalid format
-  return { 
-    isValid: false, 
-    message: "تنسيق غير صحيح. استخدم +966xxxxxxxx أو 05xxxxxxxx للأرقام السعودية" 
-  };
-};
-
 export function NdaEntrepreneurForm({
   ndaId,
   projectTitle,
@@ -80,6 +47,8 @@ export function NdaEntrepreneurForm({
   const [agreed, setAgreed] = useState(false);
   const [step, setStep] = useState<'contact-info' | 'agreement'>('contact-info');
   const [phoneValidation, setPhoneValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
+  const [emailValidation, setEmailValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
+  const [nameValidation, setNameValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
   
   // Get current user info
   const { data: auth } = useQuery<any>({
@@ -139,25 +108,28 @@ export function NdaEntrepreneurForm({
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validate entrepreneur fields
-    if (!contactForm.name || !contactForm.email || !contactForm.phone) {
+    // Comprehensive validation using expert validation system
+    const validation = validateContactForm(contactForm);
+    
+    if (!validation.isValid) {
+      // Update validation states for UI feedback
+      setNameValidation(validation.errors.name ? { isValid: false, message: validation.errors.name } : { isValid: true });
+      setEmailValidation(validation.errors.email ? { isValid: false, message: validation.errors.email } : { isValid: true });
+      setPhoneValidation(validation.errors.phone ? { isValid: false, message: validation.errors.phone } : { isValid: true });
+      
+      // Show first error as toast
+      const firstError = Object.values(validation.errors)[0];
       toast({
-        title: "معلومات مطلوبة",
-        description: "يرجى إكمال جميع معلوماتك الشخصية.",
+        title: "بيانات غير صحيحة",
+        description: firstError,
         variant: "destructive",
       });
       return;
     }
 
-    // Validate phone number format
-    const phoneCheck = validatePhoneNumber(contactForm.phone);
-    if (!phoneCheck.isValid) {
-      toast({
-        title: "تنسيق رقم الهاتف غير صحيح",
-        description: phoneCheck.message,
-        variant: "destructive",
-      });
-      return;
+    // All validations passed, use formatted data
+    if (validation.formattedData) {
+      setContactForm(validation.formattedData);
     }
 
     // Move to agreement step
@@ -186,8 +158,14 @@ export function NdaEntrepreneurForm({
       [field]: value
     }));
     
-    // Validate phone number in real-time
-    if (field === 'phone') {
+    // Enhanced real-time validation for all fields
+    if (field === 'name') {
+      const validation = validateName(value);
+      setNameValidation(validation);
+    } else if (field === 'email') {
+      const validation = validateEmail(value);
+      setEmailValidation(validation);
+    } else if (field === 'phone') {
       const validation = validatePhoneNumber(value);
       setPhoneValidation(validation);
     }
@@ -238,8 +216,22 @@ export function NdaEntrepreneurForm({
                       value={contactForm.name}
                       onChange={(e) => handleInputChange('name', e.target.value)}
                       placeholder="اسمك الكامل"
+                      className={`${
+                        contactForm.name && !nameValidation.isValid 
+                          ? 'border-red-500 focus:border-red-500' 
+                          : nameValidation.message && nameValidation.isValid
+                          ? 'border-green-500 focus:border-green-500'
+                          : ''
+                      }`}
                       required
                     />
+                    {contactForm.name && nameValidation.message && (
+                      <p className={`text-sm mt-1 ${
+                        nameValidation.isValid ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        {nameValidation.message}
+                      </p>
+                    )}
                   </div>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -253,10 +245,23 @@ export function NdaEntrepreneurForm({
                           value={contactForm.email}
                           onChange={(e) => handleInputChange('email', e.target.value)}
                           placeholder="your@email.com"
-                          className="pr-10"
+                          className={`pr-10 ${
+                            contactForm.email && !emailValidation.isValid 
+                              ? 'border-red-500 focus:border-red-500' 
+                              : emailValidation.message && emailValidation.isValid
+                              ? 'border-green-500 focus:border-green-500'
+                              : ''
+                          }`}
                           required
                         />
                       </div>
+                      {contactForm.email && emailValidation.message && (
+                        <p className={`text-sm mt-1 ${
+                          emailValidation.isValid ? 'text-green-600' : 'text-red-600'
+                        }`}>
+                          {emailValidation.message}
+                        </p>
+                      )}
                     </div>
                     
                     <div>
@@ -273,7 +278,7 @@ export function NdaEntrepreneurForm({
                             contactForm.phone && !phoneValidation.isValid 
                               ? 'border-red-500 focus:border-red-500' 
                               : phoneValidation.message && phoneValidation.isValid
-                              ? 'border-yellow-500 focus:border-yellow-500'
+                              ? 'border-green-500 focus:border-green-500'
                               : ''
                           }`}
                           required
@@ -281,7 +286,7 @@ export function NdaEntrepreneurForm({
                       </div>
                       {contactForm.phone && phoneValidation.message && (
                         <p className={`text-sm mt-1 ${
-                          phoneValidation.isValid ? 'text-yellow-600' : 'text-red-600'
+                          phoneValidation.isValid ? 'text-green-600' : 'text-red-600'
                         }`}>
                           {phoneValidation.message}
                         </p>
