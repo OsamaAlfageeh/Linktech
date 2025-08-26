@@ -1022,11 +1022,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // المستخدم مرتبط بالمشروع، أو مسؤول، أو شركة مصرح لها بمشاهدة المشاريع المتاحة
       const user = req.user as any;
       
-      // إذا كان المستخدم غير مسؤول وغير صاحب المشروع وهو ليس شركة
-      if (user.role !== 'admin' && project.userId !== user.id && user.role !== 'company') {
-        console.log(`رفض وصول غير مصرح: المستخدم ${user.username} حاول الوصول إلى مشروع المستخدم ${project.userId}`);
-        return res.status(403).json({ message: 'Forbidden: You are not authorized to view this project' });
-      }
+      // في النظام المفتوح (السوق)، جميع المستخدمين المسجلين يمكنهم مشاهدة تفاصيل المشاريع
+      // فقط التحقق من أن المستخدم مسجل دخول (تم بالفعل في الأعلى)
+      console.log(`السماح بالوصول: المستخدم ${user.username} (${user.role}) يشاهد المشروع ${project.id}`);
       
       // إذا كان المستخدم شركة، تأكد من أن المشروع منشأ من قبل رائد أعمال
       if (user.role === 'company') {
