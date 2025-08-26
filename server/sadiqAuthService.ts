@@ -290,11 +290,20 @@ class SadiqAuthService {
         const result = await response.json();
         console.log(`📋 Sadiq invitation response:`, result);
         
-        // Extract envelope/invitation ID from response
-        const envelopeId = result.data?.envelopeId || result.envelopeId || result.data?.id || result.id || documentId;
-        
-        console.log(`✅ تم إرسال دعوات التوقيع بنجاح - معرف المغلف: ${envelopeId}`);
-        return { envelopeId };
+        // Check Sadiq's actual errorCode - 0 means success
+        if (result.errorCode === 0) {
+          // Extract envelope/invitation ID from response
+          const envelopeId = result.data?.envelopeId || result.envelopeId || result.data?.id || result.id || documentId;
+          
+          console.log(`✅ تم إرسال دعوات التوقيع بنجاح - معرف المغلف: ${envelopeId}`);
+          return { envelopeId };
+        } else {
+          // Sadiq returned an error (errorCode !== 0)
+          const errorMessage = result.message || `Sadiq error code: ${result.errorCode}`;
+          console.log(`❌ فشل إرسال الدعوات من صادق - كود الخطأ: ${result.errorCode}`);
+          console.log(`📄 رسالة الخطأ: ${errorMessage}`);
+          throw new Error(`Sadiq invitation failed: ${errorMessage} (Code: ${result.errorCode})`);
+        }
       } else {
         const errorText = await response.text();
         console.log(`❌ فشل إرسال الدعوات مع حالة: ${response.status}`);
