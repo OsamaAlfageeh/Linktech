@@ -326,6 +326,11 @@ class SadiqAuthService {
       console.log(`🔄 إرسال دعوات باستخدام endpoint: ${endpoint}`);
       console.log(`📧 عدد المدعوين: ${signatories.length}`);
       
+      // طباعة البيانات الكاملة المرسلة إلى صادق
+      console.log('📋 البيانات الكاملة المرسلة إلى صادق API:');
+      console.log('📋 signatories input:', JSON.stringify(signatories, null, 2));
+      console.log('📋 requestData.destinations:', JSON.stringify(requestData.destinations, null, 2));
+      
       const response = await this.makeAuthenticatedRequest(endpoint, {
         method: 'POST',
         body: JSON.stringify(requestData)
