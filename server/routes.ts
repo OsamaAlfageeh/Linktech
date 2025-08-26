@@ -1386,41 +1386,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
         const documentId = uploadResult.id;
 
-        // إعداد بيانات الموقعين للدعوة
-        const referenceNumber = `linktech-nda-project-${project.id}-${Date.now()}`;
-        const invitationData = {
-          referenceNumber,
-          envelopeDocument: {
-            documentId,
-            signOrder: 0
+        // إعداد بيانات الموقعين للدعوة باستخدام API الصحيح
+        const signatoryList = [
+          {
+            fullName: entrepreneurInfo.name,
+            email: entrepreneurInfo.email,
+            phoneNumber: entrepreneurInfo.phone,
+            nationalId: '',
+            gender: 'NONE'
           },
-          signatories: [
-            {
-              fullName: entrepreneurInfo.name,
-              email: entrepreneurInfo.email,
-              phoneNumber: entrepreneurInfo.phone,
-              signOrder: 0,
-              nationalId: '',
-              gender: 'NONE'
-            },
-            {
-              fullName: companyInfo.name || companyInfo.signerName,
-              email: companyInfo.email || companyInfo.signerEmail,
-              phoneNumber: companyInfo.phone || companyInfo.signerPhone,
-              signOrder: 1,
-              nationalId: '',
-              gender: 'NONE'
-            }
-          ],
-          requestFields: [],
-          invitationMessage: 'نرجو منك توقيع اتفاقية عدم الإفصاح المرفقة أدناه للمتابعة في المشروع'
-        };
+          {
+            fullName: companyInfo.name || companyInfo.signerName,
+            email: companyInfo.email || companyInfo.signerEmail,
+            phoneNumber: companyInfo.phone || companyInfo.signerPhone,
+            nationalId: '',
+            gender: 'NONE'
+          }
+        ];
 
-        // إرسال الدعوات للتوقيع
-        console.log('📧 إرسال دعوات التوقيع الإلكتروني...');
-        const invitationResult = await sadiqAuth.sendSigningInvitations(invitationData);
+        // إرسال الدعوات للتوقيع باستخدام Sadiq API الصحيح
+        console.log('📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...');
+        const invitationResult = await sadiqAuth.sendSigningInvitations(documentId, signatoryList, project.title);
 
         // تحديث اتفاقية عدم الإفصاح ببيانات صادق
+        const referenceNumber = `linktech-nda-project-${project.id}-${Date.now()}`;
         await storage.updateNda(ndaId, {
           sadiqEnvelopeId: invitationResult.envelopeId,
           sadiqReferenceNumber: referenceNumber,

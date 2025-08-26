@@ -172,111 +172,127 @@ class SadiqAuthService {
   }
 
   /**
-   * Upload document to Sadiq
+   * Upload document to Sadiq using CORRECT API endpoint
    */
   async uploadDocument(base64Content: string, fileName: string): Promise<{id: string}> {
-    console.log(`📄 رفع وثيقة إلى صادق: ${fileName}`);
+    console.log(`📄 رفع وثيقة إلى صادق باستخدام API الصحيح: ${fileName}`);
     
-    // Try different endpoint formats that might work with Sadiq API
-    const endpoints = [
-      '/IntegrationService/Document/Upload',
-      '/api/Document/Upload',
-      '/Document/Upload',
-      '/IntegrationService/Documents/Upload',
-      '/api/v1/documents/upload'
-    ];
-
-    let lastError: Error | null = null;
-    
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`🔄 محاولة رفع باستخدام endpoint: ${endpoint}`);
-        
-        // Try JSON format first
-        let response = await this.makeAuthenticatedRequest(endpoint, {
-          method: 'POST',
-          body: JSON.stringify({
+    try {
+      // Use the CORRECT Sadiq API endpoint from user's curl
+      const endpoint = '/IntegrationService/Document/Bulk/Initiate-envelope-Base64';
+      const referenceNumber = `linktech-doc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+      
+      // Use EXACT data format from user's curl command
+      const requestData = {
+        webhookId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        referenceNumber: referenceNumber,
+        files: [
+          {
             file: base64Content,
             fileName: fileName,
-            contentType: 'application/pdf'
-          })
-        });
-
-        // If JSON fails, try multipart/form-data format
-        if (!response.ok && response.status === 405) {
-          console.log(`🔄 محاولة رفع باستخدام multipart/form-data لـ: ${endpoint}`);
-          
-          // Create form data
-          const formData = new FormData();
-          
-          // Convert base64 to blob for form data
-          const pdfBuffer = Buffer.from(base64Content, 'base64');
-          const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
-          formData.append('file', blob, fileName);
-          formData.append('fileName', fileName);
-          formData.append('contentType', 'application/pdf');
-
-          const accessToken = await this.getAccessToken();
-          response = await fetch(`${this.BASE_URL}${endpoint}`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${accessToken}`,
-              'Accept': 'application/json'
-              // Don't set Content-Type, let the browser set it for multipart
-            },
-            body: formData
-          });
-        }
-
-        if (response.ok) {
-          const result = await response.json();
-          
-          // Handle different response formats
-          if (result.errorCode === 0 || result.success || result.id) {
-            const documentId = result.data?.id || result.id || result.documentId;
-            console.log(`✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: ${documentId}`);
-            return { id: documentId };
+            password: ""
           }
-          
-          if (result.errorCode !== 0) {
-            throw new Error(`Sadiq upload error: ${result.message}`);
-          }
-        } else {
-          console.log(`❌ فشل endpoint ${endpoint} مع حالة: ${response.status}`);
-          lastError = new Error(`Failed to upload document: ${response.status}`);
-        }
-      } catch (error) {
-        console.log(`❌ خطأ في endpoint ${endpoint}: ${error instanceof Error ? error.message : 'Unknown error'}`);
-        lastError = error instanceof Error ? error : new Error('Unknown error');
+        ]
+      };
+      
+      console.log(`🔄 رفع الوثيقة باستخدام endpoint: ${endpoint}`);
+      console.log(`📋 معرف المرجع: ${referenceNumber}`);
+      
+      const response = await this.makeAuthenticatedRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(requestData)
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`📋 Sadiq upload response:`, result);
+        
+        // Extract document ID from response
+        const documentId = result.data?.documentId || result.documentId || result.data?.id || result.id || referenceNumber;
+        
+        console.log(`✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: ${documentId}`);
+        return { id: documentId };
+      } else {
+        const errorText = await response.text();
+        console.log(`❌ فشل رفع الوثيقة مع حالة: ${response.status}`);
+        console.log(`📄 تفاصيل الخطأ: ${errorText.substring(0, 200)}`);
+        throw new Error(`Upload failed: ${response.status} - ${errorText.substring(0, 100)}`);
       }
+    } catch (error) {
+      console.error(`❌ خطأ في رفع الوثيقة عبر صادق:`, error);
+      throw error;
     }
-
-    // If all endpoints failed, throw the last error
-    throw lastError || new Error('All upload endpoints failed');
+  }
   }
 
   /**
-   * Send signing invitations via Sadiq
+   * Send signing invitations via Sadiq using CORRECT API endpoint
    */
-  async sendSigningInvitations(invitationData: any): Promise<{envelopeId: string}> {
-    console.log('📨 إرسال دعوات التوقيع الإلكتروني...');
+  async sendSigningInvitations(documentId: string, signatories: any[], projectTitle: string): Promise<{envelopeId: string}> {
+    console.log('📨 إرسال دعوات التوقيع باستخدام API الصحيح...');
     
-    const response = await this.makeAuthenticatedRequest('/IntegrationService/Document/Bulk/Initiate/envelope', {
-      method: 'POST',
-      body: JSON.stringify(invitationData)
-    });
+    try {
+      // Use the CORRECT Sadiq API endpoint from user's curl
+      const endpoint = '/IntegrationService/Invitation/Send-Invitation';
+      
+      // Use EXACT data format from user's curl command
+      const requestData = {
+        documentId: documentId,
+        destinations: signatories.map((signatory, index) => ({
+          destinationName: signatory.fullName,
+          destinationEmail: signatory.email,
+          destinationPhoneNumber: signatory.phoneNumber || "",
+          nationalId: signatory.nationalId || "",
+          signeOrder: index,
+          ConsentOnly: false, // Set to false since we want actual signatures
+          signatories: [
+            {
+              signatureHigh: 80,
+              signatureWidth: 160,
+              pageNumber: 1,
+              text: "",
+              type: "Signature",
+              positionX: 70 + (index * 200), // Different positions for each signer
+              positionY: 500
+            }
+          ],
+          availableTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
+          authenticationType: 0,
+          InvitationLanguage: 1, // Arabic
+          RedirectUrl: "",
+          AllowUserToAddDestination: false
+        })),
+        invitationMessage: `نرجو منك توقيع اتفاقية عدم الإفصاح المرفقة للمشروع: ${projectTitle}`,
+        invitationSubject: `اتفاقية عدم الإفصاح - مشروع ${projectTitle}`
+      };
+      
+      console.log(`🔄 إرسال دعوات باستخدام endpoint: ${endpoint}`);
+      console.log(`📧 عدد المدعوين: ${signatories.length}`);
+      
+      const response = await this.makeAuthenticatedRequest(endpoint, {
+        method: 'POST',
+        body: JSON.stringify(requestData)
+      });
 
-    if (!response.ok) {
-      throw new Error(`Failed to send invitations: ${response.status}`);
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`📋 Sadiq invitation response:`, result);
+        
+        // Extract envelope/invitation ID from response
+        const envelopeId = result.data?.envelopeId || result.envelopeId || result.data?.id || result.id || documentId;
+        
+        console.log(`✅ تم إرسال دعوات التوقيع بنجاح - معرف المغلف: ${envelopeId}`);
+        return { envelopeId };
+      } else {
+        const errorText = await response.text();
+        console.log(`❌ فشل إرسال الدعوات مع حالة: ${response.status}`);
+        console.log(`📄 تفاصيل الخطأ: ${errorText.substring(0, 200)}`);
+        throw new Error(`Invitation failed: ${response.status} - ${errorText.substring(0, 100)}`);
+      }
+    } catch (error) {
+      console.error(`❌ خطأ في إرسال الدعوات عبر صادق:`, error);
+      throw error;
     }
-
-    const result = await response.json();
-    if (result.errorCode !== 0) {
-      throw new Error(`Sadiq invitation error: ${result.message}`);
-    }
-
-    console.log(`✅ تم إرسال دعوات التوقيع بنجاح - معرف المغلف: ${result.data?.envelopeId}`);
-    return { envelopeId: result.data?.envelopeId };
   }
 
   /**
