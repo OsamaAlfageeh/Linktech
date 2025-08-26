@@ -1419,7 +1419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
 
         console.log(`✅ تم إرسال دعوات التوقيع الإلكتروني بنجاح للاتفاقية ${ndaId}`);
-        console.log(`📧 تم إرسال دعوات لـ ${entrepreneurInfo.email} و ${companyInfo.email || companyInfo.signerEmail}`);
+        console.log(`📧 تم إرسال دعوات لـ ${signatoryList[0].email} و ${signatoryList[1].email}`);
         
         res.json({ 
           id: updatedNda.id, 
@@ -1436,7 +1436,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         try {
           // إرسال دعوات عبر البريد الإلكتروني كبديل
-          const sgMail = require('@sendgrid/mail');
+          const sgMail = await import('@sendgrid/mail').then(m => m.default);
           
           if (process.env.SENDGRID_API_KEY) {
             sgMail.setApiKey(process.env.SENDGRID_API_KEY);
@@ -1446,16 +1446,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // إرسال دعوة لرائد الأعمال
             const entrepreneurMsg = {
-              to: entrepreneurInfo.email,
+              to: signatoryList[0].email,
               from: 'noreply@linktech.sa',
               subject: `اتفاقية عدم الإفصاح - مشروع ${project.title}`,
               html: `
                 <div dir="rtl" style="font-family: Arial, sans-serif;">
-                  <h2>مرحباً ${entrepreneurInfo.name}</h2>
+                  <h2>مرحباً ${signatoryList[0].fullName}</h2>
                   <p>نرجو منك مراجعة وتوقيع اتفاقية عدم الإفصاح المرفقة للمشروع: <strong>${project.title}</strong></p>
                   <p>يرجى طباعة الوثيقة المرفقة، توقيعها، ومشاركة النسخة الموقعة مع الشركة.</p>
-                  <p><strong>الشركة:</strong> ${companyInfo.companyName || companyInfo.name}</p>
-                  <p><strong>بريد الشركة:</strong> ${companyInfo.email || companyInfo.signerEmail}</p>
+                  <p><strong>الشركة:</strong> ${signatoryList[1].fullName}</p>
+                  <p><strong>بريد الشركة:</strong> ${signatoryList[1].email}</p>
                   <p>شكراً لك</p>
                   <p>فريق لينكتك</p>
                 </div>
@@ -1470,16 +1470,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // إرسال دعوة للشركة
             const companyMsg = {
-              to: companyInfo.email || companyInfo.signerEmail,
+              to: signatoryList[1].email,
               from: 'noreply@linktech.sa',
               subject: `اتفاقية عدم الإفصاح - مشروع ${project.title}`,
               html: `
                 <div dir="rtl" style="font-family: Arial, sans-serif;">
-                  <h2>مرحباً ${companyInfo.name || companyInfo.signerName}</h2>
+                  <h2>مرحباً ${signatoryList[1].fullName}</h2>
                   <p>نرجو منك مراجعة وتوقيع اتفاقية عدم الإفصاح المرفقة للمشروع: <strong>${project.title}</strong></p>
                   <p>يرجى طباعة الوثيقة المرفقة، توقيعها، ومشاركة النسخة الموقعة مع رائد الأعمال.</p>
-                  <p><strong>رائد الأعمال:</strong> ${entrepreneurInfo.name}</p>
-                  <p><strong>بريد رائد الأعمال:</strong> ${entrepreneurInfo.email}</p>
+                  <p><strong>رائد الأعمال:</strong> ${signatoryList[0].fullName}</p>
+                  <p><strong>بريد رائد الأعمال:</strong> ${signatoryList[0].email}</p>
                   <p>شكراً لك</p>
                   <p>فريق لينكتك</p>
                 </div>
@@ -1496,7 +1496,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await sgMail.send(entrepreneurMsg);
             await sgMail.send(companyMsg);
             
-            console.log(`✅ تم إرسال دعوات NDA عبر البريد إلى ${entrepreneurInfo.email} و ${companyInfo.email || companyInfo.signerEmail}`);
+            console.log(`✅ تم إرسال دعوات NDA عبر البريد إلى ${signatoryList[0].email} و ${signatoryList[1].email}`);
             
             // تحديث حالة الاتفاقية
             await storage.updateNda(ndaId, {
@@ -1511,21 +1511,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: 'تم إكمال البيانات وإرسال دعوات اتفاقية عدم الإفصاح عبر البريد الإلكتروني بنجاح!',
               status: 'email_invitations_sent',
               fallbackUsed: true,
-              emailsSentTo: [entrepreneurInfo.email, companyInfo.email || companyInfo.signerEmail]
+              emailsSentTo: [signatoryList[0].email, signatoryList[1].email]
             });
             
           } else {
             console.log('⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط');
-            console.log(`📧 دعوة مطلوبة لـ: ${entrepreneurInfo.name} (${entrepreneurInfo.email})`);
-            console.log(`📧 دعوة مطلوبة لـ: ${companyInfo.name} (${companyInfo.email || companyInfo.signerEmail})`);
+            console.log(`📧 دعوة مطلوبة لـ: ${signatoryList[0].fullName} (${signatoryList[0].email})`);
+            console.log(`📧 دعوة مطلوبة لـ: ${signatoryList[1].fullName} (${signatoryList[1].email})`);
             
             res.json({ 
               id: updatedNda.id, 
               message: 'تم إكمال البيانات. يرجى التواصل مع الأطراف المعنية لتوقيع الاتفاقية.',
               status: updatedNda.status,
               contactInfo: {
-                entrepreneur: `${entrepreneurInfo.name} (${entrepreneurInfo.email})`,
-                company: `${companyInfo.name} (${companyInfo.email || companyInfo.signerEmail})`
+                entrepreneur: `${signatoryList[0].fullName} (${signatoryList[0].email})`,
+                company: `${signatoryList[1].fullName} (${signatoryList[1].email})`
               }
             });
           }
@@ -1540,8 +1540,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: updatedNda.status,
             error: 'Sadiq and email fallback failed',
             contactInfo: {
-              entrepreneur: `${entrepreneurInfo.name} (${entrepreneurInfo.email})`,
-              company: `${companyInfo.name} (${companyInfo.email || companyInfo.signerEmail})`
+              entrepreneur: `${signatoryList[0].fullName} (${signatoryList[0].email})`,
+              company: `${signatoryList[1].fullName} (${signatoryList[1].email})`
             }
           });
         }

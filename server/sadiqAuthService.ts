@@ -223,7 +223,6 @@ class SadiqAuthService {
       throw error;
     }
   }
-  }
 
   /**
    * Send signing invitations via Sadiq using CORRECT API endpoint
