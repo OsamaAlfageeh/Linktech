@@ -238,6 +238,39 @@ class SadiqAuthService {
   }
 
   /**
+   * Format phone number to international format for Sadiq
+   */
+  private formatPhoneNumber(phoneNumber: string): string {
+    if (!phoneNumber) return "";
+    
+    // Remove any spaces, dashes, or parentheses
+    const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    
+    // If already starts with +966, return as is
+    if (cleaned.startsWith('+966')) {
+      return cleaned;
+    }
+    
+    // If starts with 966, add +
+    if (cleaned.startsWith('966')) {
+      return '+' + cleaned;
+    }
+    
+    // If starts with 0, replace with +966
+    if (cleaned.startsWith('0')) {
+      return '+966' + cleaned.substring(1);
+    }
+    
+    // If starts with 5 and is 9 digits (mobile), assume Saudi
+    if (cleaned.match(/^5\d{8}$/)) {
+      return '+966' + cleaned;
+    }
+    
+    // Default: assume Saudi and add +966
+    return '+966' + cleaned;
+  }
+
+  /**
    * Send signing invitations via Sadiq using CORRECT API endpoint
    */
   async sendSigningInvitations(documentId: string, signatories: any[], projectTitle: string): Promise<{envelopeId: string}> {
@@ -253,7 +286,7 @@ class SadiqAuthService {
         destinations: signatories.map((signatory, index) => ({
           destinationName: signatory.fullName,
           destinationEmail: signatory.email,
-          destinationPhoneNumber: signatory.phoneNumber || "",
+          destinationPhoneNumber: this.formatPhoneNumber(signatory.phoneNumber) || "",
           nationalId: signatory.nationalId || "",
           signeOrder: index,
           ConsentOnly: false, // Set to false since we want actual signatures

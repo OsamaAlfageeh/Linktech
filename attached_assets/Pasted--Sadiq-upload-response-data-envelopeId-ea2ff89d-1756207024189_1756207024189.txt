@@ -1,0 +1,45 @@
+ صالح حتى: ٢٧‏/٨‏/٢٠٢٥، ٢:٤٥:٠٢ م
+📋 Sadiq upload response: {
+  data: {
+    envelopeId: 'ea2ff89d-a979-4e1d-9253-10b753f685ae',
+    bulkFileResponse: [ [Object] ],
+    destinations: null
+  },
+  errorCode: 0,
+  message: 'Success',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+📋 استخراج معرف الوثيقة من bulkFileResponse: c38de4e0-3776-468a-b541-923703eda888
+✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: c38de4e0-3776-468a-b541-923703eda888
+📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...
+📨 إرسال دعوات التوقيع باستخدام API الصحيح...
+🔄 إرسال دعوات باستخدام endpoint: /IntegrationService/Invitation/Send-Invitation
+📧 عدد المدعوين: 2
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  data: false,
+  errorCode: 9,
+  message: 'One or More Destination has invalid phone number, make sure the phone number is correct and start with country code',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+❌ فشل إرسال الدعوات من صادق - كود الخطأ: 9
+📄 رسالة الخطأ: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code
+❌ خطأ في إرسال الدعوات عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:305:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1409:34)
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:305:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1409:34)
+🔄 تفعيل النظام البديل لضمان إرسال الدعوات...
+⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط
+❌ فشل في إرسال الدعوات البديلة: ReferenceError: signatoryList is not defined
+    at <anonymous> (/home/runner/workspace/server/routes.ts:1519:47)
+❌ خطأ في إكمال بيانات اتفاقية عدم الإفصاح: ReferenceError: signatoryList is not defined
+    at <anonymous> (/home/runner/workspace/server/routes.ts:1543:32)
+11:16:43 AM [express] POST /api/nda/13/complete 500 in 2400ms :: {"message":"حدث خطأ في النظام"}
