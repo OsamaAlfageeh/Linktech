@@ -1362,6 +1362,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
       
+      // إعداد بيانات الموقعين مبكراً لضمان الوصول في جميع أجزاء الكود
+      let signatoryList: any[] = [];
+      
       // الآن نبدأ عملية إرسال الدعوات عبر صادق
       try {
         // استيراد خدمة المصادقة مع صادق
@@ -1387,8 +1390,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           companyRep: companyInfo.name || companyInfo.signerName
         };
 
-        // إعداد بيانات الموقعين للدعوة (خارج try لضمان إمكانية الوصول في catch)
-        const signatoryList = [
+        // إعداد بيانات الموقعين للدعوة
+        signatoryList = [
           {
             fullName: entrepreneurInfo.name,
             email: entrepreneurInfo.email,
@@ -1406,8 +1409,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
 
         // طباعة أرقام الهواتف للتحقق من التنسيق
-        console.log(`📞 رقم رائد الأعمال: ${entrepreneurInfo.phone}`);
-        console.log(`📞 رقم الشركة: ${companyInfo.phone || companyInfo.signerPhone}`);
+        console.log(`📞 رقم رائد الأعمال (أصلي): ${entrepreneurInfo.phone}`);
+        console.log(`📞 رقم الشركة (أصلي): ${companyInfo.phone || companyInfo.signerPhone}`);
+        console.log(`📞 بيانات الشركة كاملة:`, JSON.stringify(companyInfo, null, 2));
+        console.log(`📞 بيانات رائد الأعمال كاملة:`, JSON.stringify(entrepreneurInfo, null, 2));
 
         // إنشاء ملف PDF لاتفاقية عدم الإفصاح
         console.log('📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...');
