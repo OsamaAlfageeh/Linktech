@@ -1387,18 +1387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           companyRep: companyInfo.name || companyInfo.signerName
         };
 
-        // إنشاء ملف PDF لاتفاقية عدم الإفصاح
-        console.log('📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...');
-        const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
-        const base64Pdf = pdfBuffer.toString('base64');
-
-        // رفع الملف إلى صادق
-        const fileName = `NDA-${project.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
-        console.log('⬆️ رفع ملف PDF إلى صادق...');
-        const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
-        const documentId = uploadResult.id;
-
-        // إعداد بيانات الموقعين للدعوة باستخدام API الصحيح
+        // إعداد بيانات الموقعين للدعوة (خارج try لضمان إمكانية الوصول في catch)
         const signatoryList = [
           {
             fullName: entrepreneurInfo.name,
@@ -1415,6 +1404,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
             gender: 'NONE'
           }
         ];
+
+        // طباعة أرقام الهواتف للتحقق من التنسيق
+        console.log(`📞 رقم رائد الأعمال: ${entrepreneurInfo.phone}`);
+        console.log(`📞 رقم الشركة: ${companyInfo.phone || companyInfo.signerPhone}`);
+
+        // إنشاء ملف PDF لاتفاقية عدم الإفصاح
+        console.log('📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...');
+        const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
+        const base64Pdf = pdfBuffer.toString('base64');
+
+        // رفع الملف إلى صادق
+        const fileName = `NDA-${project.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+        console.log('⬆️ رفع ملف PDF إلى صادق...');
+        const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
+        const documentId = uploadResult.id;
 
         // إرسال الدعوات للتوقيع باستخدام Sadiq API الصحيح
         console.log('📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...');

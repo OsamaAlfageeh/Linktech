@@ -1,0 +1,58 @@
+إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib
+تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف: 1821 بايت
+⬆️ رفع ملف PDF إلى صادق...
+📄 رفع وثيقة إلى صادق باستخدام API الصحيح: NDA-new-project-for-testing-1756212293733.pdf
+🔄 رفع الوثيقة باستخدام endpoint: /IntegrationService/Document/Bulk/Initiate-envelope-Base64
+📋 معرف المرجع: linktech-doc-1756212293733-c00zs5
+🔄 محاولة الحصول على رمز وصول جديد من صادق...
+📧 تسجيل الدخول في صادق باستخدام: mj2***
+🔄 محاولة الاتصال بـ: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+✅ تم تسجيل الدخول في صادق بنجاح من: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+⏰ صالح حتى: ٢٧‏/٨‏/٢٠٢٥، ٤:١٣:١٤ م
+📋 Sadiq upload response: {
+  data: {
+    envelopeId: '9003d58e-aa23-4b6e-acc4-01ddd69339f2',
+    bulkFileResponse: [ [Object] ],
+    destinations: null
+  },
+  errorCode: 0,
+  message: 'Success',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+📋 استخراج معرف الوثيقة من bulkFileResponse: 4c4b5267-91b3-4f40-9599-49c6adafb5c3
+✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: 4c4b5267-91b3-4f40-9599-49c6adafb5c3
+📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...
+📨 إرسال دعوات التوقيع باستخدام API الصحيح...
+📞 رقم دولي صحيح: +966512345678
+📞 رقم دولي صحيح: +96612345678
+🔄 إرسال دعوات باستخدام endpoint: /IntegrationService/Invitation/Send-Invitation
+📧 عدد المدعوين: 2
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  data: false,
+  errorCode: 9,
+  message: 'One or More Destination has invalid phone number, make sure the phone number is correct and start with country code',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+❌ فشل إرسال الدعوات من صادق - كود الخطأ: 9
+📄 رسالة الخطأ: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code
+❌ خطأ في إرسال الدعوات عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:350:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1423:34)
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:350:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1423:34)
+🔄 إعادة تعيين حالة NDA للسماح بإعادة المحاولة...
+🔄 تفعيل النظام البديل لضمان إرسال الدعوات...
+⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط
+❌ فشل في إرسال الدعوات البديلة: ReferenceError: signatoryList is not defined
+    at <anonymous> (/home/runner/workspace/server/routes.ts:1541:47)
+❌ خطأ في إكمال بيانات اتفاقية عدم الإفصاح: ReferenceError: signatoryList is not defined
+    at <anonymous> (/home/runner/workspace/server/routes.ts:1565:32)
+12:44:55 PM [express] POST /api/nda/17/complete 500 in 2358ms :: {"message":"حدث خطأ في النظام"}
