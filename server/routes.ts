@@ -1431,6 +1431,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (sadiqError) {
         console.error('❌ خطأ في إرسال دعوات التوقيع عبر صادق:', sadiqError);
         
+        // 🔄 إعادة تعيين حالة الاتفاقية للسماح بإعادة المحاولة
+        console.log('🔄 إعادة تعيين حالة NDA للسماح بإعادة المحاولة...');
+        await storage.updateNda(ndaId, {
+          status: 'awaiting_entrepreneur', // إعادة للحالة السابقة
+          envelopeStatus: 'sadiq_failed',
+          sadiqErrorMessage: sadiqError.message || 'Sadiq integration failed'
+        });
+        
         // 📧 نظام بديل لضمان وصول الدعوات!
         console.log('🔄 تفعيل النظام البديل لضمان إرسال الدعوات...');
         
