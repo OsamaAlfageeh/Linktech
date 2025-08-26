@@ -1237,11 +1237,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       }
 
-      // استخدام بيانات الشركة من الملف الشخصي تلقائياً (لا حاجة لإدخالها مرة أخرى)
+      // استخدام بيانات الشركة من النموذج المرسل (ليس الحساب)
+      const { companyRep } = req.body;
+      
+      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
+      
       const companyRepData = {
-        name: companyProfile.fullName || user.name || user.username,
-        email: user.email, // البريد من حساب المستخدم
-        phone: companyProfile.phone, // الهاتف من ملف الشركة
+        name: companyRep.name,
+        email: companyRep.email, // البريد من النموذج المرسل ❌ ليس من الحساب
+        phone: companyRep.phone, // الهاتف من النموذج المرسل
         companyName: companyProfile.legalName || user.name || user.username
       };
 
