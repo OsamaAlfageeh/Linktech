@@ -1443,7 +1443,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getProjects(): Promise<Project[]> {
-    return await db.query.projects.findMany();
+    return await db.query.projects.findMany({
+      orderBy: [desc(schema.projects.createdAt)] // Newest projects first
+    });
   }
 
   async getProjectsWithUserData(): Promise<(Project & { username?: string; name?: string })[]> {
@@ -1469,7 +1471,8 @@ export class DatabaseStorage implements IStorage {
 
   async getProjectsByUserId(userId: number): Promise<Project[]> {
     return await db.query.projects.findMany({
-      where: eq(schema.projects.userId, userId)
+      where: eq(schema.projects.userId, userId),
+      orderBy: [desc(schema.projects.createdAt)] // Newest projects first
     });
   }
 
