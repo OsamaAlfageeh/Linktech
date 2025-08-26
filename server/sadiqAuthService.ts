@@ -207,8 +207,21 @@ class SadiqAuthService {
         const result = await response.json();
         console.log(`📋 Sadiq upload response:`, result);
         
-        // Extract document ID from response
-        const documentId = result.data?.documentId || result.documentId || result.data?.id || result.id || referenceNumber;
+        // Extract document ID from response - the real document ID is in bulkFileResponse
+        let documentId = result.data?.documentId || result.documentId || result.data?.id || result.id;
+        
+        // Check bulkFileResponse for the actual document ID
+        if (!documentId && result.data?.bulkFileResponse && result.data.bulkFileResponse.length > 0) {
+          const firstFile = result.data.bulkFileResponse[0];
+          documentId = firstFile?.documentId || firstFile?.id || firstFile?.fileId;
+          console.log(`📋 استخراج معرف الوثيقة من bulkFileResponse: ${documentId}`);
+        }
+        
+        // If still no document ID, use envelopeId as fallback instead of our reference
+        if (!documentId) {
+          documentId = result.data?.envelopeId || referenceNumber;
+          console.log(`📋 استخدام envelopeId كبديل: ${documentId}`);
+        }
         
         console.log(`✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: ${documentId}`);
         return { id: documentId };
