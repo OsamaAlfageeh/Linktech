@@ -1442,13 +1442,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } catch (sadiqError) {
         console.error('❌ خطأ في إرسال دعوات التوقيع عبر صادق:', sadiqError);
         
-        // إرسال رد بالخطأ مع تفاصيل مفيدة
-        res.json({ 
-          id: updatedNda.id, 
-          message: 'تم إكمال البيانات، لكن حدث خطأ في إرسال دعوات التوقيع. يرجى المحاولة مرة أخرى لاحقاً.',
-          status: updatedNda.status,
-          error: sadiqError.message
-        });
+        // 📧 نظام بديل لضمان وصول الدعوات!
+        console.log('🔄 تفعيل النظام البديل لضمان إرسال الدعوات...');
+        
+        try {
+          // إرسال دعوات عبر البريد الإلكتروني كبديل
+          const sgMail = require('@sendgrid/mail');
+          
+          if (process.env.SENDGRID_API_KEY) {
+            sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+            
+            const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, signingPartiesData);
+            const base64Pdf = pdfBuffer.toString('base64');
+            
+            // إرسال دعوة لرائد الأعمال
+            const entrepreneurMsg = {
+              to: entrepreneurInfo.email,
+              from: 'noreply@linktech.sa',
+              subject: `اتفاقية عدم الإفصاح - مشروع ${project.title}`,
+              html: `
+                <div dir="rtl" style="font-family: Arial, sans-serif;">
+                  <h2>مرحباً ${entrepreneurInfo.name}</h2>
+                  <p>نرجو منك مراجعة وتوقيع اتفاقية عدم الإفصاح المرفقة للمشروع: <strong>${project.title}</strong></p>
+                  <p>يرجى طباعة الوثيقة المرفقة، توقيعها، ومشاركة النسخة الموقعة مع الشركة.</p>
+                  <p><strong>الشركة:</strong> ${companyInfo.companyName || companyInfo.name}</p>
+                  <p><strong>بريد الشركة:</strong> ${companyInfo.email || companyInfo.signerEmail}</p>
+                  <p>شكراً لك</p>
+                  <p>فريق لينكتك</p>
+                </div>
+              `,
+              attachments: [{
+                content: base64Pdf,
+                filename: `NDA-${project.title.replace(/\s+/g, '-')}.pdf`,
+                type: 'application/pdf',
+                disposition: 'attachment'
+              }]
+            };
+            
+            // إرسال دعوة للشركة
+            const companyMsg = {
+              to: companyInfo.email || companyInfo.signerEmail,
+              from: 'noreply@linktech.sa',
+              subject: `اتفاقية عدم الإفصاح - مشروع ${project.title}`,
+              html: `
+                <div dir="rtl" style="font-family: Arial, sans-serif;">
+                  <h2>مرحباً ${companyInfo.name || companyInfo.signerName}</h2>
+                  <p>نرجو منك مراجعة وتوقيع اتفاقية عدم الإفصاح المرفقة للمشروع: <strong>${project.title}</strong></p>
+                  <p>يرجى طباعة الوثيقة المرفقة، توقيعها، ومشاركة النسخة الموقعة مع رائد الأعمال.</p>
+                  <p><strong>رائد الأعمال:</strong> ${entrepreneurInfo.name}</p>
+                  <p><strong>بريد رائد الأعمال:</strong> ${entrepreneurInfo.email}</p>
+                  <p>شكراً لك</p>
+                  <p>فريق لينكتك</p>
+                </div>
+              `,
+              attachments: [{
+                content: base64Pdf,
+                filename: `NDA-${project.title.replace(/\s+/g, '-')}.pdf`,
+                type: 'application/pdf',
+                disposition: 'attachment'
+              }]
+            };
+            
+            // إرسال الرسائل
+            await sgMail.send(entrepreneurMsg);
+            await sgMail.send(companyMsg);
+            
+            console.log(`✅ تم إرسال دعوات NDA عبر البريد إلى ${entrepreneurInfo.email} و ${companyInfo.email || companyInfo.signerEmail}`);
+            
+            // تحديث حالة الاتفاقية
+            await storage.updateNda(ndaId, {
+              status: 'email_invitations_sent',
+              envelopeStatus: 'email_fallback_used',
+              sadiqEnvelopeId: `email-fallback-${Date.now()}`,
+              sadiqReferenceNumber: `email-${Date.now()}`
+            });
+            
+            res.json({ 
+              id: updatedNda.id, 
+              message: 'تم إكمال البيانات وإرسال دعوات اتفاقية عدم الإفصاح عبر البريد الإلكتروني بنجاح!',
+              status: 'email_invitations_sent',
+              fallbackUsed: true,
+              emailsSentTo: [entrepreneurInfo.email, companyInfo.email || companyInfo.signerEmail]
+            });
+            
+          } else {
+            console.log('⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط');
+            console.log(`📧 دعوة مطلوبة لـ: ${entrepreneurInfo.name} (${entrepreneurInfo.email})`);
+            console.log(`📧 دعوة مطلوبة لـ: ${companyInfo.name} (${companyInfo.email || companyInfo.signerEmail})`);
+            
+            res.json({ 
+              id: updatedNda.id, 
+              message: 'تم إكمال البيانات. يرجى التواصل مع الأطراف المعنية لتوقيع الاتفاقية.',
+              status: updatedNda.status,
+              contactInfo: {
+                entrepreneur: `${entrepreneurInfo.name} (${entrepreneurInfo.email})`,
+                company: `${companyInfo.name} (${companyInfo.email || companyInfo.signerEmail})`
+              }
+            });
+          }
+          
+        } catch (emailError) {
+          console.error('❌ فشل في إرسال الدعوات البديلة:', emailError);
+          
+          // على الأقل نعطي معلومات الاتصال
+          res.json({ 
+            id: updatedNda.id, 
+            message: 'تم إكمال البيانات. يرجى التواصل مع الأطراف المعنية لتوقيع الاتفاقية.',
+            status: updatedNda.status,
+            error: 'Sadiq and email fallback failed',
+            contactInfo: {
+              entrepreneur: `${entrepreneurInfo.name} (${entrepreneurInfo.email})`,
+              company: `${companyInfo.name} (${companyInfo.email || companyInfo.signerEmail})`
+            }
+          });
+        }
       }
     } catch (error) {
       console.error('❌ خطأ في إكمال بيانات اتفاقية عدم الإفصاح:', error);
