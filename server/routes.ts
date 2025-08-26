@@ -1390,29 +1390,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
           companyRep: companyInfo.name || companyInfo.signerName
         };
 
-        // إعداد بيانات الموقعين للدعوة
+        // تنظيف وتنسيق أرقام الهواتف قبل الإرسال لصادق
+        const { validatePhoneNumber } = await import('./validationHelpers');
+        
+        // تنسيق رقم رائد الأعمال
+        const entrepreneurPhoneValidation = validatePhoneNumber(entrepreneurInfo.phone);
+        const cleanEntrepreneurPhone = entrepreneurPhoneValidation.isValid ? 
+          (entrepreneurPhoneValidation.formattedValue || entrepreneurInfo.phone) : entrepreneurInfo.phone;
+        
+        // تنسيق رقم الشركة
+        const companyPhone = companyInfo.phone || companyInfo.signerPhone || '';
+        const companyPhoneValidation = validatePhoneNumber(companyPhone);
+        const cleanCompanyPhone = companyPhoneValidation.isValid ? 
+          (companyPhoneValidation.formattedValue || companyPhone) : companyPhone;
+        
+        // إعداد بيانات الموقعين للدعوة مع أرقام منسقة
         signatoryList = [
           {
             fullName: entrepreneurInfo.name,
             email: entrepreneurInfo.email,
-            phoneNumber: entrepreneurInfo.phone,
+            phoneNumber: cleanEntrepreneurPhone,
             nationalId: '',
             gender: 'NONE'
           },
           {
             fullName: companyInfo.name || companyInfo.signerName,
             email: companyInfo.email || companyInfo.signerEmail,
-            phoneNumber: companyInfo.phone || companyInfo.signerPhone,
+            phoneNumber: cleanCompanyPhone,
             nationalId: '',
             gender: 'NONE'
           }
         ];
 
         // طباعة أرقام الهواتف للتحقق من التنسيق
-        console.log(`📞 رقم رائد الأعمال (أصلي): ${entrepreneurInfo.phone}`);
-        console.log(`📞 رقم الشركة (أصلي): ${companyInfo.phone || companyInfo.signerPhone}`);
-        console.log(`📞 بيانات الشركة كاملة:`, JSON.stringify(companyInfo, null, 2));
-        console.log(`📞 بيانات رائد الأعمال كاملة:`, JSON.stringify(entrepreneurInfo, null, 2));
+        console.log(`📞 رقم رائد الأعمال (أصلي): ${entrepreneurInfo.phone} → (منسق): ${cleanEntrepreneurPhone}`);
+        console.log(`📞 رقم الشركة (أصلي): ${companyPhone} → (منسق): ${cleanCompanyPhone}`);
+        console.log(`📞 حالة تنسيق رقم رائد الأعمال:`, entrepreneurPhoneValidation);
+        console.log(`📞 حالة تنسيق رقم الشركة:`, companyPhoneValidation);
 
         // إنشاء ملف PDF لاتفاقية عدم الإفصاح
         console.log('📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...');

@@ -1,0 +1,51 @@
+المستخدم مصرح: user2, دور: entrepreneur
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+1:16:53 PM [express] GET /api/notifications 304 in 73ms :: [{"id":32,"userId":44,"type":"nda_request…
+📋 Sadiq upload response: {
+  data: {
+    envelopeId: '3bc5a879-cd6d-49c3-bb30-ca8819eb0f95',
+    bulkFileResponse: [ [Object] ],
+    destinations: null
+  },
+  errorCode: 0,
+  message: 'Success',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+📋 استخراج معرف الوثيقة من bulkFileResponse: 0a505043-461c-4db7-a690-1032f2f395be
+✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: 0a505043-461c-4db7-a690-1032f2f395be
+📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...
+📨 إرسال دعوات التوقيع باستخدام API الصحيح...
+📞 رقم دولي صحيح: +966512345678
+📞 رقم دولي صحيح: +96612345678
+🔄 إرسال دعوات باستخدام endpoint: /IntegrationService/Invitation/Send-Invitation
+📧 عدد المدعوين: 2
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  data: false,
+  errorCode: 9,
+  message: 'One or More Destination has invalid phone number, make sure the phone number is correct and start with country code',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+❌ فشل إرسال الدعوات من صادق - كود الخطأ: 9
+📄 رسالة الخطأ: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code
+❌ خطأ في إرسال الدعوات عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:350:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1430:34)
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:350:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1430:34)
+🔄 إعادة تعيين حالة NDA للسماح بإعادة المحاولة...
+🔄 تفعيل النظام البديل لضمان إرسال الدعوات...
+⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط
+📧 دعوة مطلوبة لـ: محمد جمال (mj266502@gmail.com)
+📧 دعوة مطلوبة لـ: our company (mj26653@gmail.ocm)
+1:16:54 PM [express] POST /api/nda/19/complete 200 in 2407ms :: {"id":19,"message":"تم إكمال البيانا…
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTYyMTM4NTIsImV4cCI6MTc1NjgxODY1Mn0.84XtY6WgNSG023tq6UvhQmuOH0Hnk08Un49J7cKzfPQ

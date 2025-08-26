@@ -48,7 +48,7 @@ export default function NdaCompletePage() {
       });
       toast({
         title: "تم إكمال بيانات اتفاقية عدم الإفصاح",
-        description: "تم إكمال بياناتك بنجاح. سيتم إرسال دعوات التوقيع الإلكتروني عبر صادق قريباً.",
+        description: data.message || "تم إكمال بياناتك بنجاح. سيتم إرسال دعوات التوقيع الإلكتروني عبر صادق قريباً.",
       });
       navigate("/notifications");
     },
