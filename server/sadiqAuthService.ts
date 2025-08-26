@@ -246,6 +246,12 @@ class SadiqAuthService {
     // Remove any spaces, dashes, or parentheses
     const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
     
+    // If already starts with + and country code, return as is (international format)
+    if (cleaned.match(/^\+\d{1,4}\d{7,14}$/)) {
+      console.log(`📞 رقم دولي صحيح: ${cleaned}`);
+      return cleaned;
+    }
+    
     // If already starts with +966, return as is
     if (cleaned.startsWith('+966')) {
       return cleaned;
@@ -256,7 +262,7 @@ class SadiqAuthService {
       return '+' + cleaned;
     }
     
-    // If starts with 0, replace with +966
+    // If starts with 0, replace with +966 (Saudi domestic format)
     if (cleaned.startsWith('0')) {
       return '+966' + cleaned.substring(1);
     }
@@ -266,8 +272,14 @@ class SadiqAuthService {
       return '+966' + cleaned;
     }
     
-    // Default: assume Saudi and add +966
-    return '+966' + cleaned;
+    // If no country code, assume Saudi and add +966
+    if (cleaned.match(/^\d{8,9}$/)) {
+      return '+966' + cleaned;
+    }
+    
+    // Return as is if unrecognized format
+    console.log(`⚠️ تنسيق رقم غير معروف: ${cleaned}`);
+    return cleaned;
   }
 
   /**

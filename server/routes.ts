@@ -1504,7 +1504,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             await sgMail.send(entrepreneurMsg);
             await sgMail.send(companyMsg);
             
-            console.log(`✅ تم إرسال دعوات NDA عبر البريد إلى ${signatories[0].email} و ${signatories[1].email}`);
+            console.log(`✅ تم إرسال دعوات NDA عبر البريد إلى ${signatoryList[0].email} و ${signatoryList[1].email}`);
             
             // تحديث حالة الاتفاقية
             await storage.updateNda(ndaId, {
@@ -1519,21 +1519,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
               message: 'تم إكمال البيانات وإرسال دعوات اتفاقية عدم الإفصاح عبر البريد الإلكتروني بنجاح!',
               status: 'email_invitations_sent',
               fallbackUsed: true,
-              emailsSentTo: [signatories[0].email, signatories[1].email]
+              emailsSentTo: [signatoryList[0].email, signatoryList[1].email]
             });
             
           } else {
             console.log('⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط');
-            console.log(`📧 دعوة مطلوبة لـ: ${signatories[0].fullName} (${signatories[0].email})`);
-            console.log(`📧 دعوة مطلوبة لـ: ${signatories[1].fullName} (${signatories[1].email})`);
+            console.log(`📧 دعوة مطلوبة لـ: ${signatoryList[0].fullName} (${signatoryList[0].email})`);
+            console.log(`📧 دعوة مطلوبة لـ: ${signatoryList[1].fullName} (${signatoryList[1].email})`);
             
             res.json({ 
               id: updatedNda.id, 
               message: 'تم إكمال البيانات. يرجى التواصل مع الأطراف المعنية لتوقيع الاتفاقية.',
               status: updatedNda.status,
               contactInfo: {
-                entrepreneur: `${signatories[0].fullName} (${signatories[0].email})`,
-                company: `${signatories[1].fullName} (${signatories[1].email})`
+                entrepreneur: `${signatoryList[0].fullName} (${signatoryList[0].email})`,
+                company: `${signatoryList[1].fullName} (${signatoryList[1].email})`
               }
             });
           }
@@ -1548,8 +1548,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: updatedNda.status,
             error: 'Sadiq and email fallback failed',
             contactInfo: {
-              entrepreneur: `${signatories[0].fullName} (${signatories[0].email})`,
-              company: `${signatories[1].fullName} (${signatories[1].email})`
+              entrepreneur: `${signatoryList[0].fullName} (${signatoryList[0].email})`,
+              company: `${signatoryList[1].fullName} (${signatoryList[1].email})`
             }
           });
         }
