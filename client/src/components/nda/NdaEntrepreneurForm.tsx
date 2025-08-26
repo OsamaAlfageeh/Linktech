@@ -32,6 +32,40 @@ interface EntrepreneurFormData {
   phone: string;
 }
 
+// Phone number validation
+const validatePhoneNumber = (phone: string): { isValid: boolean; message?: string } => {
+  if (!phone.trim()) {
+    return { isValid: false, message: "رقم الهاتف مطلوب" };
+  }
+
+  // Remove spaces, dashes, parentheses
+  const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+  
+  // Check for valid international format
+  if (cleaned.match(/^\+\d{1,4}\d{7,14}$/)) {
+    // Saudi numbers are preferred for Sadiq integration
+    if (cleaned.startsWith('+966')) {
+      return { isValid: true };
+    }
+    // Other international numbers
+    return { 
+      isValid: true, 
+      message: "ملاحظة: أرقام السعودية (+966) مفضلة لضمان أفضل توافق مع منصة صادق" 
+    };
+  }
+  
+  // Check for Saudi domestic format (05xxxxxxxx)
+  if (cleaned.match(/^05\d{8}$/)) {
+    return { isValid: true };
+  }
+  
+  // Invalid format
+  return { 
+    isValid: false, 
+    message: "تنسيق غير صحيح. استخدم +966xxxxxxxx أو 05xxxxxxxx للأرقام السعودية" 
+  };
+};
+
 export function NdaEntrepreneurForm({
   ndaId,
   projectTitle,
@@ -45,6 +79,7 @@ export function NdaEntrepreneurForm({
   
   const [agreed, setAgreed] = useState(false);
   const [step, setStep] = useState<'contact-info' | 'agreement'>('contact-info');
+  const [phoneValidation, setPhoneValidation] = useState<{ isValid: boolean; message?: string }>({ isValid: true });
   
   // Get current user info
   const { data: auth } = useQuery<any>({
@@ -114,6 +149,17 @@ export function NdaEntrepreneurForm({
       return;
     }
 
+    // Validate phone number format
+    const phoneCheck = validatePhoneNumber(contactForm.phone);
+    if (!phoneCheck.isValid) {
+      toast({
+        title: "تنسيق رقم الهاتف غير صحيح",
+        description: phoneCheck.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Move to agreement step
     setStep('agreement');
   };
@@ -139,6 +185,12 @@ export function NdaEntrepreneurForm({
       ...prev,
       [field]: value
     }));
+    
+    // Validate phone number in real-time
+    if (field === 'phone') {
+      const validation = validatePhoneNumber(value);
+      setPhoneValidation(validation);
+    }
   };
 
   return (
@@ -216,11 +268,24 @@ export function NdaEntrepreneurForm({
                           type="tel"
                           value={contactForm.phone}
                           onChange={(e) => handleInputChange('phone', e.target.value)}
-                          placeholder="05xxxxxxxx"
-                          className="pr-10"
+                          placeholder="+966xxxxxxxx أو 05xxxxxxxx"
+                          className={`pr-10 ${
+                            contactForm.phone && !phoneValidation.isValid 
+                              ? 'border-red-500 focus:border-red-500' 
+                              : phoneValidation.message && phoneValidation.isValid
+                              ? 'border-yellow-500 focus:border-yellow-500'
+                              : ''
+                          }`}
                           required
                         />
                       </div>
+                      {contactForm.phone && phoneValidation.message && (
+                        <p className={`text-sm mt-1 ${
+                          phoneValidation.isValid ? 'text-yellow-600' : 'text-red-600'
+                        }`}>
+                          {phoneValidation.message}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
