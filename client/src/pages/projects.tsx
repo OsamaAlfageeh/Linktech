@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, PlusCircle } from "lucide-react";
 import SEO from "@/components/seo/SEO";
 import { WebpageStructuredData, BreadcrumbStructuredData } from "@/components/seo/StructuredData";
+import { useAuth } from "@/App";
 
 type Project = {
   id: number;
@@ -61,24 +62,27 @@ const ProjectSkeleton = () => (
   </div>
 );
 
-const Projects = ({ auth }: ProjectsProps = {}) => {
+const Projects = ({ auth: authProp }: ProjectsProps = {}) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSkill, setSelectedSkill] = useState<string>("");
   const [sortBy, setSortBy] = useState<string>("newest");
+  
+  // Use the auth hook directly for reliable state
+  const auth = useAuth();
 
   const { data: projects, isLoading, error, refetch } = useQuery<Project[]>({
     queryKey: ['/api/projects'],
-    // إعادة جلب البيانات تلقائيًا عند تغير حالة المصادقة
-    enabled: auth?.isAuthenticated === true
+    // Query is always enabled, we handle auth in the UI rendering
+    enabled: true
   });
   
   // إعادة جلب البيانات عند تغير حالة المصادقة
   useEffect(() => {
-    if (auth?.isAuthenticated) {
+    if (auth.isAuthenticated) {
       console.log('إعادة جلب المشاريع بعد تغير حالة المصادقة');
       refetch();
     }
-  }, [auth?.isAuthenticated, refetch]);
+  }, [auth.isAuthenticated, refetch]);
 
   // Filter and sort projects
   const filteredProjects = projects
@@ -150,7 +154,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
           <p className="text-neutral-600 text-sm sm:text-base">استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة</p>
         </div>
 
-        {auth?.isAuthenticated ? (
+        {auth.isAuthenticated ? (
           <>
             {/* Filters and Controls */}
             <div className="bg-white p-3 sm:p-4 md:p-6 rounded-xl shadow-sm border border-neutral-200 mb-4 sm:mb-6">
@@ -194,7 +198,7 @@ const Projects = ({ auth }: ProjectsProps = {}) => {
                 </div>
               </div>
               
-              {auth?.isAuthenticated && auth?.isEntrepreneur && (
+              {auth.isAuthenticated && auth.isEntrepreneur && (
                 <div className="mt-4 pt-4 border-t border-neutral-200 flex justify-center sm:justify-start">
                   <Link href="/dashboard/entrepreneur?action=create-project">
                     <Button className="w-full sm:w-auto text-sm sm:text-base">
