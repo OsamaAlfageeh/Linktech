@@ -1,0 +1,50 @@
+
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب POST /api/nda/9/complete - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...
+إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib
+تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف: 1831 بايت
+⬆️ رفع ملف PDF إلى صادق...
+📄 رفع وثيقة إلى صادق: NDA-said-project-1756203234805.pdf
+🔄 محاولة رفع باستخدام endpoint: /IntegrationService/Document/Upload
+🔄 محاولة الحصول على رمز وصول جديد من صادق...
+📧 تسجيل الدخول في صادق باستخدام: mj2***
+🔄 محاولة الاتصال بـ: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+✅ تم تسجيل الدخول في صادق بنجاح من: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+⏰ صالح حتى: ٢٧‏/٨‏/٢٠٢٥، ١:٤٢:١٦ م
+🔄 محاولة رفع باستخدام multipart/form-data لـ: /IntegrationService/Document/Upload
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+❌ فشل endpoint /IntegrationService/Document/Upload مع حالة: 405
+🔄 محاولة رفع باستخدام endpoint: /api/Document/Upload
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+❌ فشل endpoint /api/Document/Upload مع حالة: 404
+🔄 محاولة رفع باستخدام endpoint: /Document/Upload
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+❌ فشل endpoint /Document/Upload مع حالة: 404
+🔄 محاولة رفع باستخدام endpoint: /IntegrationService/Documents/Upload
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+❌ فشل endpoint /IntegrationService/Documents/Upload مع حالة: 404
+🔄 محاولة رفع باستخدام endpoint: /api/v1/documents/upload
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+❌ فشل endpoint /api/v1/documents/upload مع حالة: 404
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: Failed to upload document: 404
+    at SadiqAuthService.uploadDocument (/home/runner/workspace/server/sadiqAuthService.ts:246:23)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1386:30)
+10:13:57 AM [express] POST /api/nda/9/complete 200 in 3585ms :: {"id":9,"message":"تم إكمال البيانات،…
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTYyMDMyMDUsImV4cCI6MTc1NjgwODAwNX0.uadQ7pSVlXsDsY7LYTc1Bm2Pu5X37wkT1UOiIAcDE-A
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+10:13:58 AM [express] GET /api/notifications 304 in 71ms :: [{"id":9,
