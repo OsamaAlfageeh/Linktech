@@ -16,10 +16,31 @@ interface NdaStatus {
   id: number;
   status: string;
   envelopeStatus?: string;
+  createdAt?: string;
+  signedAt?: string;
+  projectId?: number;
+  sadiqReferenceNumber?: string;
   sadiqStatus?: {
     completionPercentage: number;
     signedCount: number;
     pendingCount: number;
+    totalSignatories: number;
+    createDate?: string;
+    signatories?: Array<{
+      id: string;
+      status: string;
+      fullName: string;
+      fullNameAr: string;
+      email: string;
+      phoneNumber: string;
+    }>;
+    documents?: Array<{
+      id: string;
+      fileName: string;
+      uploadDate: string;
+      sizeInKB: number;
+      isSigned: boolean;
+    }>;
   };
 }
 
@@ -227,7 +248,8 @@ export default function NdaCompletePage() {
                   معلومات الاتفاقية
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-6">
+                {/* Current Status */}
                 <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
                   <span className="font-medium">الحالة الحالية:</span>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${
@@ -236,25 +258,151 @@ export default function NdaCompletePage() {
                     ndaStatus.status === 'ready_for_sadiq' ? 'bg-yellow-100 text-yellow-800' :
                     'bg-gray-100 text-gray-800'
                   }`}>
-                    {ndaStatus.status === 'signed' ? 'مكتملة' :
+                    {ndaStatus.status === 'signed' ? 'مكتملة ومُوقعة' :
                      ndaStatus.status === 'invitation_sent' ? 'تم إرسال دعوات التوقيع' :
                      ndaStatus.status === 'ready_for_sadiq' ? 'جاهزة للإرسال' :
                      'قيد المعالجة'}
                   </span>
                 </div>
 
+                {/* Creation Date */}
+                {ndaStatus.createdAt && (
+                  <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <span className="text-gray-600">تاريخ الإنشاء:</span>
+                    <span className="font-medium">
+                      {new Date(ndaStatus.createdAt).toLocaleDateString('ar-SA', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Signed Date */}
+                {ndaStatus.signedAt && (
+                  <div className="flex justify-between items-center p-3 border rounded-lg bg-green-50">
+                    <span className="text-green-700">تاريخ التوقيع:</span>
+                    <span className="font-medium text-green-800">
+                      {new Date(ndaStatus.signedAt).toLocaleDateString('ar-SA', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </span>
+                  </div>
+                )}
+
+                {/* Reference Number */}
+                {ndaStatus.sadiqReferenceNumber && (
+                  <div className="flex justify-between items-center p-3 border rounded-lg">
+                    <span className="text-gray-600">رقم المرجع:</span>
+                    <span className="font-mono text-sm bg-gray-100 px-2 py-1 rounded">
+                      {ndaStatus.sadiqReferenceNumber}
+                    </span>
+                  </div>
+                )}
+
+                {/* Sadiq Status Details */}
                 {ndaStatus.sadiqStatus && (
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span>نسبة الإكمال:</span>
-                      <span className="font-semibold">{ndaStatus.sadiqStatus.completionPercentage}%</span>
+                  <div className="space-y-4">
+                    <h4 className="font-medium text-gray-900 border-b pb-2">تفاصيل التوقيع الإلكتروني</h4>
+                    
+                    {/* Progress */}
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>نسبة الإكمال:</span>
+                        <span className="font-semibold">{ndaStatus.sadiqStatus.completionPercentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full" 
+                          style={{ width: `${ndaStatus.sadiqStatus.completionPercentage}%` }}
+                        ></div>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span>الموقعين المكتملين:</span>
-                      <span>{ndaStatus.sadiqStatus.signedCount} من {ndaStatus.sadiqStatus.signedCount + ndaStatus.sadiqStatus.pendingCount}</span>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 bg-green-50 rounded-lg">
+                        <div className="text-lg font-bold text-green-700">{ndaStatus.sadiqStatus.signedCount}</div>
+                        <div className="text-sm text-green-600">تم التوقيع</div>
+                      </div>
+                      <div className="text-center p-3 bg-orange-50 rounded-lg">
+                        <div className="text-lg font-bold text-orange-700">{ndaStatus.sadiqStatus.pendingCount}</div>
+                        <div className="text-sm text-orange-600">في الانتظار</div>
+                      </div>
                     </div>
+
+                    {/* Signatories */}
+                    {ndaStatus.sadiqStatus.signatories && ndaStatus.sadiqStatus.signatories.length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-sm text-gray-700">الموقعين:</h5>
+                        {ndaStatus.sadiqStatus.signatories.map((signatory, index) => (
+                          <div key={signatory.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-medium text-sm">
+                                {signatory.fullNameAr || signatory.fullName}
+                              </div>
+                              <div className="text-xs text-gray-500">{signatory.email}</div>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              signatory.status === 'SIGNED' ? 'bg-green-100 text-green-700' :
+                              signatory.status === 'PENDING' ? 'bg-orange-100 text-orange-700' :
+                              'bg-gray-100 text-gray-700'
+                            }`}>
+                              {signatory.status === 'SIGNED' ? 'تم التوقيع' :
+                               signatory.status === 'PENDING' ? 'في الانتظار' :
+                               signatory.status}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Documents */}
+                    {ndaStatus.sadiqStatus.documents && ndaStatus.sadiqStatus.documents.length > 0 && (
+                      <div className="space-y-2">
+                        <h5 className="font-medium text-sm text-gray-700">المستندات:</h5>
+                        {ndaStatus.sadiqStatus.documents.map((doc, index) => (
+                          <div key={doc.id} className="flex items-center justify-between p-3 border rounded-lg">
+                            <div>
+                              <div className="font-medium text-sm">{doc.fileName}</div>
+                              <div className="text-xs text-gray-500">
+                                حجم الملف: {doc.sizeInKB} كيلوبايت
+                              </div>
+                            </div>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              doc.isSigned ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'
+                            }`}>
+                              {doc.isSigned ? 'موقع' : 'غير موقع'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Sadiq Creation Date */}
+                    {ndaStatus.sadiqStatus.createDate && (
+                      <div className="flex justify-between items-center p-3 border rounded-lg bg-blue-50">
+                        <span className="text-blue-700">تاريخ الإنشاء في صادق:</span>
+                        <span className="font-medium text-blue-800">
+                          {new Date(ndaStatus.sadiqStatus.createDate).toLocaleDateString('ar-SA', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
+
                     {ndaStatus.sadiqStatus.pendingCount > 0 && (
-                      <div className="p-3 bg-blue-50 rounded-lg">
+                      <div className="p-4 bg-blue-50 rounded-lg">
                         <p className="text-sm text-blue-700">
                           في انتظار {ndaStatus.sadiqStatus.pendingCount} توقيع إضافي لإكمال الاتفاقية
                         </p>

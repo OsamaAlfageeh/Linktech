@@ -2535,15 +2535,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             status: updatedStatus,
             envelopeStatus: envelopeStatus,
             sadiqStatus: {
-              envelopeId: sadiqEnvelopeData?.id,
+              envelopeId: sadiqEnvelopeData.id,
               status: envelopeStatus,
               completionPercentage,
               signedCount,
               pendingCount,
               totalSignatories,
               signatories: signatories,
-              documents: sadiqEnvelopeData?.documents || [],
-              createDate: sadiqEnvelopeData?.createDate
+              documents: sadiqEnvelopeData.documents || [],
+              createDate: sadiqEnvelopeData.createDate
             }
           });
         } catch (sadiqError) {
