@@ -124,6 +124,114 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(pdfmakeTestRoutes);
   app.use(generateNdaRoutes);
   // Contact routes integrated above
+  
+  // Add webhook endpoint BEFORE JWT middleware to bypass authentication
+  // Webhook endpoint for Sadiq notifications - NO AUTHENTICATION REQUIRED
+  app.post('/api/sadiq/webhook', async (req: Request, res: Response) => {
+    try {
+      console.log('🔔 تم استلام webhook من صادق:', JSON.stringify(req.body, null, 2));
+      
+      const webhookData = req.body;
+      
+      // Verify webhook authenticity using the expected webhook secret
+      const authHeader = req.headers.authorization;
+      console.log('🔐 Authorization header:', authHeader);
+      
+      if (authHeader !== 'Bearer linktech-webhook-secret-2025') {
+        console.log('⚠️ Webhook authentication failed');
+        return res.status(401).json({ message: 'Unauthorized webhook' });
+      }
+      
+      // Extract envelope information
+      const envelopeId = webhookData.envelopeId;
+      const status = webhookData.status;
+      const referenceNumber = webhookData.referenceNumber;
+      
+      if (!referenceNumber) {
+        console.log('⚠️ لا يوجد رقم مرجع في webhook');
+        return res.status(400).json({ message: 'Missing reference number' });
+      }
+      
+      // Find NDA by reference number - search across all NDAs
+      console.log(`🔍 البحث عن اتفاقية بالرقم المرجعي: ${referenceNumber}`);
+      
+      // Try to find NDA across all projects
+      let nda = null;
+      try {
+        // Get all projects and check their NDAs
+        const allProjects = await storage.getProjects();
+        for (const project of allProjects) {
+          const projectNda = await storage.getNdaAgreementByProjectId(project.id);
+          if (projectNda && projectNda.sadiqReferenceNumber === referenceNumber) {
+            nda = projectNda;
+            break;
+          }
+        }
+      } catch (searchError) {
+        console.error('خطأ في البحث عن الاتفاقية:', searchError);
+      }
+      
+      if (!nda) {
+        console.log('⚠️ لم يتم العثور على اتفاقية بالرقم المرجعي:', referenceNumber);
+        return res.status(404).json({ message: 'NDA not found' });
+      }
+      
+      console.log(`📋 تحديث حالة الاتفاقية ${nda.id} إلى: ${status}`);
+      
+      // Update NDA status based on webhook data
+      let newStatus = nda.status;
+      let signedAt = nda.signedAt;
+      
+      if (status === 'Completed') {
+        newStatus = 'signed';
+        signedAt = new Date();
+      } else if (status === 'Voided') {
+        newStatus = 'cancelled';
+      } else if (status === 'In-progress') {
+        newStatus = 'invitation_sent';
+      }
+      
+      // Update the NDA in database
+      await storage.updateNdaAgreement(nda.id, {
+        status: newStatus,
+        envelopeStatus: status,
+        ...(signedAt && { signedAt })
+      });
+      
+      // Create notification for the user
+      if (newStatus === 'signed') {
+        const project = await storage.getProject(nda.projectId);
+        if (project) {
+          await storage.createNotification({
+            userId: project.userId,
+            type: 'nda_completed',
+            title: 'تم توقيع اتفاقية عدم الإفصاح',
+            content: `تم توقيع اتفاقية عدم الإفصاح للمشروع "${project.title}" من جميع الأطراف بنجاح. يمكنك الآن المتابعة مع الشركة لبدء العمل على المشروع.`,
+            relatedId: nda.id,
+            actionUrl: `/nda-complete/${nda.id}`
+          });
+          
+          console.log(`✅ تم إنشاء إشعار للمستخدم ${project.userId} حول اكتمال التوقيع`);
+        }
+      }
+      
+      console.log(`✅ تم تحديث حالة الاتفاقية ${nda.id} بنجاح`);
+      
+      res.json({
+        success: true,
+        message: 'Webhook processed successfully',
+        ndaId: nda.id,
+        newStatus: newStatus
+      });
+    } catch (error) {
+      console.error('❌ خطأ في معالجة webhook:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error'
+      });
+    }
+  });
+
   // Initialize session and passport
   // استخدام JWT middleware
   app.use(jwtAuth);
@@ -2489,79 +2597,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Webhook endpoint for Sadiq notifications
-  app.post('/api/sadiq/webhook', async (req: Request, res: Response) => {
-    try {
-      console.log('🔔 تم استلام webhook من صادق:', JSON.stringify(req.body, null, 2));
-      
-      const webhookData = req.body;
-      
-      // Verify webhook authenticity (optional - you can add HeaderToken verification here)
-      const authHeader = req.headers.authorization;
-      console.log('🔐 Authorization header:', authHeader);
-      
-      // Extract envelope information
-      const envelopeId = webhookData.envelopeId;
-      const status = webhookData.status;
-      const referenceNumber = webhookData.referenceNumber;
-      
-      if (!referenceNumber) {
-        console.log('⚠️ لا يوجد رقم مرجع في webhook');
-        return res.status(400).json({ message: 'Missing reference number' });
-      }
-      
-      // Find NDA by reference number
-      const ndaAgreements = await storage.getNdaAgreementsByProject(0); // Get all NDAs
-      const nda = ndaAgreements.find(n => n.sadiqReferenceNumber === referenceNumber);
-      
-      if (!nda) {
-        console.log('⚠️ لم يتم العثور على اتفاقية بالرقم المرجعي:', referenceNumber);
-        return res.status(404).json({ message: 'NDA not found' });
-      }
-      
-      console.log(`📋 تحديث حالة الاتفاقية ${nda.id} إلى: ${status}`);
-      
-      // Update NDA status based on webhook data
-      let newStatus = nda.status;
-      let signedAt = nda.signedAt;
-      
-      if (status === 'Completed') {
-        newStatus = 'signed';
-        signedAt = new Date();
-      } else if (status === 'Voided') {
-        newStatus = 'cancelled';
-      } else if (status === 'In-progress') {
-        newStatus = 'invitation_sent';
-      }
-      
-      // Update the NDA in database
-      await storage.updateNdaAgreement(nda.id, {
-        status: newStatus,
-        envelopeStatus: status,
-        ...(signedAt && { signedAt })
-      });
-      
-      // Create notification for the user
-      if (newStatus === 'signed') {
-        await storage.createNotification({
-          userId: nda.projectId ? (await storage.getProject(nda.projectId))?.userId || 0 : 0,
-          type: 'nda_completed',
-          title: 'تم إكمال توقيع اتفاقية عدم الإفصاح',
-          message: 'تم توقيع اتفاقية عدم الإفصاح بنجاح من جميع الأطراف',
-          relatedId: nda.id,
-          actionUrl: `/nda-complete/${nda.id}`
-        });
-        console.log('✅ تم إنشاء إشعار إكمال التوقيع');
-      }
-      
-      console.log('🔄 تم تحديث حالة الاتفاقية بنجاح');
-      res.status(200).json({ message: 'Webhook processed successfully' });
-      
-    } catch (error) {
-      console.error('❌ خطأ في معالجة webhook:', error);
-      res.status(500).json({ message: 'Internal server error' });
-    }
-  });
 
   // Check NDA status and update from Sadiq
   app.get('/api/nda/:id/status', isAuthenticated, async (req: Request, res: Response) => {
