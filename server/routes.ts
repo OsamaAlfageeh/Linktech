@@ -2581,10 +2581,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'المشروع غير موجود' });
       }
       
-      // التحقق من صلاحية الوصول - فقط صاحب المشروع أو المسؤول
+      // التحقق من صلاحية الوصول - صاحب المشروع أو المسؤول أو الشركات (لفحص حالة اتفاقياتهم)
       const user = req.user as any;
       
-      if (user.role !== 'admin' && project.userId !== user.id) {
+      if (user.role !== 'admin' && project.userId !== user.id && user.role !== 'company') {
         return res.status(403).json({ message: 'غير مصرح بالوصول إلى اتفاقيات عدم الإفصاح لهذا المشروع' });
       }
       

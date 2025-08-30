@@ -122,13 +122,13 @@ export function NdaSection({
   });
 
 
-  // إذا كان المستخدم هو صاحب المشروع، نقوم بجلب جميع اتفاقيات المشروع
+  // إذا كان المستخدم هو صاحب المشروع أو شركة، نقوم بجلب جميع اتفاقيات المشروع
   const {
     data: projectNdas,
     isLoading: isLoadingProjectNdas,
   } = useQuery<NdaAgreement[]>({
     queryKey: [`/api/projects/${projectId}/nda`],
-    enabled: !!projectId && userRole === 'admin' || (currentUserId === userId), // فقط المسؤولون أو صاحب المشروع
+    enabled: !!projectId && (userRole === 'admin' || currentUserId === userId || userRole === 'company'), // المسؤولون أو صاحب المشروع أو الشركات
   });
 
   // التحقق مما إذا كان المستخدم شركة ويمكنه توقيع اتفاقية عدم الإفصاح
