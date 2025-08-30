@@ -247,42 +247,44 @@ class SadiqAuthService {
     if (!phoneNumber) return "";
     
     // Remove any spaces, dashes, or parentheses
-    const cleaned = phoneNumber.replace(/[\s\-\(\)]/g, '');
+    const cleaned = phoneNumber.replace(/[\s\-\(\)\.]/g, '');
     
-    // If already starts with + and country code, return as is (international format)
-    if (cleaned.match(/^\+\d{1,4}\d{7,14}$/)) {
-      console.log(`📞 رقم دولي صحيح: ${cleaned}`);
+    // STRICT VALIDATION FOR SADIQ API - Only accept exact formats
+    // Must be +966XXXXXXXX (exactly 8 digits after +966)
+    
+    // Pattern: +966 followed by exactly 8 digits (mobile: 5XXXXXXX or landline: 1XXXXXXX)
+    const sadiqFormat = /^\+966[15]\d{7}$/;
+    
+    // If already in correct Sadiq format, return as is
+    if (sadiqFormat.test(cleaned)) {
+      console.log(`📞 رقم متوافق مع صادق: ${cleaned}`);
       return cleaned;
     }
     
-    // If already starts with +966, return as is
-    if (cleaned.startsWith('+966')) {
-      return cleaned;
+    // Pattern: 00966 followed by exactly 8 digits - convert to +966
+    if (/^00966[15]\d{7}$/.test(cleaned)) {
+      const converted = '+966' + cleaned.substring(5);
+      console.log(`📞 تم تحويل ${cleaned} إلى ${converted}`);
+      return converted;
     }
     
-    // If starts with 966, add +
-    if (cleaned.startsWith('966')) {
-      return '+' + cleaned;
+    // Convert 05XXXXXXXX to +9665XXXXXXX (trim to exactly 8 digits after +966)
+    if (/^05\d{8}$/.test(cleaned)) {
+      const converted = '+966' + cleaned.substring(1, 9); // Take only 8 digits after removing 0
+      console.log(`📞 تم تحويل ${cleaned} إلى ${converted}`);
+      return converted;
     }
     
-    // If starts with 0, replace with +966 (Saudi domestic format)
-    if (cleaned.startsWith('0')) {
-      return '+966' + cleaned.substring(1);
+    // Convert 01XXXXXXXX to +9661XXXXXXX (trim to exactly 8 digits after +966)
+    if (/^01\d{8}$/.test(cleaned)) {
+      const converted = '+966' + cleaned.substring(1, 9); // Take only 8 digits after removing 0
+      console.log(`📞 تم تحويل ${cleaned} إلى ${converted}`);
+      return converted;
     }
     
-    // If starts with 5 and is 9 digits (mobile), assume Saudi
-    if (cleaned.match(/^5\d{8}$/)) {
-      return '+966' + cleaned;
-    }
-    
-    // If no country code, assume Saudi and add +966
-    if (cleaned.match(/^\d{8,9}$/)) {
-      return '+966' + cleaned;
-    }
-    
-    // Return as is if unrecognized format
-    console.log(`⚠️ تنسيق رقم غير معروف: ${cleaned}`);
-    return cleaned;
+    // If format doesn't match any expected pattern, log error and return empty
+    console.error(`❌ تنسيق رقم غير صحيح لصادق: ${cleaned} - يجب أن يكون +966 متبوعاً بـ 8 أرقام بالضبط`);
+    return "";
   }
 
   /**

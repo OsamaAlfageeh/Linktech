@@ -12,51 +12,62 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     return { isValid: false, message: 'رقم الهاتف مطلوب' };
   }
 
-  // إزالة المسافات والأحرف غير الرقمية باستثناء + 
-  const cleanPhone = phone.replace(/[^\d+]/g, '');
+  // Remove all spaces, dashes, and special characters except +
+  const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
   
-  // التحقق من الأرقام السعودية
-  if (cleanPhone.match(/^05\d{8}$/)) {
-    // تنسيق الرقم السعودي المحلي إلى دولي
-    const formattedPhone = `+966${cleanPhone.substring(1)}`;
-    return { 
-      isValid: true, 
-      message: 'تم تنسيق الرقم إلى الصيغة الدولية',
-      formattedValue: formattedPhone
-    };
-  }
+  // STRICT VALIDATION FOR SADIQ API COMPATIBILITY
+  // Only accept: +966XXXXXXXX (exactly 8 digits) or 00966XXXXXXXX (exactly 8 digits)
   
-  if (cleanPhone.match(/^01\d{8}$/)) {
-    // تنسيق رقم الأرضي السعودي
-    const formattedPhone = `+966${cleanPhone.substring(1)}`;
-    return { 
-      isValid: true, 
-      message: 'تم تنسيق الرقم إلى الصيغة الدولية',
-      formattedValue: formattedPhone
-    };
-  }
+  // Pattern 1: +966 followed by exactly 8 digits (mobile: 5XXXXXXX or landline: 1XXXXXXX)
+  const sadiqFormat1 = /^\+966[15]\d{7}$/;
   
-  // التحقق من الأرقام الدولية
-  if (cleanPhone.match(/^\+966[15]\d{8}$/)) {
-    return { 
-      isValid: true, 
-      message: 'رقم سعودي صحيح',
+  // Pattern 2: 00966 followed by exactly 8 digits  
+  const sadiqFormat2 = /^00966[15]\d{7}$/;
+  
+  // Check +966 format (8 digits after +966)
+  if (sadiqFormat1.test(cleanPhone)) {
+    return {
+      isValid: true,
+      message: `رقم صحيح متوافق مع صادق: ${cleanPhone}`,
       formattedValue: cleanPhone
     };
   }
   
-  // التحقق من صيغة الأرقام الدولية العامة
-  if (cleanPhone.match(/^\+\d{10,15}$/)) {
-    return { 
-      isValid: true, 
-      message: 'رقم دولي صحيح',
-      formattedValue: cleanPhone
+  // Check 00966 format (8 digits after 00966) - convert to +966
+  if (sadiqFormat2.test(cleanPhone)) {
+    const converted = '+966' + cleanPhone.substring(5); // Remove '00966' and add '+966'
+    return {
+      isValid: true,
+      message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
+      formattedValue: converted
+    };
+  }
+  
+  // Try to convert common Saudi formats to the strict format
+  
+  // Convert 05XXXXXXXX to +9665XXXXXXX (trim to exactly 8 digits after +966)
+  if (/^05\d{8}$/.test(cleanPhone)) {
+    const converted = '+966' + cleanPhone.substring(1, 9); // Remove leading 0, take only 8 digits
+    return {
+      isValid: true,
+      message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
+      formattedValue: converted
+    };
+  }
+  
+  // Convert 01XXXXXXXX to +9661XXXXXXX (trim to exactly 8 digits after +966)
+  if (/^01\d{8}$/.test(cleanPhone)) {
+    const converted = '+966' + cleanPhone.substring(1, 9); // Remove leading 0, take only 8 digits
+    return {
+      isValid: true,
+      message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
+      formattedValue: converted
     };
   }
   
   return { 
     isValid: false, 
-    message: 'صيغة رقم الهاتف غير صحيحة. يرجى إدخال رقم سعودي (05xxxxxxxx) أو رقم دولي (+966xxxxxxxxx)'
+    message: 'يجب إدخال رقم هاتف سعودي صحيح: رقم جوال (0512345678) أو رقم أرضي (0112345678) أو صيغة دولية (+966512345678). يجب أن يكون بالضبط 8 أرقام بعد +966'
   };
 }
 

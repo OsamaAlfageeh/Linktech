@@ -1,0 +1,60 @@
+
+        "pageNumber": 1,
+        "text": "",
+        "type": "Signature",
+        "positionX": 270,
+        "positionY": 500
+      }
+    ],
+    "availableTo": "2025-09-29T12:12:37.866Z",
+    "authenticationType": 0,
+    "InvitationLanguage": 1,
+    "RedirectUrl": "",
+    "AllowUserToAddDestination": false
+  }
+]
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  data: false,
+  errorCode: 9,
+  message: 'One or More Destination has invalid phone number, make sure the phone number is correct and start with country code',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+❌ فشل إرسال الدعوات من صادق - كود الخطأ: 9
+📄 رسالة الخطأ: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code
+❌ خطأ في إرسال الدعوات عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:358:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1553:34)
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:358:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1553:34)
+🔄 إعادة تعيين حالة NDA للسماح بإعادة المحاولة...
+🔄 تفعيل النظام البديل لضمان إرسال الدعوات...
+⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط
+📧 دعوة مطلوبة لـ: محمد جمال (mj266502@gmail.com)
+📧 دعوة مطلوبة لـ: company (mj26653@gmail.ocm)
+12:12:38 PM [express] POST /api/nda/23/complete 200 in 2451ms :: {"id":23,"message":"تم إكمال البيانا…
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTY1NTU5MDgsImV4cCI6MTc1NzE2MDcwOH0.NEXmRIpfYKuonqZEpZMouMyz0hG55YCC7sPfT7LVPi8
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+12:12:38 PM [express] GET /api/notifications 304 in 72ms :: [{"id":41,"userId":44,"type":"nda_request…
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTY1NTU5MDgsImV4cCI6MTc1NzE2MDcwOH0.NEXmRIpfYKuonqZEpZMouMyz0hG55YCC7sPfT7LVPi8
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب GET /api/notifications - حالة المصادقة: مصرح
