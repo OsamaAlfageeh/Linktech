@@ -1438,13 +1438,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('⬆️ رفع ملف PDF إلى صادق...');
         const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
         const documentId = uploadResult.id;
+        const referenceNumber = uploadResult.referenceNumber;
 
         // إرسال الدعوات للتوقيع باستخدام Sadiq API الصحيح
         console.log('📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...');
         const invitationResult = await sadiqAuth.sendSigningInvitations(documentId, signatoryList, project.title);
 
         // تحديث اتفاقية عدم الإفصاح ببيانات صادق
-        const referenceNumber = `linktech-nda-project-${project.id}-${Date.now()}`;
         await storage.updateNda(ndaId, {
           sadiqEnvelopeId: invitationResult.envelopeId,
           sadiqReferenceNumber: referenceNumber,
@@ -1699,9 +1699,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const fileName = `NDA-${project.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
         const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
         const documentId = uploadResult.id;
+        const referenceNumber = uploadResult.referenceNumber;
 
         // إعداد بيانات الموقعين للدعوة
-        const referenceNumber = `linktech-nda-project-${projectId}-${Date.now()}`;
         const invitationData = {
           referenceNumber,
           envelopeDocument: {
@@ -2489,6 +2489,80 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Webhook endpoint for Sadiq notifications
+  app.post('/api/sadiq/webhook', async (req: Request, res: Response) => {
+    try {
+      console.log('🔔 تم استلام webhook من صادق:', JSON.stringify(req.body, null, 2));
+      
+      const webhookData = req.body;
+      
+      // Verify webhook authenticity (optional - you can add HeaderToken verification here)
+      const authHeader = req.headers.authorization;
+      console.log('🔐 Authorization header:', authHeader);
+      
+      // Extract envelope information
+      const envelopeId = webhookData.envelopeId;
+      const status = webhookData.status;
+      const referenceNumber = webhookData.referenceNumber;
+      
+      if (!referenceNumber) {
+        console.log('⚠️ لا يوجد رقم مرجع في webhook');
+        return res.status(400).json({ message: 'Missing reference number' });
+      }
+      
+      // Find NDA by reference number
+      const ndaAgreements = await storage.getNdaAgreementsByProject(0); // Get all NDAs
+      const nda = ndaAgreements.find(n => n.sadiqReferenceNumber === referenceNumber);
+      
+      if (!nda) {
+        console.log('⚠️ لم يتم العثور على اتفاقية بالرقم المرجعي:', referenceNumber);
+        return res.status(404).json({ message: 'NDA not found' });
+      }
+      
+      console.log(`📋 تحديث حالة الاتفاقية ${nda.id} إلى: ${status}`);
+      
+      // Update NDA status based on webhook data
+      let newStatus = nda.status;
+      let signedAt = nda.signedAt;
+      
+      if (status === 'Completed') {
+        newStatus = 'signed';
+        signedAt = new Date();
+      } else if (status === 'Voided') {
+        newStatus = 'cancelled';
+      } else if (status === 'In-progress') {
+        newStatus = 'invitation_sent';
+      }
+      
+      // Update the NDA in database
+      await storage.updateNdaAgreement(nda.id, {
+        status: newStatus,
+        envelopeStatus: status,
+        ...(signedAt && { signedAt })
+      });
+      
+      // Create notification for the user
+      if (newStatus === 'signed') {
+        await storage.createNotification({
+          userId: nda.projectId ? (await storage.getProject(nda.projectId))?.userId || 0 : 0,
+          type: 'nda_completed',
+          title: 'تم إكمال توقيع اتفاقية عدم الإفصاح',
+          message: 'تم توقيع اتفاقية عدم الإفصاح بنجاح من جميع الأطراف',
+          relatedId: nda.id,
+          actionUrl: `/nda-complete/${nda.id}`
+        });
+        console.log('✅ تم إنشاء إشعار إكمال التوقيع');
+      }
+      
+      console.log('🔄 تم تحديث حالة الاتفاقية بنجاح');
+      res.status(200).json({ message: 'Webhook processed successfully' });
+      
+    } catch (error) {
+      console.error('❌ خطأ في معالجة webhook:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Check NDA status and update from Sadiq
   app.get('/api/nda/:id/status', isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -2668,6 +2742,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           authentication: 'نجح',
           pdfGeneration: `${pdfBuffer.length} بايت`,
           documentUpload: uploadResult.id,
+          referenceNumber: uploadResult.referenceNumber,
           timestamp: new Date().toISOString()
         }
       });

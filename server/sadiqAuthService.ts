@@ -172,19 +172,22 @@ class SadiqAuthService {
   }
 
   /**
-   * Upload document to Sadiq using CORRECT API endpoint
+   * Upload document to Sadiq using CORRECT API endpoint with webhook integration
    */
-  async uploadDocument(base64Content: string, fileName: string): Promise<{id: string}> {
-    console.log(`📄 رفع وثيقة إلى صادق باستخدام API الصحيح: ${fileName}`);
+  async uploadDocument(base64Content: string, fileName: string): Promise<{id: string, referenceNumber: string}> {
+    console.log(`📄 رفع وثيقة إلى صادق باستخدام API الصحيح مع webhook: ${fileName}`);
     
     try {
+      // First, get or configure webhook
+      let webhookId = await this.getOrCreateWebhook();
+      
       // Use the CORRECT Sadiq API endpoint from user's curl
       const endpoint = '/IntegrationService/Document/Bulk/Initiate-envelope-Base64';
-      const referenceNumber = `linktech-doc-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
+      const referenceNumber = `linktech-nda-project-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`;
       
-      // Use EXACT data format from user's curl command
+      // Use EXACT data format from user's curl command but with real webhook ID
       const requestData = {
-        webhookId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+        webhookId: webhookId,
         referenceNumber: referenceNumber,
         files: [
           {
@@ -224,7 +227,7 @@ class SadiqAuthService {
         }
         
         console.log(`✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: ${documentId}`);
-        return { id: documentId };
+        return { id: documentId, referenceNumber };
       } else {
         const errorText = await response.text();
         console.log(`❌ فشل رفع الوثيقة مع حالة: ${response.status}`);
@@ -386,6 +389,114 @@ class SadiqAuthService {
     }
 
     return result.data;
+  }
+
+  // Configure webhook for receiving status notifications
+  async configureWebhook(): Promise<string | null> {
+    try {
+      const token = await this.getAccessToken();
+      
+      // Get the current domain for webhook URL
+      const webhookUrl = process.env.REPLIT_DEV_DOMAIN 
+        ? `https://${process.env.REPLIT_DEV_DOMAIN}/api/sadiq/webhook`
+        : 'https://your-domain.replit.app/api/sadiq/webhook';
+      
+      console.log(`🔗 تكوين webhook على: ${webhookUrl}`);
+      
+      const webhookConfig = {
+        webhookUrl: webhookUrl,
+        isDefault: true,
+        HeaderToken: "linktech-webhook-secret-2025" // Security token for verification
+      };
+
+      const response = await fetch(`${this.BASE_URL}/IntegrationService/Configuration/webhook`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+        },
+        body: JSON.stringify(webhookConfig)
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`⚠️ فشل في تكوين webhook: ${response.status} ${response.statusText}`, errorText);
+        return null;
+      }
+
+      const data = await response.json();
+      console.log(`✅ تم تكوين webhook بنجاح:`, data);
+      return data.id || data.webhookId; // Return webhook ID
+    } catch (error) {
+      console.error('❌ خطأ في تكوين webhook:', error);
+      return null;
+    }
+  }
+
+  // Get existing webhook configuration
+  async getWebhooks(): Promise<any[]> {
+    try {
+      const token = await this.getAccessToken();
+      
+      console.log('📋 استرجاع تكوينات webhook');
+      
+      const response = await fetch(`${this.BASE_URL}/IntegrationService/Configuration/webhook`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          'accept': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        console.error(`⚠️ فشل في استرجاع webhooks: ${response.status} ${response.statusText}`);
+        return [];
+      }
+
+      const data = await response.json();
+      console.log(`✅ تم استرجاع ${data.length || 0} webhook`);
+      return data || [];
+    } catch (error) {
+      console.error('❌ خطأ في استرجاع webhooks:', error);
+      return [];
+    }
+  }
+
+  // Get or create webhook for our application
+  async getOrCreateWebhook(): Promise<string> {
+    try {
+      // First, try to get existing webhooks
+      const existingWebhooks = await this.getWebhooks();
+      
+      // Check if we already have a webhook for our domain
+      const currentDomain = process.env.REPLIT_DEV_DOMAIN;
+      const ourWebhook = existingWebhooks.find(webhook => 
+        webhook.webhookUrl && webhook.webhookUrl.includes(currentDomain || 'replit.app')
+      );
+      
+      if (ourWebhook && ourWebhook.id) {
+        console.log(`✅ تم العثور على webhook موجود: ${ourWebhook.id}`);
+        return ourWebhook.id;
+      }
+      
+      // No existing webhook found, create a new one
+      console.log('🔗 لم يتم العثور على webhook موجود، إنشاء جديد...');
+      const webhookId = await this.configureWebhook();
+      
+      if (!webhookId) {
+        // Fallback to a default webhook ID if configuration fails
+        console.log('⚠️ فشل في إنشاء webhook، استخدام معرف افتراضي');
+        return "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+      }
+      
+      return webhookId;
+    } catch (error) {
+      console.error('❌ خطأ في الحصول على أو إنشاء webhook:', error);
+      // Fallback to default webhook ID
+      return "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+    }
   }
 
   /**
