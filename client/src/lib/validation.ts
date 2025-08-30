@@ -46,28 +46,6 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     };
   }
   
-  // Try to convert common Saudi formats to the strict format
-  
-  // Convert 05XXXXXXXX to +9665XXXXXXX (exactly 8 digits after +966)
-  if (/^05\d{8}$/.test(cleanPhone)) {
-    const converted = '+966' + cleanPhone.substring(1, 9); // Remove leading 0, take exactly 8 digits
-    return {
-      isValid: true,
-      message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
-      formattedValue: converted
-    };
-  }
-  
-  // Convert 01XXXXXXXX to +9661XXXXXXX (exactly 8 digits after +966)
-  if (/^01\d{8}$/.test(cleanPhone)) {
-    const converted = '+966' + cleanPhone.substring(1, 9); // Remove leading 0, take exactly 8 digits
-    return {
-      isValid: true,
-      message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
-      formattedValue: converted
-    };
-  }
-  
   // Specific error messages for common mistakes
   if (cleanPhone.startsWith('+966') && !/^\+966[15]\d{7}$/.test(cleanPhone)) {
     return {
@@ -83,23 +61,17 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     };
   }
   
-  if (cleanPhone.startsWith('05') && cleanPhone.length !== 10) {
+  // Reject local format - must use country code
+  if (cleanPhone.startsWith('05') || cleanPhone.startsWith('01')) {
     return {
       isValid: false,
-      message: 'أرقام الجوال السعودية يجب أن تكون 10 أرقام بالضبط (مثال: 0512345678)'
-    };
-  }
-  
-  if (cleanPhone.startsWith('01') && cleanPhone.length !== 10) {
-    return {
-      isValid: false,
-      message: 'أرقام الهاتف الأرضي السعودية يجب أن تكون 10 أرقام بالضبط (مثال: 0112345678)'
+      message: 'يجب استخدام الرقم مع رمز البلد (+966). الأرقام المحلية (05..., 01...) غير مقبولة مع صادق'
     };
   }
   
   return {
     isValid: false,
-    message: 'يجب إدخال رقم هاتف سعودي صحيح:\n• رقم جوال: 0512345678 أو +96651234567\n• رقم أرضي: 0112345678 أو +96611234567\n• يجب أن يكون بالضبط 8 أرقام بعد +966'
+    message: 'يجب إدخال رقم هاتف سعودي صحيح مع رمز البلد:\n• رقم جوال: +96651234567\n• رقم أرضي: +96611234567\n• يجب أن يكون بالضبط 8 أرقام بعد +966\n• لا يُقبل الأرقام المحلية (05..., 01...)'
   };
 }
 
