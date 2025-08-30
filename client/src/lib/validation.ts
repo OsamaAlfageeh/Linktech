@@ -48,9 +48,9 @@ export function validatePhoneNumber(phone: string): ValidationResult {
   
   // Try to convert common Saudi formats to the strict format
   
-  // Convert 05XXXXXXXX to +9665XXXXXXX (trim to exactly 8 digits after +966)
-  if (/^05\d{8}$/.test(cleanPhone)) {
-    const converted = '+966' + cleanPhone.substring(1, 9); // Remove leading 0, take only 8 digits
+  // Convert 05XXXXXXX to +9665XXXXXXX (exactly 8 digits after +966)
+  if (/^05\d{7}$/.test(cleanPhone)) {
+    const converted = '+966' + cleanPhone.substring(1); // Remove leading 0, take all remaining digits
     return {
       isValid: true,
       message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
@@ -58,9 +58,9 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     };
   }
   
-  // Convert 01XXXXXXXX to +9661XXXXXXX (trim to exactly 8 digits after +966)
-  if (/^01\d{8}$/.test(cleanPhone)) {
-    const converted = '+966' + cleanPhone.substring(1, 9); // Remove leading 0, take only 8 digits
+  // Convert 01XXXXXXX to +9661XXXXXXX (exactly 8 digits after +966)
+  if (/^01\d{7}$/.test(cleanPhone)) {
+    const converted = '+966' + cleanPhone.substring(1); // Remove leading 0, take all remaining digits
     return {
       isValid: true,
       message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
@@ -83,23 +83,23 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     };
   }
   
-  if (cleanPhone.startsWith('05') && cleanPhone.length !== 10) {
+  if (cleanPhone.startsWith('05') && cleanPhone.length !== 9) {
     return {
       isValid: false,
-      message: 'أرقام الجوال السعودية يجب أن تكون 10 أرقام بالضبط (مثال: 0512345678)'
+      message: 'أرقام الجوال السعودية يجب أن تكون 9 أرقام بالضبط (مثال: 051234567)'
     };
   }
   
-  if (cleanPhone.startsWith('01') && cleanPhone.length !== 10) {
+  if (cleanPhone.startsWith('01') && cleanPhone.length !== 9) {
     return {
       isValid: false,
-      message: 'أرقام الهاتف الأرضي السعودية يجب أن تكون 10 أرقام بالضبط (مثال: 0112345678)'
+      message: 'أرقام الهاتف الأرضي السعودية يجب أن تكون 9 أرقام بالضبط (مثال: 011234567)'
     };
   }
   
   return {
     isValid: false,
-    message: 'يجب إدخال رقم هاتف سعودي صحيح:\n• رقم جوال: 0512345678 أو +966512345678\n• رقم أرضي: 0112345678 أو +966112345678\n• يجب أن يكون بالضبط 8 أرقام بعد +966'
+    message: 'يجب إدخال رقم هاتف سعودي صحيح:\n• رقم جوال: 051234567 أو +96651234567\n• رقم أرضي: 011234567 أو +96611234567\n• يجب أن يكون بالضبط 8 أرقام بعد +966'
   };
 }
 
