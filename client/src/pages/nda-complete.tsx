@@ -12,6 +12,17 @@ import { FileText, User, Phone, Mail, CheckCircle, Clock, UserCheck, AlertCircle
 import SEO from "@/components/seo/SEO";
 import { validatePhoneNumber, validateEmail, validateName, validateContactForm } from '@/lib/validation';
 
+interface NdaStatus {
+  id: number;
+  status: string;
+  envelopeStatus?: string;
+  sadiqStatus?: {
+    completionPercentage: number;
+    signedCount: number;
+    pendingCount: number;
+  };
+}
+
 export default function NdaCompletePage() {
   const params = useParams();
   const [, navigate] = useLocation();
@@ -21,7 +32,7 @@ export default function NdaCompletePage() {
   const ndaId = params.ndaId ? parseInt(params.ndaId) : null;
   
   // Get NDA status first
-  const { data: ndaStatus, isLoading: statusLoading, error: statusError } = useQuery({
+  const { data: ndaStatus, isLoading: statusLoading, error: statusError } = useQuery<NdaStatus>({
     queryKey: [`/api/nda/${ndaId}/status`],
     enabled: !!ndaId,
     retry: false,
