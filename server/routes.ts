@@ -2503,18 +2503,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (nda.sadiqReferenceNumber) {
         try {
           const { sadiqAuth } = await import('./sadiqAuthService');
-          const sadiqStatus = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
+          const sadiqEnvelopeData = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
+          
+          // Parse Sadiq response based on the provided format
+          const signatories = sadiqEnvelopeData?.signatories || [];
+          const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
+          const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
+          const totalSignatories = signatories.length;
+          const completionPercentage = totalSignatories > 0 ? Math.round((signedCount / totalSignatories) * 100) : 0;
+          
+          // Determine overall status
+          const envelopeStatus = sadiqEnvelopeData?.status || 'Unknown';
+          const isCompleted = envelopeStatus === 'Completed' || (pendingCount === 0 && signedCount > 0);
+          const isSigned = isCompleted && envelopeStatus !== 'Voided';
           
           // Update status in database
+          const updatedStatus = isSigned ? 'signed' : (signedCount > 0 ? 'invitation_sent' : nda.status);
           await storage.updateNdaAgreement(ndaId, {
-            envelopeStatus: sadiqStatus.status,
-            ...(sadiqStatus.status === 'completed' && { status: 'signed', signedAt: new Date() })
+            envelopeStatus: envelopeStatus,
+            ...(isSigned && { status: 'signed', signedAt: new Date() })
           });
 
           res.json({
             ...nda,
-            sadiqStatus: sadiqStatus,
-            status: sadiqStatus.status === 'completed' ? 'signed' : nda.status
+            status: updatedStatus,
+            envelopeStatus: envelopeStatus,
+            sadiqStatus: {
+              envelopeId: sadiqEnvelopeData?.id,
+              status: envelopeStatus,
+              completionPercentage,
+              signedCount,
+              pendingCount,
+              totalSignatories,
+              signatories: signatories,
+              documents: sadiqEnvelopeData?.documents || [],
+              createDate: sadiqEnvelopeData?.createDate
+            }
           });
         } catch (sadiqError) {
           console.error('خطأ في التحقق من حالة صادق:', sadiqError);

@@ -372,7 +372,7 @@ class SadiqAuthService {
   async getEnvelopeStatus(referenceNumber: string): Promise<any> {
     console.log(`🔍 التحقق من حالة المغلف: ${referenceNumber}`);
     
-    const response = await this.makeAuthenticatedRequest(`/IntegrationService/Document/envelope/status/${referenceNumber}`, {
+    const response = await this.makeAuthenticatedRequest(`/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`, {
       method: 'GET'
     });
 
