@@ -16,15 +16,15 @@ export function validatePhoneNumber(phone: string): ValidationResult {
   const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
   
   // STRICT VALIDATION FOR SADIQ API COMPATIBILITY
-  // Only accept: +966XXXXXXXX (exactly 8 digits) or 00966XXXXXXXX (exactly 8 digits)
+  // Only accept: +966XXXXXXXXX (exactly 9 digits) or 00966XXXXXXXXX (exactly 9 digits)
   
-  // Pattern 1: +966 followed by exactly 8 digits (mobile: 5XXXXXXX or landline: 1XXXXXXX)
-  const sadiqFormat1 = /^\+966[15]\d{7}$/;
+  // Pattern 1: +966 followed by exactly 9 digits (mobile: 5XXXXXXXX or landline: 1XXXXXXXX)
+  const sadiqFormat1 = /^\+966[15]\d{8}$/;
   
-  // Pattern 2: 00966 followed by exactly 8 digits  
-  const sadiqFormat2 = /^00966[15]\d{7}$/;
+  // Pattern 2: 00966 followed by exactly 9 digits  
+  const sadiqFormat2 = /^00966[15]\d{8}$/
   
-  // Check +966 format (8 digits after +966)
+  // Check +966 format (9 digits after +966)
   if (sadiqFormat1.test(cleanPhone)) {
     return {
       isValid: true,
@@ -33,9 +33,9 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     };
   }
   
-  // Check 00966 format (8 digits after 00966) - convert to +966
+  // Check 00966 format (9 digits after 00966) - convert to +966
   if (sadiqFormat2.test(cleanPhone)) {
-    const converted = '+966' + cleanPhone.substring(5); // Remove '00966' and add '+966'
+    const converted = '+' + cleanPhone.substring(2); // Remove '00' and add '+'
     return {
       isValid: true,
       message: `تم تحويل الرقم إلى صيغة صادق: ${converted}`,
@@ -53,7 +53,7 @@ export function validatePhoneNumber(phone: string): ValidationResult {
   
   return { 
     isValid: false, 
-    message: 'يجب إدخال رقم هاتف سعودي صحيح مع رمز البلد: +96651234567 (جوال) أو +96611234567 (أرضي). يجب أن يكون بالضبط 8 أرقام بعد +966. لا يُقبل الأرقام المحلية (05..., 01...)'
+    message: 'يجب إدخال رقم هاتف سعودي صحيح مع رمز البلد: +966512345678 (جوال) أو +966112345678 (أرضي). يجب أن يكون بالضبط 9 أرقام بعد +966. لا يُقبل الأرقام المحلية (05..., 01...)'
   };
 }
 

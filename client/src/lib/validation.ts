@@ -19,15 +19,15 @@ export function validatePhoneNumber(phone: string): ValidationResult {
   const cleanPhone = phone.replace(/[\s\-\(\)\.]/g, '');
   
   // STRICT VALIDATION FOR SADIQ API COMPATIBILITY
-  // Only accept: +966XXXXXXXX (exactly 8 digits) or 00966XXXXXXXX (exactly 8 digits)
+  // Only accept: +966XXXXXXXXX (exactly 9 digits) or 00966XXXXXXXXX (exactly 9 digits)
   
-  // Pattern 1: +966 followed by exactly 8 digits (mobile: 5XXXXXXX or landline: 1XXXXXXX)
-  const sadiqFormat1 = /^\+966[15]\d{7}$/;
+  // Pattern 1: +966 followed by exactly 9 digits (mobile: 5XXXXXXXX or landline: 1XXXXXXXX)
+  const sadiqFormat1 = /^\+966[15]\d{8}$/;
   
-  // Pattern 2: 00966 followed by exactly 8 digits  
-  const sadiqFormat2 = /^00966[15]\d{7}$/;
+  // Pattern 2: 00966 followed by exactly 9 digits  
+  const sadiqFormat2 = /^00966[15]\d{8}$/
   
-  // Check +966 format (8 digits after +966)
+  // Check +966 format (9 digits after +966)
   if (sadiqFormat1.test(cleanPhone)) {
     return {
       isValid: true,
@@ -36,7 +36,7 @@ export function validatePhoneNumber(phone: string): ValidationResult {
     };
   }
   
-  // Check 00966 format (8 digits after 00966) - convert to +966
+  // Check 00966 format (9 digits after 00966) - convert to +966
   if (sadiqFormat2.test(cleanPhone)) {
     const converted = '+966' + cleanPhone.substring(5); // Remove '00966' and add '+966'
     return {
@@ -47,17 +47,17 @@ export function validatePhoneNumber(phone: string): ValidationResult {
   }
   
   // Specific error messages for common mistakes
-  if (cleanPhone.startsWith('+966') && !/^\+966[15]\d{7}$/.test(cleanPhone)) {
+  if (cleanPhone.startsWith('+966') && !/^\+966[15]\d{8}$/.test(cleanPhone)) {
     return {
       isValid: false,
-      message: 'رقم +966 يجب أن يكون متبوعاً بـ 8 أرقام بالضبط (مثال: +96651234567)'
+      message: 'رقم +966 يجب أن يكون متبوعاً بـ 9 أرقام بالضبط (مثال: +966512345678)'
     };
   }
   
-  if (cleanPhone.startsWith('00966') && !/^00966[15]\d{7}$/.test(cleanPhone)) {
+  if (cleanPhone.startsWith('00966') && !/^00966[15]\d{8}$/.test(cleanPhone)) {
     return {
       isValid: false,
-      message: 'رقم 00966 يجب أن يكون متبوعاً بـ 8 أرقام بالضبط (مثال: 0096651234567)'
+      message: 'رقم 00966 يجب أن يكون متبوعاً بـ 9 أرقام بالضبط (مثال: 00966512345678)'
     };
   }
   
@@ -71,7 +71,7 @@ export function validatePhoneNumber(phone: string): ValidationResult {
   
   return {
     isValid: false,
-    message: 'يجب إدخال رقم هاتف سعودي صحيح مع رمز البلد:\n• رقم جوال: +96651234567\n• رقم أرضي: +96611234567\n• يجب أن يكون بالضبط 8 أرقام بعد +966\n• لا يُقبل الأرقام المحلية (05..., 01...)'
+    message: 'يجب إدخال رقم هاتف سعودي صحيح مع رمز البلد:\n• رقم جوال: +966512345678\n• رقم أرضي: +966112345678\n• يجب أن يكون بالضبط 9 أرقام بعد +966\n• لا يُقبل الأرقام المحلية (05..., 01...)'
   };
 }
 
