@@ -2505,15 +2505,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const { sadiqAuth } = await import('./sadiqAuthService');
           const sadiqEnvelopeData = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
           
+          // Check if we got valid data from Sadiq
+          if (!sadiqEnvelopeData) {
+            console.log('⚠️ لم يتم الحصول على بيانات من صادق، استخدام البيانات المحلية');
+            return res.json(nda);
+          }
+          
           // Parse Sadiq response based on the provided format
-          const signatories = sadiqEnvelopeData?.signatories || [];
+          const signatories = sadiqEnvelopeData.signatories || [];
           const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
           const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
           const totalSignatories = signatories.length;
           const completionPercentage = totalSignatories > 0 ? Math.round((signedCount / totalSignatories) * 100) : 0;
           
           // Determine overall status
-          const envelopeStatus = sadiqEnvelopeData?.status || 'Unknown';
+          const envelopeStatus = sadiqEnvelopeData.status || 'Unknown';
           const isCompleted = envelopeStatus === 'Completed' || (pendingCount === 0 && signedCount > 0);
           const isSigned = isCompleted && envelopeStatus !== 'Voided';
           
