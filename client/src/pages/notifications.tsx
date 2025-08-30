@@ -102,7 +102,12 @@ const NotificationItem: React.FC<{ notification: Notification; onMarkAsRead: (id
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>{formattedDate} في {formattedTime}</span>
           {notification.actionUrl && (
-            <Button variant="link" size="sm" className="h-auto p-0 text-xs">
+            <Button 
+              variant="link" 
+              size="sm" 
+              className="h-auto p-0 text-xs"
+              onClick={() => window.location.href = notification.actionUrl!}
+            >
               عرض التفاصيل
             </Button>
           )}
