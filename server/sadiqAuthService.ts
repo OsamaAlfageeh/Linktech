@@ -306,7 +306,7 @@ class SadiqAuthService {
           destinationPhoneNumber: this.formatPhoneNumber(signatory.phoneNumber) || "",
           nationalId: signatory.nationalId || "",
           signeOrder: index,
-          ConsentOnly: false, // Set to false since we want actual signatures
+          ConsentOnly: true, // Set to true so users only need to consent, not sign
           signatories: [
             {
               signatureHigh: 80,
