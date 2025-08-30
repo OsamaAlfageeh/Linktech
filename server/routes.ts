@@ -1062,12 +1062,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`المستخدم مسؤول، عرض جميع المشاريع`);
         projects = await storage.getProjects();
       } else if (user.role === 'entrepreneur') {
-        console.log(`رائد أعمال (${user.username})، عرض جميع المشاريع المتاحة`);
-        // رواد الأعمال يمكنهم مشاهدة جميع المشاريع في السوق
-        const projectsWithUserData = await storage.getProjectsWithUserData();
-        projects = projectsWithUserData;
+        console.log(`رائد أعمال (${user.username})، عرض مشاريعه الخاصة فقط`);
+        // رواد الأعمال يرون مشاريعهم الخاصة فقط
+        const userProjects = await storage.getProjectsByUserId(user.id);
+        projects = userProjects.map(project => ({
+          ...project,
+          username: user.username,
+          name: user.name
+        }));
         
-        console.log(`عدد المشاريع المتاحة لرائد الأعمال: ${projects.length}`);
+        console.log(`عدد المشاريع الخاصة برائد الأعمال: ${projects.length}`);
         console.log(`إرسال ${projects.length} مشروع للمستخدم ${user.username}`);
         return res.json(projects);
       } else if (user.role === 'company') {

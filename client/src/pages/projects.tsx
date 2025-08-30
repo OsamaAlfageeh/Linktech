@@ -129,8 +129,11 @@ const Projects = ({ auth: authProp }: ProjectsProps = {}) => {
   return (
     <>
       <SEO 
-        title="المشاريع | لينكتك"
-        description="استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة والمطورين المحترفين في المملكة العربية السعودية. فرص متنوعة للشركات من مختلف التخصصات التقنية."
+        title={auth.isEntrepreneur ? "مشاريعي | لينكتك" : "المشاريع | لينكتك"}
+        description={auth.isEntrepreneur 
+          ? "إدارة ومتابعة مشاريعك الخاصة وحالة العروض المقدمة عليها في منصة لينكتك."
+          : "استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة والمطورين المحترفين في المملكة العربية السعودية. فرص متنوعة للشركات من مختلف التخصصات التقنية."
+        }
         keywords="مشاريع برمجية, مشاريع تقنية, تطوير مواقع, تطوير تطبيقات, برمجة تطبيقات, برمجة مواقع, مطورين, شركات برمجة"
         ogType="website"
       >
@@ -150,8 +153,15 @@ const Projects = ({ auth: authProp }: ProjectsProps = {}) => {
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6 sm:mb-8">
-          <h1 className="text-2xl sm:text-3xl font-bold font-heading mb-1 sm:mb-2">المشاريع</h1>
-          <p className="text-neutral-600 text-sm sm:text-base">استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة</p>
+          <h1 className="text-2xl sm:text-3xl font-bold font-heading mb-1 sm:mb-2">
+            {auth.isEntrepreneur ? 'مشاريعي' : 'المشاريع'}
+          </h1>
+          <p className="text-neutral-600 text-sm sm:text-base">
+            {auth.isEntrepreneur 
+              ? 'إدارة ومتابعة مشاريعك الخاصة وحالة العروض المقدمة عليها'
+              : 'استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة'
+            }
+          </p>
         </div>
 
         {auth.isAuthenticated ? (
@@ -245,8 +255,18 @@ const Projects = ({ auth: authProp }: ProjectsProps = {}) => {
               </div>
             ) : (
               <div className="bg-white p-4 sm:p-6 md:p-8 rounded-xl shadow-sm border border-neutral-200 text-center">
-                <p className="text-neutral-600 text-sm sm:text-base mb-1 sm:mb-2">لا توجد مشاريع متطابقة مع معايير البحث.</p>
-                <p className="text-neutral-500 text-xs sm:text-sm mb-3 sm:mb-4">حاول تغيير معايير البحث أو التصفية.</p>
+                <p className="text-neutral-600 text-sm sm:text-base mb-1 sm:mb-2">
+                  {auth.isEntrepreneur 
+                    ? 'لم تقم بإنشاء أي مشاريع بعد.'
+                    : 'لا توجد مشاريع متطابقة مع معايير البحث.'
+                  }
+                </p>
+                <p className="text-neutral-500 text-xs sm:text-sm mb-3 sm:mb-4">
+                  {auth.isEntrepreneur 
+                    ? 'ابدأ بإضافة مشروعك الأول واربطه مع أفضل شركات البرمجة.'
+                    : 'حاول تغيير معايير البحث أو التصفية.'
+                  }
+                </p>
                 <Button 
                   onClick={() => {
                     setSearchQuery("");
