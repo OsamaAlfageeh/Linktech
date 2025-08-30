@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation, useParams } from "wouter";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
-import { FileText, User, Phone, Mail, CheckCircle } from "lucide-react";
+import { FileText, User, Phone, Mail, CheckCircle, Clock, UserCheck, AlertCircle } from "lucide-react";
 import SEO from "@/components/seo/SEO";
 import { validatePhoneNumber, validateEmail, validateName, validateContactForm } from '@/lib/validation';
 
@@ -19,6 +19,13 @@ export default function NdaCompletePage() {
   const queryClient = useQueryClient();
   
   const ndaId = params.ndaId ? parseInt(params.ndaId) : null;
+  
+  // Get NDA status first
+  const { data: ndaStatus, isLoading: statusLoading, error: statusError } = useQuery({
+    queryKey: [`/api/nda/${ndaId}/status`],
+    enabled: !!ndaId,
+    retry: false,
+  });
   
   // معلومات صاحب المشروع
   const [entrepreneurName, setEntrepreneurName] = useState("");
@@ -135,6 +142,148 @@ export default function NdaCompletePage() {
           <p className="text-gray-600">الرابط المستخدم غير صالح أو منتهي الصلاحية.</p>
         </div>
       </div>
+    );
+  }
+
+  // Show loading while checking status
+  if (statusLoading) {
+    return (
+      <div className="container mx-auto py-8 px-4 md:px-6">
+        <div className="text-center py-12">
+          <Clock className="h-12 w-12 text-blue-500 mx-auto mb-4 animate-spin" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">جاري التحقق من الحالة...</h2>
+          <p className="text-gray-600">نتحقق من حالة اتفاقية عدم الإفصاح الحالية.</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error if status check failed
+  if (statusError || !ndaStatus) {
+    return (
+      <div className="container mx-auto py-8 px-4 md:px-6">
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">خطأ في الوصول</h2>
+          <p className="text-gray-600">لا يمكن الوصول لبيانات اتفاقية عدم الإفصاح. يرجى المحاولة لاحقاً.</p>
+          <Button 
+            variant="outline" 
+            onClick={() => navigate("/notifications")} 
+            className="mt-4"
+          >
+            العودة للإشعارات
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Show status page if NDA is not awaiting entrepreneur completion
+  if (ndaStatus.status !== 'awaiting_entrepreneur') {
+    return (
+      <>
+        <SEO 
+          title="حالة اتفاقية عدم الإفصاح"
+          description="تتبع حالة اتفاقية عدم الإفصاح وعملية التوقيع الإلكتروني"
+        />
+        
+        <div className="container mx-auto py-8 px-4 md:px-6">
+          <div className="max-w-2xl mx-auto">
+            <div className="text-center mb-8">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 bg-green-100 rounded-full">
+                  {ndaStatus.status === 'signed' ? (
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                  ) : ndaStatus.status === 'invitation_sent' ? (
+                    <UserCheck className="h-8 w-8 text-blue-600" />
+                  ) : (
+                    <Clock className="h-8 w-8 text-yellow-600" />
+                  )}
+                </div>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                حالة اتفاقية عدم الإفصاح
+              </h1>
+              <p className="text-gray-600">
+                تتبع حالة اتفاقية عدم الإفصاح وعملية التوقيع
+              </p>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  معلومات الاتفاقية
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                  <span className="font-medium">الحالة الحالية:</span>
+                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                    ndaStatus.status === 'signed' ? 'bg-green-100 text-green-800' :
+                    ndaStatus.status === 'invitation_sent' ? 'bg-blue-100 text-blue-800' :
+                    ndaStatus.status === 'ready_for_sadiq' ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {ndaStatus.status === 'signed' ? 'مكتملة' :
+                     ndaStatus.status === 'invitation_sent' ? 'تم إرسال دعوات التوقيع' :
+                     ndaStatus.status === 'ready_for_sadiq' ? 'جاهزة للإرسال' :
+                     'قيد المعالجة'}
+                  </span>
+                </div>
+
+                {ndaStatus.sadiqStatus && (
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>نسبة الإكمال:</span>
+                      <span className="font-semibold">{ndaStatus.sadiqStatus.completionPercentage}%</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>الموقعين المكتملين:</span>
+                      <span>{ndaStatus.sadiqStatus.signedCount} من {ndaStatus.sadiqStatus.signedCount + ndaStatus.sadiqStatus.pendingCount}</span>
+                    </div>
+                    {ndaStatus.sadiqStatus.pendingCount > 0 && (
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-blue-700">
+                          في انتظار {ndaStatus.sadiqStatus.pendingCount} توقيع إضافي لإكمال الاتفاقية
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {ndaStatus.status === 'signed' && (
+                  <div className="p-4 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-2 text-green-700">
+                      <CheckCircle className="h-5 w-5" />
+                      <span className="font-medium">تم إكمال التوقيع بنجاح!</span>
+                    </div>
+                    <p className="text-sm text-green-600 mt-1">
+                      تم توقيع اتفاقية عدم الإفصاح من جميع الأطراف. يمكنك الآن المتابعة مع المشروع.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-4 pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate("/notifications")}
+                    className="flex-1"
+                  >
+                    العودة للإشعارات
+                  </Button>
+                  <Button 
+                    onClick={() => window.location.reload()}
+                    variant="ghost"
+                  >
+                    تحديث الحالة
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -274,7 +423,7 @@ export default function NdaCompletePage() {
                   <Checkbox
                     id="agree"
                     checked={agreed}
-                    onCheckedChange={setAgreed}
+                    onCheckedChange={(checked) => setAgreed(checked === true)}
                     className="mt-1"
                   />
                   <Label htmlFor="agree" className="text-sm leading-relaxed">
