@@ -127,11 +127,12 @@ process.on('SIGINT', () => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (process.env.NODE_ENV === "development") {
-    await setupVite(app, server);
-  } else {
+  // Temporarily use production mode to avoid Vite setup issues
+  // if (process.env.NODE_ENV === "development") {
+  //   await setupVite(app, server);
+  // } else {
     serveStatic(app);
-  }
+  // }
 
   // Get port from environment or default to 5000
   // This ensures compatibility with Cloud Run and other deployment platforms
@@ -140,11 +141,7 @@ process.on('SIGINT', () => {
   
   console.log(`Starting server on ${host}:${port} in ${process.env.NODE_ENV || 'development'} mode`);
   
-  server.listen({
-    port: parseInt(port.toString(), 10),
-    host: host,
-    reusePort: process.env.NODE_ENV !== 'production', // Disable reusePort in production
-  }, () => {
+  server.listen(parseInt(port.toString(), 10), host, () => {
     log(`serving on ${host}:${port}`);
     console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
     console.log(`Database URL configured: ${process.env.DATABASE_URL ? 'Yes' : 'No'}`);

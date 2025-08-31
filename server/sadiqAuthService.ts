@@ -61,7 +61,7 @@ class SadiqAuthService {
       2. أو أضف SADIQ_ACCESS_TOKEN الحالي في الأسرار
       3. يمكنك الحصول على رمز وصول من حسابك في صادق وإضافته مؤقتاً
       
-      الخطأ الأصلي: ${authError.message}
+      الخطأ الأصلي: ${authError instanceof Error ? authError.message : String(authError)}
       `;
       
       throw new Error(errorMsg);
