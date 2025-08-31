@@ -319,7 +319,7 @@ class SadiqAuthService {
             }
           ],
           availableTo: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days from now
-          authenticationType: 0,
+          authenticationType: 1, // Use Nafath authentication
           InvitationLanguage: 1, // Arabic
           RedirectUrl: "",
           AllowUserToAddDestination: false
