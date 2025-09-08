@@ -84,6 +84,11 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
             {/* الشعار */}
             <div className="flex items-center">
               <Link href="/" className="flex-shrink-0 flex items-center">
+                <img 
+                  src="/favicon.svg" 
+                  alt="لينكتك" 
+                  className="h-14 md:h-16 w-auto mr-2" 
+                />
                 {/* شعار مع تأثير تدرج لوني */}
                 <span className="font-heading font-extrabold text-2xl md:text-3xl">
                   <span className="bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-700">لينك</span>
