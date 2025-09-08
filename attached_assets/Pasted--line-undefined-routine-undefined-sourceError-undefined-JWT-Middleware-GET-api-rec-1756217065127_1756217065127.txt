@@ -1,0 +1,105 @@
+  line: undefined,
+  routine: undefined,
+  sourceError: undefined
+}
+JWT Middleware: GET /api/recommendations/trending-projects
+Authorization header: undefined
+Extracted token: Missing
+No token found, continuing without authentication
+طلب المشاريع الرائجة - حالة المصادقة: غير مصرح
+JWT Middleware: GET /api/platform-stats
+Authorization header: undefined
+Extracted token: Missing
+No token found, continuing without authentication
+Error in trending projects: NeonDbError: The endpoint has been disabled. Enable it using Neon API and retry.
+    at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  severity: '',
+  code: '',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: undefined
+}
+2:03:58 PM [express] GET /api/recommendations/trending-projects 500 in 33ms :: {"message":"Internal …
+Error getting platform stats: NeonDbError: The endpoint has been disabled. Enable it using Neon API and retry.
+    at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  severity: '',
+  code: '',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: undefined
+}
+2:03:58 PM [express] GET /api/platform-stats 500 in 32ms :: {"message":"Internal server error"}
+JWT Middleware: POST /api/auth/login
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ1LCJpYXQiOjE3NTYyMTY5MTAsImV4cCI6MTc1NjgyMTcxMH0.Q-R-7jwBglu9zGKs3WUpBWc37gBL-AINQuza5X9gFdc
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 45
+Unhandled Rejection at: Promise {
+  <rejected> NeonDbError: The endpoint has been disabled. Enable it using Neon API and retry.
+      at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+      at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+    severity: '',
+    code: '',
+    detail: undefined,
+    hint: undefined,
+    position: undefined,
+    internalPosition: undefined,
+    internalQuery: undefined,
+    where: undefined,
+    schema: undefined,
+    table: undefined,
+    column: undefined,
+    dataType: undefined,
+    constraint: undefined,
+    file: undefined,
+    line: undefined,
+    routine: undefined,
+    sourceError: undefined
+  }
+} reason: NeonDbError: The endpoint has been disabled. Enable it using Neon API and retry.
+    at execute (file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5) {
+  severity: '',
+  code: '',
+  detail: undefined,
+  hint: undefined,
+  position: undefined,
+  internalPosition: undefined,
+  internalQuery: undefined,
+  where: undefined,
+  schema: undefined,
+  table: undefined,
+  column: undefined,
+  dataType: undefined,
+  constraint: undefined,
+  file: undefined,
+  line: undefined,
+  routine: undefined,
+  sourceError: undefined
+}

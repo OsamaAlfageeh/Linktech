@@ -1,0 +1,66 @@
+ب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+10:59:51 AM [express] GET /api/notifications 200 in 73ms :: [{"id":16,"userId":44,"type":"nda_request…
+JWT Middleware: POST /api/nda/12/complete
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTYyMDU5NzQsImV4cCI6MTc1NjgxMDc3NH0.WrZo3jeYSRUh2FjcmvyMvIvoZVgFvFf0MWEr75jya0Y
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب POST /api/nda/12/complete - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...
+إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib
+تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف: 1801 بايت
+⬆️ رفع ملف PDF إلى صادق...
+📄 رفع وثيقة إلى صادق باستخدام API الصحيح: NDA-fffffffffffffffffffffffffffffffffffffff-1756206006441.pdf
+🔄 رفع الوثيقة باستخدام endpoint: /IntegrationService/Document/Bulk/Initiate-envelope-Base64
+📋 معرف المرجع: linktech-doc-1756206006441-k9in86
+🔄 محاولة الحصول على رمز وصول جديد من صادق...
+📧 تسجيل الدخول في صادق باستخدام: mj2***
+🔄 محاولة الاتصال بـ: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+✅ تم تسجيل الدخول في صادق بنجاح من: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+⏰ صالح حتى: ٢٧‏/٨‏/٢٠٢٥، ٢:٢٨:٢٧ م
+📋 Sadiq upload response: {
+  data: {
+    envelopeId: 'e54b84b8-93ae-4e36-a00f-889441626ca4',
+    bulkFileResponse: [ [Object] ],
+    destinations: null
+  },
+  errorCode: 0,
+  message: 'Success',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+📋 استخراج معرف الوثيقة من bulkFileResponse: 253fc9d0-c844-49df-9343-99c3f7c3fe1a
+✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: 253fc9d0-c844-49df-9343-99c3f7c3fe1a
+📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...
+📨 إرسال دعوات التوقيع باستخدام API الصحيح...
+🔄 إرسال دعوات باستخدام endpoint: /IntegrationService/Invitation/Send-Invitation
+📧 عدد المدعوين: 2
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  data: false,
+  errorCode: 9,
+  message: "Creator email or phone can't be used as destination",
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+✅ تم إرسال دعوات التوقيع بنجاح - معرف المغلف: 253fc9d0-c844-49df-9343-99c3f7c3fe1a
+✅ تم إرسال دعوات التوقيع الإلكتروني بنجاح للاتفاقية 12
+📧 تم إرسال دعوات لـ mj266501@gmail.com و comp@gmail.com
+11:00:09 AM [express] POST /api/nda/12/complete 200 in 3773ms :: {"id":12,"message":"تم إكمال البيانا…
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTYyMDU5NzQsImV4cCI6MTc1NjgxMDc3NH0.WrZo3jeYSRUh2FjcmvyMvIvoZVgFvFf0MWEr75jya0Y
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur

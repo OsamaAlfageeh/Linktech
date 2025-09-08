@@ -1,0 +1,58 @@
+إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib
+تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف: 1806 بايت
+⬆️ رفع ملف PDF إلى صادق...
+📄 رفع وثيقة إلى صادق باستخدام API الصحيح: NDA-sdfsdfsdf-1756205030449.pdf
+🔄 رفع الوثيقة باستخدام endpoint: /IntegrationService/Document/Bulk/Initiate-envelope-Base64
+📋 معرف المرجع: linktech-doc-1756205030449-xt7kea
+🔄 محاولة الحصول على رمز وصول جديد من صادق...
+📧 تسجيل الدخول في صادق باستخدام: mj2***
+🔄 محاولة الاتصال بـ: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+✅ تم تسجيل الدخول في صادق بنجاح من: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+⏰ صالح حتى: ٢٧‏/٨‏/٢٠٢٥، ٢:١٢:١٢ م
+📋 Sadiq upload response: {
+  data: {
+    envelopeId: '7f3d90e6-524f-4db8-8188-8a3a47095e07',
+    bulkFileResponse: [ [Object] ],
+    destinations: null
+  },
+  errorCode: 0,
+  message: 'Success',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: linktech-doc-1756205030449-xt7kea
+📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...
+📨 إرسال دعوات التوقيع باستخدام API الصحيح...
+🔄 إرسال دعوات باستخدام endpoint: /IntegrationService/Invitation/Send-Invitation
+📧 عدد المدعوين: 2
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  errorCode: 8,
+  message: null,
+  returnUrl: '/dashboard',
+  stateValidationErrors: {
+    inviteRequest: {
+      rawValue: null,
+      attemptedValue: null,
+      errors: [Array],
+      validationState: 1,
+      isContainerNode: false,
+      children: null
+    },
+    '$.documentId': {
+      rawValue: null,
+      attemptedValue: null,
+      errors: [Array],
+      validationState: 1,
+      isContainerNode: false,
+      children: null
+    }
+  },
+  signature: ''
+}
+✅ تم إرسال دعوات التوقيع بنجاح - معرف المغلف: linktech-doc-1756205030449-xt7kea
+✅ تم إرسال دعوات التوقيع الإلكتروني بنجاح للاتفاقية 11
+📧 تم إرسال دعوات لـ mj266501@gmail.com و comp@gmail.com
+10:44:00 AM [express] POST /api/nda/11/complete 200 in 10753ms :: {"id":11,"message":"تم إكمال البيان…
+JWT Middleware: GET /api/notifications

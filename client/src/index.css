@@ -1,0 +1,300 @@
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== تأثيرات التفاعل والحركة ===== */
+@layer components {
+  /* تأثيرات البطاقات */
+  .hover-card-lift {
+    @apply transition-all duration-300 ease-in-out hover:shadow-lg hover:-translate-y-1;
+  }
+  
+  /* تأثيرات الأزرار */
+  .hover-button-scale {
+    @apply transition-transform duration-150 ease-in-out active:scale-95 hover:scale-105;
+  }
+  
+  /* تأثيرات للنص الفائق */
+  .link-underline {
+    @apply relative after:absolute after:bg-primary after:bottom-0 after:left-0 after:h-0.5 after:w-0 after:origin-bottom-right after:transition-all after:duration-300 hover:after:origin-bottom-left hover:after:w-full;
+  }
+  
+  /* تأثيرات الشارات */
+  .badge-pulse {
+    @apply transition-all duration-300 hover:bg-primary/10 hover:text-primary;
+  }
+  
+  /* تأثير الاهتزاز اللطيف */
+  .subtle-shake {
+    animation: subtle-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+    transform: translate3d(0, 0, 0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  @keyframes subtle-shake {
+    10%, 90% {
+      transform: translate3d(-1px, 0, 0);
+    }
+    
+    20%, 80% {
+      transform: translate3d(1px, 0, 0);
+    }
+    
+    30%, 50%, 70% {
+      transform: translate3d(-2px, 0, 0);
+    }
+    
+    40%, 60% {
+      transform: translate3d(2px, 0, 0);
+    }
+  }
+  
+  /* تأثير النبض */
+  .pulse-effect {
+    animation: pulse 1.5s infinite;
+  }
+  
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(var(--color-primary), 0.7);
+    }
+    70% {
+      box-shadow: 0 0 0 10px rgba(var(--color-primary), 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(var(--color-primary), 0);
+    }
+  }
+  
+  /* تأثير العائم */
+  .float-animation, .floating-button {
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  /* تأثير التلاشي عند الدخول */
+  .fade-in-animation {
+    opacity: 0;
+    animation: fadeIn 0.6s ease-in forwards;
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.5s ease-in-out;
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* تأثير العناصر المتلاشية عند التمرير */
+  .fade-out-on-scroll {
+    transition: opacity 0.4s ease-out, transform 0.4s ease-out;
+  }
+
+  /* نمط تضبيب النص */
+  .blur-text {
+    color: rgba(0, 0, 0, 0.7);
+    position: relative;
+  }
+  
+  /* تعريف keyframes للتأثير العائم يوجد في الأعلى */
+  
+  /* تأثير تغيير الألوان التدريجي */
+  .shimmer {
+    background: linear-gradient(90deg, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.2) 50%, 
+      rgba(255, 255, 255, 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s infinite;
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  
+  /* تأثير فقاعات خلفية متحركة */
+  .animate-blob {
+    animation: blob 7s infinite;
+  }
+  
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+  
+  @keyframes blob {
+    0% {
+      transform: translate(0px, 0px) scale(1);
+    }
+    33% {
+      transform: translate(30px, -50px) scale(1.1);
+    }
+    66% {
+      transform: translate(-20px, 20px) scale(0.9);
+    }
+    100% {
+      transform: translate(0px, 0px) scale(1);
+    }
+  }
+}
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 20 14.3% 4.1%;
+  --muted: 60 4.8% 95.9%;
+  --muted-foreground: 25 5.3% 44.7%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 14.3% 4.1%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 14.3% 4.1%;
+  --border: 20 5.9% 90%;
+  --input: 20 5.9% 90%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 60 4.8% 95.9%;
+  --secondary-foreground: 24 9.8% 10%;
+  --accent: 37 92% 50%;
+  --accent-foreground: 24 9.8% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 60 9.1% 97.8%;
+  --ring: 20 14.3% 4.1%;
+  --radius: 0.5rem;
+  
+  /* For secondary-color - green */
+  --secondary-color: 160 84% 39%;
+  --secondary-color-light: 160 84% 75%;
+  --secondary-color-dark: 161 94% 30%;
+  
+  /* Chart colors */
+  --chart-1: 207 90% 54%;
+  --chart-2: 37 92% 50%;
+  --chart-3: 160 84% 39%;
+  --chart-4: 340 82% 52%;
+  --chart-5: 262 83% 58%;
+  
+  /* Sidebar colors */
+  --sidebar-background: 0 0% 100%;
+  --sidebar-foreground: 20 14.3% 4.1%;
+  --sidebar-primary: 207 90% 54%;
+  --sidebar-primary-foreground: 211 100% 99%;
+  --sidebar-accent: 60 4.8% 95.9%;
+  --sidebar-accent-foreground: 24 9.8% 10%;
+  --sidebar-border: 20 5.9% 90%;
+  --sidebar-ring: 20 14.3% 4.1%;
+}
+
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --primary: 207 90% 54%;
+  --primary-foreground: 211 100% 99%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 37 92% 50%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 240 4.9% 83.9%;
+  --radius: 0.5rem;
+  
+  /* For secondary-color - green in dark mode */
+  --secondary-color: 160 84% 39%;
+  --secondary-color-light: 160 84% 30%;
+  --secondary-color-dark: 161 94% 45%;
+  
+  /* Sidebar colors - dark mode */
+  --sidebar-background: 240 10% 3.9%;
+  --sidebar-foreground: 0 0% 98%;
+  --sidebar-primary: 207 90% 54%;
+  --sidebar-primary-foreground: 211 100% 99%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 0 0% 98%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 240 4.9% 83.9%;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html, body {
+    direction: rtl;
+    text-align: right;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-family: "IBM Plex Sans Arabic", sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Tajawal", sans-serif;
+  }
+
+  /* RTL overrides for input elements */
+  input, textarea {
+    text-align: right;
+  }
+}
+
+/* RTL adjustments for ShadCN components */
+.rtl-flip {
+  transform: scaleX(-1);
+}
+
+.space-x-reverse > :not([hidden]) ~ :not([hidden]) {
+  --tw-space-x-reverse: 1;
+}
+
+/* Force RTL for some UI components */
+.right-to-left {
+  direction: rtl;
+  text-align: right;
+}
+
+.left-to-right {
+  direction: ltr;
+  text-align: left;
+}
+
+/* RTL support for shadcn components */
+:is(.flex, .inline-flex) > :not([hidden]) ~ :not([hidden]) {
+  margin-right: var(--tw-space-x-reverse);
+  margin-left: calc(var(--tw-space-x) * (1 - var(--tw-space-x-reverse)));
+}
+
+/* تحسين قراءة النص الأبيض على خلفيات فاتحة */
+.text-shadow {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+.text-shadow-sm {
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+}
+.text-shadow-lg {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}

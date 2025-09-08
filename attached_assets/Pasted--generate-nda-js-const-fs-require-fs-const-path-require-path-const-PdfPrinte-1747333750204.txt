@@ -1,0 +1,54 @@
+// generate-nda.js
+const fs       = require('fs');
+const path     = require('path');
+const PdfPrinter = require('pdfmake');
+
+// 1. تسجيل خطّ Cairo-Regular.ttf
+const fonts = {
+  Cairo: {
+    normal:      path.join(__dirname, 'fonts', 'Cairo-Regular.ttf'),
+    bold:        path.join(__dirname, 'fonts', 'Cairo-Regular.ttf'),
+    italics:     path.join(__dirname, 'fonts', 'Cairo-Regular.ttf'),
+    bolditalics: path.join(__dirname, 'fonts', 'Cairo-Regular.ttf')
+  }
+};
+
+const printer = new PdfPrinter(fonts);
+
+// 2. محتوى الاتفاقية (كل سطر / فقرة عنصر مستقل)
+const content = [
+  { text: 'اتفاقية عدم الإفصاح', style: 'header', dir: 'rtl' },
+
+  { text: 'بموجب هذه الاتفاقية، يلتزم الطرف الثاني بالحفاظ على سرية جميع المعلومات المتعلقة بالمشروع، وعدم مشاركتها مع أي طرف ثالث دون إذن كتابي مسبق من الطرف الأول.', style: 'paragraph', dir: 'rtl' },
+
+  { text: 'تسري هذه الاتفاقية اعتباراً من تاريخ التوقيع الإلكتروني عليها، وتشمل جميع المراسلات والمستندات والمعلومات التي يتم تبادلها بين الطرفين لغرض تنفيذ المشروع.', style: 'paragraph', dir: 'rtl' },
+
+  { text: 'في حال الإخلال بأي من بنود هذه الاتفاقية، يحق للطرف المتضرر اتخاذ كافة الإجراءات القانونية اللازمة لحماية مصالحه وحقوقه.', style: 'paragraph', dir: 'rtl' },
+
+  { text: 'الطرف الأول: منصة لينكتك (https://linktech.app)', style: 'paragraph', dir: 'rtl' },
+
+  { text: 'الطرف الثاني: .........................................', style: 'paragraph', dir: 'rtl' },
+
+  { text: 'التوقيع: _____________    2025-05-15', style: 'paragraph', dir: 'rtl', margin: [0, 20, 0, 0] }
+];
+
+// 3. تعريف الوثيقة بدون rtl عام
+const docDefinition = {
+  pageMargins: [40, 60, 40, 60],
+  defaultStyle: {
+    font: 'Cairo',
+    fontSize: 12
+  },
+  styles: {
+    header:    { fontSize: 20, bold: true, alignment: 'right', margin: [0,0,0,10] },
+    paragraph: { alignment: 'right', margin: [0,0,0,8] }
+  },
+  content
+};
+
+// 4. إنشاء PDF
+const pdfDoc = printer.createPdfKitDocument(docDefinition);
+pdfDoc.pipe(fs.createWriteStream('NDA_Linktek.pdf'));
+pdfDoc.end();
+
+console.log('✅ تم إنشاء NDA_Linktek.pdf بنجاح باستخدام dir: "rtl" لكل فقرة');

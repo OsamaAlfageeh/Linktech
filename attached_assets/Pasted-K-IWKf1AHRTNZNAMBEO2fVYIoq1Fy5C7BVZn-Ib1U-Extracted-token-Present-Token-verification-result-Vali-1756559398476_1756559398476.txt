@@ -1,0 +1,162 @@
+K_IWKf1AHRTNZNAMBEO2fVYIoq1Fy5C7BVZn-Ib1U
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب POST /api/nda/24/complete - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+📞 رقم رائد الأعمال (أصلي): +96652021746 → (منسق): +96652021746
+📞 رقم الشركة (أصلي): +96612345672 → (منسق): +96612345672
+📞 حالة تنسيق رقم رائد الأعمال: {
+  isValid: true,
+  message: 'رقم صحيح متوافق مع صادق: +96652021746',
+  formattedValue: '+96652021746'
+}
+📞 حالة تنسيق رقم الشركة: {
+  isValid: true,
+  message: 'رقم صحيح متوافق مع صادق: +96612345672',
+  formattedValue: '+96612345672'
+}
+📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...
+إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib
+تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف: 1820 بايت
+⬆️ رفع ملف PDF إلى صادق...
+📄 رفع وثيقة إلى صادق باستخدام API الصحيح مع webhook: NDA-966122345678-1756559306280.pdf
+🔄 محاولة الحصول على رمز وصول جديد من صادق...
+📧 تسجيل الدخول في صادق باستخدام: mj2***
+🔄 محاولة الاتصال بـ: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+✅ تم تسجيل الدخول في صادق بنجاح من: https://sandbox-api.sadq-sa.com/Authentication/Authority/Token
+⏰ صالح حتى: ٣١‏/٨‏/٢٠٢٥، ٤:٣٦:٥٢ م
+📋 استرجاع تكوينات webhook
+✅ تم استرجاع 0 webhook
+❌ خطأ في الحصول على أو إنشاء webhook: TypeError: existingWebhooks.find is not a function
+    at SadiqAuthService.getOrCreateWebhook (/home/runner/workspace/server/sadiqAuthService.ts:477:43)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async SadiqAuthService.uploadDocument (/home/runner/workspace/server/sadiqAuthService.ts:182:23)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1551:30)
+🔄 رفع الوثيقة باستخدام endpoint: /IntegrationService/Document/Bulk/Initiate-envelope-Base64
+📋 معرف المرجع: linktech-nda-project-1756559321904-m10shz
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq upload response: {
+  data: {
+    envelopeId: '9e3e25fd-9716-484a-bf94-b0d20aa6b798',
+    bulkFileResponse: [ [Object] ],
+    destinations: null
+  },
+  errorCode: 0,
+  message: 'Success',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+📋 استخراج معرف الوثيقة من bulkFileResponse: 3789ffe5-33f0-4545-aca2-42ee7c547618
+✅ تم رفع الوثيقة بنجاح - معرف الوثيقة: 3789ffe5-33f0-4545-aca2-42ee7c547618
+📧 إرسال دعوات التوقيع الإلكتروني باستخدام API الصحيح...
+📨 إرسال دعوات التوقيع باستخدام API الصحيح...
+📞 رقم متوافق مع صادق: +96652021746
+📞 رقم متوافق مع صادق: +96612345672
+🔄 إرسال دعوات باستخدام endpoint: /IntegrationService/Invitation/Send-Invitation
+📧 عدد المدعوين: 2
+📋 البيانات الكاملة المرسلة إلى صادق API:
+📋 signatories input: [
+  {
+    "fullName": "محمد جمال",
+    "email": "mj266252@gmail.com",
+    "phoneNumber": "+96652021746",
+    "nationalId": "",
+    "gender": "NONE"
+  },
+  {
+    "fullName": "company",
+    "email": "mj26653@gmail.com",
+    "phoneNumber": "+96612345672",
+    "nationalId": "",
+    "gender": "NONE"
+  }
+]
+📋 requestData.destinations: [
+  {
+    "destinationName": "محمد جمال",
+    "destinationEmail": "mj266252@gmail.com",
+    "destinationPhoneNumber": "+96652021746",
+    "nationalId": "",
+    "signeOrder": 0,
+    "ConsentOnly": false,
+    "signatories": [
+      {
+        "signatureHigh": 80,
+        "signatureWidth": 160,
+        "pageNumber": 1,
+        "text": "",
+        "type": "Signature",
+        "positionX": 70,
+        "positionY": 500
+      }
+    ],
+    "availableTo": "2025-09-29T13:08:43.194Z",
+    "authenticationType": 0,
+    "InvitationLanguage": 1,
+    "RedirectUrl": "",
+    "AllowUserToAddDestination": false
+  },
+  {
+    "destinationName": "company",
+    "destinationEmail": "mj26653@gmail.com",
+    "destinationPhoneNumber": "+96612345672",
+    "nationalId": "",
+    "signeOrder": 1,
+    "ConsentOnly": false,
+    "signatories": [
+      {
+        "signatureHigh": 80,
+        "signatureWidth": 160,
+        "pageNumber": 1,
+        "text": "",
+        "type": "Signature",
+        "positionX": 270,
+        "positionY": 500
+      }
+    ],
+    "availableTo": "2025-09-29T13:08:43.194Z",
+    "authenticationType": 0,
+    "InvitationLanguage": 1,
+    "RedirectUrl": "",
+    "AllowUserToAddDestination": false
+  }
+]
+🔑 استخدام رمز الوصول المحفوظ مؤقتاً
+📋 Sadiq invitation response: {
+  data: false,
+  errorCode: 9,
+  message: 'One or More Destination has invalid phone number, make sure the phone number is correct and start with country code',
+  returnUrl: '/dashboard',
+  stateValidationErrors: null,
+  signature: ''
+}
+❌ فشل إرسال الدعوات من صادق - كود الخطأ: 9
+📄 رسالة الخطأ: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code
+❌ خطأ في إرسال الدعوات عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:360:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1557:34)
+❌ خطأ في إرسال دعوات التوقيع عبر صادق: Error: Sadiq invitation failed: One or More Destination has invalid phone number, make sure the phone number is correct and start with country code (Code: 9)
+    at SadiqAuthService.sendSigningInvitations (/home/runner/workspace/server/sadiqAuthService.ts:360:17)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async <anonymous> (/home/runner/workspace/server/routes.ts:1557:34)
+🔄 إعادة تعيين حالة NDA للسماح بإعادة المحاولة...
+🔄 تفعيل النظام البديل لضمان إرسال الدعوات...
+⚠️ SendGrid غير متوفر، تسجيل معلومات الدعوة فقط
+📧 دعوة مطلوبة لـ: محمد جمال (mj266252@gmail.com)
+📧 دعوة مطلوبة لـ: company (mj26653@gmail.com)
+1:08:43 PM [express] POST /api/nda/24/complete 200 in 18050ms :: {"id":24,"message":"تم إكمال البيان…
+JWT Middleware: GET /api/notifications
+Authorization header: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQ0LCJpYXQiOjE3NTY1NTkyNDksImV4cCI6MTc1NzE2NDA0OX0.DPK_IWKf1AHRTNZNAMBEO2fVYIoq1Fy5C7BVZn-Ib1U
+Extracted token: Present
+Token verification result: Valid
+Decoded token userId: 44
+User lookup result: Found user user2
+Set req.user to: user2 (entrepreneur)
+طلب GET /api/notifications - حالة المصادقة: مصرح
+المستخدم مصرح: user2, دور: entrepreneur
+طلب GET /api/notifications - حالة المصادقة: مصرح

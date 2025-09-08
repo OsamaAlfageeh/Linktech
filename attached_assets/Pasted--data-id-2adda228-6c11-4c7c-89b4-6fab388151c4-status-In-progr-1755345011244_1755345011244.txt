@@ -1,0 +1,61 @@
+{
+    "data": {
+        "id": "2adda228-6c11-4c7c-89b4-6fab388151c4",
+        "status": "In-progress",
+        "createDate": "2025-08-16T14:46:38.967",
+        "signatories": [
+            {
+                "id": "3a93840c-38ff-4c37-abe8-175b6856589d",
+                "status": "SIGNED",
+                "fullName": "Mohammed   Abu erra",
+                "fullNameAr": "محمد   ابو عرة",
+                "nationalId": "1110565821",
+                "signOrder": 0,
+                "email": "mj266501@gmail.com",
+                "phoneNumber": "+962795021746",
+                "gender": "MALE",
+                "nationlity": ""
+            },
+            {
+                "id": "2ec0a7a0-1d5e-4a9d-bcac-3d253861dcfa",
+                "status": "SIGNED",
+                "fullName": "Mohammed   Abu erra",
+                "fullNameAr": "محمد   ابو عرة",
+                "nationalId": "1110565821",
+                "signOrder": 0,
+                "email": "mj266501@gmail.com",
+                "phoneNumber": " ",
+                "gender": "MALE",
+                "nationlity": ""
+            },
+            {
+                "id": "3868a4c8-c0da-4879-9205-a887a74eb175",
+                "status": "PENDING",
+                "fullName": "Company Representative",
+                "fullNameAr": "Company Representative",
+                "nationalId": "",
+                "signOrder": 1,
+                "email": "mj26653@gmail.com",
+                "phoneNumber": " ",
+                "gender": "NONE",
+                "nationlity": ""
+            }
+        ],
+        "documents": [
+            {
+                "id": "21e61f85-40a1-446c-8139-a496d4b1decd",
+                "fileName": "NDA-Project-Management-Application-1755344776536.pdf",
+                "uploadDate": "2025-08-16T14:46:39.053",
+                "sizeInKB": 1,
+                "isSigned": false
+            }
+        ],
+        "requestFields": [],
+        "referenceNumber": "linktech-contract-1755344790739"
+    },
+    "errorCode": 0,
+    "message": "Success",
+    "returnUrl": "/dashboard",
+    "stateValidationErrors": null,
+    "signature": ""
+}

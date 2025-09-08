@@ -1,0 +1,59 @@
+# www.robotstxt.org/
+# هذا الملف يحتوي على إرشادات لروبوتات محركات البحث
+
+# إرشادات عامة لجميع محركات البحث
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /projects
+Allow: /how-it-works
+Allow: /contact
+Allow: /terms
+Allow: /privacy
+Allow: /companies
+Allow: /*.js$
+Allow: /*.css$
+Allow: /*.png$
+Allow: /*.jpg$
+Allow: /*.svg$
+Allow: /*.webp$
+
+# مسارات محظورة على جميع روبوتات البحث
+Disallow: /dashboard/
+Disallow: /auth/
+Disallow: /messages/
+Disallow: /api/
+Disallow: /redirect
+Disallow: /*?*
+Disallow: /dashboard$
+Disallow: /admin
+Disallow: /*.json$
+Disallow: /projects/*
+Disallow: /companies/*
+
+# إرشادات خاصة بمحرك بحث جوجل
+User-agent: Googlebot
+Allow: /
+
+# إرشادات خاصة بمحرك بحث بينج
+User-agent: Bingbot
+Allow: /
+
+# إرشادات خاصة للصور في جوجل
+User-agent: Googlebot-Image
+Allow: /*.jpg$
+Allow: /*.jpeg$
+Allow: /*.png$
+Allow: /*.webp$
+Allow: /*.svg$
+Disallow: /
+
+# محركات بحث أخرى
+User-agent: Baiduspider
+Disallow: /
+
+# تأخير الفاصل الزمني بين كل طلب (بالثواني)
+Crawl-delay: 10
+
+# ملفات sitemap للموقع
+Sitemap: https://linktech.app/sitemap.xml
