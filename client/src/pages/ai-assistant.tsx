@@ -215,11 +215,6 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
 
   // Function to publish project with AI analysis data
   const publishProjectWithAnalysis = async () => {
-    console.log('publishProjectWithAnalysis called');
-    console.log('analysisResult:', analysisResult);
-    console.log('formData:', formData);
-    console.log('auth:', auth);
-    
     if (!analysisResult || !formData.projectIdea) {
       toast({
         title: "خطأ",
@@ -274,22 +269,18 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
         status: 'open',
         category: analysisResult.projectType || 'تطبيق ويب',
         requiresNda: formData.securityRequirements?.includes('عالية') || formData.securityRequirements?.includes('حساسة') || false,
-        skills: analysisResult.recommendedTechnologies.join(', ')
+        skills: analysisResult.recommendedTechnologies // Send as array, not string
       };
-
-      console.log('Sending project data:', projectData);
 
       // Create the project via API using apiRequest
       const response = await apiRequest('POST', '/api/projects', projectData);
       
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('API Error:', errorData);
         throw new Error(errorData.message || 'فشل في نشر المشروع');
       }
 
       const createdProject = await response.json();
-      console.log('Project created successfully:', createdProject);
 
       toast({
         title: "تم نشر المشروع بنجاح! 🎉",
@@ -368,6 +359,17 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                            try {
                              const parsedResult = JSON.parse(analysis.analysisResult);
                              setAnalysisResult({ ...parsedResult, id: analysis.id });
+                             // Load the original form data for sharing
+                             setFormData({
+                               projectIdea: analysis.projectIdea,
+                               businessSize: parsedResult.businessSize || '',
+                               expectedUsers: parsedResult.expectedUsers || '',
+                               budget: parsedResult.budget || '',
+                               timeline: parsedResult.timeline || '',
+                               integrationNeeds: parsedResult.integrationNeeds || [],
+                               securityRequirements: parsedResult.securityRequirements || '',
+                               specificRequirements: parsedResult.specificRequirements || ''
+                             });
                              setCurrentStep(3);
                              setShowPreviousAnalyses(false);
                            } catch (error) {
@@ -808,7 +810,6 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      console.log('Button clicked - calling publishProjectWithAnalysis');
                       publishProjectWithAnalysis();
                     }}
                     disabled={isPublishing || !auth.isEntrepreneur}

@@ -749,12 +749,18 @@ export default function TestSadiq() {
                 <div><strong>Created:</strong> {statusResult.createDate ? new Date(statusResult.createDate).toLocaleString() : 'Unknown'}</div>
               </div>
 
-              {/* Signatories Progress */}
+              {/* Signatories Progress - Filter out the Sadiq account */}
               {statusResult.signatories?.length > 0 && (
                 <div className="mt-4">
                   <h5 className="font-medium text-gray-700 mb-2">Signatories:</h5>
                   <div className="space-y-2">
-                    {statusResult.signatories.map((signer: any, index: number) => (
+                    {statusResult.signatories
+                      .filter((signer: any) => {
+                        // Hide the third party (Sadiq account) - we'll pass this from backend
+                        // For now, filter based on if it's marked as system account
+                        return !signer.isSystemAccount;
+                      })
+                      .map((signer: any, index: number) => (
                       <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
                         <div className="flex-1">
                           <div className="text-sm font-medium">

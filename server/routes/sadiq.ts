@@ -679,13 +679,24 @@ router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: R
 
     // معالجة الاستجابة من صادق وتحسينها
     const envelopeData = statusResult.data;
-    const signatories = envelopeData?.signatories || [];
+    const allSignatories = envelopeData?.signatories || [];
     const documents = envelopeData?.documents || [];
     
-    // حساب إحصائيات التوقيع
-    const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
-    const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
-    const totalSignatories = signatories.length;
+    // Get Sadiq account email from environment
+    const sadiqEmail = process.env.SADIQ_EMAIL;
+    
+    // Mark signatories and identify the system account
+    const signatories = allSignatories.map((signer: any) => ({
+      ...signer,
+      // Mark if this is the system account (Sadiq account used for API access)
+      isSystemAccount: signer.email === sadiqEmail
+    }));
+    
+    // حساب إحصائيات التوقيع (excluding system account)
+    const realSignatories = signatories.filter((s: any) => !s.isSystemAccount);
+    const signedCount = realSignatories.filter((s: any) => s.status === 'SIGNED').length;
+    const pendingCount = realSignatories.filter((s: any) => s.status === 'PENDING').length;
+    const totalSignatories = realSignatories.length;
     
     // تحديد الحالة العامة
     const isComplete = envelopeData?.status === 'completed' || envelopeData?.status === 'Completed';
@@ -699,13 +710,13 @@ router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: R
       createDate: envelopeData?.createDate,
       lastUpdated: new Date().toISOString(),
       
-      // إحصائيات التوقيع
+      // إحصائيات التوقيع (excluding system account)
       signedCount,
       pendingCount,
       totalSignatories,
       completionPercentage: totalSignatories > 0 ? Math.round((signedCount / totalSignatories) * 100) : 0,
       
-      // معلومات الموقعين
+      // معلومات الموقعين (including isSystemAccount flag)
       signatories: signatories.map((signer: any) => ({
         id: signer.id,
         name: signer.fullName,
@@ -713,7 +724,8 @@ router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: R
         email: signer.email,
         status: signer.status,
         signOrder: signer.signOrder,
-        phoneNumber: signer.phoneNumber
+        phoneNumber: signer.phoneNumber,
+        isSystemAccount: signer.isSystemAccount // Add the flag to identify system account
       })),
       
       // معلومات الوثائق
