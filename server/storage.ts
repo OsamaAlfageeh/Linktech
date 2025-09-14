@@ -37,6 +37,7 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getUsers(): Promise<User[]>;
+  getUsersByRole(role: string): Promise<User[]>;
   updateUser(id: number, updates: Partial<User>): Promise<User | undefined>;
   updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined>;
   
@@ -379,6 +380,10 @@ export class MemStorage implements IStorage {
   
   async getUsers(): Promise<User[]> {
     return Array.from(this.users.values());
+  }
+  
+  async getUsersByRole(role: string): Promise<User[]> {
+    return Array.from(this.users.values()).filter(user => user.role === role);
   }
 
   async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
@@ -1350,6 +1355,12 @@ export class DatabaseStorage implements IStorage {
 
   async getUsers(): Promise<User[]> {
     return await db.query.users.findMany();
+  }
+  
+  async getUsersByRole(role: string): Promise<User[]> {
+    return await db.query.users.findMany({
+      where: eq(schema.users.role, role)
+    });
   }
 
   async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {

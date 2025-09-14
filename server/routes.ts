@@ -312,6 +312,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         await storage.createCompanyProfile(profileData);
       }
       
+      // إنشاء إشعار ترحيبي للمستخدم الجديد
+      try {
+        await storage.createNotification({
+          userId: user.id,
+          type: 'system',
+          title: 'مرحباً بك في منصة لينكتك',
+          content: `مرحباً ${user.name || user.username}! نرحب بك في منصة لينكتك. نتمنى لك تجربة ممتعة ومفيدة.`,
+          actionUrl: '/dashboard',
+          metadata: { welcomeNotification: true }
+        });
+        
+        console.log(`✅ تم إنشاء إشعار ترحيبي للمستخدم الجديد ${user.id}`);
+        
+        // إنشاء إشعار للمسؤولين عن تسجيل مستخدم جديد
+        const adminUsers = await storage.getUsersByRole('admin');
+        
+        for (const admin of adminUsers) {
+          await storage.createNotification({
+            userId: admin.id,
+            type: 'system',
+            title: 'تسجيل مستخدم جديد',
+            content: `قام ${user.name || user.username} بالتسجيل في المنصة كـ ${user.role === 'entrepreneur' ? 'رائد أعمال' : 'شركة'}.`,
+            actionUrl: `/users/${user.id}`,
+            metadata: { newUserId: user.id, userRole: user.role }
+          });
+          
+          console.log(`✅ تم إنشاء إشعار للمسؤول ${admin.id} عن تسجيل مستخدم جديد`);
+        }
+      } catch (notificationError) {
+        console.error('خطأ في إنشاء إشعارات التسجيل:', notificationError);
+      }
+      
       // إنشاء JWT token للمستخدم الجديد
       const token = generateToken(user.id);
       
@@ -1005,7 +1037,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'فشل في تحديث حالة توثيق الشركة' });
       }
       
-      // إرسال إشعار بالبريد الإلكتروني (إذا كان التحقق صحيحاً)
+      // إرسال إشعار بالبريد الإلكتروني وإنشاء إشعار في النظام (إذا كان التحقق صحيحاً)
       if (verified) {
         try {
           const { sendCompanyVerificationEmail } = await import('./emailService');
@@ -1028,12 +1060,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
             } else {
               console.warn(`فشل في إرسال بريد إشعار التوثيق إلى: ${companyUser.email}`);
             }
+            
+            // إنشاء إشعار في النظام للشركة
+            try {
+              await storage.createNotification({
+                userId: companyUser.id,
+                type: 'system',
+                title: 'تم توثيق حسابك',
+                content: `تهانينا! تم توثيق حساب شركتك بنجاح. يمكنك الآن الاستفادة من جميع مزايا الشركات الموثقة.`,
+                actionUrl: '/dashboard/company',
+                metadata: { verificationDate: new Date().toISOString() }
+              });
+              
+              console.log(`✅ تم إنشاء إشعار نظام للشركة ${companyUser.id} بتوثيق الحساب`);
+            } catch (notificationError) {
+              console.error('خطأ في إنشاء إشعار توثيق الشركة:', notificationError);
+            }
           } else {
             console.warn('لم يتم العثور على معلومات المستخدم أو البريد الإلكتروني للشركة');
           }
         } catch (emailError) {
           console.error('خطأ في إرسال إشعار التوثيق:', emailError);
           // لا نريد إيقاف العملية إذا فشل إرسال البريد الإلكتروني
+        }
+      } else {
+        // إذا تم إلغاء التوثيق، إنشاء إشعار بذلك
+        try {
+          const companyUser = await storage.getUser(companyProfile.userId);
+          if (companyUser) {
+            await storage.createNotification({
+              userId: companyUser.id,
+              type: 'system',
+              title: 'تم إلغاء توثيق حسابك',
+              content: `تم إلغاء توثيق حساب شركتك. يرجى التواصل مع إدارة المنصة لمزيد من المعلومات.`,
+              actionUrl: '/dashboard/company',
+              metadata: { verificationDate: new Date().toISOString() }
+            });
+            
+            console.log(`✅ تم إنشاء إشعار نظام للشركة ${companyUser.id} بإلغاء توثيق الحساب`);
+          }
+        } catch (notificationError) {
+          console.error('خطأ في إنشاء إشعار إلغاء توثيق الشركة:', notificationError);
         }
       }
       
@@ -1170,8 +1237,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const projectId = parseInt(req.params.id);
       const { status } = req.body;
       
-      if (status !== 'open' && status !== 'closed') {
-        return res.status(400).json({ message: 'الحالة غير صالحة. يجب أن تكون "open" أو "closed".' });
+      if (status !== 'open' && status !== 'closed' && status !== 'in-progress' && status !== 'completed') {
+        return res.status(400).json({ message: 'الحالة غير صالحة. يجب أن تكون "open" أو "closed" أو "in-progress" أو "completed".' });
       }
       
       // التحقق من وجود المشروع
@@ -1187,6 +1254,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // تحديث حالة المشروع
       const updatedProject = await storage.updateProject(projectId, { status });
+      
+      // وظيفة مساعدة للحصول على تسمية الحالة بالعربية
+      function getStatusLabel(status: string): string {
+        switch (status) {
+          case 'open': return 'مفتوح';
+          case 'closed': return 'مغلق';
+          case 'in-progress': return 'قيد التنفيذ';
+          case 'completed': return 'مكتمل';
+          default: return status;
+        }
+      }
+      
+      // إنشاء إشعار لصاحب المشروع إذا تم التحديث بواسطة المسؤول
+      if (user.role === 'admin' && user.id !== project.userId) {
+        try {
+          await storage.createNotification({
+            userId: project.userId,
+            type: 'system',
+            title: 'تم تحديث حالة مشروعك',
+            content: `تم تغيير حالة مشروعك "${project.title}" إلى "${getStatusLabel(status)}".`,
+            actionUrl: `/projects/${projectId}`,
+            metadata: { projectId, status }
+          });
+          
+          console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتحديث حالة المشروع`);
+        } catch (notificationError) {
+          console.error('خطأ في إنشاء إشعار تحديث حالة المشروع:', notificationError);
+        }
+      }
+      
+      // إذا كان المشروع له عروض مقبولة، إنشاء إشعارات للشركات المعنية
+      if (status === 'in-progress' || status === 'completed') {
+        try {
+          // الحصول على العروض المقبولة للمشروع
+          const projectOffers = await storage.getProjectOffersByProjectId(projectId);
+          const acceptedOffers = projectOffers.filter(offer => offer.status === 'accepted');
+          
+          // إنشاء إشعارات للشركات التي تم قبول عروضها
+          for (const offer of acceptedOffers) {
+            const companyProfile = await storage.getCompanyProfile(offer.companyId);
+            if (companyProfile) {
+              await storage.createNotification({
+                userId: companyProfile.userId,
+                type: 'project',
+                title: 'تم تحديث حالة المشروع',
+                content: `تم تغيير حالة المشروع "${project.title}" إلى "${getStatusLabel(status)}".`,
+                actionUrl: `/projects/${projectId}`,
+                metadata: { projectId, status, offerId: offer.id }
+              });
+              
+              console.log(`✅ تم إنشاء إشعار للشركة ${companyProfile.userId} بتحديث حالة المشروع`);
+            }
+          }
+        } catch (notificationError) {
+          console.error('خطأ في إنشاء إشعارات تحديث حالة المشروع للشركات:', notificationError);
+        }
+      }
       
       console.log(`تم تغيير حالة المشروع ${projectId} إلى "${status}" بواسطة المستخدم ${user.username}`);
       res.json(updatedProject);
@@ -1273,6 +1397,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const project = await storage.createProject(projectData);
+      
+      // إنشاء إشعار للمسؤولين عن إضافة مشروع جديد
+      try {
+        // الحصول على جميع المسؤولين
+        const adminUsers = await storage.getUsersByRole('admin');
+        
+        // إنشاء إشعار لكل مسؤول
+        for (const admin of adminUsers) {
+          await storage.createNotification({
+            userId: admin.id,
+            type: 'system',
+            title: 'تم إضافة مشروع جديد',
+            content: `قام ${user.name || user.username} بإضافة مشروع جديد بعنوان "${project.title}".`,
+            actionUrl: `/projects/${project.id}`,
+            metadata: { projectId: project.id }
+          });
+          
+          console.log(`✅ تم إنشاء إشعار للمسؤول ${admin.id} عن إضافة مشروع جديد`);
+        }
+      } catch (notificationError) {
+        console.error('خطأ في إنشاء إشعار إضافة مشروع جديد:', notificationError);
+      }
+      
       res.status(201).json(project);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -3375,6 +3522,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const offer = await storage.createProjectOffer(offerData);
+      
+      // إنشاء إشعار لصاحب المشروع
+      try {
+        // التحقق من إعدادات المستخدم
+        const projectOwner = await storage.getUser(project.userId);
+        
+        // إنشاء إشعار في قاعدة البيانات
+        await storage.createNotification({
+          userId: project.userId,
+          type: 'project',
+          title: 'عرض جديد على مشروعك',
+          content: `تم تقديم عرض جديد على مشروعك "${project.title}"`,
+          actionUrl: `/projects/${projectId}`,
+          metadata: { projectId, offerId: offer.id }
+        });
+        
+        console.log(`✅ تم إنشاء إشعار للمستخدم ${project.userId} حول عرض جديد على المشروع`);
+      } catch (notificationError) {
+        console.error('خطأ في إنشاء إشعار العرض:', notificationError);
+      }
+      
       res.status(201).json(offer);
       
     } catch (error) {
@@ -3414,6 +3582,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // تحديث حالة العرض إلى 'accepted'
       const updatedOffer = await storage.updateProjectOfferStatus(offerId, 'accepted');
+      
+      // الحصول على معلومات الشركة لإنشاء الإشعار
+      const companyProfile = await storage.getCompanyProfile(offer.companyId);
+      const companyUser = companyProfile ? await storage.getUser(companyProfile.userId) : null;
+      
+      if (companyUser) {
+        try {
+          // إنشاء إشعار للشركة بقبول العرض
+          await storage.createNotification({
+            userId: companyUser.id,
+            type: 'project',
+            title: 'تم قبول عرضك',
+            content: `تم قبول عرضك على مشروع "${project.title}". يرجى انتظار دفع العربون لبدء العمل.`,
+            actionUrl: `/projects/${project.id}`,
+            metadata: { projectId: project.id, offerId }
+          });
+          
+          console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بقبول العرض`);
+        } catch (notificationError) {
+          console.error('خطأ في إنشاء إشعار قبول العرض:', notificationError);
+        }
+      }
       
       // إرجاع العرض المحدث مع معلومات الدفع المطلوبة
       res.json({
@@ -3470,6 +3660,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const company = await storage.getCompanyProfile(offer.companyId);
       const companyUser = company ? await storage.getUser(company.userId) : null;
       const projectOwner = await storage.getUser(project.userId);
+      
+      // إنشاء إشعار للشركة بدفع العربون
+      if (companyUser) {
+        try {
+          await storage.createNotification({
+            userId: companyUser.id,
+            type: 'project',
+            title: 'تم دفع العربون',
+            content: `تم دفع العربون لمشروع "${project.title}". يمكنك الآن بدء العمل على المشروع.`,
+            actionUrl: `/projects/${project.id}`,
+            metadata: { projectId: project.id, offerId }
+          });
+          
+          console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بدفع العربون`);
+        } catch (notificationError) {
+          console.error('خطأ في إنشاء إشعار دفع العربون للشركة:', notificationError);
+        }
+      }
+      
+      // إنشاء إشعار لصاحب المشروع بتأكيد دفع العربون
+      try {
+        await storage.createNotification({
+          userId: project.userId,
+          type: 'project',
+          title: 'تم تأكيد دفع العربون',
+          content: `تم تأكيد دفع العربون لمشروع "${project.title}". يمكنك الآن التواصل مع الشركة لبدء العمل.`,
+          actionUrl: `/projects/${project.id}`,
+          metadata: { projectId: project.id, offerId }
+        });
+        
+        console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتأكيد دفع العربون`);
+      } catch (notificationError) {
+        console.error('خطأ في إنشاء إشعار تأكيد دفع العربون لصاحب المشروع:', notificationError);
+      }
       
       // إنشاء رسالة إلى الشركة تحتوي على تفاصيل التواصل
       // فقط إذا لم تكن هناك محادثة موجودة بالفعل لهذا المشروع
@@ -3963,6 +4187,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
             toUserId: data.toUserId,
             projectId: data.projectId || null
           });
+          
+          // إنشاء إشعار في قاعدة البيانات للمستخدم المستقبل
+          try {
+            // التحقق من إعدادات المستخدم المستقبل
+            const recipientUser = await storage.getUser(data.toUserId);
+            
+            // الحصول على معلومات المرسل
+            const sender = await storage.getUser(userId);
+            const senderName = sender ? sender.name : 'مستخدم';
+            
+            // إنشاء إشعار في قاعدة البيانات
+            await storage.createNotification({
+              userId: data.toUserId,
+              type: 'message',
+              title: 'رسالة جديدة',
+              content: `لديك رسالة جديدة من ${senderName}`,
+              actionUrl: `/messages/${userId}`,
+              metadata: { messageId: message.id, senderId: userId }
+            });
+            
+            console.log(`✅ تم إنشاء إشعار للمستخدم ${data.toUserId} حول رسالة جديدة`);
+          } catch (notificationError) {
+            console.error('خطأ في إنشاء إشعار الرسالة:', notificationError);
+          }
           
           // التعرف على رسائل العميل ذات المعرف المؤقت
           const clientMessageId = data.tempMessageId || null;
@@ -4947,6 +5195,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           filteredSettings[key] = settings[key];
         }
       }
+      
+      // حفظ الإعدادات في قاعدة البيانات
+      // في المستقبل يمكن إضافة وظيفة لحفظ الإعدادات في قاعدة البيانات
+      // await storage.saveUserSettings(user.id, filteredSettings);
       
       // في المستقبل يمكن حفظ الإعدادات في قاعدة البيانات
       // await storage.saveUserSettings(user.id, filteredSettings);
