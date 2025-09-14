@@ -209,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'nda_completed',
             title: 'تم توقيع اتفاقية عدم الإفصاح',
             content: `تم توقيع اتفاقية عدم الإفصاح للمشروع "${project.title}" من جميع الأطراف بنجاح. يمكنك الآن المتابعة مع الشركة لبدء العمل على المشروع.`,
-            metadata: { ndaId: nda.id },
+            metadata: JSON.stringify({ ndaId: nda.id }),
             actionUrl: `/nda-complete/${nda.id}`
           });
           
@@ -320,7 +320,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: 'مرحباً بك في منصة لينكتك',
           content: `مرحباً ${user.name || user.username}! نرحب بك في منصة لينكتك. نتمنى لك تجربة ممتعة ومفيدة.`,
           actionUrl: '/dashboard',
-          metadata: { welcomeNotification: true }
+          metadata: JSON.stringify({ welcomeNotification: true })
         });
         
         console.log(`✅ تم إنشاء إشعار ترحيبي للمستخدم الجديد ${user.id}`);
@@ -335,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: 'تسجيل مستخدم جديد',
             content: `قام ${user.name || user.username} بالتسجيل في المنصة كـ ${user.role === 'entrepreneur' ? 'رائد أعمال' : 'شركة'}.`,
             actionUrl: `/users/${user.id}`,
-            metadata: { newUserId: user.id, userRole: user.role }
+            metadata: JSON.stringify({ newUserId: user.id, userRole: user.role })
           });
           
           console.log(`✅ تم إنشاء إشعار للمسؤول ${admin.id} عن تسجيل مستخدم جديد`);
@@ -1069,7 +1069,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 title: 'تم توثيق حسابك',
                 content: `تهانينا! تم توثيق حساب شركتك بنجاح. يمكنك الآن الاستفادة من جميع مزايا الشركات الموثقة.`,
                 actionUrl: '/dashboard/company',
-                metadata: { verificationDate: new Date().toISOString() }
+                metadata: JSON.stringify({ verificationDate: new Date().toISOString() })
               });
               
               console.log(`✅ تم إنشاء إشعار نظام للشركة ${companyUser.id} بتوثيق الحساب`);
@@ -1094,7 +1094,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               title: 'تم إلغاء توثيق حسابك',
               content: `تم إلغاء توثيق حساب شركتك. يرجى التواصل مع إدارة المنصة لمزيد من المعلومات.`,
               actionUrl: '/dashboard/company',
-              metadata: { verificationDate: new Date().toISOString() }
+              metadata: JSON.stringify({ verificationDate: new Date().toISOString() })
             });
             
             console.log(`✅ تم إنشاء إشعار نظام للشركة ${companyUser.id} بإلغاء توثيق الحساب`);
@@ -1275,7 +1275,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: 'تم تحديث حالة مشروعك',
             content: `تم تغيير حالة مشروعك "${project.title}" إلى "${getStatusLabel(status)}".`,
             actionUrl: `/projects/${projectId}`,
-            metadata: { projectId, status }
+            metadata: JSON.stringify({ projectId, status })
           });
           
           console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتحديث حالة المشروع`);
@@ -1301,7 +1301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 title: 'تم تحديث حالة المشروع',
                 content: `تم تغيير حالة المشروع "${project.title}" إلى "${getStatusLabel(status)}".`,
                 actionUrl: `/projects/${projectId}`,
-                metadata: { projectId, status, offerId: offer.id }
+                metadata: JSON.stringify({ projectId, status, offerId: offer.id })
               });
               
               console.log(`✅ تم إنشاء إشعار للشركة ${companyProfile.userId} بتحديث حالة المشروع`);
@@ -1411,7 +1411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: 'تم إضافة مشروع جديد',
             content: `قام ${user.name || user.username} بإضافة مشروع جديد بعنوان "${project.title}".`,
             actionUrl: `/projects/${project.id}`,
-            metadata: { projectId: project.id }
+            metadata: JSON.stringify({ projectId: project.id })
           });
           
           console.log(`✅ تم إنشاء إشعار للمسؤول ${admin.id} عن إضافة مشروع جديد`);
@@ -1540,12 +1540,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         title: 'طلب اتفاقية عدم إفصاح جديد',
         content: `طلبت شركة "${companyRepData.companyName}" إنشاء اتفاقية عدم إفصاح لمشروعك "${project.title}". يرجى إكمال بياناتك لبدء عملية التوقيع الإلكتروني.`,
         actionUrl: `/nda/${nda.id}/complete`,
-        metadata: { 
+        metadata: JSON.stringify({ 
           projectId: project.id, 
           ndaId: nda.id,
           companyUserId: user.id,
           companyName: companyRepData.companyName
-        }
+        })
       });
       
       console.log(`📧 تم إرسال إشعار لصاحب المشروع ${project.userId} لإكمال بيانات اتفاقية عدم الإفصاح`);
@@ -1615,11 +1615,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: 'اكتملت بيانات اتفاقية عدم الإفصاح',
           content: `أكمل صاحب المشروع "${project.title}" بياناته. سيتم إرسال دعوات التوقيع الإلكتروني عبر صادق قريباً.`,
           actionUrl: `/projects/${project.id}`,
-          metadata: { 
+          metadata: JSON.stringify({ 
             projectId: project.id, 
             ndaId: updatedNda.id,
             entrepreneurUserId: user.id
-          }
+          })
         });
       }
       
@@ -3535,7 +3535,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: 'عرض جديد على مشروعك',
           content: `تم تقديم عرض جديد على مشروعك "${project.title}"`,
           actionUrl: `/projects/${projectId}`,
-          metadata: { projectId, offerId: offer.id }
+          metadata: JSON.stringify({ projectId, offerId: offer.id })
         });
         
         console.log(`✅ تم إنشاء إشعار للمستخدم ${project.userId} حول عرض جديد على المشروع`);
@@ -3596,7 +3596,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: 'تم قبول عرضك',
             content: `تم قبول عرضك على مشروع "${project.title}". يرجى انتظار دفع العربون لبدء العمل.`,
             actionUrl: `/projects/${project.id}`,
-            metadata: { projectId: project.id, offerId }
+            metadata: JSON.stringify({ projectId: project.id, offerId })
           });
           
           console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بقبول العرض`);
@@ -3670,7 +3670,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: 'تم دفع العربون',
             content: `تم دفع العربون لمشروع "${project.title}". يمكنك الآن بدء العمل على المشروع.`,
             actionUrl: `/projects/${project.id}`,
-            metadata: { projectId: project.id, offerId }
+            metadata: JSON.stringify({ projectId: project.id, offerId })
           });
           
           console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بدفع العربون`);
@@ -3687,7 +3687,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           title: 'تم تأكيد دفع العربون',
           content: `تم تأكيد دفع العربون لمشروع "${project.title}". يمكنك الآن التواصل مع الشركة لبدء العمل.`,
           actionUrl: `/projects/${project.id}`,
-          metadata: { projectId: project.id, offerId }
+          metadata: JSON.stringify({ projectId: project.id, offerId })
         });
         
         console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتأكيد دفع العربون`);
@@ -4195,16 +4195,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // الحصول على معلومات المرسل
             const sender = await storage.getUser(userId);
-            const senderName = sender ? sender.name : 'مستخدم';
+            const senderName = sender ? (sender.name || sender.username) : 'مستخدم';
             
             // إنشاء إشعار في قاعدة البيانات
+            console.log(`إنشاء إشعار رسالة جديدة للمستخدم ${data.toUserId} من ${senderName}`)
             await storage.createNotification({
               userId: data.toUserId,
               type: 'message',
               title: 'رسالة جديدة',
               content: `لديك رسالة جديدة من ${senderName}`,
               actionUrl: `/messages/${userId}`,
-              metadata: { messageId: message.id, senderId: userId }
+              metadata: JSON.stringify({ messageId: message.id, senderId: userId })
             });
             
             console.log(`✅ تم إنشاء إشعار للمستخدم ${data.toUserId} حول رسالة جديدة`);
@@ -5809,6 +5810,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // استخدام مسارات صادق API
   app.use('/api/sadiq', sadiqRoutes);
+
+  // Notification API endpoints
+  app.get('/api/notifications', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      console.log(`طلب GET /api/notifications - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
+      
+      const notifications = await storage.getNotificationsByUserId(user.id);
+      res.json(notifications);
+    } catch (error) {
+      console.error('خطأ في استرجاع الإشعارات:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/notifications/:id/read', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const notificationId = parseInt(req.params.id);
+      
+      // تحقق من وجود الإشعار وأنه ينتمي للمستخدم الحالي
+      const notifications = await storage.getNotificationsByUserId(user.id);
+      const notification = notifications.find(n => n.id === notificationId);
+      
+      if (!notification) {
+        return res.status(404).json({ message: 'Notification not found' });
+      }
+      
+      const updatedNotification = await storage.markNotificationAsRead(notificationId);
+      res.json(updatedNotification);
+    } catch (error) {
+      console.error('خطأ في تحديث حالة الإشعار:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  app.post('/api/notifications/read-all', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      await storage.markAllNotificationsAsRead(user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('خطأ في تحديث حالة جميع الإشعارات:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
 
   return httpServer;
 }

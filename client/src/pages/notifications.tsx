@@ -141,7 +141,7 @@ const Notifications: React.FC = () => {
 
   const markAllAsReadMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/notifications/mark-all-read', {
+      const response = await fetch('/api/notifications/read-all', {
         method: 'POST',
         credentials: 'include',
       });
