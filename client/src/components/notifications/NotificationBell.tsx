@@ -113,6 +113,8 @@ const NotificationBell = ({ className = "" }: NotificationBellProps) => {
         return '✅';
       case 'offer_received':
         return '💰';
+      case 'offer':
+        return '💰';
       case 'project_update':
         return '🔄';
       default:

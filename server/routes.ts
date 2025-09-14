@@ -3531,7 +3531,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // إنشاء إشعار في قاعدة البيانات
         await storage.createNotification({
           userId: project.userId,
-          type: 'project',
+          type: 'offer',
           title: 'عرض جديد على مشروعك',
           content: `تم تقديم عرض جديد على مشروعك "${project.title}"`,
           actionUrl: `/projects/${projectId}`,
@@ -3592,7 +3592,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // إنشاء إشعار للشركة بقبول العرض
           await storage.createNotification({
             userId: companyUser.id,
-            type: 'project',
+            type: 'offer',
             title: 'تم قبول عرضك',
             content: `تم قبول عرضك على مشروع "${project.title}". يرجى انتظار دفع العربون لبدء العمل.`,
             actionUrl: `/projects/${project.id}`,

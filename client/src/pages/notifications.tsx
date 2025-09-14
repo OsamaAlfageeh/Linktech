@@ -2,7 +2,7 @@ import React from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { Helmet } from 'react-helmet';
-import { Bell, Check, X, Clock, MessageCircle, FileText, Users } from 'lucide-react';
+import { Bell, Check, X, Clock, MessageCircle, FileText, Users, DollarSign } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,7 @@ import { ar } from 'date-fns/locale';
 
 interface Notification {
   id: number;
-  type: 'message' | 'project' | 'proposal' | 'payment' | 'system';
+  type: 'message' | 'project' | 'proposal' | 'payment' | 'system' | 'offer';
   title: string;
   content: string;
   isRead: boolean;
@@ -23,6 +23,7 @@ interface Notification {
     projectId?: number;
     userId?: number;
     amount?: number;
+    offerId?: number;
   };
 }
 
@@ -36,6 +37,8 @@ const getNotificationIcon = (type: string) => {
       return <Users className="h-5 w-5 text-purple-500" />;
     case 'payment':
       return <Clock className="h-5 w-5 text-orange-500" />;
+    case 'offer':
+      return <DollarSign className="h-5 w-5 text-yellow-500" />;
     default:
       return <Bell className="h-5 w-5 text-gray-500" />;
   }
@@ -51,6 +54,8 @@ const getNotificationTypeLabel = (type: string) => {
       return 'عرض';
     case 'payment':
       return 'دفع';
+    case 'offer':
+      return 'عرض مشروع';
     default:
       return 'إشعار';
   }
