@@ -245,7 +245,7 @@ const Notifications: React.FC = () => {
             <p className="text-gray-600 mb-4">
               يمكنك تخصيص أنواع الإشعارات التي تريد استلامها من خلال إعدادات حسابك.
             </p>
-            <Button variant="outline">
+            <Button variant="outline" onClick={() => window.location.href = '/settings'}>
               إدارة الإعدادات
             </Button>
           </div>

@@ -44,6 +44,7 @@ import AiAssistant from "@/pages/ai-assistant";
 import CompaniesLanding from "@/pages/companies-landing";
 import TestSadiq from "@/pages/test-sadiq";
 import NdaCompletePage from "@/pages/nda-complete";
+import Settings from "@/pages/settings";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -205,7 +206,9 @@ function App() {
           <Route path="/auth/login" component={() => <Login auth={auth} />} />
           <Route path="/auth/forgot-password" component={ForgotPassword} />
           <Route path="/auth/reset-password/:token" component={ResetPassword} />
-          <Route path="/redirect" component={Redirect} />
+          <Route path="/redirect">
+            {(params: { to?: string }) => params.to ? <Redirect to={params.to} /> : null}
+          </Route>
           {/* Removed separate admin login route */}
           
           {/* Protected routes - using ProtectedRoute component */}
@@ -246,6 +249,9 @@ function App() {
           
           {/* صفحة الإشعارات */}
           <ProtectedRoute path="/notifications" component={Notifications} />
+          
+          {/* صفحة الإعدادات */}
+          <ProtectedRoute path="/settings" component={Settings} />
           
           {/* صفحة إكمال اتفاقية عدم الإفصاح */}
           <ProtectedRoute path="/nda/:ndaId/complete" component={NdaCompletePage} />

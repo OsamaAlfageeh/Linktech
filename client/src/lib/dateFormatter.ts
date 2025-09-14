@@ -1,20 +1,33 @@
 import moment from 'moment';
-import 'moment-hijri';
 
-// إضافة دعم للتاريخ الهجري إلى moment.js
-declare module 'moment' {
-  interface Moment {
-    format(format?: string): string;
-    iYear(): number;
-    iMonth(): number;
-    iDate(): number;
-    iDayOfYear(): number;
-    iWeek(): number;
-    iWeekday(): number;
-    iDayOfYear(): number;
-    toISOString(): string;
-    fromNow(): string;
-  }
+// تحويل التاريخ الميلادي إلى هجري
+function gregorianToHijri(gregorianDate: Date): { day: number; month: number; year: number } {
+  // خوارزمية تحويل تقريبية من الميلادي إلى الهجري
+  const gYear = gregorianDate.getFullYear();
+  const gMonth = gregorianDate.getMonth() + 1;
+  const gDay = gregorianDate.getDate();
+  
+  // حساب عدد الأيام منذ بداية التقويم الميلادي
+  const a = Math.floor((14 - gMonth) / 12);
+  const y = gYear - a;
+  const m = gMonth + 12 * a - 3;
+  const jd = gDay + Math.floor((153 * m + 2) / 5) + 365 * y + Math.floor(y / 4) - Math.floor(y / 100) + Math.floor(y / 400) + 1721119;
+  
+  // تحويل إلى التاريخ الهجري
+  const l = jd - 1948440 + 10632;
+  const n = Math.floor((l - 1) / 10631);
+  const l2 = l - 10631 * n + 354;
+  const j = Math.floor((10985 - l2) / 5316) * Math.floor((50 * l2) / 17719) + Math.floor(l2 / 5670) * Math.floor((43 * l2) / 15238);
+  const l3 = l2 - Math.floor((30 - j) / 15) * Math.floor((17719 * j) / 50) - Math.floor(j / 16) * Math.floor((15238 * j) / 43) + 29;
+  const hMonth = Math.floor((24 * l3) / 709);
+  const hDay = l3 - Math.floor((709 * hMonth) / 24);
+  const hYear = 30 * n + j - 30;
+  
+  return {
+    day: Math.max(1, Math.min(30, hDay)),
+    month: Math.max(1, Math.min(12, hMonth)),
+    year: Math.max(1, hYear)
+  };
 }
 
 // أسماء الشهور العربية
@@ -39,22 +52,34 @@ export function formatDate(date: string | Date): string {
     
     // التأكد من صحة التاريخ
     if (!momentDate.isValid()) {
+      console.log('❌ Invalid date:', date);
       return 'تاريخ غير صحيح';
     }
+    
+    console.log('📅 Input date:', date);
+    console.log('📅 Moment date:', momentDate.toDate());
     
     // التاريخ الميلادي
     const gregorianDay = momentDate.date();
     const gregorianMonth = arabicMonths[momentDate.month()];
     const gregorianYear = momentDate.year();
     
-    // التاريخ الهجري
-    const hijriMoment = (momentDate as any);
-    const hijriDay = hijriMoment.iDate ? hijriMoment.iDate() : hijriMoment.format('iD');
-    const hijriMonthIndex = hijriMoment.iMonth ? hijriMoment.iMonth() : parseInt(hijriMoment.format('iM')) - 1;
-    const hijriMonth = hijriMonths[hijriMonthIndex] || hijriMoment.format('iMMMM');
-    const hijriYear = hijriMoment.iYear ? hijriMoment.iYear() : hijriMoment.format('iYYYY');
+    console.log('📅 Gregorian:', { day: gregorianDay, month: gregorianMonth, year: gregorianYear });
     
-    return `${gregorianDay} ${gregorianMonth} ${gregorianYear}م / ${hijriDay} ${hijriMonth} ${hijriYear}هـ`;
+    // التاريخ الهجري باستخدام خوارزمية التحويل
+    const hijriDate = gregorianToHijri(momentDate.toDate());
+    const hijriDay = hijriDate.day;
+    const hijriMonthIndex = hijriDate.month - 1; // تحويل إلى فهرس المصفوفة
+    const hijriMonth = hijriMonths[hijriMonthIndex] || hijriMonths[0];
+    const hijriYear = hijriDate.year;
+    
+    console.log('📅 Hijri raw:', hijriDate);
+    console.log('📅 Hijri formatted:', { day: hijriDay, month: hijriMonth, year: hijriYear, monthIndex: hijriMonthIndex });
+    
+    const result = `في ${gregorianDay} ${gregorianMonth} ${gregorianYear}م الموافق ${hijriDay} ${hijriMonth} ${hijriYear}هـ`;
+    console.log('📅 Final result:', result);
+    
+    return result;
   } catch (error) {
     console.error('Error formatting date:', error);
     // في حالة الخطأ، نعرض التاريخ الميلادي فقط

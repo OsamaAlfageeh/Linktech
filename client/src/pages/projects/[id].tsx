@@ -72,7 +72,18 @@ const ProjectDetails = () => {
   }, [id, navigate]);
   
   const formatDate = (dateString: string) => {
-    return formatDateWithHijri(dateString);
+    console.log('🔍 Project page formatDate called with:', dateString);
+    const result = formatDateWithHijri(dateString);
+    console.log('🔍 Project page formatDate result:', result);
+    // Add visible test output
+    if (typeof window !== 'undefined' && !document.getElementById('date-test-output')) {
+      const testDiv = document.createElement('div');
+      testDiv.id = 'date-test-output';
+      testDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: yellow; padding: 10px; border: 2px solid red; z-index: 9999; max-width: 300px; font-size: 12px;';
+      testDiv.innerHTML = `<strong>Date Test:</strong><br/>Input: ${dateString}<br/>Output: ${result}`;
+      document.body.appendChild(testDiv);
+    }
+    return result;
   };
 
   return (
@@ -82,8 +93,8 @@ const ProjectDetails = () => {
         description={project ? `${project.description.substring(0, 160)}...` : 'تفاصيل المشروع متاحة للمستخدمين المسجلين فقط'}
         keywords={project ? project.skills.join(', ') + ', لينكتك, مشاريع تقنية, شركات برمجة' : 'لينكتك, مشاريع تقنية, شركات برمجة'}
         ogType="article"
-        noindex={true} // تجنب فهرسة صفحات المشاريع للخصوصية
-        nofollow={true}
+        noIndex={true} // تجنب فهرسة صفحات المشاريع للخصوصية
+        noFollow={true}
       >
         {project && (
           <ProjectStructuredData

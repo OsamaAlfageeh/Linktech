@@ -13,6 +13,7 @@ import SEO from "@/components/seo/SEO";
 import { OrganizationStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
 
 
+
 type HomeProps = {
   auth: {
     isAuthenticated: boolean;

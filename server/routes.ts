@@ -20,6 +20,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
+import arabicReshaper from 'arabic-reshaper';
+import bidi from 'bidi-js';
 
 // مخزن مؤقت لإعدادات التواصل (على مستوى الوحدة لضمان الاستمرارية)
 let globalContactSettingsCache: any = {
@@ -68,7 +70,7 @@ import {
 import { checkMessageForProhibitedContent, sanitizeMessageContent, addMessageToConversationHistory } from "./contentFilter";
 import { trackVisit, getVisitStats, getQuickStats } from "./visitTracking";
 import bcrypt from "bcryptjs";
-import crypto from "crypto";
+
 
 // JWT helpers
 const JWT_SECRET = process.env.JWT_SECRET || 'linktech-jwt-secret-2024';
@@ -207,7 +209,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: 'nda_completed',
             title: 'تم توقيع اتفاقية عدم الإفصاح',
             content: `تم توقيع اتفاقية عدم الإفصاح للمشروع "${project.title}" من جميع الأطراف بنجاح. يمكنك الآن المتابعة مع الشركة لبدء العمل على المشروع.`,
-            relatedId: nda.id,
+            metadata: { ndaId: nda.id },
             actionUrl: `/nda-complete/${nda.id}`
           });
           
@@ -647,7 +649,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`طلب قائمة الشركات - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
       
       // المستخدم مسجل دخول والمستخدم هو مسؤول، نعرض جميع الشركات
-      if (req.user && (req.user as any).role === 'admin') {
+      if (req.user && req.user.role === 'admin') {
         console.log(`المستخدم مسؤول، عرض جميع الشركات`);
         
         const companyProfiles = await storage.getCompanyProfiles();
@@ -1017,7 +1019,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const emailSent = await sendCompanyVerificationEmail(
               companyUser.email,
               companyUser.name || companyUser.username,
-              companyProfile.name,
+              companyUser.name || companyUser.username,
               req.body.verificationNotes || ''
             );
             
@@ -4900,6 +4902,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true });
     } catch (error) {
       console.error('Error marking all notifications as read:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // === نقاط نهاية إعدادات المستخدم ===
+  
+  // الحصول على إعدادات المستخدم
+  app.get('/api/user/settings', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      
+      // إعدادات افتراضية للإشعارات
+      const defaultSettings = {
+        emailNotifications: true,
+        messageNotifications: true,
+        ndaNotifications: true,
+        projectNotifications: true,
+        systemNotifications: true
+      };
+      
+      // في المستقبل يمكن جلب الإعدادات من قاعدة البيانات
+      // const userSettings = await storage.getUserSettings(user.id);
+      
+      res.json(defaultSettings);
+    } catch (error) {
+      console.error('Error fetching user settings:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // حفظ إعدادات المستخدم
+  app.post('/api/user/settings', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const settings = req.body;
+      
+      // التحقق من صحة البيانات
+      const validSettings = ['emailNotifications', 'messageNotifications', 'ndaNotifications', 'projectNotifications', 'systemNotifications'];
+      const filteredSettings = {};
+      
+      for (const key of validSettings) {
+        if (typeof settings[key] === 'boolean') {
+          filteredSettings[key] = settings[key];
+        }
+      }
+      
+      // في المستقبل يمكن حفظ الإعدادات في قاعدة البيانات
+      // await storage.saveUserSettings(user.id, filteredSettings);
+      
+      console.log(`تم حفظ إعدادات المستخدم ${user.id}:`, filteredSettings);
+      res.json({ success: true, settings: filteredSettings });
+    } catch (error) {
+      console.error('Error saving user settings:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });

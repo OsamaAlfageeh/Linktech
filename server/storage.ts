@@ -230,6 +230,127 @@ export class MemStorage implements IStorage {
     this.seedData();
     this.seedDefaultSiteSettings();
   }
+    getProjectsWithUserData(): Promise<(Project & { username?: string; name?: string; })[]> {
+        throw new Error("Method not implemented.");
+    }
+    deleteProject(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogCategories(): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; }[]> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogCategory(id: number): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogCategoryBySlug(slug: string): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    createBlogCategory(category: any): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; }> {
+        throw new Error("Method not implemented.");
+    }
+    updateBlogCategory(id: number, category: any): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    deleteBlogCategory(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogPosts(categoryId?: number): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; }[]> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogPost(id: number): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
+    getBlogPost(id: number): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
+    getBlogPost(id: unknown): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined> | Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogPostBySlug(slug: string): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
+    getBlogPostBySlug(slug: string): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined>;
+    getBlogPostBySlug(slug: unknown): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined> | Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    createBlogPost(post: any): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; }> {
+        throw new Error("Method not implemented.");
+    }
+    updateBlogPost(id: number, post: any): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    deleteBlogPost(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    incrementBlogPostViewCount(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogCommentsByPost(postId: number): Promise<{ id: number; postId: number; userId: number | null; parentId: number | null; authorName: string | null; authorEmail: string | null; content: string; status: string; createdAt: Date; updatedAt: Date; }[]> {
+        throw new Error("Method not implemented.");
+    }
+    getBlogComment(id: number): Promise<{ id: number; postId: number; userId: number | null; parentId: number | null; authorName: string | null; authorEmail: string | null; content: string; status: string; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    createBlogComment(comment: any): Promise<{ id: number; postId: number; userId: number | null; parentId: number | null; authorName: string | null; authorEmail: string | null; content: string; status: string; createdAt: Date; updatedAt: Date; }> {
+        throw new Error("Method not implemented.");
+    }
+    updateBlogCommentStatus(id: number, status: string): Promise<{ id: number; postId: number; userId: number | null; parentId: number | null; authorName: string | null; authorEmail: string | null; content: string; status: string; createdAt: Date; updatedAt: Date; } | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    deleteBlogComment(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    getPublishedBlogPosts(): Promise<{ id: number; title: string; slug: string; excerpt: string | null; content: string; status: string; featuredImage: string | null; authorId: number; categoryId: number | null; tags: string[] | null; metaTitle: string | null; metaDescription: string | null; metaKeywords: string | null; published: boolean | null; views: number | null; publishedAt: Date | null; createdAt: Date; updatedAt: Date; }[]> {
+        throw new Error("Method not implemented.");
+    }
+    getContactMessages(): Promise<ContactMessage[]> {
+        throw new Error("Method not implemented.");
+    }
+    getContactMessageById(id: number): Promise<ContactMessage | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    createContactMessage(message: InsertContactMessage): Promise<ContactMessage> {
+        throw new Error("Method not implemented.");
+    }
+    updateContactMessageStatus(id: number, status: string): Promise<ContactMessage | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    addNoteToContactMessage(id: number, note: string): Promise<ContactMessage | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    replyToContactMessage(id: number, replyMessage: string): Promise<ContactMessage | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    createAiProjectAnalysis(analysis: schema.InsertAiProjectAnalysis): Promise<schema.AiProjectAnalysis> {
+        throw new Error("Method not implemented.");
+    }
+    getAiProjectAnalysis(id: number): Promise<schema.AiProjectAnalysis | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    getUserAiAnalyses(userId: number): Promise<schema.AiProjectAnalysis[]> {
+        throw new Error("Method not implemented.");
+    }
+    createAnalysisRating(rating: schema.InsertAnalysisRating): Promise<schema.AnalysisRating> {
+        throw new Error("Method not implemented.");
+    }
+    getAnalysisRatings(analysisId: number): Promise<schema.AnalysisRating[]> {
+        throw new Error("Method not implemented.");
+    }
+    deleteContactMessage(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
+    getFeaturedClients(): Promise<FeaturedClient[]> {
+        throw new Error("Method not implemented.");
+    }
+    getActiveFeaturedClients(): Promise<FeaturedClient[]> {
+        throw new Error("Method not implemented.");
+    }
+    getFeaturedClient(id: number): Promise<FeaturedClient | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    createFeaturedClient(client: InsertFeaturedClient): Promise<FeaturedClient> {
+        throw new Error("Method not implemented.");
+    }
+    updateFeaturedClient(id: number, updates: Partial<FeaturedClient>): Promise<FeaturedClient | undefined> {
+        throw new Error("Method not implemented.");
+    }
+    deleteFeaturedClient(id: number): Promise<boolean> {
+        throw new Error("Method not implemented.");
+    }
   
   // User operations
   async getUser(id: number): Promise<User | undefined> {
@@ -1229,6 +1350,14 @@ export class DatabaseStorage implements IStorage {
 
   async getUsers(): Promise<User[]> {
     return await db.query.users.findMany();
+  }
+
+  async updateUser(id: number, updates: Partial<User>): Promise<User | undefined> {
+    const [updatedUser] = await db.update(schema.users)
+      .set(updates)
+      .where(eq(schema.users.id, id))
+      .returning();
+    return updatedUser;
   }
   
   async updateUserPassword(id: number, hashedPassword: string): Promise<User | undefined> {

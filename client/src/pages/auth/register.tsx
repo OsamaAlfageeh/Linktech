@@ -128,18 +128,14 @@ const Register = ({ auth }: RegisterProps) => {
       return response.json();
     },
     onSuccess: (data) => {
-      auth.login(data.user);
+      // Don't log the user in automatically - redirect to login instead
       toast({
         title: "تم إنشاء الحساب بنجاح",
-        description: "مرحباً بك في منصة لينكتك",
+        description: "يرجى تسجيل الدخول للمتابعة",
       });
 
-      // Redirect based on role
-      if (data.user.role === "entrepreneur") {
-        navigate("/dashboard/entrepreneur");
-      } else {
-        navigate("/dashboard/company");
-      }
+      // Redirect to login page instead of dashboard
+      navigate("/auth/login");
     },
     onError: (error: any) => {
       setServerError(error.message || "حدث خطأ أثناء إنشاء الحساب، يرجى المحاولة مرة أخرى.");
