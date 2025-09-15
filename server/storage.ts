@@ -25,7 +25,10 @@ import {
   notifications,
   PersonalInformation, InsertPersonalInformation,
   personalInformation,
+  UserSettings, InsertUserSettings,
+  userSettings,
 } from "@shared/schema";
+import { sendNotificationEmail } from "./emailService";
 import { sql } from "drizzle-orm";
 import { db } from "./db";
 import { eq, and, or, desc, asc } from "drizzle-orm";
@@ -121,6 +124,10 @@ export interface IStorage {
   markNotificationAsRead(id: number): Promise<Notification | undefined>;
   markAllNotificationsAsRead(userId: number): Promise<void>;
   
+  // User Settings operations
+  getUserSettings(userId: number): Promise<schema.UserSettings | undefined>;
+  saveUserSettings(userId: number, settings: Partial<schema.InsertUserSettings>): Promise<schema.UserSettings>;
+  
   // Blog operations
   getBlogCategories(): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; }[]>;
   getBlogCategory(id: number): Promise<{ id: number; name: string; slug: string; description: string | null; image: string | null; parentId: number | null; order: number | null; createdAt: Date; updatedAt: Date; } | undefined>;
@@ -193,6 +200,7 @@ export class MemStorage implements IStorage {
   private premiumClients: Map<number, PremiumClient>;
   private notifications: Map<number, Notification>;
   private personalInformations: Map<number, PersonalInformation>;
+  private userSettingsMap: Map<number, UserSettings>;
   
   private userIdCounter: number = 1;
   private companyProfileIdCounter: number = 1;
@@ -962,6 +970,49 @@ export class MemStorage implements IStorage {
 
   // Notification methods
   async createNotification(notification: InsertNotification): Promise<Notification> {
+    // Check user settings to see if this type of notification is enabled
+    const userSettings = await this.getUserSettings(notification.userId);
+    
+    // If user settings exist, check if the notification type is enabled
+    if (userSettings) {
+      const notificationType = notification.type;
+      let isEnabled = true;
+      
+      switch (notificationType) {
+        case 'message':
+          isEnabled = userSettings.messageNotifications;
+          break;
+        case 'offer':
+        case 'offer_accepted':
+        case 'offer_rejected':
+          isEnabled = userSettings.offerNotifications;
+          break;
+        case 'system':
+        case 'welcome':
+          isEnabled = userSettings.systemNotifications;
+          break;
+        default:
+          // For other notification types, default to enabled
+          isEnabled = true;
+      }
+      
+      // If notifications are disabled for this type, don't create the notification
+      if (!isEnabled) {
+        // Return a dummy notification object to maintain API compatibility
+        return {
+          id: -1,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          isRead: true, // Mark as read since it wasn't actually created
+          createdAt: new Date(),
+          projectId: notification.projectId || null,
+          offerId: notification.offerId || null
+        };
+      }
+    }
+    
     const id = this.notificationIdCounter++;
     const now = new Date();
     const newNotification: Notification = {
@@ -971,6 +1022,27 @@ export class MemStorage implements IStorage {
       createdAt: now,
     };
     this.notifications.set(id, newNotification);
+    
+    // Send email notification if user has email notifications enabled
+    if (userSettings && userSettings.emailNotifications) {
+      try {
+        // Get user email for sending notification
+        const user = await this.getUser(notification.userId);
+        if (user && user.email) {
+          await sendNotificationEmail(
+            user.email,
+            user.username || user.email,
+            notification.type,
+            notification.title,
+            notification.message
+          );
+        }
+      } catch (error) {
+        console.error('Failed to send notification email:', error);
+        // Don't fail the notification creation if email sending fails
+      }
+    }
+    
     return newNotification;
   }
 
@@ -995,6 +1067,44 @@ export class MemStorage implements IStorage {
         const updatedNotification = { ...notification, isRead: true };
         this.notifications.set(parseInt(id), updatedNotification);
       }
+    }
+  }
+
+  // User Settings methods
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    return Array.from(this.userSettingsMap.values())
+      .find(settings => settings.userId === userId);
+  }
+
+  async saveUserSettings(userId: number, settings: Partial<InsertUserSettings>): Promise<UserSettings> {
+    const existingSettings = await this.getUserSettings(userId);
+    const now = new Date();
+    
+    if (existingSettings) {
+      // Update existing settings
+      const updatedSettings: UserSettings = {
+        ...existingSettings,
+        ...settings,
+        updatedAt: now
+      };
+      this.userSettingsMap.set(existingSettings.id, updatedSettings);
+      return updatedSettings;
+    } else {
+      // Create new settings with defaults
+      const id = Math.max(0, ...Array.from(this.userSettingsMap.keys())) + 1;
+      const newSettings: UserSettings = {
+        id,
+        userId,
+        emailNotifications: settings.emailNotifications ?? true,
+        pushNotifications: settings.pushNotifications ?? true,
+        messageNotifications: settings.messageNotifications ?? true,
+        offerNotifications: settings.offerNotifications ?? true,
+        systemNotifications: settings.systemNotifications ?? true,
+        createdAt: now,
+        updatedAt: now
+      };
+      this.userSettingsMap.set(id, newSettings);
+      return newSettings;
     }
   }
   
@@ -2577,9 +2687,73 @@ export class DatabaseStorage implements IStorage {
 
   // Notification operations for DatabaseStorage
   async createNotification(notification: InsertNotification): Promise<Notification> {
+    // Check user settings to see if this type of notification is enabled
+    const userSettings = await this.getUserSettings(notification.userId);
+    
+    // If user settings exist, check if the notification type is enabled
+    if (userSettings) {
+      const notificationType = notification.type;
+      let isEnabled = true;
+      
+      switch (notificationType) {
+        case 'message':
+          isEnabled = userSettings.messageNotifications;
+          break;
+        case 'offer':
+        case 'offer_accepted':
+        case 'offer_rejected':
+          isEnabled = userSettings.offerNotifications;
+          break;
+        case 'system':
+        case 'welcome':
+          isEnabled = userSettings.systemNotifications;
+          break;
+        default:
+          // For other notification types, default to enabled
+          isEnabled = true;
+      }
+      
+      // If notifications are disabled for this type, don't create the notification
+      if (!isEnabled) {
+        // Return a dummy notification object to maintain API compatibility
+        return {
+          id: -1,
+          userId: notification.userId,
+          type: notification.type,
+          title: notification.title,
+          message: notification.message,
+          isRead: true, // Mark as read since it wasn't actually created
+          createdAt: new Date(),
+          projectId: notification.projectId || null,
+          offerId: notification.offerId || null
+        };
+      }
+    }
+    
     const [newNotification] = await db.insert(schema.notifications)
       .values(notification)
       .returning();
+    
+    // Send email notification if user has email notifications enabled
+    if (userSettings && userSettings.emailNotifications) {
+      try {
+        // Get user email for sending notification
+        const user = await this.getUser(notification.userId);
+        if (user && user.email) {
+          await sendNotificationEmail(
+            user.email,
+            user.username || user.email,
+            notification.type,
+            notification.title,
+            notification.message
+          );
+        }
+      } catch (error) {
+        console.error('Failed to send notification email:', error);
+        // Don't fail the notification creation if email sending fails
+      }
+    }
+    
     return newNotification;
   }
 
@@ -2604,6 +2778,42 @@ export class DatabaseStorage implements IStorage {
         eq(schema.notifications.userId, userId),
         eq(schema.notifications.isRead, false)
       ));
+  }
+
+  // User Settings operations for DatabaseStorage
+  async getUserSettings(userId: number): Promise<UserSettings | undefined> {
+    const settings = await db.query.userSettings.findMany({
+      where: eq(schema.userSettings.userId, userId),
+      limit: 1
+    });
+    return settings.length > 0 ? settings[0] : undefined;
+  }
+
+  async saveUserSettings(userId: number, settings: Partial<InsertUserSettings>): Promise<UserSettings> {
+    // Check if user settings already exist
+    const existingSettings = await this.getUserSettings(userId);
+    
+    if (existingSettings) {
+      // Update existing settings
+      const [updatedSettings] = await db.update(schema.userSettings)
+        .set({ ...settings, updatedAt: new Date() })
+        .where(eq(schema.userSettings.userId, userId))
+        .returning();
+      return updatedSettings;
+    } else {
+      // Create new settings with defaults
+      const [newSettings] = await db.insert(schema.userSettings)
+        .values({
+          userId,
+          emailNotifications: settings.emailNotifications ?? true,
+          pushNotifications: settings.pushNotifications ?? true,
+          messageNotifications: settings.messageNotifications ?? true,
+          offerNotifications: settings.offerNotifications ?? true,
+          systemNotifications: settings.systemNotifications ?? true,
+        })
+        .returning();
+      return newSettings;
+    }
   }
 
 }

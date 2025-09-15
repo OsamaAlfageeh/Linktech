@@ -3119,6 +3119,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       const message = await storage.createMessage(messageData);
+      
+      // إنشاء إشعار في قاعدة البيانات للمستخدم المستقبل
+      try {
+        console.log(`🔄 محاولة إنشاء إشعار للمستخدم ${messageData.toUserId}`);
+        
+        // الحصول على معلومات المرسل
+        const sender = await storage.getUser(user.id);
+        const senderName = sender ? (sender.name || sender.username) : 'مستخدم';
+        console.log(`👤 اسم المرسل: ${senderName}`);
+        
+        const notificationData = {
+          userId: messageData.toUserId,
+          type: 'message',
+          title: 'رسالة جديدة',
+          content: `لديك رسالة جديدة من ${senderName}`,
+          actionUrl: `/messages/${user.id}`,
+          metadata: JSON.stringify({ messageId: message.id, senderId: user.id })
+        };
+        console.log(`📝 بيانات الإشعار:`, notificationData);
+        
+        const notification = await storage.createNotification(notificationData);
+        
+        console.log(`✅ تم إنشاء إشعار للمستخدم ${messageData.toUserId} حول رسالة جديدة - ID: ${notification.id}`);
+      } catch (notificationError) {
+        console.error('❌ خطأ في إنشاء إشعار الرسالة:', notificationError);
+        console.error('❌ تفاصيل الخطأ:', notificationError.message);
+        console.error('❌ Stack trace:', notificationError.stack);
+      }
+      
       res.status(201).json(message);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -5162,19 +5191,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       
-      // إعدادات افتراضية للإشعارات
-      const defaultSettings = {
-        emailNotifications: true,
-        messageNotifications: true,
-        ndaNotifications: true,
-        projectNotifications: true,
-        systemNotifications: true
-      };
+      // جلب الإعدادات من قاعدة البيانات أو استخدام الافتراضية
+      const userSettings = await storage.getUserSettings(user.id);
       
-      // في المستقبل يمكن جلب الإعدادات من قاعدة البيانات
-      // const userSettings = await storage.getUserSettings(user.id);
-      
-      res.json(defaultSettings);
+      if (userSettings) {
+        res.json({
+          emailNotifications: userSettings.emailNotifications,
+          pushNotifications: userSettings.pushNotifications,
+          messageNotifications: userSettings.messageNotifications,
+          offerNotifications: userSettings.offerNotifications,
+          systemNotifications: userSettings.systemNotifications
+        });
+      } else {
+        // إعدادات افتراضية للإشعارات
+        const defaultSettings = {
+          emailNotifications: true,
+          pushNotifications: true,
+          messageNotifications: true,
+          offerNotifications: true,
+          systemNotifications: true
+        };
+        res.json(defaultSettings);
+      }
     } catch (error) {
       console.error('Error fetching user settings:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -5188,7 +5226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const settings = req.body;
       
       // التحقق من صحة البيانات
-      const validSettings = ['emailNotifications', 'messageNotifications', 'ndaNotifications', 'projectNotifications', 'systemNotifications'];
+      const validSettings = ['emailNotifications', 'pushNotifications', 'messageNotifications', 'offerNotifications', 'systemNotifications'];
       const filteredSettings = {};
       
       for (const key of validSettings) {
@@ -5198,14 +5236,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // حفظ الإعدادات في قاعدة البيانات
-      // في المستقبل يمكن إضافة وظيفة لحفظ الإعدادات في قاعدة البيانات
-      // await storage.saveUserSettings(user.id, filteredSettings);
-      
-      // في المستقبل يمكن حفظ الإعدادات في قاعدة البيانات
-      // await storage.saveUserSettings(user.id, filteredSettings);
+      const savedSettings = await storage.saveUserSettings(user.id, filteredSettings);
       
       console.log(`تم حفظ إعدادات المستخدم ${user.id}:`, filteredSettings);
-      res.json({ success: true, settings: filteredSettings });
+      res.json({ 
+        success: true, 
+        settings: {
+          emailNotifications: savedSettings.emailNotifications,
+          pushNotifications: savedSettings.pushNotifications,
+          messageNotifications: savedSettings.messageNotifications,
+          offerNotifications: savedSettings.offerNotifications,
+          systemNotifications: savedSettings.systemNotifications
+        }
+      });
     } catch (error) {
       console.error('Error saving user settings:', error);
       res.status(500).json({ message: 'Internal server error' });

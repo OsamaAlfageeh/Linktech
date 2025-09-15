@@ -7,15 +7,14 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Bell, Mail, MessageSquare, FileText, Users } from "lucide-react";
+import { Bell, Mail, MessageSquare, DollarSign, Loader2 } from 'lucide-react';
 import { useAuth } from "@/App";
 
 interface NotificationSettings {
   emailNotifications: boolean;
   pushNotifications: boolean;
   messageNotifications: boolean;
-  ndaNotifications: boolean;
-  projectNotifications: boolean;
+  offerNotifications: boolean;
   systemNotifications: boolean;
 }
 
@@ -28,8 +27,7 @@ const Settings = () => {
     emailNotifications: true,
     pushNotifications: true,
     messageNotifications: true,
-    ndaNotifications: true,
-    projectNotifications: true,
+    offerNotifications: true,
     systemNotifications: true,
   });
 
@@ -55,8 +53,7 @@ const Settings = () => {
         emailNotifications: userSettings.emailNotifications ?? true,
         pushNotifications: userSettings.pushNotifications ?? true,
         messageNotifications: userSettings.messageNotifications ?? true,
-        ndaNotifications: userSettings.ndaNotifications ?? true,
-        projectNotifications: userSettings.projectNotifications ?? true,
+        offerNotifications: userSettings.offerNotifications ?? true,
         systemNotifications: userSettings.systemNotifications ?? true,
       });
     }
@@ -172,39 +169,20 @@ const Settings = () => {
 
             <Separator />
 
-            {/* إشعارات اتفاقيات عدم الإفصاح */}
+            {/* إشعارات العروض */}
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label className="text-base flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  إشعارات اتفاقيات عدم الإفصاح
+                  <DollarSign className="h-4 w-4" />
+                  إشعارات العروض
                 </Label>
                 <p className="text-sm text-neutral-500">
-                  إشعارات متعلقة بحالة اتفاقيات عدم الإفصاح
+                  إشعارات حول العروض والمقترحات الجديدة
                 </p>
               </div>
               <Switch
-                checked={settings.ndaNotifications}
-                onCheckedChange={(value) => handleSettingChange('ndaNotifications', value)}
-              />
-            </div>
-
-            <Separator />
-
-            {/* إشعارات المشاريع */}
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <Label className="text-base flex items-center gap-2">
-                  <Users className="h-4 w-4" />
-                  إشعارات المشاريع
-                </Label>
-                <p className="text-sm text-neutral-500">
-                  إشعارات حول تحديثات المشاريع والعروض
-                </p>
-              </div>
-              <Switch
-                checked={settings.projectNotifications}
-                onCheckedChange={(value) => handleSettingChange('projectNotifications', value)}
+                checked={settings.offerNotifications}
+                onCheckedChange={(value) => handleSettingChange('offerNotifications', value)}
               />
             </div>
 

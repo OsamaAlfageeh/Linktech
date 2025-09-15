@@ -101,6 +101,122 @@ ${resetLink}
 }
 
 /**
+ * إرسال إشعار بريد إلكتروني للمستخدم
+ * @param email البريد الإلكتروني للمستخدم
+ * @param name اسم المستخدم
+ * @param notificationType نوع الإشعار
+ * @param title عنوان الإشعار
+ * @param message محتوى الإشعار
+ * @returns وعد بنجاح أو فشل العملية
+ */
+export async function sendNotificationEmail(
+  email: string,
+  name: string,
+  notificationType: string,
+  title: string,
+  message: string
+): Promise<boolean> {
+  // التحقق من وجود مثيل MailerSend
+  if (!mailerSend) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين MailerSend");
+    return false;
+  }
+
+  try {
+    const recipient = new Recipient(email, name);
+    const recipients = [recipient];
+
+    // تخصيص موضوع البريد الإلكتروني بناءً على نوع الإشعار
+    let subject = "إشعار جديد من منصة لينكتك";
+    let typeIcon = "📢";
+    
+    switch (notificationType) {
+      case 'message':
+        subject = "رسالة جديدة - منصة لينكتك";
+        typeIcon = "💬";
+        break;
+      case 'offer':
+        subject = "عرض جديد على مشروعك - منصة لينكتك";
+        typeIcon = "💼";
+        break;
+      case 'offer_accepted':
+        subject = "تم قبول عرضك - منصة لينكتك";
+        typeIcon = "✅";
+        break;
+      case 'offer_rejected':
+        subject = "تم رفض عرضك - منصة لينكتك";
+        typeIcon = "❌";
+        break;
+      case 'system':
+        subject = "إشعار من النظام - منصة لينكتك";
+        typeIcon = "⚙️";
+        break;
+      case 'welcome':
+        subject = "مرحباً بك في منصة لينكتك";
+        typeIcon = "🎉";
+        break;
+    }
+
+    // بناء معلمات البريد الإلكتروني
+    const emailParams = new EmailParams()
+      .setFrom(sender)
+      .setTo(recipients)
+      .setSubject(subject)
+      .setHtml(`
+        <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
+          <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
+            <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
+            <p style="font-size: 16px; margin-top: 5px;">منصة ربط رواد الأعمال بشركات البرمجة</p>
+          </div>
+          
+          <div style="background-color: #ffffff; padding: 20px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <div style="text-align: center; margin-bottom: 20px;">
+              <span style="font-size: 48px;">${typeIcon}</span>
+            </div>
+            
+            <h2 style="color: #1f2937; margin-top: 0; text-align: center;">${title}</h2>
+            
+            <p style="margin-bottom: 25px;">مرحباً ${name}،</p>
+            
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 16px;">${message}</p>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="https://linktech.app/notifications" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold;">عرض جميع الإشعارات</a>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; font-size: 14px; color: #666;">
+              <p>مع تحيات،<br>فريق منصة لينكتك</p>
+            </div>
+          </div>
+        </div>
+      `)
+      .setText(
+        `مرحباً ${name}،
+        
+${title}
+
+${message}
+
+يمكنك عرض جميع إشعاراتك على الرابط التالي:
+https://linktech.app/notifications
+
+مع تحيات،
+فريق منصة لينكتك`
+      );
+
+    // إرسال البريد الإلكتروني
+    const response = await mailerSend.email.send(emailParams);
+    console.log("تم إرسال إشعار البريد الإلكتروني بنجاح:", response);
+    return true;
+  } catch (error) {
+    console.error("فشل في إرسال إشعار البريد الإلكتروني:", error);
+    return false;
+  }
+}
+
+/**
  * إرسال إشعار بتغيير كلمة المرور
  * @param email البريد الإلكتروني للمستخدم
  * @param name اسم المستخدم

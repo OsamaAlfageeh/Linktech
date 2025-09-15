@@ -31,6 +31,19 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// User settings schema
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique().references(() => users.id),
+  emailNotifications: boolean("email_notifications").default(true),
+  pushNotifications: boolean("push_notifications").default(true),
+  messageNotifications: boolean("message_notifications").default(true),
+  offerNotifications: boolean("offer_notifications").default(true),
+  systemNotifications: boolean("system_notifications").default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Company profile schema
 export const companyProfiles = pgTable("company_profiles", {
   id: serial("id").primaryKey(),
@@ -152,6 +165,12 @@ export const insertTestimonialSchema = createInsertSchema(testimonials).omit({
   createdAt: true 
 });
 
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({ 
+  id: true, 
+  createdAt: true,
+  updatedAt: true 
+});
+
 export const insertProjectOfferSchema = createInsertSchema(projectOffers).omit({
   id: true,
   status: true,
@@ -244,10 +263,21 @@ export const usersRelations = relations(users, ({ one, many }) => ({
     fields: [users.id],
     references: [companyProfiles.userId],
   }),
+  settings: one(userSettings, {
+    fields: [users.id],
+    references: [userSettings.userId],
+  }),
   projects: many(projects),
   testimonials: many(testimonials),
   sentMessages: many(messages, { relationName: "sentMessages" }),
   receivedMessages: many(messages, { relationName: "receivedMessages" }),
+}));
+
+export const userSettingsRelations = relations(userSettings, ({ one }) => ({
+  user: one(users, {
+    fields: [userSettings.userId],
+    references: [users.id],
+  }),
 }));
 
 export const companyProfilesRelations = relations(companyProfiles, ({ one }) => ({
@@ -362,6 +392,9 @@ export type InsertUserActivity = z.infer<typeof insertUserActivitySchema>;
 // Export notification types
 export type Notification = typeof notifications.$inferSelect;
 export type InsertNotification = z.infer<typeof insertNotificationSchema>;
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 
 // Site Settings schema - removed duplicate, using the one defined later
 
