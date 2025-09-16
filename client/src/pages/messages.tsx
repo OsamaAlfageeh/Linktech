@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Helmet } from 'react-helmet';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
@@ -143,6 +143,75 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
   
   const queryClient = useQueryClient();
+  const wsRef = useRef<WebSocket | null>(null);
+
+  // إعداد اتصال WebSocket
+  useEffect(() => {
+    if (!auth.isAuthenticated || !auth.user?.id) return;
+
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws?userId=${auth.user.id}`;
+    
+    const connectWebSocket = () => {
+      try {
+        wsRef.current = new WebSocket(wsUrl);
+        
+        wsRef.current.onopen = () => {
+          console.log('WebSocket connected for messages');
+        };
+        
+        wsRef.current.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            
+            // تحديث الرسائل عند استلام رسالة جديدة
+            if (data.type === 'new_message') {
+              queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+            }
+            
+            // تأكيد قراءة الرسائل
+            if (data.type === 'read_confirmation') {
+              if (data.success) {
+                queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+              }
+            }
+          } catch (error) {
+            console.error('Error parsing WebSocket message:', error);
+          }
+        };
+        
+        wsRef.current.onerror = (error) => {
+          console.error('WebSocket error:', error);
+        };
+        
+        wsRef.current.onclose = () => {
+          console.log('WebSocket disconnected');
+          // إعادة الاتصال بعد 3 ثوان
+          setTimeout(connectWebSocket, 3000);
+        };
+      } catch (error) {
+        console.error('Failed to create WebSocket connection:', error);
+      }
+    };
+
+    connectWebSocket();
+
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [auth.isAuthenticated, auth.user?.id, queryClient]);
+
+  // دالة لتحديد الرسائل كمقروءة
+  const markMessagesAsRead = (fromUserId: number) => {
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({
+        type: 'read_messages',
+        fromUserId: fromUserId
+      }));
+    }
+  };
 
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading, error: messagesError, refetch: refetchMessages } = useQuery({
@@ -405,7 +474,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                   className={`p-3 border-b cursor-pointer hover:bg-accent transition-colors ${
                     selectedConversation === conversation.otherUserId ? 'bg-accent' : ''
                   }`}
-                  onClick={() => setSelectedConversation(conversation.otherUserId)}
+                  onClick={() => {
+                    setSelectedConversation(conversation.otherUserId);
+                    // تحديد الرسائل كمقروءة عند فتح المحادثة
+                    if (conversation.unreadCount > 0) {
+                      markMessagesAsRead(conversation.otherUserId);
+                    }
+                  }}
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10">

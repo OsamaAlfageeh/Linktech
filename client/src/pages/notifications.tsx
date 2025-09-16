@@ -1,4 +1,5 @@
 import React from 'react';
+import { useLocation } from 'wouter';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { queryClient } from '@/lib/queryClient';
 import { Helmet } from 'react-helmet';
@@ -123,6 +124,7 @@ const NotificationItem: React.FC<{ notification: Notification; onMarkAsRead: (id
 };
 
 const Notifications: React.FC = () => {
+  const [, navigate] = useLocation();
   const { data: notifications = [], isLoading, error } = useQuery<Notification[]>({
     queryKey: ['/api/notifications'],
     retry: false,
@@ -250,7 +252,7 @@ const Notifications: React.FC = () => {
             <p className="text-gray-600 mb-4">
               يمكنك تخصيص أنواع الإشعارات التي تريد استلامها من خلال إعدادات حسابك.
             </p>
-            <Button variant="outline" onClick={() => window.location.href = '/settings'}>
+            <Button variant="outline" onClick={() => navigate('/settings')}>
               إدارة الإعدادات
             </Button>
           </div>

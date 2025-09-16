@@ -252,6 +252,8 @@ function App() {
           
           {/* صفحة الإعدادات */}
           <ProtectedRoute path="/settings" component={Settings} />
+          {/* دعم المسار مع الشرطة المائلة في النهاية */}
+          <ProtectedRoute path="/settings/" component={Settings} />
           
           {/* صفحة إكمال اتفاقية عدم الإفصاح */}
           <ProtectedRoute path="/nda/:ndaId/complete" component={NdaCompletePage} />

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 import { Bell, Mail, MessageSquare, DollarSign, Loader2 } from 'lucide-react';
 import { useAuth } from "@/App";
 
@@ -33,16 +34,7 @@ const Settings = () => {
 
   // جلب إعدادات الإشعارات الحالية
   const { data: userSettings, isLoading } = useQuery({
-    queryKey: ['user-settings'],
-    queryFn: async () => {
-      const response = await fetch('/api/user/settings', {
-        credentials: 'include'
-      });
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      return response.json();
-    },
+    queryKey: ['/api/user/settings'],
     enabled: !!user
   });
 
@@ -62,19 +54,7 @@ const Settings = () => {
   // حفظ الإعدادات
   const saveSettingsMutation = useMutation({
     mutationFn: async (newSettings: NotificationSettings) => {
-      const response = await fetch('/api/user/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify(newSettings),
-      });
-      
-      if (!response.ok) {
-        throw new Error('فشل في حفظ الإعدادات');
-      }
-      
+      const response = await apiRequest('POST', '/api/user/settings', newSettings);
       return response.json();
     },
     onSuccess: () => {
@@ -83,6 +63,7 @@ const Settings = () => {
         description: "تم تحديث إعدادات الإشعارات بنجاح",
       });
       queryClient.invalidateQueries({ queryKey: ['/api/user/settings'] });
+      queryClient.refetchQueries({ queryKey: ['/api/user/settings'] });
     },
     onError: (error: any) => {
       toast({
