@@ -159,6 +159,10 @@ const Header = ({ auth }: HeaderProps) => {
             <div className="hidden md:flex items-center space-x-4 space-x-reverse">
               {/* Notification Bell */}
               <NotificationBell />
+              {/* Messages Icon - visible for all authenticated users */}
+              <Link href="/messages" className="p-2 text-neutral-600 hover:text-primary rounded-full hover:bg-neutral-100">
+                <MessageSquare className="h-5 w-5" />
+              </Link>
               
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

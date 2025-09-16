@@ -141,6 +141,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const [projectId, setProjectId] = useState<number | null>(projectIdFromUrl);
   const { toast } = useToast();
   const [localMessages, setLocalMessages] = useState<Message[]>([]);
+  const [clearedUnreadFor, setClearedUnreadFor] = useState<Set<number>>(new Set());
   
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
@@ -213,6 +214,13 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     }
   };
 
+  useEffect(() => {
+    if (selectedConversation) {
+      setClearedUnreadFor(prev => new Set(prev).add(selectedConversation));
+      markMessagesAsRead(selectedConversation);
+    }
+  }, [selectedConversation]);
+
   // جلب جميع الرسائل للمستخدم الحالي
   const { data: messagesData, isLoading: messagesLoading, error: messagesError, refetch: refetchMessages } = useQuery({
     queryKey: ['/api/messages'],
@@ -238,11 +246,11 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
 
   // جلب المحادثة المحددة
   const { data: conversationData, isLoading: conversationLoading, error: conversationError, refetch: refetchConversation } = useQuery<Message[]>({
-    queryKey: ['/api/messages/conversation', selectedConversation, projectId],
+    queryKey: ['/api/messages/conversation', selectedConversation],
     queryFn: async () => {
       if (!selectedConversation) return [];
       
-      const url = `/api/messages/conversation/${selectedConversation}${projectId ? `?projectId=${projectId}` : ''}`;
+      const url = `/api/messages/conversation/${selectedConversation}`;
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
@@ -281,7 +289,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       
       // تحديث البيانات
       queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation, projectId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
       
       toast({
         title: "تم إرسال الرسالة",
@@ -312,6 +320,27 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     }
   });
 
+  // Fallback: persist read state via REST when opening a conversation
+  useEffect(() => {
+    const persistReads = async () => {
+      if (!selectedConversation) return;
+      if (!Array.isArray(conversationData) || conversationData.length === 0) return;
+      const unread = conversationData.filter(m => m.toUserId === auth.user.id && !m.read);
+      if (unread.length === 0) return;
+      try {
+        await Promise.all(
+          unread.map(m => apiRequest('PATCH', `/api/messages/${m.id}/read`))
+        );
+        queryClient.invalidateQueries({ queryKey: ['/api/messages'] });
+        queryClient.invalidateQueries({ queryKey: ['/api/messages/conversation', selectedConversation] });
+      } catch (e) {
+        console.error('Failed to persist message read state:', e);
+      }
+    };
+    persistReads();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedConversation, conversationData, auth.user?.id]);
+
   // تحويل الرسائل إلى محادثات
   const conversations: Conversation[] = useMemo(() => {
     if (!messagesData || !Array.isArray(messagesData) || messagesData.length === 0) {
@@ -326,7 +355,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       
       if (!otherUser || !otherUserId) return;
       
-      const conversationKey = `${Math.min(auth.user.id, otherUserId)}-${Math.max(auth.user.id, otherUserId)}-${message.projectId || 'no-project'}`;
+      const conversationKey = `${Math.min(auth.user.id, otherUserId)}-${Math.max(auth.user.id, otherUserId)}`;
       
       if (!conversationsMap.has(conversationKey)) {
         conversationsMap.set(conversationKey, {
@@ -334,9 +363,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
           otherUserId,
           otherUser,
           lastMessage: message,
-          unreadCount: message.toUserId === auth.user.id && !message.read ? 1 : 0,
-          projectId: message.projectId,
-          project: message.project
+          unreadCount: message.toUserId === auth.user.id && !message.read ? 1 : 0
         });
       } else {
         const existingConversation = conversationsMap.get(conversationKey)!;
@@ -493,7 +520,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                       <div className="flex items-center justify-between">
                         <h3 className="font-medium truncate">{conversation.otherUser?.name || "مستخدم"}</h3>
                         <div className="flex items-center gap-1">
-                          {conversation.unreadCount > 0 && (
+                          {(!clearedUnreadFor.has(conversation.otherUserId) && conversation.unreadCount > 0) && (
                             <Badge variant="destructive" className="text-xs">
                               {conversation.unreadCount}
                             </Badge>

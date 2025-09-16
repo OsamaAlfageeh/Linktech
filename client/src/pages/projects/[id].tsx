@@ -72,18 +72,7 @@ const ProjectDetails = () => {
   }, [id, navigate]);
   
   const formatDate = (dateString: string) => {
-    console.log('🔍 Project page formatDate called with:', dateString);
-    const result = formatDateWithHijri(dateString);
-    console.log('🔍 Project page formatDate result:', result);
-    // Add visible test output
-    if (typeof window !== 'undefined' && !document.getElementById('date-test-output')) {
-      const testDiv = document.createElement('div');
-      testDiv.id = 'date-test-output';
-      testDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: yellow; padding: 10px; border: 2px solid red; z-index: 9999; max-width: 300px; font-size: 12px;';
-      testDiv.innerHTML = `<strong>Date Test:</strong><br/>Input: ${dateString}<br/>Output: ${result}`;
-      document.body.appendChild(testDiv);
-    }
-    return result;
+    return formatDateWithHijri(dateString);
   };
 
   return (

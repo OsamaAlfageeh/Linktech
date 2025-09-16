@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE = 'http://localhost:5000';
+const API_BASE = process.env.API_BASE || 'http://localhost:5000';
 
 // Create axios instance
 const api = axios.create({
@@ -39,6 +39,20 @@ async function sendMessage(token, toUserId, content, projectId = null) {
   }
 }
 
+// Ensure recipient message notifications are enabled
+async function ensureRecipientSettings(token, settings = { messageNotifications: true }) {
+  try {
+    const response = await api.post('/api/user/settings', settings, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(`Failed to set recipient settings: ${error.response?.data?.message || error.message}`);
+  }
+}
+
 // Get notifications function
 async function getNotifications(token) {
   try {
@@ -69,6 +83,11 @@ async function testMessageNotifications() {
     const recipientLogin = await login('ahmed_entrepreneur', 'password123');
     console.log('✅ Login successful for ahmed_entrepreneur\n');
 
+    // Step 2.1: Ensure recipient message notifications are enabled
+    console.log('Step 2.1: Ensuring recipient message notifications are enabled...');
+    await ensureRecipientSettings(recipientLogin.token, { messageNotifications: true });
+    console.log('✅ Recipient settings ensured\n');
+
     // Step 3: Check initial notifications for recipient
     console.log('Step 3: Check initial notifications for recipient...');
     const initialNotifications = await getNotifications(recipientLogin.token);
@@ -94,14 +113,15 @@ async function testMessageNotifications() {
     
     // Check if new notification was created
     const messageNotifications = finalNotifications.filter(n => n.type === 'message');
+    const latest = messageNotifications[messageNotifications.length - 1];
     console.log(`📨 Message notifications found: ${messageNotifications.length}`);
     
-    if (messageNotifications.length > 0) {
+    if (messageNotifications.length > 0 && finalNotifications.length > initialNotifications.length) {
       console.log('\n✅ Message notification created successfully!');
-      console.log('Latest message notification:', JSON.stringify(messageNotifications[messageNotifications.length - 1], null, 2));
+      console.log('Latest message notification:', JSON.stringify(latest, null, 2));
     } else {
       console.log('\n❌ No message notification was created');
-      console.log('Note: Message notifications might only be created via WebSocket, not REST API');
+      console.log('Note: Verify API_BASE, user credentials, and that notifications endpoint is reachable.');
     }
 
   } catch (error) {
