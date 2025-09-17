@@ -2449,6 +2449,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log('تم السماح بالتنزيل للمستخدم:', user.username);
       
+      // Check if we have a Sadiq document ID - if yes, use external API
+      if (nda.sadiqDocumentId) {
+        console.log('استخدام API الخارجي لتنزيل الوثيقة من صادق');
+        
+        try {
+          // Get access token from Sadiq
+          const { sadiqAuth } = await import('./sadiqAuthService');
+          const accessToken = await sadiqAuth.getAccessToken();
+          
+          // Use the external API to download the document
+          const downloadUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/v2/DownloadBase64/${nda.sadiqDocumentId}`;
+          
+          console.log(`⬇️ تنزيل الوثيقة من: ${downloadUrl}`);
+          
+          const response = await fetch(downloadUrl, {
+            method: 'GET',
+            headers: {
+              'accept': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
+            }
+          });
+
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`❌ فشل تنزيل الوثيقة من صادق: ${response.status} - ${errorText}`);
+            // Fall back to PDF generation if Sadiq download fails
+            console.log('الانتقال إلى إنشاء PDF محلي كبديل');
+          } else {
+            const result = await response.json();
+            
+            // Check if the response contains the file data
+            if (result.data && result.data.file) {
+              // Convert base64 to buffer
+              const pdfBuffer = Buffer.from(result.data.file, 'base64');
+              
+              // Set response headers for PDF download
+              const filename = `NDA-${ndaId}-${Date.now()}.pdf`;
+              res.setHeader('Content-Type', 'application/pdf');
+              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+              res.setHeader('Content-Length', pdfBuffer.length);
+              
+              console.log(`✅ تم تنزيل الوثيقة من صادق بنجاح - الحجم: ${pdfBuffer.length} بايت`);
+              return res.send(pdfBuffer);
+            } else {
+              console.log('لا توجد بيانات ملف في استجابة صادق، الانتقال إلى إنشاء PDF محلي');
+            }
+          }
+        } catch (error) {
+          console.error('خطأ في تنزيل الوثيقة من صادق:', error);
+          console.log('الانتقال إلى إنشاء PDF محلي كبديل');
+        }
+      }
+      
+      // Fall back to PDF generation if no Sadiq document ID or if Sadiq download failed
+      console.log('إنشاء PDF محلي للاتفاقية');
+      
       // وظيفة لتحويل النص العربي إلى نص باللغة الإنجليزية لـ PDF
       function sanitizeTextForPDF(text: string): string {
         if (!text) return 'Not specified';
@@ -2873,7 +2929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Download signed NDA document from Sadiq
+  // Download signed NDA document from Sadiq using external API
   app.get('/api/nda/:id/download-signed', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const ndaId = parseInt(req.params.id);
@@ -2887,12 +2943,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'لا يوجد مستند إلكتروني لهذه الاتفاقية' });
       }
 
-      // Download signed document from Sadiq
+      // Get access token from Sadiq
       const { sadiqAuth } = await import('./sadiqAuthService');
-      const base64Content = await sadiqAuth.downloadSignedDocument(nda.sadiqDocumentId);
+      const accessToken = await sadiqAuth.getAccessToken();
       
+      // Use the external API to download the document
+      const downloadUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/v2/DownloadBase64/${nda.sadiqDocumentId}`;
+      
+      console.log(`⬇️ تنزيل الوثيقة من: ${downloadUrl}`);
+      
+      const response = await fetch(downloadUrl, {
+        method: 'GET',
+        headers: {
+          'accept': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`❌ فشل تنزيل الوثيقة: ${response.status} - ${errorText}`);
+        return res.status(response.status).json({ 
+          message: `فشل في تنزيل الوثيقة: ${response.status}`,
+          error: errorText.substring(0, 200)
+        });
+      }
+
+      const result = await response.json();
+      
+      // Check if the response contains the file data
+      if (!result.data || !result.data.file) {
+        console.error('❌ لا توجد بيانات ملف في الاستجابة:', result);
+        return res.status(400).json({ message: 'لا توجد بيانات ملف في الاستجابة' });
+      }
+
       // Convert base64 to buffer
-      const pdfBuffer = Buffer.from(base64Content, 'base64');
+      const pdfBuffer = Buffer.from(result.data.file, 'base64');
       
       // Set response headers for PDF download
       const filename = `NDA-Signed-${ndaId}-${Date.now()}.pdf`;
@@ -2900,6 +2986,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
       res.setHeader('Content-Length', pdfBuffer.length);
       
+      console.log(`✅ تم تنزيل الوثيقة بنجاح - الحجم: ${pdfBuffer.length} بايت`);
       res.send(pdfBuffer);
     } catch (error) {
       console.error('خطأ في تنزيل اتفاقية عدم الإفصاح الموقعة:', error);
