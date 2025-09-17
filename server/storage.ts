@@ -95,6 +95,7 @@ export interface IStorage {
   updateProjectOfferStatus(id: number, status: string): Promise<ProjectOffer | undefined>;
   setProjectOfferDepositPaid(id: number, depositAmount: string): Promise<ProjectOffer | undefined>;
   setProjectOfferContactRevealed(id: number): Promise<ProjectOffer | undefined>;
+  hasAcceptedOffersBetweenUsers(user1Id: number, user2Id: number): Promise<boolean>;
   
   // Site Settings operations
   getSiteSetting(key: string): Promise<SiteSetting | undefined>;
@@ -1977,6 +1978,58 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.projectOffers.id, id))
       .returning();
     return updatedOffer;
+  }
+
+  async hasAcceptedOffersBetweenUsers(user1Id: number, user2Id: number): Promise<boolean> {
+    // Get all projects where user1 is the owner
+    const user1Projects = await db.query.projects.findMany({
+      where: eq(schema.projects.userId, user1Id)
+    });
+
+    // Get all projects where user2 is the owner  
+    const user2Projects = await db.query.projects.findMany({
+      where: eq(schema.projects.userId, user2Id)
+    });
+
+    // Check if user2 has accepted offers on user1's projects
+    for (const project of user1Projects) {
+      const offers = await db.query.projectOffers.findMany({
+        where: and(
+          eq(schema.projectOffers.projectId, project.id),
+          eq(schema.projectOffers.status, 'accepted')
+        ),
+        with: {
+          company: true
+        }
+      });
+
+      for (const offer of offers) {
+        if (offer.company && offer.company.userId === user2Id) {
+          return true;
+        }
+      }
+    }
+
+    // Check if user1 has accepted offers on user2's projects
+    for (const project of user2Projects) {
+      const offers = await db.query.projectOffers.findMany({
+        where: and(
+          eq(schema.projectOffers.projectId, project.id),
+          eq(schema.projectOffers.status, 'accepted')
+        ),
+        with: {
+          company: true
+        }
+      });
+
+      for (const offer of offers) {
+        if (offer.company && offer.company.userId === user1Id) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
   
   // Site Settings operations

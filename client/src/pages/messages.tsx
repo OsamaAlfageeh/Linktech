@@ -146,6 +146,93 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
   const queryClient = useQueryClient();
   const wsRef = useRef<WebSocket | null>(null);
 
+  // جلب عروض المشروع في حالة وجود projectId لتحديد كشف الأسماء بعد قبول العرض
+  const { data: projectOffersForMasking } = useQuery<any[]>({
+    queryKey: ['/api/messages/project-offers', projectId],
+    enabled: auth.isAuthenticated && !!projectId,
+    queryFn: async () => {
+      const response = await fetch(`/api/projects/${projectId}/offers`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) throw new Error('Failed to fetch offers for masking');
+      return response.json();
+    },
+    staleTime: 0
+  });
+
+  // State to store accepted offers status for each conversation
+  const [acceptedOffersStatus, setAcceptedOffersStatus] = useState<Record<number, boolean>>({});
+
+  // Function to check accepted offers for a specific user
+  const checkAcceptedOffers = async (otherUserId: number) => {
+    if (!auth.isAuthenticated || !otherUserId) return false;
+    
+    try {
+      const response = await fetch(`/api/messages/has-accepted-offers/${otherUserId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        credentials: 'include'
+      });
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.hasAcceptedOffers;
+    } catch (error) {
+      console.error('Error checking accepted offers:', error);
+      return false;
+    }
+  };
+
+  const canRevealNamesForConversation = (otherUserId: number): boolean => {
+    if (!auth.isAuthenticated) return false;
+    
+    // المشرف: دائماً
+    if (auth.user?.role === 'admin') return true;
+    
+    // Check if we have cached accepted offers status for this user
+    if (acceptedOffersStatus[otherUserId] !== undefined) {
+      if (acceptedOffersStatus[otherUserId]) {
+        return true;
+      }
+    } else {
+      // Check accepted offers asynchronously and cache the result
+      checkAcceptedOffers(otherUserId).then(hasOffers => {
+        setAcceptedOffersStatus(prev => ({
+          ...prev,
+          [otherUserId]: hasOffers
+        }));
+      });
+    }
+    
+    // Fallback to old project-based logic if no accepted offers found
+    if (!projectId || !projectOffersForMasking) return false;
+    
+    // الشركة: تظهر الأسماء بعد قبول أي عرض لها على هذا المشروع
+    if (auth.user?.role === 'company') {
+      return Array.isArray(projectOffersForMasking) && projectOffersForMasking.some((o: any) => o.status === 'accepted');
+    }
+    // صاحب المشروع: نظهر اسم الشركة فقط إذا تم قبول العرض ويمكن ربط الشركة (قد يلزم دفع العربون لإظهار companyUserId)
+    if (auth.user?.role === 'entrepreneur') {
+      if (!Array.isArray(projectOffersForMasking)) return false;
+      // إذا توفرت companyUserId في العرض المقبول (عادة بعد كشف المعلومات)
+      return projectOffersForMasking.some((o: any) => o.status === 'accepted' && o.companyUserId === otherUserId);
+    }
+    
+    return false;
+  };
+
+  const getMaskedName = (name: string | undefined, otherUserId: number): string => {
+    const readableName = name || 'مستخدم';
+    const reveal = canRevealNamesForConversation(otherUserId);
+    if (reveal) return readableName;
+    // إخفاء مع إبقاء الحرف الأول
+    const first = readableName.trim().charAt(0) || 'م';
+    return `${first}****`;
+  };
+
   // إعداد اتصال WebSocket
   useEffect(() => {
     if (!auth.isAuthenticated || !auth.user?.id) return;
@@ -386,6 +473,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
       .sort((a, b) => new Date(b.lastMessage.createdAt).getTime() - new Date(a.lastMessage.createdAt).getTime());
   }, [messagesData, auth.user]);
 
+  // Pre-fetch accepted offers status for all conversations
+  useEffect(() => {
+    if (conversations.length > 0 && auth.isAuthenticated) {
+      conversations.forEach(conversation => {
+        if (acceptedOffersStatus[conversation.otherUserId] === undefined) {
+          checkAcceptedOffers(conversation.otherUserId).then(hasOffers => {
+            setAcceptedOffersStatus(prev => ({
+              ...prev,
+              [conversation.otherUserId]: hasOffers
+            }));
+          });
+        }
+      });
+    }
+  }, [conversations, auth.isAuthenticated, acceptedOffersStatus]);
+
   // عرض رسالة خطأ إذا فشل تحميل الرسائل
   if (messagesError) {
     return (
@@ -513,12 +616,12 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={conversation.otherUser?.avatar || undefined} alt="صورة المستخدم" />
                       <AvatarFallback>
-                        {getInitials(conversation.otherUser?.name || "مستخدم")}
+                        {getInitials(getMaskedName(conversation.otherUser?.name, conversation.otherUserId))}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-grow min-w-0">
                       <div className="flex items-center justify-between">
-                        <h3 className="font-medium truncate">{conversation.otherUser?.name || "مستخدم"}</h3>
+                        <h3 className="font-medium truncate">{getMaskedName(conversation.otherUser?.name, conversation.otherUserId)}</h3>
                         <div className="flex items-center gap-1">
                           {(!clearedUnreadFor.has(conversation.otherUserId) && conversation.unreadCount > 0) && (
                             <Badge variant="destructive" className="text-xs">
@@ -583,18 +686,22 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
                       undefined
                     } alt="صورة المستخدم" />
                     <AvatarFallback>
-                      {getInitials(
+                      {getInitials(getMaskedName(
                         conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || 
                         targetUserData?.name || 
-                        "مستخدم"
-                      )}
+                        "مستخدم",
+                        selectedConversation
+                      ))}
                     </AvatarFallback>
                   </Avatar>
                   <div className="flex-grow">
                     <CardTitle className="text-base md:text-lg truncate">
-                      {conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || 
-                       targetUserData?.name || 
-                       "مستخدم"}
+                      {getMaskedName(
+                        conversations.find(c => c.otherUserId === selectedConversation)?.otherUser?.name || 
+                        targetUserData?.name || 
+                        "مستخدم",
+                        selectedConversation
+                      )}
                     </CardTitle>
                     {(conversations.find(c => c.otherUserId === selectedConversation)?.project?.title || targetProjectData?.title) && (
                       <p className="text-xs md:text-sm text-muted-foreground truncate">

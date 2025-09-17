@@ -63,6 +63,16 @@ const ProjectDetails = () => {
     queryKey: [`/api/projects/${projectId}`],
     enabled: !!projectId && !isNaN(projectId),
   });
+
+  // للشركات: تحقق مما إذا كان عرض هذه الشركة مقبولاً لهذا المشروع
+  const { data: projectOffers } = useQuery<any[]>({
+    queryKey: [`/api/projects/${projectId}/offers`],
+    enabled: !!projectId && auth.isAuthenticated && auth.user?.role === "company",
+    staleTime: 0,
+  });
+
+  const hasAcceptedOfferByMe = !!(projectOffers && Array.isArray(projectOffers) &&
+    projectOffers.some((offer: any) => offer.status === 'accepted'));
   
   // Check for invalid project ID
   useEffect(() => {
@@ -360,7 +370,7 @@ const ProjectDetails = () => {
                     </AvatarFallback>
                   </Avatar>
                   <div>
-                    {auth.isAuthenticated && auth.user?.role === "company" ? (
+                  {auth.isAuthenticated && auth.user?.role === "company" && !hasAcceptedOfferByMe ? (
                       <div>
                         <h3 className="font-semibold blur-text">
                           {project.name?.substring(0, 1)}****{" "}
@@ -416,7 +426,7 @@ const ProjectDetails = () => {
                   <div className="mt-8">
                     <OffersList 
                       projectId={project.id} 
-                      isOwner={auth.isAuthenticated && (auth.user?.id === project.userId || auth.user?.role === "admin")}
+                      isOwner={auth.isAuthenticated && auth.user?.id === project.userId}
                     />
                   </div>
                 </div>

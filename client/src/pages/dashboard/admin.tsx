@@ -563,7 +563,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     }
   };
   
-  // لتحميل البيانات
+  // لتحميل البيانات (تم إلغاء المانع العام حتى لا تتعطل الصفحة بالكامل)
   const isLoading = usersLoading || projectsLoading || companiesLoading || settingsLoading;
 
   // تحديث حالة مستخدم (تفعيل/تعطيل)
@@ -789,13 +789,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   }
   */
 
-  if (isLoading) {
-    return (
-      <div className="flex h-screen items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
-    );
-  }
+  // لا نمنع عرض الصفحة بالكامل بسبب التحميل؛ سيتم عرض مؤشرات تحميل داخلية لكل قسم
 
   return (
     <div className="container mx-auto p-4 sm:p-6">

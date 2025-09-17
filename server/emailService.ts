@@ -3,6 +3,8 @@ import { MailerSend, EmailParams, Recipient, Sender } from "mailersend";
 // التحقق من وجود مفتاح API لخدمة MailerSend
 if (!process.env.MAILERSEND_API_KEY) {
   console.warn("تحذير: لم يتم تعيين MAILERSEND_API_KEY، لن يعمل إرسال البريد الإلكتروني");
+} else {
+  console.log("✅ MailerSend API key configured");
 }
 
 // إنشاء مثيل من MailerSend باستخدام مفتاح API
@@ -15,6 +17,11 @@ const mailerSend = process.env.MAILERSEND_API_KEY
 const senderEmail = process.env.MAILERSEND_FROM_EMAIL || "noreply@trial-3z0vklo.mlsender.net";
 const senderName = process.env.MAILERSEND_FROM_NAME || "لينكتك";
 const sender = new Sender(senderEmail, senderName);
+
+console.log("📧 Email service configuration:");
+console.log("- Sender Email:", senderEmail);
+console.log("- Sender Name:", senderName);
+console.log("- MailerSend instance:", mailerSend ? "✅ Created" : "❌ Not created");
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
@@ -93,11 +100,17 @@ ${resetLink}
       );
 
     // إرسال البريد الإلكتروني
+    console.log("محاولة إرسال البريد الإلكتروني...");
     const response = await mailerSend.email.send(emailParams);
     console.log("تم إرسال بريد إعادة تعيين كلمة المرور بنجاح:", response);
     return true;
   } catch (error) {
-    console.error("فشل في إرسال بريد إعادة تعيين كلمة المرور:", error);
+    console.error("فشل في إرسال بريد إعادة تعيين كلمة المرور:");
+    console.error("تفاصيل الخطأ:", error);
+    console.error("نوع الخطأ:", error.constructor.name);
+    if (error.response) {
+      console.error("استجابة الخطأ:", error.response.data);
+    }
     return false;
   }
 }

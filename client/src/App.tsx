@@ -324,6 +324,7 @@ function App() {
           {/* صفحات إدارة المسؤول */}
           <ProtectedRoute path="/admin/blog-management" component={BlogManagement} requiredRole="admin" />
           <ProtectedRoute path="/admin/premium-clients-management" component={PremiumClientsManagement} requiredRole="admin" />
+          <ProtectedRoute path="/admin/premium-clients" component={PremiumClientsManagement} requiredRole="admin" />
           <ProtectedRoute path="/admin/featured-clients-management" component={FeaturedClientsManagement} requiredRole="admin" />
 
           <ProtectedRoute path="/admin/site-settings" component={SiteSettings} requiredRole="admin" />

@@ -3185,6 +3185,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if there are accepted offers between two users
+  app.get('/api/messages/has-accepted-offers/:otherUserId', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const otherUserId = parseInt(req.params.otherUserId);
+      
+      if (isNaN(otherUserId)) {
+        return res.status(400).json({ message: 'Invalid user ID' });
+      }
+      
+      const hasAcceptedOffers = await storage.hasAcceptedOffersBetweenUsers(user.id, otherUserId);
+      res.json({ hasAcceptedOffers });
+    } catch (error) {
+      console.error('Error checking accepted offers between users:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // مسارات محرك التوصية بالمشاريع
   // 1. الحصول على المشاريع الموصى بها لشركة معينة
   app.get('/api/recommendations/companies/:companyId/projects', async (req: Request, res: Response) => {
@@ -3453,8 +3471,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const companyProfile = await storage.getCompanyProfile(offer.companyId);
               const companyUser = await storage.getUser(companyProfile?.userId || 0);
               
-              // إذا كان العرض مقبول وتم الدفع، نكشف معلومات الشركة
-              if (offer.status === 'accepted' && offer.depositPaid) {
+              // إذا كان العرض مقبول، نكشف معلومات الشركة (حتى لو لم يتم دفع العربون بعد)
+              if (offer.status === 'accepted') {
                 return {
                   ...offer,
                   companyName: companyUser?.name,
@@ -3464,7 +3482,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   companyEmail: companyUser?.email,
                   companyUsername: companyUser?.username,
                   companyUserId: companyUser?.id,
-                  companyContactRevealed: true
+                  companyContactRevealed: offer.depositPaid // كشف معلومات التواصل فقط بعد دفع العربون
                 };
               }
               
