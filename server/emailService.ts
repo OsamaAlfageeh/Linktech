@@ -11,8 +11,10 @@ const mailerSend = process.env.MAILERSEND_API_KEY
   : null;
 
 // إعداد معلومات المرسل
-// استخدام الدومين المعتمد والموثق
-const sender = new Sender("noreply@linktech.app", "لينكتك");
+// Use environment variables for sender configuration or fallback to trial domain
+const senderEmail = process.env.MAILERSEND_FROM_EMAIL || "noreply@trial-3z0vklo.mlsender.net";
+const senderName = process.env.MAILERSEND_FROM_NAME || "لينكتك";
+const sender = new Sender(senderEmail, senderName);
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور

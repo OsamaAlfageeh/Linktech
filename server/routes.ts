@@ -485,24 +485,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error("استثناء أثناء إرسال البريد الإلكتروني:", error);
       }
       
-      // في بيئة التطوير، نعرض دائماً الرابط (سواء نجح إرسال البريد أم لا)
-      // في بيئة الإنتاج، يمكن تعديل هذا الشرط ليكون process.env.NODE_ENV !== 'production'
-      const isDevelopment = true;
+      // Development fallback: Log reset link for testing (but never return in response)
+      if (process.env.NODE_ENV === 'development' && !emailSent) {
+        console.log("\n=== DEVELOPMENT MODE: EMAIL FAILED ===\n");
+        console.log("ملاحظة: فشل في إرسال البريد الإلكتروني. رابط إعادة التعيين للاختبار:");
+        console.log(resetLink);
+        console.log("\n=== END DEVELOPMENT INFO ===\n");
+      }
       
-      if (isDevelopment || !emailSent) {
-        console.log("عرض رابط إعادة التعيين في بيئة التطوير:", resetLink);
-        return res.json({ 
-          success: true, 
-          message: 'Password reset link generated. For development purposes, it is returned in this response.', 
-          resetLink: resetLink,
-          emailSent: emailSent
+      // Always send email-only response, never include reset link in response for security
+      if (!emailSent) {
+        console.error("فشل في إرسال بريد إعادة تعيين كلمة المرور");
+        return res.status(500).json({ 
+          success: false, 
+          message: 'Failed to send password reset email. Please try again later or contact support.' 
         });
       }
       
-      // هذا الجزء سيتم تنفيذه فقط في حالة نجاح إرسال البريد في بيئة الإنتاج
+      // Email sent successfully - never include reset link in response
       res.json({ 
         success: true, 
-        message: 'Password reset link has been sent to your email'
+        message: 'Password reset link has been sent to your email. Please check your inbox and spam folder.'
       });
     } catch (error) {
       console.error('Error in forgot password:', error);
@@ -5842,6 +5845,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('خطأ في جلب إحصائيات التواصل:', error);
       res.status(500).json({ message: 'حدث خطأ أثناء جلب الإحصائيات' });
+    }
+  });
+
+  // Admin NDA Management API
+  app.get('/api/admin/nda-agreements', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      if (!user || user.role !== 'admin') {
+        return res.status(403).json({ message: 'الوصول غير مصرح - يجب أن تكون مسؤولاً' });
+      }
+      
+      // استعلام محسن بعدد أقل من الاتصالات
+      console.log('جلب اتفاقيات عدم الإفصاح للمسؤول...');
+      
+      // جلب البيانات الأساسية فقط
+      const ndaAgreements = await storage.getNdaAgreements();
+      console.log(`تم جلب ${ndaAgreements.length} اتفاقية`);
+      
+      if (ndaAgreements.length === 0) {
+        return res.json([]);
+      }
+      
+      // إرجاع بيانات مبسطة بدون استعلامات إضافية
+      const simplifiedAgreements = ndaAgreements.map((nda) => {
+        // استخراج معلومات الشركة من JSON
+        let companyInfo = null;
+        if (nda.companySignatureInfo && typeof nda.companySignatureInfo === 'object') {
+          companyInfo = nda.companySignatureInfo as any;
+        }
+        
+        return {
+          ...nda,
+          projectTitle: `مشروع #${nda.projectId}`,
+          entrepreneurName: 'غير محدد',
+          companyName: companyInfo?.companyName || companyInfo?.signerName || 'غير محدد'
+        };
+      });
+      
+      console.log('تم إعداد بيانات الاتفاقيات بنجاح');
+      res.json(simplifiedAgreements);
+    } catch (error) {
+      console.error('خطأ في جلب اتفاقيات عدم الإفصاح للمسؤول:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب اتفاقيات عدم الإفصاح' });
     }
   });
 

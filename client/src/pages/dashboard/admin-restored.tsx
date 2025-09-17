@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
-  DollarSign, Clock, Award, MessageSquare, FileText, X, Shield, Download } from "lucide-react";
+  DollarSign, Clock, Award, MessageSquare, FileText, X, Download, Shield } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -67,52 +67,15 @@ interface AdminDashboardProps {
 }
 
 export default function AdminDashboard({ auth }: AdminDashboardProps) {
-  const { user, isAuthenticated } = auth || {};
+  const { user, isAuthenticated } = auth;
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   
-  // Check if we have valid authentication state
-  const isAdminAuthenticated = Boolean(isAuthenticated && user && user.role === "admin");
-  
-  // تحقق من صلاحية المستخدم لعرض لوحة المسؤول
-  useEffect(() => {
-    console.log("فحص حالة المصادقة:", { isAuthenticated, user, auth });
-    
-    // Don't redirect if auth is still loading
-    if (auth === undefined) {
-      console.log("Auth is still loading, waiting...");
-      return;
-    }
-    
-    if (!isAuthenticated || !user) {
-      console.log("Not authenticated, redirecting to login");
-      toast({
-        title: "غير مصرح",
-        description: "يجب تسجيل الدخول للوصول إلى هذه الصفحة",
-        variant: "destructive",
-      });
-      navigate("/auth/login");
-      return;
-    }
-    
-    if (user?.role !== "admin") {
-      console.log("Not admin role, redirecting to home");
-      toast({
-        title: "غير مصرح",
-        description: "ليس لديك صلاحية الوصول إلى لوحة المسؤول",
-        variant: "destructive",
-      });
-      navigate("/");
-      return;
-    }
-    
-    console.log("المستخدم مصرح للوصول إلى لوحة المسؤول");
-  }, [isAuthenticated, user, auth, navigate, toast]);
-  
-  // متغيرات لمراقبة المحادثات
+  // All state hooks must be at the top - before any conditional returns
   const [selectedUser1Id, setSelectedUser1Id] = useState<number | null>(null);
   const [selectedUser2Id, setSelectedUser2Id] = useState<number | null>(null);
   const [conversation, setConversation] = useState<any[]>([]);
@@ -120,19 +83,16 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   const [conversationLoaded, setConversationLoaded] = useState(false);
   const [conversationError, setConversationError] = useState<string | null>(null);
   
-  // متغيرات لإعدادات الموقع
   const [headerImageUrl, setHeaderImageUrl] = useState<string>("");
   const [headerImageFile, setHeaderImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  // متغيرات لصورة الجانب
   const [sideImageUrl, setSideImageUrl] = useState<string>("");
   const [sideImageFile, setSideImageFile] = useState<File | null>(null);
   const [uploadingSideImage, setUploadingSideImage] = useState(false);
   const sideImageInputRef = useRef<HTMLInputElement>(null);
   
-  // متغيرات لتوثيق الشركات
   const [processingVerification, setProcessingVerification] = useState(false);
   const [verificationNotes, setVerificationNotes] = useState("");
   const [verificationDocuments, setVerificationDocuments] = useState<Array<{
@@ -142,136 +102,60 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     content: string;
   }>>([]);
 
-  // ملاحظة: تم نقل التحقق من صلاحية المستخدم إلى فوق
-
-  // استعلام لجلب جميع المستخدمين
+  // All useQuery hooks must be at the top level too
   const {
     data: users,
     isLoading: usersLoading,
     refetch: refetchUsers,
   } = useQuery({
     queryKey: ["/api/users/all"],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/users/all', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch users: ${response.status}`);
-      }
-      return response.json();
-    },
-    // تمكين الاستعلام فقط عند وجود مصادقة كمسؤول
-    enabled: isAdminAuthenticated,
-    retry: 2,
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
+    enabled: isAuthenticated && user?.role === "admin",
   });
 
-  // استعلام لجلب كل المشاريع
   const {
     data: projects,
     isLoading: projectsLoading,
     refetch: refetchProjects,
   } = useQuery({
     queryKey: ["/api/projects"],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/projects', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch projects: ${response.status}`);
-      }
-      return response.json();
-    },
-    enabled: isAdminAuthenticated,
-    retry: 2,
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
+    enabled: isAuthenticated && user?.role === "admin",
   });
 
-  // استعلام لجلب كل الشركات
   const {
     data: companies,
     isLoading: companiesLoading,
     refetch: refetchCompanies,
   } = useQuery({
     queryKey: ["/api/companies"],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/companies', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch companies: ${response.status}`);
-      }
-      return response.json();
-    },
-    enabled: isAdminAuthenticated,
-    retry: 2,
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
+    enabled: isAuthenticated && user?.role === "admin",
   });
   
-  // استعلام لجلب إعدادات الموقع
   const {
     data: siteSettings,
     isLoading: settingsLoading,
     refetch: refetchSettings,
   } = useQuery({
     queryKey: ["/api/site-settings"],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/site-settings', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch site settings: ${response.status}`);
-      }
-      return response.json();
-    },
-    enabled: isAdminAuthenticated,
-    retry: 2,
-    staleTime: 60000,
-    refetchOnWindowFocus: false,
+    enabled: isAuthenticated && user?.role === "admin"
   });
 
-  // جلب إحصائيات التواصل
   const { data: contactStats, isLoading: contactStatsLoading, error: contactStatsError } = useQuery({
     queryKey: ['/api/contact-stats'],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/contact-stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`Failed to fetch contact stats: ${response.status}`);
-      }
-      return response.json();
-    },
-    enabled: isAdminAuthenticated,
-    retry: 2,
-    staleTime: 60000,
+    enabled: isAuthenticated && user?.role === "admin",
+    retry: 1,
+    retryOnMount: false,
     refetchOnWindowFocus: false,
   });
   
-  // استعلام لجلب كافة العروض المقدمة على المشاريع
+  const {
+    data: ndaAgreements,
+    isLoading: ndaLoading,
+    refetch: refetchNdaAgreements,
+  } = useQuery({
+    queryKey: ["/api/admin/nda-agreements"],
+    enabled: isAuthenticated && user?.role === "admin",
+  });
+  
   const {
     data: allOffers,
     isLoading: offersLoading,
@@ -279,8 +163,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   } = useQuery({
     queryKey: ["/api/offers/all"],
     queryFn: async () => {
-      // جمع العروض من جميع المشاريع
-      if (!projects || !Array.isArray(projects) || projects.length === 0) return [];
+      if (!Array.isArray(projects) || projects.length === 0) return [];
       
       const token = localStorage.getItem('auth_token');
       const projectOffersPromises = projects.map(async (project: any) => {
@@ -294,7 +177,6 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
           return [];
         }
         const offers = await response.json();
-        // إضافة معلومات المشروع لكل عرض
         return offers.map((offer: any) => ({
           ...offer,
           projectTitle: project.title,
@@ -303,60 +185,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       });
       
       const allProjectOffers = await Promise.all(projectOffersPromises);
-      // دمج كل العروض في مصفوفة واحدة
       return allProjectOffers.flat();
     },
-    enabled: isAdminAuthenticated && Boolean(projects && Array.isArray(projects) && projects.length > 0)
+    enabled: isAuthenticated && user?.role === "admin" && Array.isArray(projects) && projects.length > 0
   });
   
-  // استعلام لجلب جميع اتفاقيات عدم الإفصاح
-  const {
-    data: ndaAgreements,
-    isLoading: ndaLoading,
-    error: ndaError,
-    refetch: refetchNdaAgreements,
-  } = useQuery({
-    queryKey: ["/api/admin/nda-agreements"],
-    queryFn: async () => {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/admin/nda-agreements', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch NDAs: ${response.status}`);
-      }
-      
-      return response.json();
-    },
-    enabled: isAdminAuthenticated,
-    retry: 2,
-    staleTime: 60000, // Consider data fresh for 60 seconds
-    refetchOnWindowFocus: false,
-    refetchOnMount: "always", // Always refetch on mount
-    // Force cache invalidation for fresh data
-    gcTime: 0
-  });
-  
-  // استخراج رابط صور الهيدر والجانب عند تحميل البيانات
-  useEffect(() => {
-    if (siteSettings && Array.isArray(siteSettings)) {
-      const headerImage = siteSettings.find((setting: any) => setting.key === "header_image");
-      if (headerImage) {
-        setHeaderImageUrl(headerImage.value);
-      }
-      
-      const sideImage = siteSettings.find((setting: any) => setting.key === "side_image");
-      if (sideImage) {
-        setSideImageUrl(sideImage.value);
-      }
-    }
-  }, [siteSettings]);
-  
-  // تعديل باستخدام: useMutation لتحديث إعدادات الموقع
+  // useMutation لتحديث إعدادات الموقع - must be with other hooks
   const updateSiteSettingMutation = useMutation({
     mutationFn: async ({ key, value }: { key: string, value: string }) => {
       const token = localStorage.getItem('auth_token');
@@ -390,35 +224,125 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       });
     },
   });
+  
+  // تحقق من صلاحية المستخدم لعرض لوحة المسؤول - يعمل مرة واحدة فقط
+  useEffect(() => {
+    if (authChecked) return; // Prevent multiple runs
+    
+    console.log("فحص حالة المصادقة:", { isAuthenticated, user });
+    
+    if (!isAuthenticated) {
+      toast({
+        title: "غير مصرح",
+        description: "يجب تسجيل الدخول للوصول إلى هذه الصفحة",
+        variant: "destructive",
+      });
+      navigate("/auth/login");
+      setAuthChecked(true);
+      return;
+    }
+    
+    if (user?.role !== "admin") {
+      toast({
+        title: "غير مصرح",
+        description: "ليس لديك صلاحية الوصول إلى لوحة المسؤول",
+        variant: "destructive",
+      });
+      navigate("/");
+      setAuthChecked(true);
+      return;
+    }
+    
+    console.log("المستخدم مصرح للوصول إلى لوحة المسؤول");
+    setAuthChecked(true);
+  }, [isAuthenticated, user?.role, authChecked, navigate, toast]);
+  
+  // استخراج رابط صور الهيدر والجانب عند تحميل البيانات
+  useEffect(() => {
+    if (Array.isArray(siteSettings)) {
+      const headerImage = siteSettings.find((setting: any) => setting.key === "header_image");
+      if (headerImage) {
+        setHeaderImageUrl(headerImage.value);
+      }
+      
+      const sideImage = siteSettings.find((setting: any) => setting.key === "side_image");
+      if (sideImage) {
+        setSideImageUrl(sideImage.value);
+      }
+    }
+  }, [siteSettings]);
+  
+  // Early return AFTER all hooks are declared
+  if (!authChecked) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <span className="ml-2">Checking authentication...</span>
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Access Denied</h2>
+          <p>Please log in to access the admin dashboard.</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (user?.role !== "admin") {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-semibold mb-2">Unauthorized</h2>
+          <p>You don't have permission to access this page.</p>
+        </div>
+      </div>
+    );
+  }
 
   // حساب الإحصائيات
   const stats: AdminDashboardStats = {
     users: {
-      total: Array.isArray(users) ? users.length : 0,
-      entrepreneurs: Array.isArray(users) ? users.filter((u: any) => u.role === "entrepreneur").length : 0,
-      companies: Array.isArray(users) ? users.filter((u: any) => u.role === "company").length : 0,
-      admins: Array.isArray(users) ? users.filter((u: any) => u.role === "admin").length : 0,
+      total: (users as any[] || []).length,
+      entrepreneurs: (users as any[] || []).filter((u: any) => u.role === "entrepreneur").length,
+      companies: (users as any[] || []).filter((u: any) => u.role === "company").length,
+      admins: (users as any[] || []).filter((u: any) => u.role === "admin").length,
     },
     projects: {
-      total: Array.isArray(projects) ? projects.length : 0,
-      open: Array.isArray(projects) ? projects.filter((p: any) => p.status === "open").length : 0,
-      closed: Array.isArray(projects) ? projects.filter((p: any) => p.status === "closed").length : 0,
+      total: (projects as any[] || []).length,
+      open: (projects as any[] || []).filter((p: any) => p.status === "open").length,
+      closed: (projects as any[] || []).filter((p: any) => p.status === "closed").length,
     },
     companies: {
-      total: Array.isArray(companies) ? companies.length : 0,
-      verified: Array.isArray(companies) ? companies.filter((c: any) => c.verified).length : 0,
-      unverified: Array.isArray(companies) ? companies.filter((c: any) => !c.verified).length : 0,
+      total: (companies as any[] || []).length,
+      verified: (companies as any[] || []).filter((c: any) => c.verified).length,
+      unverified: (companies as any[] || []).filter((c: any) => !c.verified).length,
     },
-    contact: contactStats || {
-      totalMessages: 0,
-      newMessages: 0,
-      readMessages: 0,
-      repliedMessages: 0,
-      thisWeek: 0,
-      thisMonth: 0,
-      responseRate: 0,
-      unverified: 0
-    }
+    contact: (contactStats && typeof contactStats === 'object' && 'totalMessages' in contactStats) 
+      ? contactStats as {
+          totalMessages: number;
+          newMessages: number;
+          readMessages: number;
+          repliedMessages: number;
+          thisWeek: number;
+          thisMonth: number;
+          responseRate: number;
+          unverified: number;
+        }
+      : {
+          totalMessages: 0,
+          newMessages: 0,
+          readMessages: 0,
+          repliedMessages: 0,
+          thisWeek: 0,
+          thisMonth: 0,
+          responseRate: 0,
+          unverified: 0
+        }
   };
 
   // دالة لمعالجة اختيار صورة الهيدر
@@ -563,8 +487,8 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     }
   };
   
-  // لتحميل البيانات
-  const isLoading = usersLoading || projectsLoading || companiesLoading || settingsLoading;
+  // لتحميل البيانات - فقط عندما يكون المستخدم مصادق عليه كمسؤول
+  const isLoading = isAuthenticated && user?.role === "admin" && (usersLoading || projectsLoading || companiesLoading || settingsLoading);
 
   // تحديث حالة مستخدم (تفعيل/تعطيل)
   const handleToggleUserStatus = async (userId: number, currentStatus: boolean) => {
@@ -611,7 +535,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       await processVerification(companyId, false);
     } else {
       // للتوثيق، نعرض حوار تفاصيل التوثيق
-      const company = companies?.find((c: any) => c.id === companyId);
+      const company = (companies as any[] || []).find((c: any) => c.id === companyId);
       if (company) {
         openVerificationDialog(company);
       } else {
@@ -731,8 +655,8 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       console.log(`تم تحميل ${messages.length} رسالة بين المستخدمين`);
       
       // إضافة أسماء المستخدمين للعرض
-      const user1 = Array.isArray(users) ? users.find((u: any) => u.id === selectedUser1Id) : null;
-      const user2 = Array.isArray(users) ? users.find((u: any) => u.id === selectedUser2Id) : null;
+      const user1 = (users as any[] || []).find((u: any) => u.id === selectedUser1Id);
+      const user2 = (users as any[] || []).find((u: any) => u.id === selectedUser2Id);
       
       if (!user1 || !user2) {
         throw new Error("لم يتم العثور على معلومات أحد المستخدمين");
@@ -815,7 +739,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="overflow-x-auto pb-2 -mb-2">
-            <TabsList className="flex lg:grid lg:grid-cols-9 min-w-[600px] w-max lg:w-full">
+            <TabsList className="flex lg:grid lg:grid-cols-10 min-w-[700px] w-max lg:w-full">
               <TabsTrigger value="overview">نظرة عامة</TabsTrigger>
               <TabsTrigger value="users">المستخدمون</TabsTrigger>
               <TabsTrigger value="companies">الشركات</TabsTrigger>
@@ -996,7 +920,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Array.isArray(projects) ? projects.slice(0, 5).map((project: any) => (
+                      {(projects as any[] || []).slice(0, 5).map((project: any) => (
                         <TableRow key={project.id}>
                           <TableCell className="font-medium">{project.title}</TableCell>
                           <TableCell>
@@ -1008,7 +932,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                           </TableCell>
                           <TableCell>{project.name}</TableCell>
                         </TableRow>
-                      )) : null}
+                      ))}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -1028,7 +952,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Array.isArray(companies) ? companies.slice(0, 5).map((company: any) => (
+                      {(companies as any[] || []).slice(0, 5).map((company: any) => (
                         <TableRow key={company.id}>
                           <TableCell className="font-medium">{company.name}</TableCell>
                           <TableCell>{company.rating || "لا يوجد"}</TableCell>
@@ -1040,7 +964,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             )}
                           </TableCell>
                         </TableRow>
-                      )) : null}
+                      ))}
                     </TableBody>
                   </Table>
                 </CardContent>
@@ -1066,7 +990,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(users) ? users.map((user: any) => (
+                    {(users as any[] || []).map((user: any) => (
                       <TableRow key={user.id}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
@@ -1121,7 +1045,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                           </div>
                         </TableCell>
                       </TableRow>
-                    )) : null}
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -1146,11 +1070,11 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(companies) ? companies.map((company: any) => (
+                    {(companies as any[] || []).map((company: any) => (
                       <TableRow key={company.id}>
                         <TableCell className="font-medium">
                           {/* جلب اسم الشركة من user أو عرض معرف المستخدم */}
-                          {Array.isArray(users) ? users.find((u: any) => u.id === company.userId)?.name || `شركة #${company.id}` : `شركة #${company.id}`}
+                          {(users as any[] || []).find((u: any) => u.id === company.userId)?.name || `شركة #${company.id}`}
                         </TableCell>
                         <TableCell>{company.location || "غير محدد"}</TableCell>
                         <TableCell>{company.rating || "لا يوجد"}</TableCell>
@@ -1188,7 +1112,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                           </div>
                         </TableCell>
                       </TableRow>
-                    )) : null}
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -1214,7 +1138,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(projects) ? projects.map((project: any) => (
+                    {(projects as any[] || []).map((project: any) => (
                       <TableRow key={project.id}>
                         <TableCell className="font-medium">{project.title}</TableCell>
                         <TableCell>{project.name}</TableCell>
@@ -1269,7 +1193,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                           </div>
                         </TableCell>
                       </TableRow>
-                    )) : null}
+                    ))}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -1396,40 +1320,89 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                 {ndaLoading ? (
                   <div className="flex justify-center items-center py-10">
                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                    <span className="ml-2">جاري تحميل اتفاقيات عدم الإفصاح...</span>
                   </div>
-                ) : ndaError ? (
-                  <div className="text-center py-10">
-                    <div className="text-red-600 mb-2">خطأ في تحميل البيانات</div>
-                    <Button onClick={() => refetchNdaAgreements()} variant="outline" size="sm">
-                      إعادة المحاولة
-                    </Button>
-                  </div>
-                ) : ndaAgreements && Array.isArray(ndaAgreements) && ndaAgreements.length > 0 ? (
+                ) : (ndaAgreements as any[] || []).length > 0 ? (
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>معرف الاتفاقية</TableHead>
+                        <TableHead>رقم الاتفاقية</TableHead>
                         <TableHead>المشروع</TableHead>
+                        <TableHead>رائد الأعمال</TableHead>
+                        <TableHead>الشركة</TableHead>
                         <TableHead>الحالة</TableHead>
                         <TableHead>تاريخ الإنشاء</TableHead>
+                        <TableHead>تاريخ التوقيع</TableHead>
                         <TableHead className="text-left">الإجراءات</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {ndaAgreements.map((nda: any) => (
+                      {(ndaAgreements as any[] || []).map((nda: any) => (
                         <TableRow key={nda.id}>
                           <TableCell className="font-medium">#{nda.id}</TableCell>
-                          <TableCell>{nda.projectTitle || "غير محدد"}</TableCell>
+                          <TableCell>
+                            {nda.project ? (
+                              <div>
+                                <div className="font-medium">{nda.project.title}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {nda.project.description?.substring(0, 50)}...
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">مشروع غير متاح</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {nda.project?.owner ? (
+                              <div>
+                                <div className="font-medium">{nda.project.owner.name}</div>
+                                <div className="text-sm text-muted-foreground">{nda.project.owner.email}</div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">غير متاح</span>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {nda.company ? (
+                              <div>
+                                <div className="font-medium">{nda.company.name}</div>
+                                <div className="text-sm text-muted-foreground">{nda.company.email}</div>
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground">غير متاح</span>
+                            )}
+                          </TableCell>
                           <TableCell>
                             <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                              nda.status === "signed" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
+                              nda.status === 'signed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : nda.status === 'awaiting_entrepreneur'
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : nda.status === 'invitation_sent'
+                                    ? 'bg-blue-100 text-blue-800'
+                                    : nda.status === 'expired'
+                                      ? 'bg-red-100 text-red-800'
+                                      : 'bg-gray-100 text-gray-800'
                             }`}>
-                              {nda.status === "signed" ? "موقعة" : "غير موقعة"}
+                              {nda.status === 'signed' 
+                                ? 'موقعة' 
+                                : nda.status === 'awaiting_entrepreneur'
+                                  ? 'في انتظار رائد الأعمال'
+                                  : nda.status === 'invitation_sent'
+                                    ? 'تم إرسال الدعوة'
+                                    : nda.status === 'expired'
+                                      ? 'منتهية الصلاحية'
+                                      : nda.status || 'غير محددة'}
                             </span>
                           </TableCell>
                           <TableCell>
-                            {nda.createdAt ? new Date(nda.createdAt).toLocaleDateString("ar-SA") : "غير محدد"}
+                            {new Date(nda.createdAt).toLocaleDateString('ar-SA')}
+                          </TableCell>
+                          <TableCell>
+                            {nda.signedAt ? (
+                              new Date(nda.signedAt).toLocaleDateString('ar-SA')
+                            ) : (
+                              <span className="text-muted-foreground">لم يتم التوقيع</span>
+                            )}
                           </TableCell>
                           <TableCell>
                             <div className="flex space-x-2 rtl:space-x-reverse">
@@ -1437,24 +1410,52 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(`/projects/${nda.projectId}`)}
-                                title="عرض تفاصيل المشروع"
+                                title="عرض المشروع"
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              {nda.pdfUrl && (
+                              {(nda.status === 'signed' && nda.sadiqDocumentId) && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => {
-                                    const token = localStorage.getItem('auth_token');
-                                    const link = document.createElement('a');
-                                    link.href = `/api/nda/${nda.id}/download-pdf?token=${token}`;
-                                    link.download = `NDA-${nda.id}.pdf`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
+                                  onClick={async () => {
+                                    try {
+                                      const token = localStorage.getItem('auth_token');
+                                      const response = await fetch(`/api/nda/${nda.id}/download`, {
+                                        headers: {
+                                          'Authorization': `Bearer ${token}`,
+                                        },
+                                      });
+                                      
+                                      if (!response.ok) {
+                                        throw new Error('فشل في تنزيل الاتفاقية');
+                                      }
+                                      
+                                      const blob = await response.blob();
+                                      const url = window.URL.createObjectURL(blob);
+                                      const a = document.createElement('a');
+                                      a.style.display = 'none';
+                                      a.href = url;
+                                      a.download = `NDA-${nda.id}-Signed.pdf`;
+                                      document.body.appendChild(a);
+                                      a.click();
+                                      window.URL.revokeObjectURL(url);
+                                      document.body.removeChild(a);
+                                      
+                                      toast({
+                                        title: 'تم التنزيل',
+                                        description: 'تم تنزيل الاتفاقية الموقعة بنجاح',
+                                      });
+                                    } catch (error) {
+                                      console.error('خطأ في تنزيل الاتفاقية:', error);
+                                      toast({
+                                        title: 'خطأ',
+                                        description: 'فشل في تنزيل الاتفاقية',
+                                        variant: 'destructive',
+                                      });
+                                    }
                                   }}
-                                  title="تحميل ملف PDF"
+                                  title="تنزيل الاتفاقية الموقعة"
                                 >
                                   <Download className="h-4 w-4" />
                                 </Button>
@@ -1469,6 +1470,9 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <div className="text-center py-10">
                     <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                     <p className="text-muted-foreground">لا توجد اتفاقيات عدم إفصاح حتى الآن</p>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      سيتم عرض اتفاقيات عدم الإفصاح هنا عند إنشاء مشاريع تتطلب توقيع اتفاقية عدم إفصاح
+                    </p>
                   </div>
                 )}
               </CardContent>
@@ -1493,7 +1497,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                         onChange={(e) => setSelectedUser1Id(Number(e.target.value) || null)}
                       >
                         <option value="">-- اختر مستخدم --</option>
-                        {users?.map((user: any) => (
+                        {(users as any[] || []).map((user: any) => (
                           <option key={user.id} value={user.id}>
                             {user.name} ({user.role === "admin" ? "مسؤول" : user.role === "company" ? "شركة" : "رائد أعمال"})
                           </option>
@@ -1508,7 +1512,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                         onChange={(e) => setSelectedUser2Id(Number(e.target.value) || null)}
                       >
                         <option value="">-- اختر مستخدم --</option>
-                        {users?.map((user: any) => (
+                        {(users as any[] || []).map((user: any) => (
                           <option key={user.id} value={user.id}>
                             {user.name} ({user.role === "admin" ? "مسؤول" : user.role === "company" ? "شركة" : "رائد أعمال"})
                           </option>

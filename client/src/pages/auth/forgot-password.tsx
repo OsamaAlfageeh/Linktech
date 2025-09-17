@@ -9,8 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
-import { Loader2, Mail, ArrowRight, ExternalLink } from "lucide-react";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Loader2, Mail, ArrowRight } from "lucide-react";
 
 // Schema validation for email
 const forgotPasswordSchema = z.object({
@@ -23,7 +22,6 @@ export default function ForgotPasswordPage() {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  const [resetLink, setResetLink] = useState<string | null>(null);
 
   const form = useForm<ForgotPasswordData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -41,23 +39,13 @@ export default function ForgotPasswordPage() {
       if (result.success) {
         setSuccess(true);
         
-        // في وضع التطوير، قد يكون هناك رابط إعادة تعيين في الاستجابة
-        if (result.resetLink) {
-          setResetLink(result.resetLink);
-          console.log("رابط إعادة التعيين للتطوير:", result.resetLink);
-          
-          toast({
-            title: "تم إنشاء رابط إعادة تعيين كلمة المرور",
-            description: "تم عرض الرابط في الصفحة (وضع التطوير فقط)",
-            variant: "default",
-          });
-        } else {
-          toast({
-            title: "تم إرسال رابط إعادة تعيين كلمة المرور",
-            description: "يرجى التحقق من بريدك الإلكتروني",
-            variant: "default",
-          });
-        }
+        // Always show success message regardless of environment
+        // Link is only sent via email for security
+        toast({
+          title: "تم إرسال رابط إعادة تعيين كلمة المرور",
+          description: "يرجى التحقق من بريدك الإلكتروني والمجلد المهمل",
+          variant: "default",
+        });
       } else {
         toast({
           title: "حدث خطأ",
@@ -95,40 +83,11 @@ export default function ForgotPasswordPage() {
                 <Mail className="h-6 w-6 text-green-600" />
               </div>
               
-              {resetLink ? (
-                <>
-                  <h3 className="text-lg font-medium text-slate-900">تم إنشاء رابط إعادة التعيين</h3>
-                  <p className="text-slate-500">
-                    في وضع التطوير، نعرض الرابط مباشرة هنا بدلاً من إرساله بالبريد الإلكتروني.
-                  </p>
-                  
-                  <Alert className="bg-amber-50 border-amber-200 mt-4 mb-2 text-right">
-                    <AlertDescription className="text-amber-800 text-sm">
-                      ملاحظة: يظهر هذا الرابط فقط في بيئة التطوير.
-                    </AlertDescription>
-                  </Alert>
-                  
-                  <div className="mt-2 p-3 bg-slate-50 border border-slate-200 rounded-md text-left break-all">
-                    <a 
-                      href={resetLink} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:text-blue-800 hover:underline flex items-center justify-between"
-                    >
-                      <span className="text-sm">{resetLink}</span>
-                      <ExternalLink className="h-4 w-4 flex-shrink-0 mr-1" />
-                    </a>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <h3 className="text-lg font-medium text-slate-900">تم إرسال البريد الإلكتروني</h3>
-                  <p className="text-slate-500">
-                    لقد أرسلنا لك بريداً إلكترونياً يحتوي على رابط لإعادة تعيين كلمة المرور الخاصة بك.
-                    يرجى التحقق من بريدك الإلكتروني.
-                  </p>
-                </>
-              )}
+              <h3 className="text-lg font-medium text-slate-900">تم إرسال البريد الإلكتروني</h3>
+              <p className="text-slate-500">
+                لقد أرسلنا لك بريداً إلكترونياً يحتوي على رابط لإعادة تعيين كلمة المرور الخاصة بك.
+                يرجى التحقق من بريدك الإلكتروني والمجلد المهمل.
+              </p>
               
               <div className="pt-4">
                 <Link href="/auth/login">
