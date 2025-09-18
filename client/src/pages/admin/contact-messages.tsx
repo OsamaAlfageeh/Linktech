@@ -69,8 +69,12 @@ const ContactMessagesPage = () => {
   const { data: messages, isLoading, isError, refetch } = useQuery({
     queryKey: ['/api/contact-messages'],
     queryFn: async () => {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/contact-messages', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
       });
       if (!response.ok) {
         if (response.status === 403) {
@@ -101,11 +105,13 @@ const ContactMessagesPage = () => {
   // تحديث حالة الرسالة
   const updateStatusMutation = useMutation({
     mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/contact-messages/${id}/status`, {
         method: 'PATCH',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({ status }),
       });
@@ -135,11 +141,13 @@ const ContactMessagesPage = () => {
   // إضافة ملاحظة للرسالة
   const addNotesMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/contact-messages/${id}/notes`, {
         method: 'PATCH',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({ notes }),
       });
@@ -173,9 +181,13 @@ const ContactMessagesPage = () => {
   // حذف الرسالة
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/contact-messages/${id}`, {
         method: 'DELETE',
         credentials: 'include',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
       });
       
       if (!response.ok) {
@@ -204,11 +216,13 @@ const ContactMessagesPage = () => {
   // الرد على الرسالة
   const replyMutation = useMutation({
     mutationFn: async ({ id, replyMessage }: { id: number; replyMessage: string }) => {
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/contact-messages/${id}/reply`, {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({ replyMessage }),
       });

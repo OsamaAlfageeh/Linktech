@@ -1196,6 +1196,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin endpoint: get all projects regardless of owner
+  app.get('/api/admin/projects', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const projects = await storage.getProjects();
+      const projectsWithUserData = await Promise.all(
+        projects.map(async (project) => {
+          const projectUser = await storage.getUser(project.userId);
+          return {
+            ...project,
+            username: projectUser?.username,
+            name: projectUser?.name
+          };
+        })
+      );
+      res.json(projectsWithUserData);
+    } catch (error) {
+      console.error('خطأ في استرجاع مشاريع المسؤول:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   app.get('/api/projects/:id', async (req: Request, res: Response) => {
     try {
       console.log(`طلب تفاصيل المشروع برقم ${req.params.id} - حالة المصادقة: ${req.user ? 'مصرح' : 'غير مصرح'}`);
@@ -3272,7 +3293,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Check if there are accepted offers between two users
+  // Check if there are accepted AND paid offers between two users (strict for revealing identities)
   app.get('/api/messages/has-accepted-offers/:otherUserId', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
@@ -3282,8 +3303,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Invalid user ID' });
       }
       
-      const hasAcceptedOffers = await storage.hasAcceptedOffersBetweenUsers(user.id, otherUserId);
-      res.json({ hasAcceptedOffers });
+      // Determine roles and relationship
+      const otherUser = await storage.getUser(otherUserId);
+      if (!otherUser) {
+        return res.status(404).json({ message: 'Other user not found' });
+      }
+      
+      // Fetch all offers and projects needed to determine relation
+      const allOffers = await storage.getAllProjectOffers();
+      const allProjects = await storage.getProjects();
+      
+      // Map: projectId -> project
+      const projectById = new Map<number, any>(allProjects.map((p: any) => [p.id, p]));
+      
+      // Map: companyUserId for offer
+      const companyProfileByIdCache: Record<number, any> = {};
+      const getCompanyUserId = async (companyId: number): Promise<number | null> => {
+        if (companyProfileByIdCache[companyId]) return companyProfileByIdCache[companyId].userId || null;
+        const cp = await storage.getCompanyProfile(companyId);
+        companyProfileByIdCache[companyId] = cp;
+        return cp ? cp.userId : null;
+      };
+      
+      let reveal = false;
+      for (const offer of allOffers) {
+        if (offer.status !== 'accepted' || !offer.depositPaid) continue; // require payment
+        const proj = projectById.get(offer.projectId);
+        if (!proj) continue;
+        const companyUserId = await getCompanyUserId(offer.companyId);
+        if (companyUserId == null) continue;
+        
+        // Case 1: current user is project owner, other user is company user
+        if (proj.userId === user.id && companyUserId === otherUserId) {
+          reveal = true;
+          break;
+        }
+        // Case 2: current user is company user, other user is project owner
+        if (companyUserId === user.id && proj.userId === otherUserId) {
+          reveal = true;
+          break;
+        }
+      }
+      
+      res.json({ hasAcceptedOffers: reveal });
     } catch (error) {
       console.error('Error checking accepted offers between users:', error);
       res.status(500).json({ message: 'Internal server error' });
@@ -3700,6 +3762,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'Internal server error' });
     }
   });
+
+  // Admin endpoint: get all offers across all projects with related info
+  app.get('/api/admin/offers', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const projects = await storage.getProjects();
+      const allOffersArrays = await Promise.all(
+        projects.map(async (project) => {
+          const offers = await storage.getProjectOffersByProjectId(project.id);
+          if (!offers || offers.length === 0) return [];
+          return Promise.all(
+            offers.map(async (offer) => {
+              const companyProfile = await storage.getCompanyProfile(offer.companyId);
+              const companyUser = companyProfile ? await storage.getUser(companyProfile.userId) : null;
+              return {
+                ...offer,
+                projectId: project.id,
+                projectTitle: project.title,
+                company: companyProfile
+                  ? {
+                      ...companyProfile,
+                      username: companyUser?.username,
+                      name: companyUser?.name,
+                      email: companyUser?.email,
+                    }
+                  : null,
+              };
+            })
+          );
+        })
+      );
+      const allOffers = allOffersArrays.flat();
+      res.json(allOffers);
+    } catch (error) {
+      console.error('خطأ في استرجاع جميع العروض للمسؤول:', error);
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب العروض' });
+    }
+  });
   
   app.patch('/api/offers/:id/accept', isAuthenticated, async (req: Request, res: Response) => {
     try {
@@ -3727,36 +3826,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const amount = parseInt(offer.amount.replace(/[^0-9]/g, ''));
       const depositAmount = Math.round(amount * 0.025).toString();
       
-      // تحديث حالة العرض إلى 'accepted'
-      const updatedOffer = await storage.updateProjectOfferStatus(offerId, 'accepted');
-      
-      // الحصول على معلومات الشركة لإنشاء الإشعار
-      const companyProfile = await storage.getCompanyProfile(offer.companyId);
-      const companyUser = companyProfile ? await storage.getUser(companyProfile.userId) : null;
-      
-      if (companyUser) {
-        try {
-          // إنشاء إشعار للشركة بقبول العرض
-          await storage.createNotification({
-            userId: companyUser.id,
-            type: 'offer',
-            title: 'تم قبول عرضك',
-            content: `تم قبول عرضك على مشروع "${project.title}". يرجى انتظار دفع العربون لبدء العمل.`,
-            actionUrl: `/projects/${project.id}`,
-            metadata: JSON.stringify({ projectId: project.id, offerId })
-          });
-          
-          console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بقبول العرض`);
-        } catch (notificationError) {
-          console.error('خطأ في إنشاء إشعار قبول العرض:', notificationError);
-        }
-      }
-      
-      // إرجاع العرض المحدث مع معلومات الدفع المطلوبة
+      // لا نقوم بقبول العرض قبل دفع العربون
+      // نعيد فقط معلومات الدفع المطلوبة لفتح نافذة الدفع في الواجهة الأمامية
       res.json({
-        ...updatedOffer,
+        offerId,
+        projectId: project.id,
         depositAmount,
-        paymentRequired: true
+        paymentRequired: true,
+        message: 'Payment required before accepting the offer'
       });
       
     } catch (error) {
@@ -3792,15 +3869,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Only the project owner can pay deposits' });
       }
       
-      // تحقق من أن العرض مقبول ولم يتم دفع العربون بعد
-      if (offer.status !== 'accepted' || offer.depositPaid) {
-        return res.status(400).json({ message: 'Invalid offer status or deposit already paid' });
+      // السماح بالدفع قبل القبول الرسمي، مع منع الدفع المكرر
+      if (offer.depositPaid) {
+        return res.status(400).json({ message: 'Deposit already paid for this offer' });
       }
       
-      // تحديث العرض لتسجيل دفع العربون
+      // تسجيل دفع العربون
       const updatedOffer = await storage.setProjectOfferDepositPaid(offerId, depositAmount);
       
-      // كشف معلومات التواصل الخاصة بالشركة
+      // اعتبار العرض مقبولاً بعد الدفع
+      await storage.updateProjectOfferStatus(offerId, 'accepted');
+      
+      // كشف معلومات التواصل الخاصة بالشركة بعد الدفع
       const revealedOffer = await storage.setProjectOfferContactRevealed(offerId);
       
       // الحصول على معلومات الشركة وصاحب المشروع
@@ -4830,16 +4910,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Site Settings Management API (Admin only)
   // Get all site settings
-  app.get('/api/admin/site-settings', isAuthenticated, async (req: Request, res: Response) => {
+  app.get('/api/admin/site-settings', isAdmin, async (req: Request, res: Response) => {
     try {
-      const user = req.user as any;
-      
-      // التحقق من صلاحيات المسؤول
-      const adminUser = await storage.getUser(user.id);
-      if (!adminUser || adminUser.role !== 'admin') {
-        return res.status(403).json({ message: 'الوصول غير مصرح' });
-      }
-      
       const settings = await storage.getAllSiteSettings();
       res.json(settings);
     } catch (error) {
@@ -4849,10 +4921,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update multiple site settings
-  app.post('/api/admin/site-settings', isAuthenticated, async (req: Request, res: Response) => {
+  app.post('/api/admin/site-settings', isAdmin, async (req: Request, res: Response) => {
     try {
-      const user = req.user as any;
-      
       const { settings } = req.body;
       
       if (!settings || !Array.isArray(settings)) {
@@ -4868,7 +4938,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               setting.value, 
               setting.category,
               setting.description || '',
-              user.id
+              req.user.id
             );
             updatedSettings.push(updatedSetting);
             console.log(`تم حفظ الإعداد: ${setting.key} = ${setting.value}`);

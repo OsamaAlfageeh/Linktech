@@ -177,10 +177,10 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     isLoading: projectsLoading,
     refetch: refetchProjects,
   } = useQuery({
-    queryKey: ["/api/projects"],
+    queryKey: ["/api/admin/projects"],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/projects', {
+      const response = await fetch('/api/admin/projects', {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -277,36 +277,21 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     isLoading: offersLoading,
     refetch: refetchOffers,
   } = useQuery({
-    queryKey: ["/api/offers/all"],
+    queryKey: ["/api/admin/offers"],
     queryFn: async () => {
-      // جمع العروض من جميع المشاريع
-      if (!projects || !Array.isArray(projects) || projects.length === 0) return [];
-      
       const token = localStorage.getItem('auth_token');
-      const projectOffersPromises = projects.map(async (project: any) => {
-        const response = await fetch(`/api/projects/${project.id}/offers`, {
-          headers: {
-            "Authorization": `Bearer ${token}`,
-          },
-        });
-        if (!response.ok) {
-          console.error(`فشل في جلب عروض المشروع ${project.id}`);
-          return [];
+      const response = await fetch('/api/admin/offers', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
         }
-        const offers = await response.json();
-        // إضافة معلومات المشروع لكل عرض
-        return offers.map((offer: any) => ({
-          ...offer,
-          projectTitle: project.title,
-          projectId: project.id
-        }));
       });
-      
-      const allProjectOffers = await Promise.all(projectOffersPromises);
-      // دمج كل العروض في مصفوفة واحدة
-      return allProjectOffers.flat();
+      if (!response.ok) {
+        throw new Error(`Failed to fetch offers: ${response.status}`);
+      }
+      return response.json();
     },
-    enabled: isAdminAuthenticated && Boolean(projects && Array.isArray(projects) && projects.length > 0)
+    enabled: isAdminAuthenticated
   });
   
   // استعلام لجلب جميع اتفاقيات عدم الإفصاح
@@ -678,10 +663,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     try {
       const newStatus = currentStatus === "open" ? "closed" : "open";
       
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/projects/${projectId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({ status: newStatus }),
       });
@@ -720,7 +707,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     
     try {
       // استخدام طريقة المسؤول لعرض المحادثات بواسطة معلمات الاستعلام otherUserId
-      const response = await fetch(`/api/messages/conversation/${selectedUser1Id}?otherUserId=${selectedUser2Id}`);
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`/api/messages/conversation/${selectedUser1Id}?otherUserId=${selectedUser2Id}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
+      });
       
       if (!response.ok) {
         const errorData = await response.json();
@@ -1242,13 +1234,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             >
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => navigate(`/dashboard/entrepreneur?tab=projects&action=edit&projectId=${project.id}`)}
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
+                         
                             <Button
                               variant="ghost"
                               size="icon"

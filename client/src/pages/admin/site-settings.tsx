@@ -57,8 +57,12 @@ const SiteSettingsPage = () => {
     queryKey: ['/api/admin/site-settings'],
     queryFn: async () => {
       console.log('جلب إعدادات الموقع...');
+      const token = localStorage.getItem('auth_token');
       const response = await fetch('/api/admin/site-settings', {
-        credentials: 'include'
+        credentials: 'include',
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+        }
       });
       if (!response.ok) {
         if (response.status === 401) {
@@ -110,11 +114,13 @@ const SiteSettingsPage = () => {
       ];
 
       // حفظ في نظام الإعدادات العام
+      const token = localStorage.getItem('auth_token');
       const response1 = await fetch('/api/admin/site-settings', {
         method: 'POST',
         credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         body: JSON.stringify({ settings: settingsToUpdate }),
       });
@@ -133,6 +139,7 @@ const SiteSettingsPage = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',
         },
         credentials: 'include',
         body: JSON.stringify({ settings: contactSettings }),
