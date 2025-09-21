@@ -3278,6 +3278,110 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Enhanced message content filtering utilities
+  function normalizeArabicText(input: string): string {
+    if (!input) return '';
+    const arabicIndicDigits: Record<string, string> = {
+      '٠': '0', '١': '1', '٢': '2', '٣': '3', '٤': '4',
+      '٥': '5', '٦': '6', '٧': '7', '٨': '8', '٩': '9'
+    };
+    let out = input
+      .replace(/[\u064B-\u065F\u0610-\u061A]/g, '')
+      .replace(/[\u200C\u200D\u200E\u200F]/g, '')
+      .toLowerCase();
+    out = out.split('').map(ch => arabicIndicDigits[ch] ?? ch).join('');
+    out = out
+      .replace(/\s*\(at\)\s*|\s*@\s*|\s*آت\s*|\s*ات\s*/g, '@')
+      .replace(/\s*\(dot\)\s*|\s*\.+\s*|\s*نقطة\s*/g, '.')
+      .replace(/\s*\(dash\)|\s*\-\s*|\s*شرطة\s*/g, '-')
+      .replace(/\s*\(underscore\)|\s*_\s*|\s*شرطة\s*تحتية\s*/g, '_');
+    return out;
+  }
+
+  const ARABIC_NUMBER_WORDS = [
+    'صفر','واحد','اثنان','اتنان','اتنين','اثنين','اثنين','ثلاثة','اربعة','أربعة','خمسة','ستة','سبعة','ثمانية','تسعة','عشرة',
+    'احدى عشر','إحدى عشر','اثنا عشر','إثنا عشر','ثلاثة عشر','اربعة عشر','أربعة عشر','خمسة عشر','ستة عشر','سبعة عشر','ثمانية عشر','تسعة عشر',
+    'عشرون','ثلاثون','اربعون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون','مائة','مئه','مائة','مئه','مئتان','مائتان','الف','ألف'
+  ];
+
+  function containsNumberWords(text: string): boolean {
+    const t = normalizeArabicText(text);
+    return ARABIC_NUMBER_WORDS.some(w => t.includes(w));
+  }
+
+  function containsPhoneLikeDigits(text: string): boolean {
+    const t = normalizeArabicText(text);
+    if (/\+?\d(?:[\s\-\._]?\d){7,}/.test(t)) return true;
+    if (/(?:\+966|00966|0)(?:[15])[\s\-\._]?\d(?:[\s\-\._]?\d){7}/.test(t)) return true;
+    
+    // Detect any sequence of Arabic numbers (2 or more digits)
+    if (/[٠١٢٣٤٥٦٧٨٩]{2,}/.test(text)) return true;
+    
+    // Detect any sequence of English numbers (2 or more digits)
+    if (/\d{2,}/.test(text)) return true;
+    
+    return false;
+  }
+
+  function containsEmailLike(text: string): boolean {
+    const t = normalizeArabicText(text);
+    return /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i.test(t);
+  }
+
+  function containsSocialHandleOrLink(text: string): boolean {
+    const t = normalizeArabicText(text);
+    const platforms = ['whatsapp','واتساب','telegram','تيليجرام','snapchat','سناب','instagram','انستقرام','facebook','فيسبوك','twitter','تيك توك','tiktok'];
+    if (/https?:\/\//.test(t)) return true;
+    if (/(wa\.me|t\.me|bit\.ly|tinyurl\.com|goo\.gl|linktr\.ee|lnk\.bio)/.test(t)) return true;
+    if (platforms.some(p => t.includes(p))) return true;
+    if (/(?:@|يوزر|معرف|username|handle)\s*[a-z0-9._-]{3,}/.test(t)) return true;
+    return false;
+  }
+
+  const conversationLeakageWindow: Array<{ from: number; to: number; content: string; at: number; }> = [];
+  function addMessageToConversationHistory(fromUserId: number, toUserId: number, content: string): void {
+    conversationLeakageWindow.push({ from: fromUserId, to: toUserId, content, at: Date.now() });
+    const cutoff = Date.now() - 30 * 60 * 1000;
+    while (conversationLeakageWindow.length > 50 || (conversationLeakageWindow[0] && conversationLeakageWindow[0].at < cutoff)) {
+      conversationLeakageWindow.shift();
+    }
+  }
+
+  function detectSequentialLeakage(fromUserId: number, toUserId: number): boolean {
+    const recent = conversationLeakageWindow.filter(e => e.from === fromUserId && e.to === toUserId).slice(-8);
+    const joined = normalizeArabicText(recent.map(r => r.content).join(' '));
+    if (containsEmailLike(joined) || containsPhoneLikeDigits(joined) || containsSocialHandleOrLink(joined)) return true;
+    const digitsCount = (joined.match(/\d/g) || []).length;
+    if (digitsCount >= 7) return true;
+    let wordsHits = 0; ARABIC_NUMBER_WORDS.forEach(w => { if (joined.includes(w)) wordsHits++; });
+    return wordsHits >= 3;
+  }
+
+  function checkMessageForProhibitedContent(rawContent: string, fromUserId?: number, toUserId?: number): { safe: boolean; violations?: string[] } {
+    const violations: string[] = [];
+    const content = normalizeArabicText(rawContent || '');
+
+    if (containsEmailLike(content)) violations.push('بريد_إلكتروني');
+    if (containsPhoneLikeDigits(content)) violations.push('رقم_هاتف');
+    if (containsSocialHandleOrLink(content)) violations.push('رابط/معرف_منصة');
+    if (containsNumberWords(content)) violations.push('كلمات_أرقام_عربية');
+
+    if (/(\bجوال\b|\bهاتف\b|\bاتصال\b|\bتواصل\b|\bواتساب\b|\bبريد\b|\bايميل\b|\bإيميل\b|\bسناب\b|\bتيليجرام\b|\bتليجرام\b)/.test(content)) {
+      if (violations.length > 0) {
+        violations.push('نية_مشاركة_وسيلة_تواصل');
+      }
+    }
+
+    if (fromUserId && toUserId) {
+      if (detectSequentialLeakage(fromUserId, toUserId)) {
+        violations.push('نمط_متسلسل_مشبوه');
+      }
+    }
+
+    const safe = violations.length === 0;
+    return { safe, violations: safe ? undefined : Array.from(new Set(violations)) };
+  }
+
   app.patch('/api/messages/:id/read', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const messageId = parseInt(req.params.id);
