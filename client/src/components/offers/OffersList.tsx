@@ -93,7 +93,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       toast({
         title: "تم قبول العرض",
         description: data.paymentRequired 
-          ? "الرجاء دفع العربون لاستكمال العملية"
+          ? "الرجاء دفع عمولة المنصة لاستكمال العملية"
           : "تم قبول العرض بنجاح",
       });
     } catch (error) {
@@ -109,7 +109,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
   // استعراض حالة العروض
   const renderStatus = (status: string, depositPaid: boolean) => {
     if (status === 'accepted' && depositPaid) {
-      return <Badge className="bg-green-500">تم قبوله ودفع العربون</Badge>;
+      return <Badge className="bg-green-500">تم قبوله ودفع عمولة المنصة</Badge>;
     }
     
     if (status === 'accepted') {
@@ -149,19 +149,20 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
   if (!offers || (Array.isArray(offers) && offers.length === 0)) {
     if (!isOwner) {
       // اعرض الإحصائيات إذا كانت متوفرة
-      if (offers && 'count' in offers) {
+      if (offers && typeof offers === 'object' && 'count' in offers) {
+        const statsOffers = offers as { count: number; minAmount?: string; maxAmount?: string };
         return (
           <Card>
             <CardHeader>
               <CardTitle>إحصائيات العروض</CardTitle>
               <CardDescription>
-                يوجد {offers.count || 0} عرض على هذا المشروع
+                يوجد {statsOffers.count || 0} عرض على هذا المشروع
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {offers.minAmount && offers.maxAmount ? (
+              {statsOffers.minAmount && statsOffers.maxAmount ? (
                 <p className="text-lg font-medium">
-                  تتراوح الأسعار بين {offers.minAmount} و {offers.maxAmount} ريال
+                  تتراوح الأسعار بين {statsOffers.minAmount} و {statsOffers.maxAmount} ريال
                 </p>
               ) : (
                 <p>لا توجد معلومات عن الأسعار حتى الآن</p>
@@ -267,19 +268,19 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                   <AlertDialogTrigger asChild>
                     <Button variant="default">قبول العرض</Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>تأكيد قبول العرض</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        هل أنت متأكد من قبول هذا العرض؟ سيتطلب ذلك دفع عربون قدره 2.5% من قيمة العرض ({parseInt(offer.amount.replace(/[^0-9]/g, '')) * 0.025} ريال).
+                  <AlertDialogContent className="text-right" dir="rtl">
+                    <AlertDialogHeader className="text-right">
+                      <AlertDialogTitle className="text-right">تأكيد قبول العرض</AlertDialogTitle>
+                      <AlertDialogDescription className="text-right">
+                        هل أنت متأكد من قبول هذا العرض؟ سيتطلب ذلك دفع عمولة المنصة (2.5% من قيمة العرض) وهي {parseInt(offer.amount.replace(/[^0-9]/g, '')) * 0.025} ريال.
                         <br />
                         <br />
-                        بعد قبول العرض ودفع العربون، ستتمكن من رؤية معلومات التواصل مع الشركة.
+                        بعد الدفع، ستتمكن من التواصل مباشرة مع الشركة لبدء تنفيذ المشروع.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>إلغاء</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => acceptOffer(offer.id)}>
+                    <AlertDialogFooter className="flex-row-reverse">
+                      <AlertDialogCancel className="mr-2">إلغاء</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => acceptOffer(offer.id)} className="ml-2">
                         تأكيد القبول
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -299,7 +300,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                 <div className="w-full">
                   <h4 className="font-bold text-green-700 mb-2">تم قبول هذا العرض</h4>
                   <p className="mb-4">
-                    تم دفع العربون وكشف معلومات التواصل. يمكنك الآن التواصل مباشرة مع الشركة.
+                    تم دفع عمولة المنصة وكشف معلومات التواصل. يمكنك الآن التواصل مباشرة مع الشركة.
                   </p>
                   
                   {/* عرض معلومات التواصل مع الشركة - تم تحسين طريقة عرض المعلومات */}
@@ -342,8 +343,8 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
               <CardFooter className="p-4 bg-yellow-50">
                 <div className="w-full flex justify-between items-center">
                   <div>
-                    <h4 className="font-bold text-yellow-700">مطلوب دفع العربون</h4>
-                    <p>يرجى دفع العربون لاستكمال العملية وكشف معلومات التواصل</p>
+                    <h4 className="font-bold text-yellow-700">مطلوب دفع عمولة المنصة</h4>
+                    <p>يرجى دفع عمولة المنصة لاستكمال العملية وكشف معلومات التواصل</p>
                   </div>
                   <Button 
                     onClick={() => {
@@ -351,7 +352,7 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                       setShowPaymentDialog(true);
                     }}
                   >
-                    دفع العربون
+                    دفع عمولة المنصة
                   </Button>
                 </div>
               </CardFooter>

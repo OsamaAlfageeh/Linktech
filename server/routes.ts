@@ -3304,9 +3304,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     'عشرون','ثلاثون','اربعون','أربعون','خمسون','ستون','سبعون','ثمانون','تسعون','مائة','مئه','مائة','مئه','مئتان','مائتان','الف','ألف'
   ];
 
+  const ENGLISH_NUMBER_WORDS = [
+    'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+    'eleven', 'twelve', 'thirteen', 'fourteen', 'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+    'twenty', 'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety', 'hundred', 'thousand',
+    'million', 'billion', 'trillion'
+  ];
+
   function containsNumberWords(text: string): boolean {
     const t = normalizeArabicText(text);
-    return ARABIC_NUMBER_WORDS.some(w => t.includes(w));
+    const hasArabicNumbers = ARABIC_NUMBER_WORDS.some(w => t.includes(w));
+    const hasEnglishNumbers = ENGLISH_NUMBER_WORDS.some(w => t.toLowerCase().includes(w));
+    return hasArabicNumbers || hasEnglishNumbers;
   }
 
   function containsPhoneLikeDigits(text: string): boolean {
@@ -3314,11 +3323,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     if (/\+?\d(?:[\s\-\._]?\d){7,}/.test(t)) return true;
     if (/(?:\+966|00966|0)(?:[15])[\s\-\._]?\d(?:[\s\-\._]?\d){7}/.test(t)) return true;
     
-    // Detect any sequence of Arabic numbers (2 or more digits)
-    if (/[٠١٢٣٤٥٦٧٨٩]{2,}/.test(text)) return true;
+    // Detect ANY Arabic number (single digit or more)
+    if (/[٠١٢٣٤٥٦٧٨٩]/.test(text)) return true;
     
-    // Detect any sequence of English numbers (2 or more digits)
-    if (/\d{2,}/.test(text)) return true;
+    // Detect ANY English number (single digit or more)
+    if (/\d/.test(text)) return true;
     
     return false;
   }
@@ -3883,6 +3892,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 ...offer,
                 projectId: project.id,
                 projectTitle: project.title,
+                companyName: companyProfile?.legalName || companyUser?.name || companyUser?.username || "غير معروف",
                 company: companyProfile
                   ? {
                       ...companyProfile,

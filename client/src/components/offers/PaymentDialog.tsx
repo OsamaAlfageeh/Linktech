@@ -68,7 +68,7 @@ export function PaymentDialog({
   const [cvv, setCvv] = useState("");
   const [cardName, setCardName] = useState("");
 
-  // حساب مبلغ العربون (2.5% من قيمة العرض) إذا لم يكن محدداً بالفعل
+  // حساب مبلغ عمولة المنصة (2.5% من قيمة العرض) إذا لم يكن محدداً بالفعل
   const depositAmount = offer.depositAmount || 
     Math.round(parseFloat(offer.amount.replace(/[^0-9.]/g, '')) * 0.025).toString();
   
@@ -197,7 +197,7 @@ export function PaymentDialog({
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       // إرسال معلومات الدفع إلى الخادم
-      console.log("إرسال طلب دفع العربون للعرض رقم:", offer.id);
+      console.log("إرسال طلب دفع عمولة المنصة للعرض رقم:", offer.id);
       const res = await apiRequest("POST", `/api/offers/${offer.id}/pay-deposit`, {
         paymentId: `test-${Date.now()}`,
         depositAmount
@@ -210,7 +210,7 @@ export function PaymentDialog({
       }
       
       const data = await res.json().catch(() => ({}));
-      console.log("استجابة دفع العربون:", data);
+      console.log("استجابة دفع عمولة المنصة:", data);
       
       // تحديث الواجهة بناءً على الاستجابة
       if (data.companyContact) {
@@ -224,7 +224,7 @@ export function PaymentDialog({
       
       toast({
         title: "تم الدفع بنجاح",
-        description: "تم دفع العربون وكشف معلومات التواصل مع الشركة",
+        description: "تم دفع عمولة المنصة وكشف معلومات التواصل مع الشركة",
       });
       
       // إعادة تحميل البيانات قبل إغلاق النافذة
@@ -253,9 +253,9 @@ export function PaymentDialog({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md md:max-w-lg lg:max-w-xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>دفع العربون</DialogTitle>
+          <DialogTitle>دفع عمولة المنصة</DialogTitle>
           <DialogDescription>
-            يرجى دفع مبلغ العربون (2.5% من قيمة العرض) لاستكمال عملية قبول العرض وكشف معلومات التواصل مع الشركة.
+            يرجى دفع مبلغ عمولة المنصة (2.5% من قيمة العرض) لاستكمال عملية قبول العرض وكشف معلومات التواصل مع الشركة.
             <br />
             <strong className="block mt-2">
               المبلغ المطلوب: {depositAmount} ريال سعودي

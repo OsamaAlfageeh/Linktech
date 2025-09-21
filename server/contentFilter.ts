@@ -87,10 +87,10 @@ const contentFilters = {
     // كشف أنماط الأرقام المشفرة
     /\b[0٠]?[5٥][0٠\s-]*[5٥6٦7٧8٨9٩][0٠\s-]*\d[\s0-9٠١٢٣٤٥٦٧٨٩-]{7,}\b/g, // أرقام سعودية مع احتمال استخدام أرقام عربية
     /\b[0٠]?[5٥][\s-]*\d{8}\b/g, // الرقم السعودي مع مسافات أو شرطات
-    // كشف أي تسلسل من الأرقام العربية (2 أرقام أو أكثر)
-    /[٠١٢٣٤٥٦٧٨٩]{2,}/g, // أي تسلسل من الأرقام العربية
-    // كشف أي تسلسل من الأرقام الإنجليزية (2 أرقام أو أكثر)
-    /\d{2,}/g, // أي تسلسل من الأرقام الإنجليزية
+    // كشف أي رقم عربي (رقم واحد أو أكثر)
+    /[٠١٢٣٤٥٦٧٨٩]/g, // أي رقم عربي
+    // كشف أي رقم إنجليزي (رقم واحد أو أكثر)
+    /\d/g, // أي رقم إنجليزي
   ],
   
   // عناوين البريد الإلكتروني
@@ -123,7 +123,9 @@ const contentFilters = {
   // كلمات مفتاحية تشير إلى محاولة مشاركة معلومات الاتصال
   contactKeywords: [
     /\b(اتصل\s+ب|اتصلوا\s+ب|اتصال|للتواصل|تواصل\s+مع|تواصلوا\s+مع|واتساب|واتس\s+اب|الواتس|جوال|رقم|موبايل|تلفون|هاتف|ارقام|ايميل|ايميلي|بريدي|الالكتروني|الإلكتروني|انستغرام|انستقرام|سناب|سناب\s+شات|اضفني)\b/g,
-    /\b(call\s+me|contact\s+me|reach\s+me|my\s+number|my\s+email|my\s+whatsapp|my\s+snap|my\s+insta|my\s+handle)\b/gi
+    /\b(call\s+me|contact\s+me|reach\s+me|my\s+number|my\s+email|my\s+whatsapp|my\s+snap|my\s+insta|my\s+handle)\b/gi,
+    // English number words
+    /\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred|thousand|million|billion|trillion)\b/gi
   ]
 };
 
