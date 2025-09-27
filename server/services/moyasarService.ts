@@ -200,16 +200,16 @@ class MoyasarService {
         }
       };
 
-      // Validate URLs before sending
+      // Validate URLs before sending (Moyasar requires HTTPS)
       const urlPattern = /^https:\/\/[^\s/$.?#].[^\s]*$/i;
       if (!urlPattern.test(invoiceData.callback_url)) {
-        throw new Error(`Invalid callback URL: ${invoiceData.callback_url}`);
+        throw new Error(`Invalid callback URL: ${invoiceData.callback_url}. Moyasar requires HTTPS URLs. Please set FRONTEND_URL to use HTTPS.`);
       }
       if (!urlPattern.test(invoiceData.success_url)) {
-        throw new Error(`Invalid success URL: ${invoiceData.success_url}`);
+        throw new Error(`Invalid success URL: ${invoiceData.success_url}. Moyasar requires HTTPS URLs. Please set FRONTEND_URL to use HTTPS.`);
       }
       if (!urlPattern.test(invoiceData.back_url)) {
-        throw new Error(`Invalid back URL: ${invoiceData.back_url}`);
+        throw new Error(`Invalid back URL: ${invoiceData.back_url}. Moyasar requires HTTPS URLs. Please set FRONTEND_URL to use HTTPS.`);
       }
 
       // Create Basic Auth header correctly

@@ -130,16 +130,15 @@ export function PaymentDialog({
       console.log("استجابة إنشاء فاتورة الدفع:", data);
       
       if (data.success && data.paymentUrl) {
-        // إعادة توجيه المستخدم إلى صفحة الدفع في Moyasar
-        window.open(data.paymentUrl, '_blank');
+        // Redirect to Moyasar payment page (works on all devices including mobile)
+        window.location.href = data.paymentUrl;
         
         toast({
           title: "تم إنشاء فاتورة الدفع",
-          description: "سيتم فتح صفحة الدفع في نافذة جديدة. بعد إتمام الدفع، ستظهر معلومات التواصل مع الشركة.",
+          description: "سيتم توجيهك إلى صفحة الدفع. بعد إتمام الدفع، ستظهر معلومات التواصل مع الشركة.",
         });
         
-        // إغلاق نافذة الدفع
-        onClose();
+        // Note: No need to close dialog as user will be redirected
       } else {
         throw new Error("فشل في إنشاء فاتورة الدفع");
       }
@@ -299,7 +298,7 @@ export function PaymentDialog({
                   <CreditCard className="h-5 w-5 text-primary" />
                 </CardTitle>
                 <CardDescription>
-                  سيتم توجيهك إلى صفحة آمنة لإتمام عملية الدفع
+                  سيتم توجيهك إلى صفحة آمنة لإتمام عملية الدفع (يعمل على جميع الأجهزة)
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6 text-center">
