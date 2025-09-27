@@ -176,7 +176,7 @@ export function CreateOfferForm({ projectId, onSuccess }: CreateOfferFormProps) 
       
       toast({
         title: "تم إرسال العرض بنجاح",
-        description: "سيتم إشعار صاحب المشروع بعرضك",
+        description: "يمكنك تقديم عروض إضافية لهذا المشروع في أي وقت",
       });
       
       // تحديث البيانات المخزنة
@@ -207,6 +207,17 @@ export function CreateOfferForm({ projectId, onSuccess }: CreateOfferFormProps) 
         <CardTitle className="text-center">تقديم عرض سعر</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Multiple Offers Notice */}
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-green-600 ml-2 mt-0.5" />
+            <div className="text-sm text-green-800">
+              <p className="font-semibold mb-1">💡 يمكنك تقديم عروض متعددة:</p>
+              <p>يمكنك تقديم عدة عروض لهذا المشروع مع أسعار أو مقترحات مختلفة لزيادة فرصك في الفوز.</p>
+            </div>
+          </div>
+        </div>
+
         {/* Content Filter Notice */}
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">

@@ -3829,13 +3829,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Company profile not found' });
       }
       
-      // تحقق مما إذا كانت الشركة قد قدمت عرضاً بالفعل
-      const existingOffers = await storage.getProjectOffersByProjectId(projectId);
-      const hasExistingOffer = existingOffers.some(offer => offer.companyId === companyProfile.id);
-      
-      if (hasExistingOffer) {
-        return res.status(400).json({ message: 'You have already submitted an offer for this project' });
-      }
+      // Allow multiple offers from the same company
+      // Companies can now submit multiple offers with different proposals
       
       const offerData = insertProjectOfferSchema.parse({
         ...req.body,

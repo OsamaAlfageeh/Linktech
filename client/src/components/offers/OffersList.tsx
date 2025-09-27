@@ -234,6 +234,12 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                     <CardTitle className="flex items-center">
                       {offer.companyName}
                       {offer.companyVerified && <CheckCircle className="text-primary h-4 w-4 mr-1" />}
+                      {/* Show indicator if company has multiple offers */}
+                      {Array.isArray(offers) && offers.filter(o => o.companyId === offer.companyId).length > 1 && (
+                        <Badge variant="outline" className="mr-2 text-xs">
+                          {offers.filter(o => o.companyId === offer.companyId).length} عروض
+                        </Badge>
+                      )}
                     </CardTitle>
                     {offer.companyRating && (
                       <div className="flex items-center mt-1">
