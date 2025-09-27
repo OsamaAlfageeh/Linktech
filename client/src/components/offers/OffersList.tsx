@@ -80,9 +80,27 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
       }
       
       const data = await res.json();
-      setSelectedOffer(data);
       
-      // إذا كان العرض يتطلب دفع العربون، اعرض نافذة الدفع
+      // Find the original offer from the list to preserve the ID and other data
+      const originalOffer = Array.isArray(offers) ? offers.find((offer: Offer) => offer.id === offerId) : null;
+      
+      if (originalOffer) {
+        // Merge the API response with the original offer data to preserve the ID
+        const updatedOffer = {
+          ...originalOffer,
+          ...data,
+          id: originalOffer.id // Ensure ID is preserved
+        };
+        setSelectedOffer(updatedOffer);
+      } else {
+        // Fallback: use API response but add the ID
+        setSelectedOffer({
+          ...data,
+          id: offerId
+        });
+      }
+      
+      // إذا كان العرض يتطلب دفع عمولة المنصة، اعرض نافذة الدفع
       if (data.paymentRequired) {
         setShowPaymentDialog(true);
       }
@@ -348,6 +366,8 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                   </div>
                   <Button 
                     onClick={() => {
+                      console.log("Debug - offer from list:", offer);
+                      console.log("Debug - offer.id:", offer.id);
                       setSelectedOffer(offer);
                       setShowPaymentDialog(true);
                     }}

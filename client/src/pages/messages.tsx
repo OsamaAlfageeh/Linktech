@@ -214,7 +214,7 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
     if (auth.user?.role === 'company') {
       return Array.isArray(projectOffersForMasking) && projectOffersForMasking.some((o: any) => o.status === 'accepted');
     }
-    // صاحب المشروع: نظهر اسم الشركة فقط إذا تم قبول العرض ويمكن ربط الشركة (قد يلزم دفع العربون لإظهار companyUserId)
+    // صاحب المشروع: نظهر اسم الشركة فقط إذا تم قبول العرض ويمكن ربط الشركة (قد يلزم دفع عمولة المنصة لإظهار companyUserId)
     if (auth.user?.role === 'entrepreneur') {
       if (!Array.isArray(projectOffersForMasking)) return false;
       // إذا توفرت companyUserId في العرض المقبول (عادة بعد كشف المعلومات)

@@ -15,6 +15,7 @@ import { OffersList } from "@/components/offers/OffersList";
 import { ProjectExecutionStatus } from "@/components/projects/ProjectExecutionStatus";
 import { NdaSection } from "@/components/nda/NdaSection";
 import { useAuth } from "@/App";
+import { useToast } from "@/hooks/use-toast";
 import SEO from "@/components/seo/SEO";
 import { ProjectStructuredData, WebpageStructuredData } from "@/components/seo/StructuredData";
 import { LazyImage } from "@/components/ui/lazy-image";
@@ -54,6 +55,26 @@ const ProjectDetails = () => {
   const projectId = parseInt(id);
   const [_, navigate] = useLocation();
   const auth = useAuth();
+  const { toast } = useToast();
+
+  // Check for payment success in URL parameters
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentSuccess = urlParams.get('payment');
+    const offerId = urlParams.get('offerId');
+    
+    if (paymentSuccess === 'success' && offerId) {
+      toast({
+        title: "تم الدفع بنجاح! 🎉",
+        description: "تم دفع عمولة المنصة بنجاح. يمكنك الآن التواصل مع الشركة مباشرة.",
+        duration: 5000,
+      });
+      
+      // Clean up URL parameters
+      const newUrl = window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+    }
+  }, [toast]);
 
   const {
     data: project,

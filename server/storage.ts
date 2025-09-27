@@ -726,7 +726,7 @@ export class MemStorage implements IStorage {
     const offer = this.projectOffers.get(id);
     if (!offer) return undefined;
     
-    console.log(`تحديث معلومات دفع العربون للعرض رقم ${id}، المبلغ: ${depositAmount}`);
+    console.log(`تحديث معلومات دفع عمولة المنصة للعرض رقم ${id}، المبلغ: ${depositAmount}`);
     
     const updatedOffer = { 
       ...offer, 
@@ -736,7 +736,7 @@ export class MemStorage implements IStorage {
     };
     this.projectOffers.set(id, updatedOffer);
     
-    console.log(`تم تحديث حالة دفع العربون للعرض رقم ${id}، الحالة الجديدة:`, updatedOffer.depositPaid);
+    console.log(`تم تحديث حالة دفع عمولة المنصة للعرض رقم ${id}، الحالة الجديدة:`, updatedOffer.depositPaid);
     
     // تخزين حالة الدفع في ذاكرة المتصفح عبر localStorage
     const companyId = updatedOffer.companyId;
@@ -2672,14 +2672,6 @@ export class DatabaseStorage implements IStorage {
   async updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined> {
     const [updatedNda] = await db.update(schema.ndaAgreements)
       .set(updates)
-      .where(eq(schema.ndaAgreements.id, id))
-      .returning();
-    return updatedNda;
-  }
-
-  async updateNdaAgreementStatus(id: number, status: string): Promise<NdaAgreement | undefined> {
-    const [updatedNda] = await db.update(schema.ndaAgreements)
-      .set({ status })
       .where(eq(schema.ndaAgreements.id, id))
       .returning();
     return updatedNda;

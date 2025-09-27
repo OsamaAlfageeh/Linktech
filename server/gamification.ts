@@ -15,7 +15,7 @@ export const ActivityTypes = {
   PROJECT_UPDATED: 'project_updated', // تحديث مشروع
   OFFER_SUBMITTED: 'offer_submitted', // تقديم عرض على مشروع
   OFFER_ACCEPTED: 'offer_accepted', // قبول عرض
-  DEPOSIT_PAID: 'deposit_paid', // دفع العربون
+  DEPOSIT_PAID: 'deposit_paid', // دفع عمولة المنصة
   MESSAGE_SENT: 'message_sent', // إرسال رسالة
   LOGIN_STREAK: 'login_streak', // سلسلة تسجيل دخول متتالية
   PROFILE_COMPLETED: 'profile_completed', // إكمال الملف الشخصي
@@ -169,7 +169,7 @@ function generateActivityDescription(
     case ActivityTypes.OFFER_ACCEPTED:
       return `تم قبول عرض ${user.name}`;
     case ActivityTypes.DEPOSIT_PAID:
-      return `${user.name} قام بدفع العربون`;
+      return `${user.name} قام بدفع عمولة المنصة`;
     case ActivityTypes.MESSAGE_SENT:
       return `${user.name} تواصل مع مستخدم آخر`;
     case ActivityTypes.LOGIN_STREAK:

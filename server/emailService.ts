@@ -1,27 +1,44 @@
-import { MailerSend, EmailParams, Recipient, Sender } from "mailersend";
+import nodemailer from 'nodemailer';
 
-// التحقق من وجود مفتاح API لخدمة MailerSend
-if (!process.env.MAILERSEND_API_KEY) {
-  console.warn("تحذير: لم يتم تعيين MAILERSEND_API_KEY، لن يعمل إرسال البريد الإلكتروني");
-} else {
-  console.log("✅ MailerSend API key configured");
-}
+// إعداد معلومات SMTP لـ MailerSend
+const smtpConfig = {
+  host: process.env.SMTP_HOST || 'smtp.mailersend.net',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false, // true for 465, false for other ports
+  auth: {
+    user: process.env.SMTP_USER || 'MS_1eaHSP@linktech.app',
+    pass: process.env.SMTP_PASS || 'mssp.AOMRxLx.pq3enl697p8l2vwr.pPKxmA2'
+  },
+  tls: {
+    // إعدادات SSL/TLS لحل مشكلة الشهادة
+    rejectUnauthorized: false, // تجاهل التحقق من صحة الشهادة في بيئة التطوير
+    ciphers: 'SSLv3'
+  }
+};
 
-// إنشاء مثيل من MailerSend باستخدام مفتاح API
-const mailerSend = process.env.MAILERSEND_API_KEY 
-  ? new MailerSend({ apiKey: process.env.MAILERSEND_API_KEY })
-  : null;
+// إنشاء transporter للبريد الإلكتروني
+const transporter = nodemailer.createTransport(smtpConfig);
+
+// التحقق من صحة الاتصال SMTP عند بدء الخادم
+transporter.verify((error, success) => {
+  if (error) {
+    console.log('❌ SMTP connection failed:', error.message);
+  } else {
+    console.log('✅ SMTP server is ready to take our messages');
+  }
+});
 
 // إعداد معلومات المرسل
-// Use environment variables for sender configuration or fallback to trial domain
-const senderEmail = process.env.MAILERSEND_FROM_EMAIL || "noreply@trial-3z0vklo.mlsender.net";
-const senderName = process.env.MAILERSEND_FROM_NAME || "لينكتك";
-const sender = new Sender(senderEmail, senderName);
+const senderEmail = process.env.MAILERSEND_FROM_EMAIL || 'MS_1eaHSP@linktech.app';
+const senderName = process.env.MAILERSEND_FROM_NAME || 'لينكتك';
 
 console.log("📧 Email service configuration:");
+console.log("- SMTP Host:", smtpConfig.host);
+console.log("- SMTP Port:", smtpConfig.port);
+console.log("- SMTP User:", smtpConfig.auth.user);
 console.log("- Sender Email:", senderEmail);
 console.log("- Sender Name:", senderName);
-console.log("- MailerSend instance:", mailerSend ? "✅ Created" : "❌ Not created");
+console.log("- Transporter:", transporter ? "✅ Created" : "❌ Not created");
 
 /**
  * إرسال بريد إلكتروني لإعادة تعيين كلمة المرور
@@ -37,22 +54,19 @@ export async function sendPasswordResetEmail(
   token: string,
   resetLink: string
 ): Promise<boolean> {
-  // التحقق من وجود مثيل MailerSend
-  if (!mailerSend) {
-    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين MailerSend");
+  // التحقق من وجود transporter
+  if (!transporter) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين SMTP");
     return false;
   }
 
   try {
-    const recipient = new Recipient(email, name);
-    const recipients = [recipient];
-
     // بناء معلمات البريد الإلكتروني
-    const emailParams = new EmailParams()
-      .setFrom(sender)
-      .setTo(recipients)
-      .setSubject("إعادة تعيين كلمة المرور - منصة لينكتك")
-      .setHtml(`
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: email,
+      subject: "إعادة تعيين كلمة المرور - منصة لينكتك",
+      html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
@@ -82,9 +96,8 @@ export async function sendPasswordResetEmail(
             </div>
           </div>
         </div>
-      `)
-      .setText(
-        `مرحباً ${name}،
+      `,
+      text: `مرحباً ${name}،
         
 لقد تلقينا طلباً لإعادة تعيين كلمة المرور لحسابك في منصة لينكتك.
 
@@ -97,20 +110,16 @@ ${resetLink}
 
 مع تحيات،
 فريق منصة لينكتك`
-      );
+    };
 
     // إرسال البريد الإلكتروني
     console.log("محاولة إرسال البريد الإلكتروني...");
-    const response = await mailerSend.email.send(emailParams);
-    console.log("تم إرسال بريد إعادة تعيين كلمة المرور بنجاح:", response);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("تم إرسال بريد إعادة تعيين كلمة المرور بنجاح:", info.messageId);
     return true;
   } catch (error) {
     console.error("فشل في إرسال بريد إعادة تعيين كلمة المرور:");
     console.error("تفاصيل الخطأ:", error);
-    console.error("نوع الخطأ:", error.constructor.name);
-    if (error.response) {
-      console.error("استجابة الخطأ:", error.response.data);
-    }
     return false;
   }
 }
@@ -131,16 +140,13 @@ export async function sendNotificationEmail(
   title: string,
   message: string
 ): Promise<boolean> {
-  // التحقق من وجود مثيل MailerSend
-  if (!mailerSend) {
-    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين MailerSend");
+  // التحقق من وجود transporter
+  if (!transporter) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين SMTP");
     return false;
   }
 
   try {
-    const recipient = new Recipient(email, name);
-    const recipients = [recipient];
-
     // تخصيص موضوع البريد الإلكتروني بناءً على نوع الإشعار
     let subject = "إشعار جديد من منصة لينكتك";
     let typeIcon = "📢";
@@ -173,11 +179,11 @@ export async function sendNotificationEmail(
     }
 
     // بناء معلمات البريد الإلكتروني
-    const emailParams = new EmailParams()
-      .setFrom(sender)
-      .setTo(recipients)
-      .setSubject(subject)
-      .setHtml(`
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: email,
+      subject: subject,
+      html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
@@ -206,9 +212,8 @@ export async function sendNotificationEmail(
             </div>
           </div>
         </div>
-      `)
-      .setText(
-        `مرحباً ${name}،
+      `,
+      text: `مرحباً ${name}،
         
 ${title}
 
@@ -219,11 +224,11 @@ https://linktech.app/notifications
 
 مع تحيات،
 فريق منصة لينكتك`
-      );
+    };
 
     // إرسال البريد الإلكتروني
-    const response = await mailerSend.email.send(emailParams);
-    console.log("تم إرسال إشعار البريد الإلكتروني بنجاح:", response);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("تم إرسال إشعار البريد الإلكتروني بنجاح:", info.messageId);
     return true;
   } catch (error) {
     console.error("فشل في إرسال إشعار البريد الإلكتروني:", error);
@@ -241,22 +246,19 @@ export async function sendPasswordChangedNotification(
   email: string,
   name: string
 ): Promise<boolean> {
-  // التحقق من وجود مثيل MailerSend
-  if (!mailerSend) {
-    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين MailerSend");
+  // التحقق من وجود transporter
+  if (!transporter) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين SMTP");
     return false;
   }
 
   try {
-    const recipient = new Recipient(email, name);
-    const recipients = [recipient];
-
     // بناء معلمات البريد الإلكتروني
-    const emailParams = new EmailParams()
-      .setFrom(sender)
-      .setTo(recipients)
-      .setSubject("تم تغيير كلمة المرور الخاصة بك - منصة لينكتك")
-      .setHtml(`
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: email,
+      subject: "تم تغيير كلمة المرور الخاصة بك - منصة لينكتك",
+      html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
@@ -277,9 +279,8 @@ export async function sendPasswordChangedNotification(
             </div>
           </div>
         </div>
-      `)
-      .setText(
-        `مرحباً ${name}،
+      `,
+      text: `مرحباً ${name}،
         
 نود إعلامك أنه تم تغيير كلمة المرور لحسابك في منصة لينكتك بنجاح.
 
@@ -287,11 +288,11 @@ export async function sendPasswordChangedNotification(
 
 مع تحيات،
 فريق منصة لينكتك`
-      );
+    };
 
     // إرسال البريد الإلكتروني
-    const response = await mailerSend.email.send(emailParams);
-    console.log("تم إرسال إشعار تغيير كلمة المرور بنجاح:", response);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("تم إرسال إشعار تغيير كلمة المرور بنجاح:", info.messageId);
     return true;
   } catch (error) {
     console.error("فشل في إرسال إشعار تغيير كلمة المرور:", error);
@@ -321,22 +322,19 @@ export async function sendCompanyVerificationEmail(
   companyName: string,
   notes: string = ''
 ): Promise<boolean> {
-  // التحقق من وجود مثيل MailerSend
-  if (!mailerSend) {
-    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين MailerSend");
+  // التحقق من وجود transporter
+  if (!transporter) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين SMTP");
     return false;
   }
 
   try {
-    const recipient = new Recipient(email, name);
-    const recipients = [recipient];
-
     // بناء معلمات البريد الإلكتروني
-    const emailParams = new EmailParams()
-      .setFrom(sender)
-      .setTo(recipients)
-      .setSubject(`تهانينا! تم توثيق شركتك "${companyName}" في منصة لينكتك`)
-      .setHtml(`
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: email,
+      subject: `تهانينا! تم توثيق شركتك "${companyName}" في منصة لينكتك`,
+      html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
@@ -384,9 +382,8 @@ export async function sendCompanyVerificationEmail(
             </div>
           </div>
         </div>
-      `)
-      .setText(
-        `مرحباً ${name}،
+      `,
+      text: `مرحباً ${name}،
         
 يسعدنا إبلاغك بأنه تم توثيق شركتك "${companyName}" بنجاح في منصة لينكتك!
 
@@ -405,11 +402,11 @@ ${notes}
 
 مع تحيات،
 فريق منصة لينكتك`
-      );
+    };
 
     // إرسال البريد الإلكتروني
-    const response = await mailerSend.email.send(emailParams);
-    console.log("تم إرسال إشعار توثيق الشركة بنجاح:", response);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("تم إرسال إشعار توثيق الشركة بنجاح:", info.messageId);
     return true;
   } catch (error) {
     console.error("فشل في إرسال إشعار توثيق الشركة:", error);
@@ -422,16 +419,13 @@ export async function sendWelcomeEmail(
   name: string,
   userRole: string
 ): Promise<boolean> {
-  // التحقق من وجود مثيل MailerSend
-  if (!mailerSend) {
-    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين MailerSend");
+  // التحقق من وجود transporter
+  if (!transporter) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين SMTP");
     return false;
   }
 
   try {
-    const recipient = new Recipient(email, name);
-    const recipients = [recipient];
-
     // تخصيص محتوى البريد الإلكتروني بناءً على دور المستخدم
     let roleSpecificContent = '';
     let roleSpecificText = '';
@@ -474,11 +468,11 @@ export async function sendWelcomeEmail(
     }
 
     // بناء معلمات البريد الإلكتروني
-    const emailParams = new EmailParams()
-      .setFrom(sender)
-      .setTo(recipients)
-      .setSubject(subject)
-      .setHtml(`
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: email,
+      subject: subject,
+      html: `
         <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto;">
           <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px 8px 0 0;">
             <h1 style="color: #2563eb; margin: 0; font-size: 24px;">لينكتك</h1>
@@ -505,9 +499,8 @@ export async function sendWelcomeEmail(
             </div>
           </div>
         </div>
-      `)
-      .setText(
-        `مرحباً ${name}،
+      `,
+      text: `مرحباً ${name}،
         
 شكراً لانضمامك إلى منصة لينكتك - المنصة الرائدة في ربط رواد الأعمال بشركات تطوير البرمجيات في المملكة العربية السعودية.
 
@@ -517,11 +510,11 @@ ${roleSpecificText}
 
 مع تحيات،
 فريق منصة لينكتك`
-      );
+    };
 
     // إرسال البريد الإلكتروني
-    const response = await mailerSend.email.send(emailParams);
-    console.log("تم إرسال بريد الترحيب بنجاح:", response);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("تم إرسال بريد الترحيب بنجاح:", info.messageId);
     return true;
   } catch (error) {
     console.error("فشل في إرسال بريد الترحيب:", error);

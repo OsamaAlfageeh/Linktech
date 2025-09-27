@@ -3733,7 +3733,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               const companyProfile = await storage.getCompanyProfile(offer.companyId);
               const companyUser = await storage.getUser(companyProfile?.userId || 0);
               
-              // إذا كان العرض مقبول، نكشف معلومات الشركة (حتى لو لم يتم دفع العربون بعد)
+              // إذا كان العرض مقبول، نكشف معلومات الشركة (حتى لو لم يتم دفع عمولة المنصة بعد)
               if (offer.status === 'accepted') {
                 return {
                   ...offer,
@@ -3744,7 +3744,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   companyEmail: companyUser?.email,
                   companyUsername: companyUser?.username,
                   companyUserId: companyUser?.id,
-                  companyContactRevealed: offer.depositPaid // كشف معلومات التواصل فقط بعد دفع العربون
+                  companyContactRevealed: offer.depositPaid // كشف معلومات التواصل فقط بعد دفع عمولة المنصة
                 };
               }
               
@@ -3936,11 +3936,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'Only the project owner can accept offers' });
       }
       
-      // حساب قيمة العربون (2.5% من قيمة العرض)
+      // حساب قيمة عمولة المنصة (2.5% من قيمة العرض)
       const amount = parseInt(offer.amount.replace(/[^0-9]/g, ''));
       const depositAmount = Math.round(amount * 0.025).toString();
       
-      // لا نقوم بقبول العرض قبل دفع العربون
+      // لا نقوم بقبول العرض قبل دفع عمولة المنصة
       // نعيد فقط معلومات الدفع المطلوبة لفتح نافذة الدفع في الواجهة الأمامية
       res.json({
         offerId,
@@ -3960,10 +3960,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = req.user as any;
       const offerId = parseInt(req.params.id);
-      const { paymentId, depositAmount } = req.body;
+      const { depositAmount } = req.body;
       
-      if (!paymentId || !depositAmount) {
-        return res.status(400).json({ message: 'Payment ID and deposit amount are required' });
+      if (!depositAmount) {
+        return res.status(400).json({ message: 'Deposit amount is required' });
       }
       
       // تحقق من أن العرض موجود
@@ -3987,8 +3987,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (offer.depositPaid) {
         return res.status(400).json({ message: 'Deposit already paid for this offer' });
       }
+
+      // إنشاء فاتورة الدفع مع Moyasar
+      console.log('🔍 Debug - MOYASAR_SECRET_KEY exists:', !!process.env.MOYASAR_SECRET_KEY);
+      console.log('🔍 Debug - MOYASAR_SECRET_KEY value:', process.env.MOYASAR_SECRET_KEY ? 'SET' : 'NOT SET');
       
-      // تسجيل دفع العربون
+      if (process.env.MOYASAR_SECRET_KEY || 'sk_live_GzsAh9YLrxwrJP') {
+        try {
+          const MoyasarService = (await import('./services/moyasarService')).default;
+          const moyasarService = new MoyasarService();
+          
+          // إنشاء فاتورة للدفع
+          console.log('🔍 Debug - depositAmount received:', depositAmount);
+          console.log('🔍 Debug - depositAmount type:', typeof depositAmount);
+          console.log('🔍 Debug - parseFloat(depositAmount):', parseFloat(depositAmount));
+          
+          const invoice = await moyasarService.createInvoice(
+            parseFloat(depositAmount),
+            `عمولة المنصة - عرض ${offerId}`,
+            `${process.env.FRONTEND_URL}/payment/success?offerId=${offerId}`,
+            offerId,
+            offer.projectId
+          );
+          
+          console.log('✅ Moyasar invoice created successfully:', invoice.id);
+          
+          // إرجاع رابط الدفع للواجهة الأمامية
+          return res.json({
+            success: true,
+            invoiceId: invoice.id,
+            paymentUrl: invoice.url,
+            message: 'تم إنشاء فاتورة الدفع بنجاح'
+          });
+          
+        } catch (moyasarError: any) {
+          console.error('❌ Moyasar invoice creation failed:', moyasarError);
+          return res.status(400).json({
+            message: moyasarError.message || 'فشل في إنشاء فاتورة الدفع'
+          });
+        }
+      } else {
+        console.log('⚠️ Moyasar not configured, using test mode');
+      }
+      
+      // تسجيل دفع عمولة المنصة
       const updatedOffer = await storage.setProjectOfferDepositPaid(offerId, depositAmount);
       
       // اعتبار العرض مقبولاً بعد الدفع
@@ -4002,38 +4044,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companyUser = company ? await storage.getUser(company.userId) : null;
       const projectOwner = await storage.getUser(project.userId);
       
-      // إنشاء إشعار للشركة بدفع العربون
+      // إنشاء إشعار للشركة بدفع عمولة المنصة
       if (companyUser) {
         try {
           await storage.createNotification({
             userId: companyUser.id,
             type: 'project',
-            title: 'تم دفع العربون',
-            content: `تم دفع العربون لمشروع "${project.title}". يمكنك الآن بدء العمل على المشروع.`,
+            title: 'تم دفع عمولة المنصة',
+            content: `تم دفع عمولة المنصة لمشروع "${project.title}". يمكنك الآن بدء العمل على المشروع.`,
             actionUrl: `/projects/${project.id}`,
             metadata: JSON.stringify({ projectId: project.id, offerId })
           });
           
-          console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بدفع العربون`);
+          console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بدفع عمولة المنصة`);
         } catch (notificationError) {
-          console.error('خطأ في إنشاء إشعار دفع العربون للشركة:', notificationError);
+          console.error('خطأ في إنشاء إشعار دفع عمولة المنصة للشركة:', notificationError);
         }
       }
       
-      // إنشاء إشعار لصاحب المشروع بتأكيد دفع العربون
+      // إنشاء إشعار لصاحب المشروع بتأكيد دفع عمولة المنصة
       try {
         await storage.createNotification({
           userId: project.userId,
           type: 'project',
-          title: 'تم تأكيد دفع العربون',
-          content: `تم تأكيد دفع العربون لمشروع "${project.title}". يمكنك الآن التواصل مع الشركة لبدء العمل.`,
+          title: 'تم تأكيد دفع عمولة المنصة',
+          content: `تم تأكيد دفع عمولة المنصة لمشروع "${project.title}". يمكنك الآن التواصل مع الشركة لبدء العمل.`,
           actionUrl: `/projects/${project.id}`,
           metadata: JSON.stringify({ projectId: project.id, offerId })
         });
         
-        console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتأكيد دفع العربون`);
+        console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتأكيد دفع عمولة المنصة`);
       } catch (notificationError) {
-        console.error('خطأ في إنشاء إشعار تأكيد دفع العربون لصاحب المشروع:', notificationError);
+        console.error('خطأ في إنشاء إشعار تأكيد دفع عمولة المنصة لصاحب المشروع:', notificationError);
       }
       
       // إنشاء رسالة إلى الشركة تحتوي على تفاصيل التواصل
@@ -4055,7 +4097,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (!hasAcceptanceMessage) {
           await storage.createMessage({
-            content: `تم قبول عرضك على مشروع "${project.title}" ودفع العربون. يمكنك التواصل مع ${projectOwner.name} عبر البريد الإلكتروني: ${projectOwner.email}`,
+            content: `تم قبول عرضك على مشروع "${project.title}" ودفع عمولة المنصة. يمكنك التواصل مع ${projectOwner.name} عبر البريد الإلكتروني: ${projectOwner.email}`,
             fromUserId: projectOwner.id,
             toUserId: companyUser.id,
             projectId: project.id
@@ -4074,7 +4116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const notification = JSON.stringify({
             type: "offer_updated",
             offerId: offerId,
-            message: "تم تحديث العرض وكشف معلومات الشركة بعد دفع العربون"
+            message: "تم تحديث العرض وكشف معلومات الشركة بعد دفع عمولة المنصة"
           });
           
           projectOwnerConnections.forEach(client => {
@@ -4091,7 +4133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             type: "offer_accepted_paid",
             offerId: offerId,
             projectId: project.id,
-            message: `تم قبول عرضك على المشروع "${project.title}" ودفع العربون`
+            message: `تم قبول عرضك على المشروع "${project.title}" ودفع عمولة المنصة`
           });
           
           companyConnections.forEach(client => {

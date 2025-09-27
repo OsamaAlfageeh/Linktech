@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Loader2, CreditCard } from "lucide-react";
+import { Loader2, CreditCard, CheckCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { 
@@ -62,11 +62,13 @@ export function PaymentDialog({
   const [paymentError, setPaymentError] = useState<string | null>(null);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   
-  // بيانات البطاقة
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiryDate, setExpiryDate] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [cardName, setCardName] = useState("");
+  // Debug: Log offer data when component mounts or offer changes
+  useEffect(() => {
+    console.log("PaymentDialog - offer received:", offer);
+    console.log("PaymentDialog - offer.id:", offer?.id);
+  }, [offer]);
+  
+  // Card-related state removed - using Moyasar invoice system
 
   // حساب مبلغ عمولة المنصة (2.5% من قيمة العرض) إذا لم يكن محدداً بالفعل
   const depositAmount = offer.depositAmount || 
@@ -77,120 +79,90 @@ export function PaymentDialog({
     if (!isOpen) {
       setPaymentError(null);
       setPaymentSuccess(false);
-      setCardNumber("");
-      setExpiryDate("");
-      setCvv("");
-      setCardName("");
     }
   }, [isOpen]);
 
-  // تنسيق رقم البطاقة أثناء الكتابة
-  const formatCardNumber = (value: string) => {
-    const v = value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
-    const matches = v.match(/\d{4,16}/g);
-    const match = matches && matches[0] || '';
-    const parts = [];
-    
-    for (let i = 0, len = match.length; i < len; i += 4) {
-      parts.push(match.substring(i, i + 4));
-    }
-    
-    if (parts.length) {
-      return parts.join(' ');
-    } else {
-      return value;
-    }
-  };
-  
-  // تنسيق تاريخ الانتهاء
-  const formatExpiryDate = (value: string) => {
-    // إزالة أي شيء ما عدا الأرقام
-    const v = value.replace(/[^0-9]/g, '');
-    
-    // إذا كان المستخدم قام بحذف آخر رقم عند "/"، نعود للنص دون "/"
-    if (value.endsWith('/')) {
-      return value.substring(0, value.length - 1);
-    }
-    
-    // تنسيق MM/YY
-    if (v.length >= 1 && v.length <= 2) {
-      return v;
-    } else if (v.length > 2) {
-      // إضافة "/" بعد أول رقمين
-      return `${v.substring(0, 2)}/${v.substring(2, 4)}`;
-    }
-    
-    return value;
-  };
-  
-  // التحقق من صلاحية البطاقة
-  const isValidCardDetails = () => {
-    const cleanCardNumber = cardNumber.replace(/\s+/g, '');
-    
-    // التحقق من رقم البطاقة (يجب أن يكون 16 رقم)
-    if (!/^\d{16}$/.test(cleanCardNumber)) {
-      setPaymentError("رقم البطاقة يجب أن يكون 16 رقم");
-      return false;
-    }
-    
-    // التحقق من تاريخ الانتهاء (MM/YY)
-    if (!/^\d{2}\/\d{2}$/.test(expiryDate)) {
-      setPaymentError("صيغة تاريخ الانتهاء غير صحيحة، يجب أن تكون MM/YY");
-      return false;
-    }
-    
-    // التحقق من الشهر (01-12)
-    const month = parseInt(expiryDate.substring(0, 2));
-    if (month < 1 || month > 12) {
-      setPaymentError("الشهر يجب أن يكون بين 01 و 12");
-      return false;
-    }
-    
-    // التحقق من السنة (مقارنة بالسنة الحالية)
-    const currentYear = new Date().getFullYear() % 100; // آخر رقمين من السنة الحالية
-    const year = parseInt(expiryDate.substring(3, 5));
-    
-    if (year < currentYear) {
-      setPaymentError("البطاقة منتهية الصلاحية");
-      return false;
-    }
-    
-    // التحقق من رمز التحقق CVV (3-4 أرقام)
-    if (!/^\d{3,4}$/.test(cvv)) {
-      setPaymentError("رمز التحقق يجب أن يكون 3 أو 4 أرقام");
-      return false;
-    }
-    
-    // التحقق من اسم حامل البطاقة
-    if (cardName.trim().length < 3) {
-      setPaymentError("يرجى إدخال اسم حامل البطاقة بشكل صحيح");
-      return false;
-    }
-    
-    return true;
-  };
+  // Card formatting and validation functions removed - using Moyasar invoice system
 
   // معالجة تقديم نموذج الدفع
-  const handlePaymentSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePaymentSubmit = async () => {
     setPaymentError(null);
-    
-    // التحقق من البيانات سيقوم بتعيين رسالة الخطأ تلقائياً
-    if (!isValidCardDetails()) {
-      return;
-    }
-    
     setIsLoading(true);
     
     try {
-      // في بيئة الإنتاج، هنا سيتم إرسال البيانات لواجهة برمجة تطبيقات ميسر
-      // لكن لأغراض العرض التوضيحي سنقوم بمحاكاة نجاح عملية الدفع
-
-      // نعتبر أن الدفع نجح إذا كان رقم البطاقة هو رقم الاختبار
-      const isTestCard = cardNumber.replace(/\s+/g, '') === '4111111111111111';
+      // Always use Moyasar for real payments
+      await handleMoyasarPayment();
       
-      if (!isTestCard) {
-        throw new Error("فشل الدفع. للتجربة، استخدم رقم البطاقة 4111111111111111");
+    } catch (error: any) {
+      console.error('Payment error:', error);
+      setPaymentError(error.message || "حدث خطأ أثناء معالجة الدفع");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleMoyasarPayment = async () => {
+    try {
+      // Debug: Check if offer and offer.id exist
+      console.log("Debug - Moyasar offer object:", offer);
+      console.log("Debug - Moyasar offer.id:", offer.id);
+      
+      if (!offer) {
+        throw new Error("خطأ: لم يتم العثور على بيانات العرض");
+      }
+      
+      if (!offer.id) {
+        console.error("Moyasar Offer ID is missing:", offer);
+        throw new Error("خطأ: معرف العرض غير موجود. يرجى المحاولة مرة أخرى");
+      }
+      
+      // إنشاء فاتورة الدفع مع Moyasar
+      const res = await apiRequest("POST", `/api/offers/${offer.id}/pay-deposit`, {
+        depositAmount
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "فشل في إنشاء فاتورة الدفع");
+      }
+      
+      const data = await res.json();
+      console.log("استجابة إنشاء فاتورة الدفع:", data);
+      
+      if (data.success && data.paymentUrl) {
+        // إعادة توجيه المستخدم إلى صفحة الدفع في Moyasar
+        window.open(data.paymentUrl, '_blank');
+        
+        toast({
+          title: "تم إنشاء فاتورة الدفع",
+          description: "سيتم فتح صفحة الدفع في نافذة جديدة. بعد إتمام الدفع، ستظهر معلومات التواصل مع الشركة.",
+        });
+        
+        // إغلاق نافذة الدفع
+        onClose();
+      } else {
+        throw new Error("فشل في إنشاء فاتورة الدفع");
+      }
+      
+    } catch (error: any) {
+      console.error('Moyasar payment error:', error);
+      throw new Error(error.message || "فشل في معالجة الدفع مع Moyasar");
+    }
+  };
+
+  const handleTestPayment = async () => {
+    try {
+      // Debug: Check if offer and offer.id exist
+      console.log("Debug - offer object:", offer);
+      console.log("Debug - offer.id:", offer.id);
+      
+      if (!offer) {
+        throw new Error("خطأ: لم يتم العثور على بيانات العرض");
+      }
+      
+      if (!offer.id) {
+        console.error("Offer ID is missing:", offer);
+        throw new Error("خطأ: معرف العرض غير موجود. يرجى المحاولة مرة أخرى");
       }
 
       // محاكاة تأخير الشبكة
@@ -319,79 +291,53 @@ export function PaymentDialog({
             <Button onClick={() => setPaymentError(null)}>إعادة المحاولة</Button>
           </div>
         ) : (
-          <form onSubmit={handlePaymentSubmit}>
+          <div>
             <Card className="mb-4 border-2 border-primary/10">
               <CardHeader className="bg-primary/5">
                 <CardTitle className="flex items-center justify-between">
-                  <span>بطاقة الدفع</span>
+                  <span>دفع عمولة المنصة</span>
                   <CreditCard className="h-5 w-5 text-primary" />
                 </CardTitle>
                 <CardDescription>
-                  أدخل بيانات بطاقتك لإتمام عملية الدفع
+                  سيتم توجيهك إلى صفحة آمنة لإتمام عملية الدفع
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-4 space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="cardName">الاسم على البطاقة</Label>
-                  <Input 
-                    id="cardName" 
-                    placeholder="محمد عبدالله" 
-                    value={cardName}
-                    onChange={(e) => setCardName(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="cardNumber">رقم البطاقة</Label>
-                  <Input 
-                    id="cardNumber" 
-                    placeholder="0000 0000 0000 0000" 
-                    value={cardNumber}
-                    onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                    maxLength={19}
-                    required
-                  />
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="expiryDate">تاريخ الانتهاء</Label>
-                    <Input 
-                      id="expiryDate" 
-                      placeholder="MM/YY" 
-                      value={expiryDate}
-                      onChange={(e) => setExpiryDate(formatExpiryDate(e.target.value))}
-                      maxLength={5}
-                      required
-                    />
+              <CardContent className="p-6 text-center">
+                <div className="mb-4">
+                  <div className="text-2xl font-bold text-primary mb-2">
+                    {depositAmount} ريال سعودي
                   </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="cvv">رمز التحقق (CVV)</Label>
-                    <Input 
-                      id="cvv" 
-                      placeholder="123" 
-                      value={cvv}
-                      onChange={(e) => setCvv(e.target.value.replace(/[^0-9]/g, ''))}
-                      maxLength={4}
-                      required
-                    />
+                  <p className="text-gray-600">مبلغ عمولة المنصة (2.5% من قيمة العرض)</p>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex items-center justify-center text-sm text-gray-500">
+                    <CreditCard className="h-4 w-4 ml-2" />
+                    <span>دفع آمن ومحمي بواسطة Moyasar</span>
+                  </div>
+                  <div className="flex items-center justify-center text-sm text-gray-500">
+                    <CheckCircle className="h-4 w-4 ml-2 text-green-500" />
+                    <span>معتمد من البنك المركزي السعودي</span>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter className="bg-primary/5 flex justify-between p-4">
-                <div className="text-sm text-primary font-semibold">
-                  المبلغ: {depositAmount} ريال سعودي
-                </div>
-                <Button type="submit" disabled={isLoading}>
+              <CardFooter className="bg-primary/5 flex justify-center p-4">
+                <Button 
+                  onClick={handlePaymentSubmit} 
+                  disabled={isLoading}
+                  className="w-full"
+                  size="lg"
+                >
                   {isLoading ? (
                     <span className="flex items-center">
                       <Loader2 className="ml-2 h-4 w-4 animate-spin" />
-                      جاري الدفع...
+                      جاري إنشاء فاتورة الدفع...
                     </span>
                   ) : (
-                    <span>إتمام الدفع</span>
+                    <span className="flex items-center">
+                      <CreditCard className="ml-2 h-4 w-4" />
+                      المتابعة للدفع
+                    </span>
                   )}
                 </Button>
               </CardFooter>
@@ -399,9 +345,9 @@ export function PaymentDialog({
             
             <div className="text-sm text-gray-500 mt-4 p-4 bg-gray-50 rounded-lg">
               <p>ملاحظة: سيتم خصم هذا المبلغ من القيمة الإجمالية للعقد مع الشركة.</p>
-              <p className="mt-2 font-medium">بيانات بطاقة الاختبار: <span className="text-primary font-bold">4111111111111111</span>، أي تاريخ انتهاء مستقبلي، وأي رمز تحقق من ثلاثة أرقام.</p>
+              <p className="mt-2 font-medium">الدفع آمن ومحمي بواسطة <span className="text-primary font-bold">Moyasar</span> - مزود الدفع الرائد في المملكة العربية السعودية.</p>
             </div>
-          </form>
+          </div>
         )}
         
         <DialogFooter className="mt-4">

@@ -17,7 +17,108 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
+
+// Content filter function to prevent contact information in offers
+const checkForProhibitedContent = (text: string): { isValid: boolean; message: string } => {
+  const normalizedText = text.toLowerCase().replace(/\s+/g, '');
+  
+  // Phone number patterns (Arabic and English digits)
+  const phonePatterns = [
+    /[٠١٢٣٤٥٦٧٨٩]{2,}/g,  // Arabic digits (2 or more)
+    /\d{2,}/g,              // English digits (2 or more)
+  ];
+  
+  // Email pattern
+  const emailPattern = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  
+  // Website/URL patterns
+  const urlPatterns = [
+    /https?:\/\/[^\s]+/g,
+    /www\.[^\s]+/g,
+    /[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/g, // domain patterns
+  ];
+  
+  // Social media patterns
+  const socialPatterns = [
+    /@[a-zA-Z0-9_]+/g,      // @username
+    /instagram\.com/i,
+    /facebook\.com/i,
+    /twitter\.com/i,
+    /linkedin\.com/i,
+    /whatsapp/i,
+    /telegram/i,
+    /snapchat/i,
+  ];
+  
+  // Contact keywords (Arabic and English)
+  const contactKeywords = [
+    /واتساب|whatsapp/i,
+    /تيليجرام|telegram/i,
+    /انستقرام|instagram/i,
+    /فيسبوك|facebook/i,
+    /تويتر|twitter/i,
+    /لينكد إن|linkedin/i,
+    /سناب شات|snapchat/i,
+    /اتصل|call/i,
+    /تواصل|contact/i,
+    /رقم|number/i,
+    /هاتف|phone/i,
+    /جوال|mobile/i,
+    /ايميل|email/i,
+    /بريد|mail/i,
+  ];
+  
+  // Check for phone numbers
+  for (const pattern of phonePatterns) {
+    if (pattern.test(text)) {
+      return {
+        isValid: false,
+        message: "لا يُسمح بإدراج أرقام الهواتف في عرض الشركة"
+      };
+    }
+  }
+  
+  // Check for email addresses
+  if (emailPattern.test(text)) {
+    return {
+      isValid: false,
+      message: "لا يُسمح بإدراج عناوين البريد الإلكتروني في عرض الشركة"
+    };
+  }
+  
+  // Check for URLs/websites
+  for (const pattern of urlPatterns) {
+    if (pattern.test(text)) {
+      return {
+        isValid: false,
+        message: "لا يُسمح بإدراج روابط المواقع في عرض الشركة"
+      };
+    }
+  }
+  
+  // Check for social media
+  for (const pattern of socialPatterns) {
+    if (pattern.test(text)) {
+      return {
+        isValid: false,
+        message: "لا يُسمح بإدراج حسابات وسائل التواصل الاجتماعي في عرض الشركة"
+      };
+    }
+  }
+  
+  // Check for contact keywords
+  for (const pattern of contactKeywords) {
+    if (pattern.test(text)) {
+      return {
+        isValid: false,
+        message: "لا يُسمح بإدراج معلومات التواصل المباشر في عرض الشركة"
+      };
+    }
+  }
+  
+  return { isValid: true, message: "" };
+};
 
 // تعريف نموذج التحقق من صحة البيانات
 const offerSchema = z.object({
@@ -29,10 +130,16 @@ const offerSchema = z.object({
     .transform((val) => val.replace(/,/g, "")), // إزالة الفواصل للتخزين
   duration: z.string()
     .min(1, "مدة التنفيذ مطلوبة")
-    .max(100, "مدة التنفيذ طويلة جداً"),
+    .max(100, "مدة التنفيذ طويلة جداً")
+    .refine((val) => checkForProhibitedContent(val).isValid, {
+      message: "مدة التنفيذ تحتوي على محتوى غير مسموح"
+    }),
   description: z.string()
     .min(20, "وصف العرض يجب أن يحتوي على 20 حرف على الأقل")
-    .max(5000, "الوصف طويل جداً، الحد الأقصى 5000 حرف"),
+    .max(5000, "الوصف طويل جداً، الحد الأقصى 5000 حرف")
+    .refine((val) => checkForProhibitedContent(val).isValid, {
+      message: "وصف العرض يحتوي على محتوى غير مسموح"
+    }),
 });
 
 type OfferFormValues = z.infer<typeof offerSchema>;
@@ -100,6 +207,22 @@ export function CreateOfferForm({ projectId, onSuccess }: CreateOfferFormProps) 
         <CardTitle className="text-center">تقديم عرض سعر</CardTitle>
       </CardHeader>
       <CardContent>
+        {/* Content Filter Notice */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <AlertCircle className="h-5 w-5 text-blue-600 ml-2 mt-0.5" />
+            <div className="text-sm text-blue-800">
+              <p className="font-semibold mb-1">ملاحظة مهمة:</p>
+              <p>لا يُسمح بإدراج معلومات التواصل المباشر مثل:</p>
+              <ul className="list-disc list-inside mt-1 space-y-1">
+                <li>أرقام الهواتف أو الجوال</li>
+                <li>عناوين البريد الإلكتروني</li>
+                <li>روابط المواقع أو وسائل التواصل الاجتماعي</li>
+                <li>أي معلومات تؤدي للتواصل خارج المنصة</li>
+              </ul>
+            </div>
+          </div>
+        </div>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
