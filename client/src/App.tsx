@@ -45,6 +45,7 @@ import CompaniesLanding from "@/pages/companies-landing";
 import TestSadiq from "@/pages/test-sadiq";
 import NdaCompletePage from "@/pages/nda-complete";
 import Settings from "@/pages/settings";
+import PaymentSuccessPage from "@/pages/payment/success";
 
 // استيراد صفحات المدونة وصفحات إدارة المدونة
 import BlogIndexPage from "@/pages/blog/index";
@@ -257,6 +258,9 @@ function App() {
           
           {/* صفحة إكمال اتفاقية عدم الإفصاح */}
           <ProtectedRoute path="/nda/:ndaId/complete" component={NdaCompletePage} />
+          
+          {/* صفحة نجاح الدفع */}
+          <Route path="/payment/success" component={PaymentSuccessPage} />
           
           {/* مسار صفحة المستخدم */}
           <Route path="/users/:id" component={UserProfile} />

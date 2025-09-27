@@ -311,7 +311,20 @@ export function OffersList({ projectId, isOwner }: OffersListProps) {
                   </AlertDialogContent>
                 </AlertDialog>
                 
-                <Button variant="outline">
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    if (offer.companyUserId) {
+                      window.location.href = `/messages?userId=${offer.companyUserId}&projectId=${projectId}`;
+                    } else {
+                      toast({
+                        title: "معلومات التواصل غير متاحة",
+                        description: "لا يمكن العثور على معلومات التواصل للشركة. يرجى المحاولة لاحقاً.",
+                        variant: "destructive",
+                      });
+                    }
+                  }}
+                >
                   <MessageSquare className="ml-2 h-4 w-4" />
                   التواصل مع الشركة
                 </Button>

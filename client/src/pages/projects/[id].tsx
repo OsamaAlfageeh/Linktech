@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,7 @@ const ProjectDetails = () => {
   const [_, navigate] = useLocation();
   const auth = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Check for payment success in URL parameters
   useEffect(() => {
@@ -73,8 +74,12 @@ const ProjectDetails = () => {
       // Clean up URL parameters
       const newUrl = window.location.pathname;
       window.history.replaceState({}, '', newUrl);
+      
+      // Refresh project data to show updated offer status
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/offers`] });
     }
-  }, [toast]);
+  }, [toast, projectId, queryClient]);
 
   const {
     data: project,

@@ -136,7 +136,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(generateNdaRoutes);
   // Contact routes integrated above
   
-  // Add webhook endpoint BEFORE JWT middleware to bypass authentication
+  // Payment verification endpoint - NO AUTHENTICATION REQUIRED
+  app.post('/api/payment/verify-success', async (req: Request, res: Response) => {
+    try {
+      const { invoiceId, offerId, projectId } = req.body;
+      
+      console.log('🔍 بدء التحقق من الدفع:', { invoiceId, offerId, projectId });
+      
+      if (!invoiceId) {
+        return res.status(400).json({ 
+          message: 'معرف الفاتورة مطلوب' 
+        });
+      }
+
+      // Verify with Moyasar API
+      const MoyasarService = (await import('./services/moyasarService')).default;
+      const moyasarService = new MoyasarService();
+      
+      let invoice;
+      try {
+        invoice = await moyasarService.getInvoice(invoiceId);
+        console.log('📋 حالة الفاتورة من Moyasar:', invoice.status);
+      } catch (moyasarError: any) {
+        console.error('❌ خطأ في الحصول على الفاتورة من Moyasar:', moyasarError);
+        return res.status(500).json({ 
+          message: 'فشل في التحقق من حالة الدفع مع Moyasar' 
+        });
+      }
+
+      if (invoice.status === 'paid') {
+        console.log(`✅ تم تأكيد الدفع للفاتورة: ${invoiceId}`);
+        
+        // Get offer details - try from request first, then from invoice metadata
+        let finalOfferId = offerId;
+        if (!finalOfferId && invoice.metadata?.offer_id) {
+          finalOfferId = invoice.metadata.offer_id;
+          console.log('📋 تم استخراج offer_id من metadata:', finalOfferId);
+        }
+        
+        if (!finalOfferId) {
+          return res.status(400).json({ 
+            message: 'معرف العرض مطلوب للتحقق من الدفع' 
+          });
+        }
+        
+        const offer = await storage.getProjectOffer(parseInt(finalOfferId));
+        if (!offer) {
+          return res.status(404).json({ 
+            message: 'العرض غير موجود' 
+          });
+        }
+
+        // Check if already processed
+        if (offer.depositPaid) {
+          console.log(`ℹ️ العرض ${finalOfferId} تم دفع عمولته مسبقاً`);
+          return res.json({
+            success: true,
+            message: 'تم دفع عمولة المنصة مسبقاً',
+            offerId: parseInt(finalOfferId),
+            projectId: offer.projectId,
+            amount: offer.depositAmount,
+            alreadyProcessed: true
+          });
+        }
+
+        // Process payment
+        const amountInSAR = invoice.amount / 100; // Convert halalas to SAR
+        
+        // تسجيل دفع عمولة المنصة
+        const updatedOffer = await storage.setProjectOfferDepositPaid(parseInt(finalOfferId), amountInSAR.toString());
+        
+        // اعتبار العرض مقبولاً بعد الدفع
+        await storage.updateProjectOfferStatus(parseInt(finalOfferId), 'accepted');
+        
+        // كشف معلومات التواصل الخاصة بالشركة بعد الدفع
+        const revealedOffer = await storage.setProjectOfferContactRevealed(parseInt(finalOfferId));
+        
+        // Get project and company details for notifications
+        const project = await storage.getProject(offer.projectId);
+        const company = await storage.getCompanyProfile(offer.companyId);
+        const companyUser = company ? await storage.getUser(company.userId) : null;
+        const projectOwner = await storage.getUser(project.userId);
+        
+        // Create notifications
+        if (companyUser) {
+          try {
+            await storage.createNotification({
+              userId: companyUser.id,
+              type: 'project',
+              title: 'تم دفع عمولة المنصة',
+              content: `تم دفع عمولة المنصة لمشروع "${project.title}". يمكنك الآن بدء العمل على المشروع.`,
+              actionUrl: `/projects/${project.id}`,
+              metadata: JSON.stringify({ projectId: project.id, offerId: parseInt(finalOfferId) })
+            });
+            console.log(`✅ تم إنشاء إشعار للشركة ${companyUser.id} بدفع عمولة المنصة`);
+          } catch (notificationError) {
+            console.error('خطأ في إنشاء إشعار دفع عمولة المنصة للشركة:', notificationError);
+          }
+        }
+        
+        if (projectOwner) {
+          try {
+            await storage.createNotification({
+              userId: project.userId,
+              type: 'project',
+              title: 'تم تأكيد دفع عمولة المنصة',
+              content: `تم تأكيد دفع عمولة المنصة لمشروع "${project.title}". يمكنك الآن التواصل مع الشركة لبدء العمل.`,
+              actionUrl: `/projects/${project.id}`,
+              metadata: JSON.stringify({ projectId: project.id, offerId: parseInt(finalOfferId) })
+            });
+            console.log(`✅ تم إنشاء إشعار لصاحب المشروع ${project.userId} بتأكيد دفع عمولة المنصة`);
+          } catch (notificationError) {
+            console.error('خطأ في إنشاء إشعار تأكيد دفع عمولة المنصة لصاحب المشروع:', notificationError);
+          }
+        }
+        
+        // Update project status
+        await storage.updateProject(project.id, { status: 'in-progress' });
+        
+        // Send WebSocket notifications
+        if (company && companyUser) {
+          // Notify project owner
+          const projectOwnerConnections = clients.get(project.userId);
+          if (projectOwnerConnections) {
+            const notification = JSON.stringify({
+              type: "offer_updated",
+              offerId: parseInt(finalOfferId),
+              message: "تم تحديث العرض وكشف معلومات الشركة بعد دفع عمولة المنصة"
+            });
+            
+            projectOwnerConnections.forEach(client => {
+              if (client.readyState === OPEN) {
+                client.send(notification);
+              }
+            });
+          }
+          
+          // Notify company
+          const companyConnections = clients.get(companyUser.id);
+          if (companyConnections) {
+            const notification = JSON.stringify({
+              type: "offer_accepted_paid",
+              offerId: parseInt(finalOfferId),
+              projectId: project.id,
+              message: `تم قبول عرضك على المشروع "${project.title}" ودفع عمولة المنصة`
+            });
+            
+            companyConnections.forEach(client => {
+              if (client.readyState === OPEN) {
+                client.send(notification);
+              }
+            });
+          }
+        }
+        
+        console.log(`✅ تم معالجة الدفع بنجاح للعرض ${finalOfferId}`);
+        
+        res.json({
+          success: true,
+          message: 'تم التحقق من الدفع ومعالجته بنجاح',
+          offerId: parseInt(finalOfferId),
+          projectId: offer.projectId,
+          amount: amountInSAR,
+          invoiceId: invoiceId
+        });
+        
+      } else {
+        console.log(`❌ الدفع غير مكتمل. الحالة: ${invoice.status}`);
+        res.status(400).json({ 
+          message: `الدفع غير مكتمل. الحالة: ${invoice.status}` 
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('❌ خطأ في التحقق من الدفع:', error);
+      res.status(500).json({ 
+        message: 'حدث خطأ أثناء التحقق من الدفع' 
+      });
+    }
+  });
+
   // Webhook endpoint for Sadiq notifications - NO AUTHENTICATION REQUIRED
   app.post('/api/sadiq/webhook', async (req: Request, res: Response) => {
     try {
@@ -3758,6 +3937,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 companyLogo: null, // إخفاء الشعار
                 companyVerified: companyProfile?.verified || false,
                 companyRating: companyProfile?.rating, // نعرض التقييم لأنه مفيد للمقارنة
+                companyUserId: companyUser?.id, // إضافة معرف المستخدم للسماح بالتواصل
                 companyBlurred: true // علامة للواجهة للإشارة إلى أن المعلومات معمّاة
               };
             })
@@ -4085,18 +4265,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const invoice = await moyasarService.createInvoice(
             parsedAmount,
             `عمولة المنصة - عرض ${offerId}`,
-            `${process.env.FRONTEND_URL}/payment/success?offerId=${offerId}`,
+            `${process.env.FRONTEND_URL}/payment/success`,
             offerId,
             offer.projectId
           );
           
           console.log('✅ Moyasar invoice created successfully:', invoice.id);
           
-          // إرجاع رابط الدفع للواجهة الأمامية
+          // إرجاع رابط الدفع للواجهة الأمامية مع إضافة المعاملات المطلوبة
+          const paymentUrl = new URL(invoice.url);
+          paymentUrl.searchParams.set('invoice_id', invoice.id);
+          paymentUrl.searchParams.set('offer_id', offerId.toString());
+          paymentUrl.searchParams.set('project_id', offer.projectId.toString());
+          
           return res.json({
             success: true,
             invoiceId: invoice.id,
-            paymentUrl: invoice.url,
+            paymentUrl: paymentUrl.toString(),
             message: 'تم إنشاء فاتورة الدفع بنجاح'
           });
           
@@ -4113,8 +4298,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       } else {
         console.log('⚠️ Moyasar not configured, using test mode');
-      }
       
+        // For test mode, process payment immediately
       // تسجيل دفع عمولة المنصة
       const updatedOffer = await storage.setProjectOfferDepositPaid(offerId, depositAmount);
       
@@ -4230,7 +4415,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // إرجاع معلومات العرض المحدثة
-      res.json({
+        return res.json({
         success: true,
         offer: revealedOffer,
         companyContact: companyUser ? {
@@ -4239,7 +4424,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           username: companyUser.username
         } : null
       });
-      
+      }
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Internal server error' });

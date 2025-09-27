@@ -189,7 +189,7 @@ class MoyasarService {
         currency: 'SAR',
         description: description.substring(0, 255), // Limit description length
         callback_url: callbackUrl || `${process.env.FRONTEND_URL}/payment/success`,
-        success_url: projectId ? `${process.env.FRONTEND_URL}/projects/${projectId}?payment=success&offerId=${offerId}` : `${process.env.FRONTEND_URL}/dashboard?payment=success`,
+        success_url: `${process.env.FRONTEND_URL}/payment/success`,
         back_url: projectId ? `${process.env.FRONTEND_URL}/projects/${projectId}` : `${process.env.FRONTEND_URL}/dashboard`,
         expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
         // Add metadata for tracking
@@ -200,16 +200,27 @@ class MoyasarService {
         }
       };
 
-      // Validate URLs before sending (Moyasar requires HTTPS)
-      const urlPattern = /^https:\/\/[^\s/$.?#].[^\s]*$/i;
+      // Validate URLs before sending (Moyasar requires HTTPS in production)
+      const isDevelopment = process.env.NODE_ENV === 'development';
+      const urlPattern = isDevelopment ? /^https?:\/\/[^\s/$.?#].[^\s]*$/i : /^https:\/\/[^\s/$.?#].[^\s]*$/i;
+      
       if (!urlPattern.test(invoiceData.callback_url)) {
-        throw new Error(`Invalid callback URL: ${invoiceData.callback_url}. Moyasar requires HTTPS URLs. Please set FRONTEND_URL to use HTTPS.`);
+        const errorMsg = isDevelopment 
+          ? `Invalid callback URL: ${invoiceData.callback_url}. Please check your FRONTEND_URL configuration.`
+          : `Invalid callback URL: ${invoiceData.callback_url}. Moyasar requires HTTPS URLs in production. Please set FRONTEND_URL to use HTTPS.`;
+        throw new Error(errorMsg);
       }
       if (!urlPattern.test(invoiceData.success_url)) {
-        throw new Error(`Invalid success URL: ${invoiceData.success_url}. Moyasar requires HTTPS URLs. Please set FRONTEND_URL to use HTTPS.`);
+        const errorMsg = isDevelopment 
+          ? `Invalid success URL: ${invoiceData.success_url}. Please check your FRONTEND_URL configuration.`
+          : `Invalid success URL: ${invoiceData.success_url}. Moyasar requires HTTPS URLs in production. Please set FRONTEND_URL to use HTTPS.`;
+        throw new Error(errorMsg);
       }
       if (!urlPattern.test(invoiceData.back_url)) {
-        throw new Error(`Invalid back URL: ${invoiceData.back_url}. Moyasar requires HTTPS URLs. Please set FRONTEND_URL to use HTTPS.`);
+        const errorMsg = isDevelopment 
+          ? `Invalid back URL: ${invoiceData.back_url}. Please check your FRONTEND_URL configuration.`
+          : `Invalid back URL: ${invoiceData.back_url}. Moyasar requires HTTPS URLs in production. Please set FRONTEND_URL to use HTTPS.`;
+        throw new Error(errorMsg);
       }
 
       // Create Basic Auth header correctly
