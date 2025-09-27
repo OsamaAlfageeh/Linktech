@@ -200,6 +200,18 @@ class MoyasarService {
         }
       };
 
+      // Validate URLs before sending
+      const urlPattern = /^https:\/\/[^\s/$.?#].[^\s]*$/i;
+      if (!urlPattern.test(invoiceData.callback_url)) {
+        throw new Error(`Invalid callback URL: ${invoiceData.callback_url}`);
+      }
+      if (!urlPattern.test(invoiceData.success_url)) {
+        throw new Error(`Invalid success URL: ${invoiceData.success_url}`);
+      }
+      if (!urlPattern.test(invoiceData.back_url)) {
+        throw new Error(`Invalid back URL: ${invoiceData.back_url}`);
+      }
+
       // Create Basic Auth header correctly
       const authString = Buffer.from(`${this.apiKey}:`).toString('base64');
       
