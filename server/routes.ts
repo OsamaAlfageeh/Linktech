@@ -3956,6 +3956,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Debug endpoint for Moyasar configuration (remove in production)
+  app.get('/api/debug/moyasar-config', async (req: Request, res: Response) => {
+    try {
+      const config = {
+        moyasarKeyExists: !!process.env.MOYASAR_SECRET_KEY,
+        moyasarKeyLength: process.env.MOYASAR_SECRET_KEY?.length || 0,
+        moyasarKeyPrefix: process.env.MOYASAR_SECRET_KEY?.substring(0, 10) || 'N/A',
+        frontendUrl: process.env.FRONTEND_URL,
+        nodeEnv: process.env.NODE_ENV,
+        timestamp: new Date().toISOString()
+      };
+      
+      console.log('🔍 Moyasar Config Debug:', config);
+      res.json(config);
+    } catch (error) {
+      console.error('Debug config error:', error);
+      res.status(500).json({ error: 'Failed to get config' });
+    }
+  });
+
   app.post('/api/offers/:id/pay-deposit', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;
@@ -3989,21 +4009,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       // إنشاء فاتورة الدفع مع Moyasar
-      console.log('🔍 Debug - MOYASAR_SECRET_KEY exists:', !!process.env.MOYASAR_SECRET_KEY);
-      console.log('🔍 Debug - MOYASAR_SECRET_KEY value:', process.env.MOYASAR_SECRET_KEY ? 'SET' : 'NOT SET');
+      console.log('🔍 Payment Route Debug:');
+      console.log('  - MOYASAR_SECRET_KEY exists:', !!process.env.MOYASAR_SECRET_KEY);
+      console.log('  - MOYASAR_SECRET_KEY length:', process.env.MOYASAR_SECRET_KEY?.length || 0);
+      console.log('  - MOYASAR_SECRET_KEY starts with:', process.env.MOYASAR_SECRET_KEY?.substring(0, 10) || 'N/A');
+      console.log('  - FRONTEND_URL:', process.env.FRONTEND_URL);
+      console.log('  - NODE_ENV:', process.env.NODE_ENV);
+      console.log('  - Offer ID:', offerId);
+      console.log('  - Project ID:', offer.projectId);
+      console.log('  - Deposit Amount:', depositAmount);
+      console.log('  - Deposit Amount Type:', typeof depositAmount);
+      console.log('  - Parsed Amount:', parseFloat(depositAmount));
       
       if (process.env.MOYASAR_SECRET_KEY || 'sk_live_GzsAh9YLrxwrJP') {
         try {
           const MoyasarService = (await import('./services/moyasarService')).default;
           const moyasarService = new MoyasarService();
           
-          // إنشاء فاتورة للدفع
-          console.log('🔍 Debug - depositAmount received:', depositAmount);
-          console.log('🔍 Debug - depositAmount type:', typeof depositAmount);
-          console.log('🔍 Debug - parseFloat(depositAmount):', parseFloat(depositAmount));
+          // Validate deposit amount before creating invoice
+          const parsedAmount = parseFloat(depositAmount);
+          if (isNaN(parsedAmount) || parsedAmount <= 0) {
+            console.error('❌ Invalid deposit amount:', depositAmount);
+            return res.status(400).json({
+              message: 'Invalid deposit amount'
+            });
+          }
           
           const invoice = await moyasarService.createInvoice(
-            parseFloat(depositAmount),
+            parsedAmount,
             `عمولة المنصة - عرض ${offerId}`,
             `${process.env.FRONTEND_URL}/payment/success?offerId=${offerId}`,
             offerId,
@@ -4021,9 +4054,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           });
           
         } catch (moyasarError: any) {
-          console.error('❌ Moyasar invoice creation failed:', moyasarError);
+          console.error('❌ Moyasar invoice creation failed:');
+          console.error('  - Error message:', moyasarError.message);
+          console.error('  - Error stack:', moyasarError.stack);
+          console.error('  - Full error:', moyasarError);
+          
           return res.status(400).json({
-            message: moyasarError.message || 'فشل في إنشاء فاتورة الدفع'
+            message: moyasarError.message || 'فشل في إنشاء فاتورة الدفع',
+            error: process.env.NODE_ENV === 'development' ? moyasarError.message : undefined
           });
         }
       } else {

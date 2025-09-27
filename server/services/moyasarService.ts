@@ -164,6 +164,18 @@ class MoyasarService {
     projectId?: number
   ) {
     try {
+      // Validate API key
+      if (!this.apiKey) {
+        console.error('❌ Moyasar API key is not configured');
+        throw new Error('Moyasar API key is not configured');
+      }
+
+      // Validate amount
+      if (!amount || amount <= 0) {
+        console.error('❌ Invalid amount:', amount);
+        throw new Error('Invalid payment amount');
+      }
+
       const invoiceData = {
         amount: Math.round(amount * 100), // Convert SAR to halalas
         currency: 'SAR',
@@ -175,12 +187,19 @@ class MoyasarService {
       };
 
       // Create Basic Auth header correctly
-      
       const authString = Buffer.from(`${this.apiKey}:`).toString('base64');
-      console.log('🔍 Debug - Authorization header:', `Basic ${authString}`);
-      console.log('🔍 Debug - Secret key:', this.apiKey);
-      console.log('🔍 Debug - Invoice data:', invoiceData);
-      console.log('🔍 Debug - Base URL:', this.baseURL);
+      
+      console.log('🔍 Moyasar Invoice Creation Debug:');
+      console.log('  - API Key exists:', !!this.apiKey);
+      console.log('  - API Key length:', this.apiKey?.length || 0);
+      console.log('  - API Key starts with:', this.apiKey?.substring(0, 10) || 'N/A');
+      console.log('  - Base URL:', this.baseURL);
+      console.log('  - Amount (SAR):', amount);
+      console.log('  - Amount (halalas):', invoiceData.amount);
+      console.log('  - Description:', description);
+      console.log('  - Callback URL:', invoiceData.callback_url);
+      console.log('  - Success URL:', invoiceData.success_url);
+      console.log('  - Frontend URL:', process.env.FRONTEND_URL);
 
       const response = await axios.post(
         `${this.baseURL}/invoices`,
@@ -190,14 +209,40 @@ class MoyasarService {
             'Authorization': `Basic ${authString}`,
             'Content-Type': 'application/json',
             'Accept': 'application/json'
-          }
+          },
+          timeout: 30000 // 30 second timeout
         }
       );
 
+      console.log('✅ Moyasar invoice created successfully:', response.data);
       return response.data;
     } catch (error: any) {
-      console.error('Moyasar invoice creation error:', error.response?.data || error.message);
-      throw new Error('فشل في إنشاء فاتورة الدفع');
+      console.error('❌ Moyasar invoice creation error:');
+      console.error('  - Error message:', error.message);
+      console.error('  - Error code:', error.code);
+      console.error('  - Response status:', error.response?.status);
+      console.error('  - Response data:', error.response?.data);
+      console.error('  - Request config:', {
+        url: error.config?.url,
+        method: error.config?.method,
+        headers: error.config?.headers
+      });
+      
+      // Provide more specific error messages
+      if (error.response?.status === 401) {
+        throw new Error('Moyasar API key is invalid or expired');
+      } else if (error.response?.status === 400) {
+        const errorMsg = error.response?.data?.message || 'Invalid request parameters';
+        throw new Error(`Moyasar validation error: ${errorMsg}`);
+      } else if (error.response?.status === 403) {
+        throw new Error('Moyasar API access forbidden - check account status');
+      } else if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new Error('Cannot connect to Moyasar API - check network connection');
+      } else if (error.code === 'ETIMEDOUT') {
+        throw new Error('Moyasar API request timed out');
+      }
+      
+      throw new Error(`فشل في إنشاء فاتورة الدفع: ${error.message}`);
     }
   }
 
