@@ -176,14 +176,28 @@ class MoyasarService {
         throw new Error('Invalid payment amount');
       }
 
+      // Ensure amount is at least 1 SAR (100 halalas)
+      const minAmount = 1;
+      if (amount < minAmount) {
+        console.error('❌ Amount too small:', amount);
+        throw new Error(`Minimum amount is ${minAmount} SAR`);
+      }
+
+      // Moyasar requires specific invoice data structure
       const invoiceData = {
         amount: Math.round(amount * 100), // Convert SAR to halalas
         currency: 'SAR',
-        description,
+        description: description.substring(0, 255), // Limit description length
         callback_url: callbackUrl || `${process.env.FRONTEND_URL}/payment/success`,
         success_url: projectId ? `${process.env.FRONTEND_URL}/projects/${projectId}?payment=success&offerId=${offerId}` : `${process.env.FRONTEND_URL}/dashboard?payment=success`,
         back_url: projectId ? `${process.env.FRONTEND_URL}/projects/${projectId}` : `${process.env.FRONTEND_URL}/dashboard`,
-        expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString() // 24 hours from now
+        expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+        // Add metadata for tracking
+        metadata: {
+          offer_id: offerId?.toString(),
+          project_id: projectId?.toString(),
+          platform: 'linktech'
+        }
       };
 
       // Create Basic Auth header correctly
@@ -196,10 +210,14 @@ class MoyasarService {
       console.log('  - Base URL:', this.baseURL);
       console.log('  - Amount (SAR):', amount);
       console.log('  - Amount (halalas):', invoiceData.amount);
-      console.log('  - Description:', description);
+      console.log('  - Description:', invoiceData.description);
+      console.log('  - Description length:', invoiceData.description.length);
       console.log('  - Callback URL:', invoiceData.callback_url);
       console.log('  - Success URL:', invoiceData.success_url);
+      console.log('  - Back URL:', invoiceData.back_url);
+      console.log('  - Expired at:', invoiceData.expired_at);
       console.log('  - Frontend URL:', process.env.FRONTEND_URL);
+      console.log('  - Full invoice data:', JSON.stringify(invoiceData, null, 2));
 
       const response = await axios.post(
         `${this.baseURL}/invoices`,
@@ -222,10 +240,12 @@ class MoyasarService {
       console.error('  - Error code:', error.code);
       console.error('  - Response status:', error.response?.status);
       console.error('  - Response data:', error.response?.data);
+      console.error('  - Response headers:', error.response?.headers);
       console.error('  - Request config:', {
         url: error.config?.url,
         method: error.config?.method,
-        headers: error.config?.headers
+        headers: error.config?.headers,
+        data: error.config?.data
       });
       
       // Provide more specific error messages
@@ -233,6 +253,8 @@ class MoyasarService {
         throw new Error('Moyasar API key is invalid or expired');
       } else if (error.response?.status === 400) {
         const errorMsg = error.response?.data?.message || 'Invalid request parameters';
+        const errorDetails = error.response?.data?.errors || error.response?.data;
+        console.error('  - Validation errors:', errorDetails);
         throw new Error(`Moyasar validation error: ${errorMsg}`);
       } else if (error.response?.status === 403) {
         throw new Error('Moyasar API access forbidden - check account status');

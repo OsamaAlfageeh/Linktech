@@ -3976,6 +3976,58 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint to validate Moyasar invoice data (remove in production)
+  app.post('/api/debug/test-moyasar-invoice', async (req: Request, res: Response) => {
+    try {
+      const { amount, description, offerId, projectId } = req.body;
+      
+      if (!amount) {
+        return res.status(400).json({ error: 'Amount is required' });
+      }
+
+      const MoyasarService = (await import('./services/moyasarService')).default;
+      const moyasarService = new MoyasarService();
+      
+      const invoiceData = {
+        amount: Math.round(parseFloat(amount) * 100),
+        currency: 'SAR',
+        description: description?.substring(0, 255) || 'Test invoice',
+        callback_url: `${process.env.FRONTEND_URL}/payment/success`,
+        success_url: `${process.env.FRONTEND_URL}/dashboard?payment=success`,
+        back_url: `${process.env.FRONTEND_URL}/dashboard`,
+        expired_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        metadata: {
+          offer_id: offerId?.toString(),
+          project_id: projectId?.toString(),
+          platform: 'linktech',
+          test: true
+        }
+      };
+
+      console.log('🧪 Test Invoice Data:', JSON.stringify(invoiceData, null, 2));
+      
+      const invoice = await moyasarService.createInvoice(
+        parseFloat(amount),
+        description || 'Test invoice',
+        `${process.env.FRONTEND_URL}/payment/success`,
+        offerId,
+        projectId
+      );
+      
+      res.json({
+        success: true,
+        invoice,
+        testData: invoiceData
+      });
+    } catch (error: any) {
+      console.error('Test invoice error:', error);
+      res.status(400).json({
+        error: error.message,
+        details: error.response?.data
+      });
+    }
+  });
+
   app.post('/api/offers/:id/pay-deposit', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const user = req.user as any;

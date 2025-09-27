@@ -6,6 +6,10 @@ The Moyasar payment integration works locally but fails in production with error
 فشل في إنشاء فاتورة الدفع (Failed to create payment invoice)
 ```
 
+**Specific Error**: `Moyasar validation error: Data validation failed`
+
+This error indicates that Moyasar is rejecting the invoice data due to validation issues with the request parameters.
+
 ## Common Causes & Solutions
 
 ### 1. Environment Variables Not Set
@@ -68,11 +72,28 @@ FRONTEND_URL=https://yourdomain.com  # Not http://localhost:3000
 - Amount is 0 or negative
 - Amount is not a valid number
 - Amount exceeds Moyasar limits
+- Amount is less than minimum (1 SAR)
 
 **Solution**:
 - Validate amount before API call
 - Ensure amount is in SAR (Saudi Riyal)
 - Check Moyasar transaction limits
+- Minimum amount is 1 SAR (100 halalas)
+
+### 6. Invoice Data Structure Issues
+**Problem**: Invalid invoice data format.
+
+**Common Issues**:
+- Description too long (max 255 characters)
+- Invalid URL format in callback/success URLs
+- Missing required fields
+- Invalid metadata format
+
+**Solution**:
+- Limit description to 255 characters
+- Ensure all URLs are valid HTTPS URLs
+- Include all required fields
+- Use proper metadata structure
 
 ## Debugging Steps
 
@@ -98,7 +119,21 @@ Look for these debug messages in production logs:
 ❌ Moyasar invoice creation error:
 ```
 
-### Step 3: Test API Key Manually
+### Step 3: Test Invoice Creation
+Use the test endpoint to validate invoice data:
+```bash
+# Test invoice creation with specific data
+curl -X POST https://yourdomain.com/api/debug/test-moyasar-invoice \
+  -H "Content-Type: application/json" \
+  -d '{
+    "amount": 10,
+    "description": "Test invoice",
+    "offerId": 7,
+    "projectId": 1
+  }'
+```
+
+### Step 4: Test API Key Manually
 ```bash
 # Test Moyasar API key manually
 curl -X POST https://api.moyasar.com/v1/invoices \
@@ -107,7 +142,11 @@ curl -X POST https://api.moyasar.com/v1/invoices \
   -d '{
     "amount": 100,
     "currency": "SAR",
-    "description": "Test invoice"
+    "description": "Test invoice",
+    "callback_url": "https://yourdomain.com/payment/success",
+    "success_url": "https://yourdomain.com/dashboard?payment=success",
+    "back_url": "https://yourdomain.com/dashboard",
+    "expired_at": "2025-09-28T16:10:17.126Z"
   }'
 ```
 
