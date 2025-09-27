@@ -23,10 +23,10 @@ import { Loader2, AlertCircle } from "lucide-react";
 const checkForProhibitedContent = (text: string): { isValid: boolean; message: string } => {
   const normalizedText = text.toLowerCase().replace(/\s+/g, '');
   
-  // Phone number patterns (Arabic and English digits)
-  const phonePatterns = [
-    /[٠١٢٣٤٥٦٧٨٩]{2,}/g,  // Arabic digits (2 or more)
-    /\d{2,}/g,              // English digits (2 or more)
+  // Number patterns (Arabic and English digits) - block numbers with more than 8 digits
+  const numberPatterns = [
+    /[٠١٢٣٤٥٦٧٨٩]{9,}/g,  // Arabic digits (9 or more)
+    /\d{9,}/g,              // English digits (9 or more)
   ];
   
   // Email pattern
@@ -69,12 +69,12 @@ const checkForProhibitedContent = (text: string): { isValid: boolean; message: s
     /بريد|mail/i,
   ];
   
-  // Check for phone numbers
-  for (const pattern of phonePatterns) {
+  // Check for numbers with more than 8 digits
+  for (const pattern of numberPatterns) {
     if (pattern.test(text)) {
       return {
         isValid: false,
-        message: "لا يُسمح بإدراج أرقام الهواتف في عرض الشركة"
+        message: "لا يُسمح بإدراج أرقام تحتوي على أكثر من 8 أرقام"
       };
     }
   }
@@ -226,7 +226,7 @@ export function CreateOfferForm({ projectId, onSuccess }: CreateOfferFormProps) 
               <p className="font-semibold mb-1">ملاحظة مهمة:</p>
               <p>لا يُسمح بإدراج معلومات التواصل المباشر مثل:</p>
               <ul className="list-disc list-inside mt-1 space-y-1">
-                <li>أرقام الهواتف أو الجوال</li>
+                <li>أرقام تحتوي على أكثر من 8 أرقام</li>
                 <li>عناوين البريد الإلكتروني</li>
                 <li>روابط المواقع أو وسائل التواصل الاجتماعي</li>
                 <li>أي معلومات تؤدي للتواصل خارج المنصة</li>
