@@ -127,6 +127,12 @@ const offerSchema = z.object({
     .refine((val) => /^[0-9,]+$/.test(val), {
       message: "يجب أن يحتوي مبلغ العرض على أرقام فقط (يسمح بالفواصل)"
     })
+    .refine((val) => {
+      const cleanVal = val.replace(/,/g, "");
+      return cleanVal.length <= 8;
+    }, {
+      message: "لا يُسمح بإدخال مبلغ يحتوي على أكثر من 8 أرقام"
+    })
     .transform((val) => val.replace(/,/g, "")), // إزالة الفواصل للتخزين
   duration: z.string()
     .min(1, "مدة التنفيذ مطلوبة")
