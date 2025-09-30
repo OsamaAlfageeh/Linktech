@@ -6195,26 +6195,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'غير مخول لتحميل هذا التحليل' });
       }
 
-      const { generateProjectReport } = await import('./aiProjectAssistant');
+      const format = req.query.format as string || 'pdf'; // pdf or txt
+      
+      const { generateProjectReport, generateProjectReportPDF } = await import('./aiProjectAssistant');
       const analysisResult = JSON.parse(analysis.analysisResult);
-      const reportContent = generateProjectReport(analysisResult);
-      
-      console.log(`تم إنشاء التقرير بنجاح، الطول: ${reportContent.length} حرف`);
 
-      // إنشاء اسم ملف آمن بدون أحرف عربية
-      const safeFilename = `project-analysis-${analysisId}.txt`;
-      const encodedFilename = encodeURIComponent(`تحليل-المشروع-${analysisId}.txt`);
-      
-      // إعداد headers لإجبار التحميل
-      res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-      res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
-      res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      // إرسال المحتوى
-      res.end(reportContent, 'utf8');
+      if (format === 'txt') {
+        // Generate text report (legacy support)
+        const reportContent = generateProjectReport(analysisResult);
+        
+        console.log(`تم إنشاء التقرير النصي بنجاح، الطول: ${reportContent.length} حرف`);
+
+        // إنشاء اسم ملف آمن بدون أحرف عربية
+        const safeFilename = `project-analysis-${analysisId}.txt`;
+        
+        // إعداد headers لإجبار التحميل
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+        res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        // إرسال المحتوى
+        res.end(reportContent, 'utf8');
+      } else {
+        // Generate PDF report (default)
+        console.log('Starting PDF generation...');
+        console.log('Analysis data:', JSON.stringify(analysisResult, null, 2));
+        console.log('Project idea:', analysis.projectIdea);
+        
+        try {
+          const pdfBuffer = await generateProjectReportPDF(analysisResult, analysis.projectIdea);
+          
+          console.log(`تم إنشاء التقرير PDF بنجاح، الحجم: ${pdfBuffer.length} بايت`);
+
+          // إنشاء اسم ملف آمن
+          const safeFilename = `project-analysis-${analysisId}.pdf`;
+          const encodedFilename = encodeURIComponent(`تحليل-المشروع-${analysisId}.pdf`);
+          
+          // إعداد headers لإجبار التحميل
+          res.setHeader('Content-Type', 'application/pdf; charset=binary');
+          res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodedFilename}`);
+          res.setHeader('Content-Length', pdfBuffer.length);
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          res.setHeader('Accept-Ranges', 'bytes');
+          
+          console.log('Headers set, sending PDF buffer...');
+          // إرسال المحتوى
+          res.end(pdfBuffer);
+          console.log('PDF sent successfully');
+        } catch (pdfError) {
+          console.error('PDF generation error:', pdfError);
+          throw pdfError;
+        }
+      }
     } catch (error) {
       console.error('خطأ في إنشاء التقرير:', error);
       res.status(500).json({ message: 'Internal server error', error: error.message });

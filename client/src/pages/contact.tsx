@@ -204,11 +204,25 @@ const ContactPage = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">الهاتف</h3>
-                      <p className="text-neutral-600" dir="ltr">
+                      <a 
+                        href={`https://wa.me/${(contactInfo?.contact_phone || '+966558230663').replace(/[^0-9]/g, '')}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-neutral-600 hover:text-primary transition-colors cursor-pointer" 
+                        dir="ltr"
+                      >
                         {contactInfo?.contact_phone || '+966 53 123 4567'}
-                      </p>
+                      </a>
                       {contactInfo?.secondary_phone && (
-                        <p className="text-neutral-600" dir="ltr">{contactInfo.secondary_phone}</p>
+                        <a 
+                          href={`https://wa.me/${contactInfo.secondary_phone.replace(/[^0-9]/g, '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-neutral-600 hover:text-primary transition-colors cursor-pointer block" 
+                          dir="ltr"
+                        >
+                          {contactInfo.secondary_phone}
+                        </a>
                       )}
                     </div>
                   </div>

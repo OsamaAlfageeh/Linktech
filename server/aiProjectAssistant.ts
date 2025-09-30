@@ -400,3 +400,327 @@ ${analysis.riskAssessment.mitigationStrategies.map(strategy => `• ${strategy}`
 • المهارات المطلوبة: ${analysis.maintenanceRequirements.requiredSkills.join(', ')}
 `;
 }
+
+/**
+ * إنشاء تقرير PDF للمشروع
+ */
+export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, projectIdea: string): Promise<Buffer> {
+  try {
+    const PdfPrinter = (await import('pdfmake/src/printer')).default;
+    const path = await import('path');
+    const fs = await import('fs');
+    
+    // تحميل الخط العربي
+    const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+    
+    // التحقق من وجود الخط
+    if (!fs.existsSync(fontPath)) {
+      console.error('Font file not found:', fontPath);
+      throw new Error('Font file not found');
+    }
+    
+    const fonts = {
+      Cairo: {
+        normal: fontPath,
+        bold: fontPath,
+        italics: fontPath,
+        bolditalics: fontPath
+      }
+    };
+
+    const printer = new PdfPrinter(fonts);
+
+  // تحديد أولوية الميزات
+  const getPriorityText = (priority: string) => {
+    switch (priority) {
+      case 'essential': return 'أساسي';
+      case 'important': return 'مهم';
+      case 'nice-to-have': return 'مرغوب فيه';
+      default: return priority;
+    }
+  };
+
+  const getComplexityText = (complexity: string) => {
+    switch (complexity) {
+      case 'simple': return 'بسيط';
+      case 'medium': return 'متوسط';
+      case 'complex': return 'معقد';
+      default: return complexity;
+    }
+  };
+
+  const docDefinition = {
+    pageSize: 'A4',
+    pageMargins: [40, 60, 40, 60],
+    defaultStyle: {
+      font: 'Cairo',
+      fontSize: 12,
+      lineHeight: 1.5
+    },
+    content: [
+      // Header
+      {
+        text: 'تحليل مشروع تقني مفصل',
+        style: 'header',
+        alignment: 'center',
+        margin: [0, 0, 0, 30]
+      },
+      
+      // Project Idea
+      {
+        text: 'فكرة المشروع',
+        style: 'sectionHeader',
+        margin: [0, 0, 0, 10]
+      },
+      {
+        text: projectIdea,
+        style: 'bodyText',
+        margin: [0, 0, 0, 20]
+      },
+
+      // Project Type and Complexity
+      {
+        columns: [
+          {
+            text: [
+              { text: 'نوع المشروع: ', style: 'label' },
+              { text: analysis.projectType, style: 'value' }
+            ],
+            width: '50%'
+          },
+          {
+            text: [
+              { text: 'مستوى التعقيد: ', style: 'label' },
+              { text: getComplexityText(analysis.technicalComplexity), style: 'value' }
+            ],
+            width: '50%'
+          }
+        ],
+        margin: [0, 0, 0, 15]
+      },
+
+      // Cost and Duration
+      {
+        columns: [
+          {
+            text: [
+              { text: 'التكلفة المتوقعة: ', style: 'label' },
+              { text: `من ${analysis.estimatedCostRange.min.toLocaleString('ar-SA')} إلى ${analysis.estimatedCostRange.max.toLocaleString('ar-SA')} ريال سعودي`, style: 'value' }
+            ],
+            width: '50%'
+          },
+          {
+            text: [
+              { text: 'المدة الإجمالية: ', style: 'label' },
+              { text: `${analysis.estimatedDuration.development + analysis.estimatedDuration.testing + analysis.estimatedDuration.deployment} أسبوع`, style: 'value' }
+            ],
+            width: '50%'
+          }
+        ],
+        margin: [0, 0, 0, 20]
+      },
+
+      // Recommended Technologies
+      {
+        text: 'التقنيات الموصى بها',
+        style: 'sectionHeader',
+        margin: [0, 0, 0, 10]
+      },
+      {
+        ul: analysis.recommendedTechnologies,
+        style: 'bodyText',
+        margin: [0, 0, 0, 20]
+      },
+
+      // Project Phases
+      {
+        text: 'مراحل المشروع',
+        style: 'sectionHeader',
+        margin: [0, 0, 0, 10]
+      },
+      ...analysis.projectPhases.map(phase => ({
+        text: [
+          { text: phase.name, style: 'phaseTitle' },
+          { text: `\n${phase.description}`, style: 'bodyText' },
+          { text: `\nالمدة: ${phase.duration} أسبوع | التكلفة: ${phase.cost.toLocaleString('ar-SA')} ريال`, style: 'phaseDetails' }
+        ],
+        margin: [0, 0, 0, 15]
+      })),
+
+      // Features by Priority
+      {
+        text: 'الميزات الأساسية',
+        style: 'sectionHeader',
+        margin: [0, 20, 0, 10]
+      },
+      {
+        ul: analysis.features.filter(f => f.priority === 'essential').map(f => f.name),
+        style: 'bodyText',
+        margin: [0, 0, 0, 15]
+      },
+
+      // Risk Assessment
+      {
+        text: 'تقييم المخاطر',
+        style: 'sectionHeader',
+        margin: [0, 20, 0, 10]
+      },
+      
+      {
+        text: 'المخاطر التقنية',
+        style: 'subsectionHeader',
+        margin: [0, 0, 0, 5]
+      },
+      {
+        ul: analysis.riskAssessment.technicalRisks,
+        style: 'bodyText',
+        margin: [0, 0, 0, 10]
+      },
+
+      {
+        text: 'مخاطر الجدولة الزمنية',
+        style: 'subsectionHeader',
+        margin: [0, 0, 0, 5]
+      },
+      {
+        ul: analysis.riskAssessment.timelineRisks,
+        style: 'bodyText',
+        margin: [0, 0, 0, 10]
+      },
+
+      {
+        text: 'مخاطر الميزانية',
+        style: 'subsectionHeader',
+        margin: [0, 0, 0, 5]
+      },
+      {
+        ul: analysis.riskAssessment.budgetRisks,
+        style: 'bodyText',
+        margin: [0, 0, 0, 10]
+      },
+
+      {
+        text: 'استراتيجيات التخفيف',
+        style: 'subsectionHeader',
+        margin: [0, 0, 0, 5]
+      },
+      {
+        ul: analysis.riskAssessment.mitigationStrategies,
+        style: 'bodyText',
+        margin: [0, 0, 0, 15]
+      },
+
+      // Maintenance Requirements
+      {
+        text: 'متطلبات الصيانة',
+        style: 'sectionHeader',
+        margin: [0, 20, 0, 10]
+      },
+      {
+        columns: [
+          {
+            text: [
+              { text: 'التكرار: ', style: 'label' },
+              { text: analysis.maintenanceRequirements.frequency, style: 'value' }
+            ],
+            width: '33%'
+          },
+          {
+            text: [
+              { text: 'التكلفة الشهرية: ', style: 'label' },
+              { text: `${analysis.maintenanceRequirements.estimatedMonthlyCost.toLocaleString('ar-SA')} ريال`, style: 'value' }
+            ],
+            width: '33%'
+          },
+          {
+            text: [
+              { text: 'المهارات المطلوبة: ', style: 'label' },
+              { text: analysis.maintenanceRequirements.requiredSkills.join(', '), style: 'value' }
+            ],
+            width: '34%'
+          }
+        ],
+        margin: [0, 0, 0, 20]
+      },
+
+      // Footer
+      {
+        text: `تم إنشاء هذا التقرير في ${new Date().toLocaleDateString('ar-SA')} بواسطة منصة لينكتك`,
+        style: 'footer',
+        alignment: 'center',
+        margin: [0, 30, 0, 0]
+      }
+    ],
+    styles: {
+      header: {
+        fontSize: 24,
+        bold: true,
+        color: '#1f2937'
+      },
+      sectionHeader: {
+        fontSize: 16,
+        bold: true,
+        color: '#374151',
+        margin: [0, 10, 0, 5]
+      },
+      subsectionHeader: {
+        fontSize: 14,
+        bold: true,
+        color: '#4b5563'
+      },
+      bodyText: {
+        fontSize: 12,
+        color: '#374151'
+      },
+      label: {
+        fontSize: 12,
+        bold: true,
+        color: '#6b7280'
+      },
+      value: {
+        fontSize: 12,
+        color: '#1f2937'
+      },
+      phaseTitle: {
+        fontSize: 14,
+        bold: true,
+        color: '#1f2937'
+      },
+      phaseDetails: {
+        fontSize: 11,
+        color: '#6b7280',
+        italics: true
+      },
+      footer: {
+        fontSize: 10,
+        color: '#9ca3af'
+      }
+    }
+  };
+
+    return new Promise((resolve, reject) => {
+      const pdfDoc = printer.createPdfKitDocument(docDefinition);
+      const chunks: Buffer[] = [];
+
+      pdfDoc.on('data', (chunk: Buffer) => {
+        chunks.push(chunk);
+      });
+
+      pdfDoc.on('end', () => {
+        const pdfBuffer = Buffer.concat(chunks);
+        console.log('PDF generated successfully, size:', pdfBuffer.length);
+        resolve(pdfBuffer);
+      });
+
+      pdfDoc.on('error', (error: Error) => {
+        console.error('PDF generation error:', error);
+        reject(error);
+      });
+
+      pdfDoc.end();
+    });
+  } catch (error) {
+    console.error('Error in generateProjectReportPDF:', error);
+    throw error;
+  }
+}

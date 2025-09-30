@@ -42,9 +42,9 @@ const OfficialCompaniesSection = () => {
             <div className="bg-amber-100 w-12 h-12 rounded-full flex items-center justify-center mb-4">
               <Award className="text-amber-600 w-6 h-6" />
             </div>
-            <h3 className="text-xl font-bold mb-2">ضمان العقود والمدفوعات</h3>
+            <h3 className="text-xl font-bold mb-2">ضمان سرية الأفكار والمعلومات NDA</h3>
             <p className="text-gray-600">
-              نقدم نظام وساطة آمن يحمي حقوق جميع الأطراف، مع توثيق العقود والمدفوعات بطريقة تضمن إتمام المشاريع بثقة وشفافية.
+              نتيح إمكانية توقيع اتفاقية عدم إفصاح (NDA) مع الشركات لضمان حماية الأفكار والمعلومات، ومنع استخدامها أو مشاركتها خارج نطاق المشروع المتفق عليه.
             </p>
           </div>
         </div>

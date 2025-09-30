@@ -404,38 +404,102 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                                 
                                 // استخدام fetch مع JWT token
                                 const token = localStorage.getItem('auth_token');
-                                const response = await fetch(`/api/ai/analysis/${analysis.id}/report?download=1`, {
+                                console.log('Token exists:', !!token);
+                                
+                                const url = `/api/ai/analysis/${analysis.id}/report?download=1&format=pdf`;
+                                console.log('Request URL:', url);
+                                
+                                console.log('Sending fetch request...');
+                                const response = await fetch(url, {
                                   headers: {
                                     'Authorization': `Bearer ${token}`,
                                   },
                                 });
                                 
+                                console.log('Response received:', {
+                                  status: response.status,
+                                  statusText: response.statusText,
+                                  ok: response.ok,
+                                  headers: Object.fromEntries(response.headers.entries())
+                                });
+                                
                                 if (!response.ok) {
-                                  throw new Error(`خطأ في تحميل التقرير: ${response.statusText}`);
+                                  const errorText = await response.text();
+                                  console.error('Response error:', errorText);
+                                  throw new Error(`خطأ في تحميل التقرير: ${response.status} ${response.statusText}`);
                                 }
                                 
-                                // تحويل الاستجابة إلى blob
-                                const blob = await response.blob();
+                                // التحقق من نوع المحتوى
+                                const contentType = response.headers.get('content-type');
+                                console.log('Content-Type:', contentType);
                                 
+                                console.log('Converting response to blob...');
+                                // تحويل الاستجابة إلى blob مع تحديد نوع MIME الصحيح
+                                const blob = await response.blob();
+                                console.log('Original Blob type:', blob.type, 'Blob size:', blob.size);
+                                
+                                // إنشاء blob جديد مع نوع MIME الصحيح
+                                const pdfBlob = new Blob([blob], { type: 'application/pdf' });
+                                console.log('New PDF Blob type:', pdfBlob.type);
+                                
+                                console.log('Creating download link...');
                                 // إنشاء رابط تحميل
-                                const url = window.URL.createObjectURL(blob);
+                                const downloadUrl = window.URL.createObjectURL(pdfBlob);
                                 const a = document.createElement('a');
                                 a.style.display = 'none';
-                                a.href = url;
-                                a.download = `project-analysis-${analysis.id}.txt`;
+                                a.href = downloadUrl;
+                                a.download = `project-analysis-${analysis.id}.pdf`;
+                                
+                                // إضافة خصائص إضافية للتأكد من التحميل الصحيح
+                                a.setAttribute('type', 'application/pdf');
+                                a.setAttribute('target', '_blank');
+                                
+                                // إضافة event listener للتأكد من التحميل
+                                a.addEventListener('click', (e) => {
+                                  console.log('Download link clicked');
+                                });
+                                
                                 document.body.appendChild(a);
-                                a.click();
+                                console.log('Download link added to DOM');
+                                
+                                // محاولة التحميل بطريقة مختلفة
+                                try {
+                                  console.log('Triggering download...');
+                                  a.click();
+                                  console.log('Download triggered successfully');
+                                } catch (error) {
+                                  console.error('Click failed, trying alternative method:', error);
+                                  // طريقة بديلة
+                                  const event = new MouseEvent('click', {
+                                    view: window,
+                                    bubbles: true,
+                                    cancelable: true
+                                  });
+                                  a.dispatchEvent(event);
+                                  console.log('Alternative download method triggered');
+                                }
                                 
                                 // تنظيف الذاكرة
-                                window.URL.revokeObjectURL(url);
-                                document.body.removeChild(a);
+                                setTimeout(() => {
+                                  console.log('Cleaning up...');
+                                  window.URL.revokeObjectURL(downloadUrl);
+                                  if (document.body.contains(a)) {
+                                    document.body.removeChild(a);
+                                  }
+                                  console.log('Cleanup completed');
+                                }, 1000);
                                 
                                 toast({
                                   title: "تم التحميل بنجاح",
-                                  description: "تم تحميل التقرير المفصل",
+                                  description: "تم تحميل التقرير المفصل بصيغة PDF",
                                 });
                               } catch (error) {
                                 console.error('خطأ في تحميل التقرير:', error);
+                                console.error('Error details:', {
+                                  name: error.name,
+                                  message: error.message,
+                                  stack: error.stack
+                                });
                                 toast({
                                   title: "خطأ في التحميل",
                                   description: error instanceof Error ? error.message : "حدث خطأ أثناء تحميل التقرير",

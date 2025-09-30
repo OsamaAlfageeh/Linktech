@@ -153,7 +153,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, delay: 0.3 }}
             >
-              <span className="text-white drop-shadow-2xl">ربط رواد الأعمال</span>
+              <span className="text-white drop-shadow-2xl">ربط أصحاب المشاريع</span>
               <br />
               <span className="bg-gradient-to-r from-amber-400 via-orange-400 to-red-400 bg-clip-text text-transparent">
                 بشركات البرمجة
@@ -237,7 +237,7 @@ const HeroSection = ({ auth }: HeroSectionProps) => {
                 >
                   <span className="relative z-10 flex items-center justify-center">
                     <Users className="ml-2 h-4 w-4 md:h-5 md:w-5" />
-                    أنا رائد أعمال
+                    أنا صاحب مشروع
                   </span>
                   <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 </Link>

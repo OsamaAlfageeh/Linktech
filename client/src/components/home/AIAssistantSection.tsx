@@ -152,12 +152,12 @@ const AIAssistantSection: React.FC<AIAssistantSectionProps> = ({ auth }) => {
                   <div className="space-y-3">
                     <Link href="/auth/register">
                       <Button size="lg" className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
-                        سجل كرائد أعمال
+                        سجل كصاحب مشروع
                         <ArrowLeft className="h-5 w-5 mr-2" />
                       </Button>
                     </Link>
                     <p className="text-center text-sm text-gray-500">
-                      المساعد الذكي متاح لرواد الأعمال المسجلين
+                      المساعد الذكي متاح لأصحاب المشاريع المسجلين
                     </p>
                   </div>
                 )}

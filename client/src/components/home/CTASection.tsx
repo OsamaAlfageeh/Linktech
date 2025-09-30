@@ -29,7 +29,7 @@ const CTASection = ({ auth }: CTASectionProps) => {
             ابدأ رحلتك التقنية اليوم
           </h2>
           <p className="text-blue-100 text-lg md:text-xl mb-8 font-medium max-w-xl mx-auto">
-            سواء كنت رائد أعمال تبحث عن تنفيذ فكرتك أو شركة برمجة تبحث عن عملاء جدد، انضم إلينا الآن وكن جزءاً من منصتنا.
+            سواء كنت صاحب مشروع تبحث عن تنفيذ فكرتك أو شركة برمجة تبحث عن عملاء جدد، انضم إلينا الآن وكن جزءاً من منصتنا.
           </p>
           <div className="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4 sm:space-x-reverse">
             <Link 

@@ -74,7 +74,7 @@ const Testimonials = () => {
         <div className="text-center mb-12">
           <h2 className="font-heading text-3xl font-bold text-neutral-800">آراء عملائنا</h2>
           <p className="mt-4 text-lg text-neutral-600 max-w-3xl mx-auto">
-            تجارب حقيقية من رواد الأعمال وشركات البرمجة في منصتنا
+            تجارب حقيقية من أصحاب المشاريع وشركات البرمجة في منصتنا
           </p>
         </div>
 

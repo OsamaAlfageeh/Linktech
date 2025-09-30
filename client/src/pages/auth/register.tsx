@@ -178,7 +178,7 @@ const Register = ({ auth }: RegisterProps) => {
     <>
       <Helmet>
         <title>إنشاء حساب جديد | لينكتك</title>
-        <meta name="description" content="إنشاء حساب جديد في منصة لينكتك للتواصل بين رواد الأعمال وشركات البرمجة" />
+        <meta name="description" content="إنشاء حساب جديد في منصة لينكتك للتواصل بين أصحاب المشاريع وشركات البرمجة" />
       </Helmet>
 
       <div className="min-h-screen flex items-center justify-center bg-neutral-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -229,7 +229,7 @@ const Register = ({ auth }: RegisterProps) => {
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                                 </svg>
                               </div>
-                              <span className="font-bold text-lg mb-1">رائد أعمال</span>
+                              <span className="font-bold text-lg mb-1">صاحب مشروع</span>
                               <span className="text-sm text-center text-neutral-600">أبحث عن شركة لتنفيذ مشروعي</span>
                               <RadioGroupItem value="entrepreneur" id="entrepreneur" className="sr-only" />
                             </label>
