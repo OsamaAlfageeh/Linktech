@@ -4333,7 +4333,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'npm install',
         'npm install puppeteer',
         'npm run lint',
-        'npm run test'
+        'npm run test',
+        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2',
+        'sudo apt-get update && sudo apt-get install -y google-chrome-stable',
+        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2 libxss1 libgconf-2-4 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0 libcairo-gobject2 libgtk-3-0 libgdk-pixbuf2.0-0'
       ];
 
       // Check if command is allowed
@@ -4395,7 +4398,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'npm install',
         'npm install puppeteer',
         'npm run lint',
-        'npm run test'
+        'npm run test',
+        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2',
+        'sudo apt-get update && sudo apt-get install -y google-chrome-stable',
+        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2 libxss1 libgconf-2-4 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0 libcairo-gobject2 libgtk-3-0 libgdk-pixbuf2.0-0'
       ];
 
       // Check if command is allowed
