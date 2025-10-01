@@ -53,7 +53,7 @@ const Header = ({ auth }: HeaderProps) => {
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
               <img 
-                src="/favicon.svg" 
+                src="/favicon.png" 
                 alt="لينكتك" 
                 className="h-12 w-auto mr-2" 
               />

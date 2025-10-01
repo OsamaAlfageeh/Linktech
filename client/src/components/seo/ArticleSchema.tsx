@@ -32,7 +32,7 @@ const ArticleSchema = ({
   tags = [],
   siteUrl = "https://linktech.app",
   siteName = "لينكتك - منصة لربط رواد الأعمال بشركات التطوير التقني",
-  logoUrl = "https://linktech.app/logo.png"
+  logoUrl = "https://linktech.app/favicon.png"
 }: ArticleSchemaProps) => {
   // إنشاء الوصف الهيكلي للمقال وفق معايير Schema.org
   const articleSchema: Record<string, any> = {

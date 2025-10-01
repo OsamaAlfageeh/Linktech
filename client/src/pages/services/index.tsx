@@ -47,7 +47,7 @@ const ServicesPage = () => {
         <OrganizationStructuredData
           name="لينكتك"
           url="https://linktech.app"
-          logo="https://linktech.app/images/logo.svg"
+          logo="https://linktech.app/favicon.png"
           description="منصة تربط بين رواد الأعمال وشركات البرمجة لتنفيذ المشاريع التقنية بكفاءة وسهولة"
         />
       }

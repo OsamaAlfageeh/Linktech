@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { WebSocketServer, WebSocket } from "ws";
 import crypto from "crypto";
-import { sendPasswordResetEmail, sendPasswordChangedNotification } from "./emailService";
+import { sendPasswordResetEmail, sendPasswordChangedNotification, sendContactMessageEmail } from "./emailService";
 import jwt from "jsonwebtoken";
 import { exec } from "child_process";
 // استيراد مسارات Sitemap و robots.txt
@@ -6384,6 +6384,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // حفظ الرسالة في قاعدة البيانات
       const savedMessage = await storage.createContactMessage(validatedData);
       console.log('تم حفظ رسالة التواصل بنجاح، معرف:', savedMessage.id);
+      
+      // إرسال إشعار بريد إلكتروني للمسؤول
+      try {
+        const contactEmailSetting = await storage.getSiteSetting('contact_email');
+        const contactEmail: string = contactEmailSetting?.value || 'info@linktech.app';
+        const emailSent = await sendContactMessageEmail({
+          name: validatedData.name,
+          email: validatedData.email,
+          phone: validatedData.phone || undefined,
+          subject: validatedData.subject || 'استفسار عام',
+          message: validatedData.message
+        }, contactEmail);
+        
+        if (emailSent) {
+          console.log('تم إرسال إشعار البريد الإلكتروني للمسؤول بنجاح');
+        } else {
+          console.log('فشل في إرسال إشعار البريد الإلكتروني للمسؤول');
+        }
+      } catch (emailError) {
+        console.error('خطأ في إرسال إشعار البريد الإلكتروني:', emailError);
+        // لا نريد أن يفشل حفظ الرسالة إذا فشل إرسال البريد الإلكتروني
+      }
       
       res.status(201).json({ 
         success: true, 

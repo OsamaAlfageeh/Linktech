@@ -22,7 +22,7 @@ const SEO: React.FC<SEOProps> = ({
   title,
   description,
   keywords,
-  ogImage = 'https://linktech.app/images/og-image.jpg',
+  ogImage = 'https://linktech.app/favicon.png',
   ogType = 'website',
   ogUrl,
   noIndex = false,

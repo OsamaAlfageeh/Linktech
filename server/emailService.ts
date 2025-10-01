@@ -237,6 +237,114 @@ https://linktech.app/notifications
 }
 
 /**
+ * إرسال إشعار بريد إلكتروني لرسالة تواصل جديدة
+ * @param contactData بيانات رسالة التواصل
+ * @param adminEmail البريد الإلكتروني للمسؤول
+ * @returns وعد بنجاح أو فشل العملية
+ */
+export async function sendContactMessageEmail(
+  contactData: {
+    name: string;
+    email: string;
+    phone?: string;
+    subject: string;
+    message: string;
+  },
+  adminEmail: string = 'info@linktech.app'
+): Promise<boolean> {
+  // التحقق من وجود transporter
+  if (!transporter) {
+    console.error("تعذر إرسال البريد الإلكتروني: لم يتم تكوين SMTP");
+    return false;
+  }
+
+  try {
+    // بناء معلمات البريد الإلكتروني
+    const mailOptions = {
+      from: `"${senderName}" <${senderEmail}>`,
+      to: adminEmail,
+      subject: `رسالة تواصل جديدة - ${contactData.subject}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; direction: rtl;">
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+              <h1 style="color: #2563eb; margin: 0;">رسالة تواصل جديدة</h1>
+              <p style="color: #666; margin: 10px 0 0 0;">من منصة لينكتك</p>
+            </div>
+            
+            <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <h2 style="color: #333; margin-top: 0;">تفاصيل الرسالة</h2>
+              
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #2563eb;">الاسم:</strong>
+                <p style="margin: 5px 0; color: #333;">${contactData.name}</p>
+              </div>
+              
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #2563eb;">البريد الإلكتروني:</strong>
+                <p style="margin: 5px 0; color: #333;">${contactData.email}</p>
+              </div>
+              
+              ${contactData.phone ? `
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #2563eb;">رقم الهاتف:</strong>
+                <p style="margin: 5px 0; color: #333;">${contactData.phone}</p>
+              </div>
+              ` : ''}
+              
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #2563eb;">الموضوع:</strong>
+                <p style="margin: 5px 0; color: #333;">${contactData.subject}</p>
+              </div>
+              
+              <div style="margin-bottom: 20px;">
+                <strong style="color: #2563eb;">الرسالة:</strong>
+                <div style="margin: 10px 0; padding: 15px; background-color: #f8f9fa; border-radius: 6px; color: #333; line-height: 1.6;">
+                  ${contactData.message.replace(/\n/g, '<br>')}
+                </div>
+              </div>
+              
+              <div style="text-align: center; margin: 30px 0;">
+                <a href="mailto:${contactData.email}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 0 10px;">الرد على الرسالة</a>
+                <a href="https://linktech.app/dashboard/admin" style="background-color: #10b981; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; margin: 0 10px;">إدارة الرسائل</a>
+              </div>
+            </div>
+            
+            <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #eaeaea; font-size: 14px; color: #666; text-align: center;">
+              <p>تم إرسال هذه الرسالة تلقائياً من منصة لينكتك</p>
+              <p>مع تحيات،<br>فريق منصة لينكتك</p>
+            </div>
+          </div>
+        </div>
+      `,
+      text: `رسالة تواصل جديدة من منصة لينكتك
+
+الاسم: ${contactData.name}
+البريد الإلكتروني: ${contactData.email}
+${contactData.phone ? `رقم الهاتف: ${contactData.phone}` : ''}
+الموضوع: ${contactData.subject}
+
+الرسالة:
+${contactData.message}
+
+يمكنك الرد على هذه الرسالة عبر البريد الإلكتروني: ${contactData.email}
+أو إدارة جميع الرسائل من: https://linktech.app/dashboard/admin
+
+مع تحيات،
+فريق منصة لينكتك`
+    };
+
+    // إرسال البريد الإلكتروني
+    const info = await transporter.sendMail(mailOptions);
+    console.log("تم إرسال إشعار رسالة التواصل بنجاح:", info.messageId);
+    return true;
+  } catch (error) {
+    console.error("فشل في إرسال إشعار رسالة التواصل:", error);
+    return false;
+  }
+}
+
+/**
  * إرسال إشعار بتغيير كلمة المرور
  * @param email البريد الإلكتروني للمستخدم
  * @param name اسم المستخدم

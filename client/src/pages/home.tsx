@@ -30,12 +30,12 @@ const Home = ({ auth }: HomeProps) => {
         description="منصة تربط بين أصحاب المشاريع وشركات البرمجة لتنفيذ المشاريع التقنية بكفاءة وسهولة. ابحث عن أفضل الشركات التقنية لتنفيذ مشروعك بكل أمان."
         keywords="منصة برمجة, شركات تطوير برمجيات, مشاريع تقنية, تطوير مواقع, تطوير تطبيقات, أصحاب مشاريع, ربط شركات البرمجة, تقنية, برمجة, تطوير"
         ogType="website"
-        ogImage="https://linktech.app/images/linktech-social-card.png"
+        ogImage="https://linktech.app/favicon.png"
       >
         <OrganizationStructuredData 
           name="لينكتك"
           url="https://linktech.app"
-          logo="https://linktech.app/images/logo.svg"
+          logo="https://linktech.app/favicon.png"
           description="منصة تربط بين أصحاب المشاريع وشركات البرمجة لتنفيذ المشاريع التقنية بكفاءة وسهولة"
         />
         <WebpageStructuredData
