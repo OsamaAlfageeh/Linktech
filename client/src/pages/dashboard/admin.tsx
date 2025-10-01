@@ -1479,22 +1479,24 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                               >
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => {
-                                  const token = localStorage.getItem('auth_token');
-                                  const link = document.createElement('a');
-                                  link.href = `/api/nda/${nda.id}/download-pdf?token=${token}`;
-                                  link.download = `NDA-${nda.id}.pdf`;
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                                title="تحميل ملف PDF"
-                              >
-                                <Download className="h-4 w-4" />
-                              </Button>
+                              {nda.sadiqDocumentId && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const token = localStorage.getItem('auth_token');
+                                    const link = document.createElement('a');
+                                    link.href = `/api/nda/${nda.id}/download-pdf?token=${token}`;
+                                    link.download = `NDA-${nda.id}.pdf`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                  }}
+                                  title="تحميل ملف PDF"
+                                >
+                                  <Download className="h-4 w-4" />
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>

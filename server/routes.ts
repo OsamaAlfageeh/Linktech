@@ -2434,6 +2434,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log('تم السماح بالتنزيل للمستخدم:', user.username);
+      console.log('🔍 فحص بيانات NDA:', {
+        id: nda.id,
+        hasSadiqDocumentId: !!nda.sadiqDocumentId,
+        sadiqDocumentId: nda.sadiqDocumentId,
+        status: nda.status,
+        envelopeStatus: nda.envelopeStatus
+      });
       
       // Check if we have a Sadiq document ID - if yes, use external API
       if (nda.sadiqDocumentId) {
@@ -2452,238 +2459,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const response = await fetch(downloadUrl, {
             method: 'GET',
             headers: {
-              'accept': 'application/json',
-              'Authorization': `Bearer ${accessToken}`
+              'accept': 'application/json'
             }
           });
 
           if (!response.ok) {
             const errorText = await response.text();
             console.error(`❌ فشل تنزيل الوثيقة من صادق: ${response.status} - ${errorText}`);
-            // Fall back to PDF generation if Sadiq download fails
-            console.log('الانتقال إلى إنشاء PDF محلي كبديل');
+            return res.status(500).json({ message: 'فشل في تنزيل الوثيقة من صادق' });
           } else {
+            console.log(`✅ استجابة صادق ناجحة - Status: ${response.status}`);
+            console.log(`📋 Headers:`, Object.fromEntries(response.headers.entries()));
+            
             const result = await response.json();
+            console.log('📄 استجابة صادق كاملة:', JSON.stringify(result, null, 2));
+            console.log('🔍 نوع البيانات:', typeof result);
+            console.log('🔍 هل يحتوي على data؟', !!result.data);
+            console.log('🔍 هل data مصفوفة؟', Array.isArray(result.data));
+            if (result.data) {
+              console.log('🔍 طول مصفوفة data:', result.data.length);
+              if (result.data.length > 0) {
+                console.log('🔍 العنصر الأول:', JSON.stringify(result.data[0], null, 2));
+                console.log('🔍 هل يحتوي على file؟', !!result.data[0].file);
+                console.log('🔍 طول ملف base64:', result.data[0].file ? result.data[0].file.length : 'غير موجود');
+              }
+            }
             
             // Check if the response contains the file data
-            if (result.data && result.data.file) {
+            // Sadiq returns data as an array with the first element containing the file
+            if (result.data && Array.isArray(result.data) && result.data.length > 0 && result.data[0].file) {
+              const fileData = result.data[0];
               // Convert base64 to buffer
-              const pdfBuffer = Buffer.from(result.data.file, 'base64');
+              const pdfBuffer = Buffer.from(fileData.file, 'base64');
+              
+              // Use the original filename from Sadiq or create a new one
+              const originalFilename = fileData.fileName || `NDA-${ndaId}-${Date.now()}.pdf`;
+              // Encode filename to handle Arabic characters in headers
+              const encodedFilename = encodeURIComponent(originalFilename);
+              const safeFilename = `NDA-${ndaId}-${Date.now()}.pdf`; // Fallback safe filename
               
               // Set response headers for PDF download
-              const filename = `NDA-${ndaId}-${Date.now()}.pdf`;
-              res.setHeader('Content-Type', 'application/pdf');
-              res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+              res.setHeader('Content-Type', fileData.contentType || 'application/pdf');
+              res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"; filename*=UTF-8''${encodedFilename}`);
               res.setHeader('Content-Length', pdfBuffer.length);
               
               console.log(`✅ تم تنزيل الوثيقة من صادق بنجاح - الحجم: ${pdfBuffer.length} بايت`);
+              console.log(`📄 اسم الملف الأصلي: ${originalFilename}`);
+              console.log(`📄 اسم الملف الآمن: ${safeFilename}`);
               return res.send(pdfBuffer);
             } else {
-              console.log('لا توجد بيانات ملف في استجابة صادق، الانتقال إلى إنشاء PDF محلي');
+              console.log('لا توجد بيانات ملف في استجابة صادق');
+              console.log('هيكل الاستجابة:', Object.keys(result));
+              if (result.data) {
+                console.log('مفاتيح البيانات:', Object.keys(result.data));
+                if (Array.isArray(result.data)) {
+                  console.log('طول المصفوفة:', result.data.length);
+                  if (result.data.length > 0) {
+                    console.log('مفاتيح العنصر الأول:', Object.keys(result.data[0]));
+                  }
+                }
+              }
+              return res.status(404).json({ 
+                message: 'الوثيقة غير متوفرة في صادق',
+                debug: {
+                  hasData: !!result.data,
+                  isArray: Array.isArray(result.data),
+                  dataLength: Array.isArray(result.data) ? result.data.length : null,
+                  dataKeys: result.data ? Object.keys(result.data) : null,
+                  firstElementKeys: (result.data && Array.isArray(result.data) && result.data.length > 0) ? Object.keys(result.data[0]) : null
+                }
+              });
             }
           }
         } catch (error) {
           console.error('خطأ في تنزيل الوثيقة من صادق:', error);
-          console.log('الانتقال إلى إنشاء PDF محلي كبديل');
+          return res.status(500).json({ message: 'خطأ في تنزيل الوثيقة من صادق' });
         }
       }
       
-      // Fall back to PDF generation if no Sadiq document ID or if Sadiq download failed
-      console.log('إنشاء PDF محلي للاتفاقية');
-      
-      // وظيفة لتحويل النص العربي إلى نص باللغة الإنجليزية لـ PDF
-      function sanitizeTextForPDF(text: string): string {
-        if (!text) return 'Not specified';
-        
-        // إذا كان النص يحتوي على أحرف عربية، نحوله لنص إنجليزي
-        const arabicRegex = /[\u0600-\u06FF]/;
-        if (arabicRegex.test(text)) {
-          // قاموس للتحويل من العربية للإنجليزية
-          const translations: Record<string, string> = {
-            'شركة عمر': 'Omar Company',
-            'شركة': 'Company',
-            'عمر': 'Omar',
-            'محمد': 'Mohammad',
-            'محمد جمال': 'Mohammad Jamal',
-            'mohammad2': 'Mohammad2',
-            'غير محدد': 'Not specified',
-            'مسودة (غير موقعة)': 'Draft (Not Signed)',
-            'موقعة ومفعلة': 'Signed and Active',
-            'غير محددة': 'Status Unknown'
-          };
-          
-          // البحث عن ترجمة مباشرة
-          if (translations[text]) {
-            return translations[text];
-          }
-          
-          // إذا لم توجد ترجمة، نحول النص لنسخة مبسطة
-          return text.replace(/[\u0600-\u06FF]/g, '?').replace(/\?+/g, 'Arabic Text');
-        }
-        
-        return text;
-      }
-      
-      // الحصول على معلومات الشركة إذا كانت متاحة
-      let company = null;
-      if (nda.companyId) {
-        company = await storage.getCompanyProfile(nda.companyId);
-      }
-      
-      // تعيين رؤوس الاستجابة وإرسال الملف
-      const fileName = encodeURIComponent(`NDA-Agreement-${ndaId}.pdf`);
-      
-      // تعيين رؤوس CORS لدعم طلبات iframe
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
-      
-      // تعيين رؤوس المحتوى
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      // تحديد بعض المعلومات
-      // استخراج معلومات الشركة
-      const companyInfo = nda.companySignatureInfo ? nda.companySignatureInfo : {};
-      const companyNameRaw = company ? (company.name || 'غير محدد') : 
-                            (companyInfo && typeof companyInfo === 'object' && 'companyName' in companyInfo ? 
-                             companyInfo.companyName : 'غير محدد');
-      const companyNameStr = sanitizeTextForPDF(companyNameRaw);
-      
-      // استخراج اسم صاحب المشروع
-      const projectOwnerRaw = project.userId ? (await storage.getUser(project.userId))?.name || 'غير محدد' : 'غير محدد';
-      const projectOwner = sanitizeTextForPDF(projectOwnerRaw);
-      
-      // استخدام PDFKit بدلاً من Puppeteer
-      console.log('استخدام PDFKit لإنشاء ملف PDF');
-      
-      // تحديد مسار القالب باستخدام المسار المطلق
-      const currentDir = process.cwd(); // الحصول على المسار الحالي
-      
-      const templatePath = path.join(currentDir, 'server', 'templates', 'nda-template.html');
-      console.log('مسار قالب الاتفاقية:', templatePath);
-      
-      // التحقق من وجود ملف القالب
-      const templateExists = await fsExtra.pathExists(templatePath);
-      console.log('هل يوجد ملف القالب؟', templateExists);
-      
-      // إذا لم يكن موجوداً، نستخدم قالب مضمن بدلاً من قراءة الملف
-      let templateHtml = '';
-      
-      if (templateExists) {
-        templateHtml = await fsExtra.readFile(templatePath, 'utf8');
-        console.log('تم قراءة القالب من الملف');
-      } else {
-        console.log('القالب غير موجود، استخدام قالب مضمن');
-        templateHtml = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="UTF-8">
-          <meta name="viewport" content="width=device-width, initial-scale=1.0">
-          <title>اتفاقية عدم الإفصاح</title>
-          <style>
-            body { font-family: Arial, sans-serif; direction: rtl; padding: 20px; }
-            .header { text-align: center; margin-bottom: 30px; }
-            .section { margin-bottom: 20px; }
-            .footer { margin-top: 50px; text-align: center; font-size: 12px; }
-            .signature { margin-top: 40px; border-top: 1px solid #ccc; padding-top: 20px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <h1>اتفاقية عدم الإفصاح</h1>
-            <h2>{{PROJECT_TITLE}}</h2>
-          </div>
-          <div class="section">
-            <p><strong>صاحب المشروع:</strong> {{PROJECT_OWNER_NAME}}</p>
-            <p><strong>الشركة:</strong> {{COMPANY_NAME}}</p>
-            <p><strong>التاريخ:</strong> {{CURRENT_DATE}}</p>
-          </div>
-          <div class="section">
-            <h3>نص الاتفاقية:</h3>
-            <p>يتعهد الطرف الثاني (الشركة) بالحفاظ على سرية المعلومات المتعلقة بالمشروع وعدم الإفصاح عنها لأي طرف ثالث.</p>
-            <p>تسري هذه الاتفاقية لمدة سنتين من تاريخ توقيعها.</p>
-          </div>
-          <div class="signature">
-            <p>{{SIGNATURE_STATUS}}</p>
-            {{SIGNATURE_INFO}}
-          </div>
-          <div class="footer">
-            <p>منصة لينكتك &copy; 2025 | {{GENERATION_DATE}}</p>
-          </div>
-        </body>
-        </html>
-        `;
-      }
-      
-      // تاريخ اليوم بالتنسيق العربي
-      const arabicDate = new Date().toLocaleDateString('ar-SA');
-      const generationTime = new Date().toLocaleString('ar-SA');
-      
-      // إعداد معلومات التوقيع
-      let signatureStatus = 'الحالة: لم يتم التوقيع بعد. هذه نسخة مسودة فقط.';
-      let signatureInfo = '';
-      
-      if (nda.signedAt) {
-        const companySignInfo = nda.companySignatureInfo as any || {};
-        const signerName = typeof companySignInfo === 'object' && companySignInfo.signerName ? companySignInfo.signerName : 'غير محدد';
-        const signerTitle = typeof companySignInfo === 'object' && companySignInfo.signerTitle ? companySignInfo.signerTitle : 'غير محدد';
-        const signedDate = new Date(nda.signedAt).toLocaleDateString('ar-SA');
-        
-        signatureStatus = 'الحالة: تم التوقيع';
-        signatureInfo = `
-          <div class="signature-info">تم التوقيع بواسطة: ${signerName}</div>
-          <div class="signature-info">المنصب: ${signerTitle}</div>
-          <div class="signature-info">التاريخ: ${signedDate}</div>
-        `;
-      }
-      
-      // استبدال القيم في القالب
-      templateHtml = templateHtml
-        .replace('{{PROJECT_TITLE}}', project.title)
-        .replace('{{PROJECT_OWNER_NAME}}', projectOwner)
-        .replace('{{COMPANY_NAME}}', companyNameStr)
-        .replace('{{CURRENT_DATE}}', arabicDate)
-        .replace('{{SIGNATURE_STATUS}}', signatureStatus)
-        .replace('{{SIGNATURE_INFO}}', signatureInfo)
-        .replace('{{GENERATION_DATE}}', generationTime);
-      
-      // استخدام Puppeteer بدلاً من PDFKit
-      console.log('استخدام Puppeteer لإنشاء ملف PDF');
-      
-      const browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox']
-      });
-      
-      const page = await browser.newPage();
-      
-      // استخدام القالب الذي تم إعداده مسبقاً
-      await page.setContent(templateHtml, { waitUntil: 'networkidle0' });
-      
-      const pdfBuffer = await page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
-      });
-      
-      await browser.close();
-      
-      // إعداد رؤوس الاستجابة للتحميل الصحيح
-      const filename = `NDA-${ndaId}-${Date.now()}.pdf`;
-      res.setHeader('Content-Type', 'application/pdf');
-      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
-      res.setHeader('Content-Length', pdfBuffer.length);
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      
-      // إرسال الملف مباشرة في الاستجابة
-      res.send(pdfBuffer);
+      // If no Sadiq document ID, return error
+      return res.status(404).json({ message: 'الوثيقة غير متوفرة - لم يتم رفعها إلى صادق بعد' });
       
     } catch (error) {
       console.error('خطأ في إنشاء ملف PDF للاتفاقية:', error);
@@ -4476,6 +4331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'npm run build',
         'npm run dev',
         'npm install',
+        'npm install puppeteer',
         'npm run lint',
         'npm run test'
       ];
@@ -4537,6 +4393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'npm run build',
         'npm run dev',
         'npm install',
+        'npm install puppeteer',
         'npm run lint',
         'npm run test'
       ];
@@ -4577,7 +4434,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-
+  
   // Set a site setting (admin only)
   app.post('/api/site-settings/:key', isAuthenticated, async (req: Request, res: Response) => {
     try {
