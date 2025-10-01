@@ -402,154 +402,295 @@ ${analysis.riskAssessment.mitigationStrategies.map(strategy => `• ${strategy}`
 }
 
 /**
- * إنشاء تقرير PDF للمشروع - نسخة مبسطة
+ * إنشاء تقرير PDF للمشروع - نسخة محسنة باستخدام Puppeteer
  */
 export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, projectIdea: string): Promise<Buffer> {
-  try {
-    const PDFDocument = (await import('pdfkit')).default;
-    const path = await import('path');
-    const fs = await import('fs');
-    
-    // إنشاء مستند PDF جديد
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: {
-        top: 50,
-        bottom: 50,
-        left: 50,
-        right: 50
-      }
-    });
+  const puppeteer = (await import('puppeteer')).default;
 
-    // تحميل الخط العربي
-    const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+  // ===== إنشاء HTML بالعربي =====
+  const generateHTML = (analysis: any, projectIdea: string): string => {
+    return `
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
     
-    // التحقق من وجود الخط
-    if (fs.existsSync(fontPath)) {
-      console.log('Loading Arabic font from:', fontPath);
-      doc.registerFont('Arabic', fontPath);
-    } else {
-      console.warn('Arabic font not found, using default font');
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-
-    // إنشاء buffer لتخزين PDF
-    const chunks: Buffer[] = [];
     
-    doc.on('data', (chunk: Buffer) => {
-      chunks.push(chunk);
-    });
-
-    return new Promise((resolve, reject) => {
-      doc.on('end', () => {
-        const pdfBuffer = Buffer.concat(chunks);
-        console.log('PDF generated successfully, size:', pdfBuffer.length);
-        resolve(pdfBuffer);
-      });
-
-      doc.on('error', (error: Error) => {
-        console.error('PDF generation error:', error);
-        reject(error);
-      });
-
-      // إضافة المحتوى
-      if (fs.existsSync(fontPath)) {
-        doc.font('Arabic');
+    body {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl;
+      padding: 40px;
+      line-height: 1.8;
+      color: #333;
+    }
+    
+    h1 {
+      font-size: 28px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 40px;
+      color: #1a1a1a;
+    }
+    
+    h2 {
+      font-size: 20px;
+      font-weight: 700;
+      margin-top: 25px;
+      margin-bottom: 15px;
+      color: #2c3e50;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 8px;
+    }
+    
+    h3 {
+      font-size: 16px;
+      font-weight: 700;
+      margin-top: 18px;
+      margin-bottom: 10px;
+      color: #34495e;
+    }
+    
+    p, li {
+      font-size: 14px;
+      margin-bottom: 10px;
+      text-align: right;
+    }
+    
+    ul {
+      list-style-type: disc;
+      padding-right: 25px;
+      margin-bottom: 15px;
+    }
+    
+    .section {
+      margin-bottom: 25px;
+      page-break-inside: avoid;
+    }
+    
+    .phase {
+      background: #f8f9fa;
+      padding: 15px;
+      margin-bottom: 15px;
+      border-right: 4px solid #3498db;
+      border-radius: 4px;
+    }
+    
+    .cost-info {
+      background: #e8f4f8;
+      padding: 12px;
+      border-radius: 4px;
+      margin: 10px 0;
+    }
+    
+    .risk-category {
+      margin-bottom: 15px;
+    }
+    
+    @media print {
+      body {
+        padding: 20px;
       }
-      doc.fontSize(20).text('تحليل مشروع تقني مفصل', { align: 'center' });
-      doc.moveDown(2);
-
-      // فكرة المشروع
-      doc.fontSize(16).text('فكرة المشروع', { underline: true });
-      doc.fontSize(12).text(projectIdea);
-      doc.moveDown(1);
-
-      // نوع المشروع
-      doc.fontSize(16).text('نوع المشروع', { underline: true });
-      doc.fontSize(12).text(analysis.projectType);
-      doc.moveDown(1);
-
-      // مستوى التعقيد
-      doc.fontSize(16).text('مستوى التعقيد', { underline: true });
-      doc.fontSize(12).text(analysis.technicalComplexity);
-      doc.moveDown(1);
-
-      // التكلفة المتوقعة
-      doc.fontSize(16).text('التكلفة المتوقعة', { underline: true });
-      doc.fontSize(12).text(`من ${analysis.estimatedCostRange.min.toLocaleString('ar-SA')} إلى ${analysis.estimatedCostRange.max.toLocaleString('ar-SA')} ريال سعودي`);
-      doc.moveDown(1);
-
-      // المدة الزمنية
-      doc.fontSize(16).text('المدة الزمنية', { underline: true });
-      doc.fontSize(12).text(`التطوير: ${analysis.estimatedDuration.development} أسبوع`);
-      doc.fontSize(12).text(`الاختبار: ${analysis.estimatedDuration.testing} أسبوع`);
-      doc.fontSize(12).text(`النشر: ${analysis.estimatedDuration.deployment} أسبوع`);
-      doc.moveDown(1);
-
-      // التقنيات الموصى بها
-      doc.fontSize(16).text('التقنيات الموصى بها', { underline: true });
-      analysis.recommendedTechnologies.forEach(tech => {
-        doc.fontSize(12).text(`• ${tech}`);
-      });
-      doc.moveDown(1);
-
-      // مراحل المشروع
-      doc.fontSize(16).text('مراحل المشروع', { underline: true });
-      analysis.projectPhases.forEach(phase => {
-        doc.fontSize(14).text(phase.name, { underline: true });
-        doc.fontSize(12).text(phase.description);
-        doc.fontSize(11).text(`المدة: ${phase.duration} أسبوع | التكلفة: ${phase.cost.toLocaleString('ar-SA')} ريال`);
-        doc.moveDown(0.5);
-      });
-
-      // الميزات الأساسية
-      doc.fontSize(16).text('الميزات الأساسية', { underline: true });
-      analysis.features.filter(f => f.priority === 'essential').forEach(feature => {
-        doc.fontSize(12).text(`• ${feature.name}`);
-      });
-      doc.moveDown(1);
-
-      // تقييم المخاطر
-      doc.fontSize(16).text('تقييم المخاطر', { underline: true });
       
-      doc.fontSize(14).text('المخاطر التقنية', { underline: true });
-      analysis.riskAssessment.technicalRisks.forEach(risk => {
-        doc.fontSize(12).text(`• ${risk}`);
-      });
-      doc.moveDown(0.5);
+      .section {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>تحليل مشروع تقني مفصل</h1>
+  
+  <div class="section">
+    <h2>فكرة المشروع</h2>
+    <p>${projectIdea || 'غير محدد'}</p>
+  </div>
+  
+  <div class="section">
+    <h2>نوع المشروع</h2>
+    <p>${analysis.projectType || 'غير محدد'}</p>
+  </div>
+  
+  <div class="section">
+    <h2>مستوى التعقيد</h2>
+    <p>${
+      {
+        'simple': 'بسيط',
+        'medium': 'متوسط',
+        'complex': 'معقد',
+        'low': 'منخفض',
+        'high': 'مرتفع'
+      }[analysis.technicalComplexity] || analysis.technicalComplexity
+    }</p>
+  </div>
+  
+  ${analysis.estimatedCostRange ? `
+  <div class="section">
+    <h2>التكلفة المتوقعة</h2>
+    <div class="cost-info">
+      <p>من ${analysis.estimatedCostRange.min.toLocaleString('ar-SA')} إلى ${analysis.estimatedCostRange.max.toLocaleString('ar-SA')} ${analysis.estimatedCostRange.currency}</p>
+    </div>
+  </div>
+  ` : ''}
+  
+  ${analysis.estimatedDuration ? `
+  <div class="section">
+    <h2>المدة الزمنية</h2>
+    <ul>
+      <li>التطوير: ${analysis.estimatedDuration.development} أسبوع</li>
+      <li>الاختبار: ${analysis.estimatedDuration.testing} أسبوع</li>
+      <li>النشر: ${analysis.estimatedDuration.deployment} أسبوع</li>
+    </ul>
+  </div>
+  ` : ''}
+  
+  ${analysis.recommendedTechnologies?.length > 0 ? `
+  <div class="section">
+    <h2>التقنيات الموصى بها</h2>
+    <ul>
+      ${analysis.recommendedTechnologies.map((tech: string) => `<li>${tech}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+  
+  ${analysis.projectPhases?.length > 0 ? `
+  <div class="section">
+    <h2>مراحل المشروع</h2>
+    ${analysis.projectPhases.map((phase: any) => `
+      <div class="phase">
+        <h3>${phase.name || ''}</h3>
+        <p>${phase.description || ''}</p>
+        <p><strong>التكلفة:</strong> ${phase.cost.toLocaleString('ar-SA')} ريال</p>
+        <p><strong>المدة:</strong> ${phase.duration} أسبوع</p>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+  
+  ${analysis.features?.length > 0 ? `
+  <div class="section">
+    <h2>المزايا الأساسية</h2>
+    <ul>
+      ${analysis.features.filter(f => f.priority === 'essential').map((feature: any) => `<li>${feature.name}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+  
+  ${analysis.riskAssessment ? `
+  <div class="section">
+    <h2>تقييم المخاطر</h2>
+    
+    ${analysis.riskAssessment.technicalRisks?.length > 0 ? `
+    <div class="risk-category">
+      <h3>المخاطر التقنية</h3>
+      <ul>
+        ${analysis.riskAssessment.technicalRisks.map((risk: string) => `<li>${risk}</li>`).join('')}
+      </ul>
+    </div>
+    ` : ''}
+    
+    ${analysis.riskAssessment.timelineRisks?.length > 0 ? `
+    <div class="risk-category">
+      <h3>مخاطر الجدولة الزمنية</h3>
+      <ul>
+        ${analysis.riskAssessment.timelineRisks.map((risk: string) => `<li>${risk}</li>`).join('')}
+      </ul>
+    </div>
+    ` : ''}
+    
+    ${analysis.riskAssessment.budgetRisks?.length > 0 ? `
+    <div class="risk-category">
+      <h3>مخاطر الميزانية</h3>
+      <ul>
+        ${analysis.riskAssessment.budgetRisks.map((risk: string) => `<li>${risk}</li>`).join('')}
+      </ul>
+    </div>
+    ` : ''}
+  </div>
+  ` : ''}
+  
+  ${analysis.riskAssessment?.mitigationStrategies?.length > 0 ? `
+  <div class="section">
+    <h2>استراتيجيات التخفيف</h2>
+    <ul>
+      ${analysis.riskAssessment.mitigationStrategies.map((strategy: string) => `<li>${strategy}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+  
+  ${analysis.maintenanceRequirements ? `
+  <div class="section">
+    <h2>متطلبات الصيانة</h2>
+    <ul>
+      <li>التكرار: ${analysis.maintenanceRequirements.frequency}</li>
+      <li>التكلفة الشهرية: ${analysis.maintenanceRequirements.estimatedMonthlyCost.toLocaleString('ar-SA')} ريال</li>
+    </ul>
+  </div>
+  ` : ''}
+  
+  ${analysis.maintenanceRequirements?.requiredSkills?.length > 0 ? `
+  <div class="section">
+    <h2>المهارات المطلوبة</h2>
+    <ul>
+      ${analysis.maintenanceRequirements.requiredSkills.map((skill: string) => `<li>${skill}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+  
+  <div class="section">
+    <p style="text-align: center; font-size: 12px; color: #666; margin-top: 40px;">
+      تم إنشاء هذا التقرير في ${new Date().toLocaleDateString('ar-SA')} بواسطة منصة لينكتك
+    </p>
+  </div>
+</body>
+</html>
+    `;
+  };
 
-      doc.fontSize(14).text('مخاطر الجدولة الزمنية', { underline: true });
-      analysis.riskAssessment.timelineRisks.forEach(risk => {
-        doc.fontSize(12).text(`• ${risk}`);
-      });
-      doc.moveDown(0.5);
-
-      doc.fontSize(14).text('مخاطر الميزانية', { underline: true });
-      analysis.riskAssessment.budgetRisks.forEach(risk => {
-        doc.fontSize(12).text(`• ${risk}`);
-      });
-      doc.moveDown(0.5);
-
-      doc.fontSize(14).text('استراتيجيات التخفيف', { underline: true });
-      analysis.riskAssessment.mitigationStrategies.forEach(strategy => {
-        doc.fontSize(12).text(`• ${strategy}`);
-      });
-      doc.moveDown(1);
-
-      // متطلبات الصيانة
-      doc.fontSize(16).text('متطلبات الصيانة', { underline: true });
-      doc.fontSize(12).text(`التكرار: ${analysis.maintenanceRequirements.frequency}`);
-      doc.fontSize(12).text(`التكلفة الشهرية: ${analysis.maintenanceRequirements.estimatedMonthlyCost.toLocaleString('ar-SA')} ريال`);
-      doc.fontSize(12).text(`المهارات المطلوبة: ${analysis.maintenanceRequirements.requiredSkills.join(', ')}`);
-      doc.moveDown(2);
-
-      // Footer
-      doc.fontSize(10).text(`تم إنشاء هذا التقرير في ${new Date().toLocaleDateString('ar-SA')} بواسطة منصة لينكتك`, { align: 'center' });
-
-      // إنهاء المستند
-      doc.end();
+  // ===== تحويل HTML إلى PDF =====
+  let browser;
+  
+  try {
+    // إنشاء HTML
+    const html = generateHTML(analysis, projectIdea);
+    
+    // فتح المتصفح
+    browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
+    
+    const page = await browser.newPage();
+    
+    // تحميل HTML
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    
+    // إنشاء PDF
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: {
+        top: '20mm',
+        right: '15mm',
+        bottom: '20mm',
+        left: '15mm'
+      }
+    });
+    
+    await browser.close();
+    
+    console.log('✓ تم إنشاء PDF بنجاح باستخدام Puppeteer!');
+    return pdfBuffer;
+    
   } catch (error) {
-    console.error('Error in generateProjectReportPDF:', error);
+    if (browser) await browser.close();
+    console.error('خطأ في إنشاء PDF:', error);
     throw error;
   }
 }

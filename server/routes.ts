@@ -8,13 +8,13 @@ import jwt from "jsonwebtoken";
 import { exec } from "child_process";
 // استيراد مسارات Sitemap و robots.txt
 import sitemapRoutes from "./routes/sitemap";
-import arabicPdfTestRoutes from "./arabicPdfTest";
+// import arabicPdfTestRoutes from "./arabicPdfTest"; // تم حذف الملف
 import pdfmakeTestRoutes from "./pdfmakeTest";
 import generateNdaRoutes from "./generateNDA";
 import sadiqRoutes from "./routes/sadiq";
 import blogMigrationRoutes from "./routes/blogMigration";
 // Contact routes are now integrated below
-import PDFDocument from "pdfkit";
+// import PDFDocument from "pdfkit"; // تم استبداله بـ Puppeteer
 import { Readable } from "stream";
 import fsExtra from "fs-extra";
 import puppeteer from "puppeteer";
@@ -22,8 +22,8 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import arabicReshaper from 'arabic-reshaper';
-import bidi from 'bidi-js';
+// import arabicReshaper from 'arabic-reshaper'; // تم استبداله بـ Puppeteer
+// import bidi from 'bidi-js'; // تم استبداله بـ Puppeteer
 
 // مخزن مؤقت لإعدادات التواصل (على مستوى الوحدة لضمان الاستمرارية)
 let globalContactSettingsCache: any = {
@@ -132,7 +132,7 @@ const isAdmin = (req: Request, res: Response, next: Function) => {
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // إضافة مسارات التحويل والتنزيل ومسارات PDF
-  app.use(arabicPdfTestRoutes);
+  // app.use(arabicPdfTestRoutes); // تم حذف الملف
   app.use(pdfmakeTestRoutes);
   app.use(generateNdaRoutes);
   // Contact routes integrated above
@@ -2267,277 +2267,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // وظيفة إنشاء ملف PDF لاتفاقية عدم الإفصاح
   async function generateNdaPdf(nda: any, project: any, company: any): Promise<Buffer> {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
       try {
         // وظيفة مساعدة لإعادة تشكيل النص العربي 
         // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
         function reshapeArabicText(text: string): string {
-          try {
-            // النهج المحسن لمعالجة النص العربي
-            
-            // 1. إعادة تشكيل النص العربي (دمج الحروف بشكل صحيح)
-            const reshaped = arabicReshaper.reshape(text);
-            
-            // 2. تصحيح اتجاه النص من اليمين إلى اليسار
-            const bidiText = bidi.getDisplay(reshaped);
-            
-            return bidiText;
-          } catch (error) {
-            console.error('خطأ في تحويل النص العربي:', error);
-            return text; // في حالة حدوث خطأ، إرجاع النص الأصلي
-          }
+          // إرجاع النص كما هو لأننا نستخدم Puppeteer الآن
+          return text;
         }
       
-        const chunks: Buffer[] = [];
-        const doc = new PDFDocument({ 
-          size: 'A4',
-          margin: 50,
-          info: {
-            Title: `اتفاقية عدم إفصاح - ${project.title}`,
-            Author: 'منصة لينكتك',
-            Subject: 'اتفاقية عدم إفصاح',
-          },
-          // إضافة دعم اللغة العربية
-          lang: 'ar',
-          features: ['rtla']
+        // استخدام Puppeteer بدلاً من PDFKit
+        const browser = await puppeteer.launch({
+          headless: true,
+          args: ['--no-sandbox', '--disable-setuid-sandbox']
         });
-
-        // تحديد مسار ملف الخط العربي
-        const arabicFontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
-        console.log('مسار ملف الخط العربي:', arabicFontPath);
         
-        // التحقق من وجود ملف الخط
-        const fontExists = fs.existsSync(arabicFontPath);
-        console.log('هل يوجد ملف الخط؟', fontExists);
+        const page = await browser.newPage();
         
-        // تسجيل واستخدام الخط العربي
-        if (fontExists) {
-          try {
-            doc.registerFont('Arabic', arabicFontPath);
-            doc.font('Arabic');
-            console.log('تم تسجيل واستخدام الخط العربي بنجاح');
-          } catch (fontError) {
-            console.error('خطأ في تسجيل الخط العربي:', fontError);
-            console.log('الاستبدال بالخط الافتراضي Helvetica');
-            doc.font('Helvetica');
-          }
-        } else {
-          console.log('ملف الخط العربي غير موجود، استخدام الخط الافتراضي Helvetica');
-          doc.font('Helvetica');
-        }
+        const html = `
+        <!DOCTYPE html>
+        <html dir="rtl" lang="ar">
+        <head>
+          <meta charset="UTF-8">
+          <style>
+            @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+            body {
+              font-family: 'Cairo', sans-serif;
+              direction: rtl;
+              padding: 40px;
+              line-height: 1.8;
+              color: #333;
+            }
+            h1 { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 30px; }
+            h2 { font-size: 18px; font-weight: 700; margin-top: 20px; margin-bottom: 10px; }
+            p { font-size: 14px; margin-bottom: 10px; text-align: right; }
+          </style>
+        </head>
+        <body>
+          <h1>اتفاقية عدم إفصاح</h1>
+          <h2>مشروع: ${project.title}</h2>
+          <p>هذه اتفاقية عدم إفصاح للمشروع المذكور أعلاه.</p>
+        </body>
+        </html>
+        `;
         
-        // تضبيط اتجاه RTL
-        doc.text('', 0, 0, { align: 'right' });
-
-        // التقاط البيانات المكتوبة في الملف
-        doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-        doc.on('end', () => {
-          const result = Buffer.concat(chunks);
-          resolve(result);
+        await page.setContent(html, { waitUntil: 'networkidle0' });
+        
+        const pdfBuffer = await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
         });
-        doc.on('error', (err) => reject(err));
-
-        // تعريف خيارات نص RTL
-        const rtlOptions = { 
-          align: 'right',
-          features: ['rtla']  // تفعيل الكتابة من اليمين لليسار
-        };
         
-        // إضافة الشعار والعنوان باستخدام معالجة النص العربي محسنة
-        // 1. إعادة تشكيل النص العربي مع bidi
-        const titleReshaped = arabicReshaper.reshape('اتفاقية عدم إفصاح');
-        const titleBidi = bidi.getDisplay(titleReshaped);
-        doc.fontSize(22).text(titleBidi, { align: 'center' });
-        doc.moveDown();
+        await browser.close();
         
-        const projectTitleText = `مشروع: ${project.title}`;
-        const projectTitleReshaped = arabicReshaper.reshape(projectTitleText);
-        const projectTitleBidi = bidi.getDisplay(projectTitleReshaped);
-        doc.fontSize(16).text(projectTitleBidi, { align: 'center' });
-        doc.moveDown(2);
-
-        // معلومات الأطراف
-        const partiesTitleReshaped = arabicReshaper.reshape('أطراف الاتفاقية:');
-        const partiesTitleBidi = bidi.getDisplay(partiesTitleReshaped);
-        doc.fontSize(14).text(partiesTitleBidi, { align: 'right', underline: true });
-        doc.moveDown();
-        
-        const firstPartyText = `الطرف الأول (صاحب المشروع): ${project.ownerName || 'غير محدد'}`;
-        const firstPartyReshaped = arabicReshaper.reshape(firstPartyText);
-        const firstPartyBidi = bidi.getDisplay(firstPartyReshaped);
-        doc.fontSize(12).text(firstPartyBidi, { align: 'right' });
-        
-        // معلومات الشركة
-        const companyName = company?.name || nda.companySignatureInfo?.companyName || 'غير محدد';
-        const secondPartyText = `الطرف الثاني (الشركة): ${companyName}`;
-        const secondPartyReshaped = arabicReshaper.reshape(secondPartyText);
-        const secondPartyBidi = bidi.getDisplay(secondPartyReshaped);
-        doc.fontSize(12).text(secondPartyBidi, { align: 'right' });
-        doc.moveDown();
-
-        // معلومات التوقيع
-        if (nda.signedAt) {
-          const signDateText = `تم توقيع هذه الاتفاقية بتاريخ: ${new Date(nda.signedAt).toLocaleDateString('ar-SA')}`;
-          const signDateReshaped = arabicReshaper.reshape(signDateText);
-          const signDateBidi = bidi.getDisplay(signDateReshaped);
-          doc.fontSize(12).text(signDateBidi, { align: 'right' });
-          
-          const signerText = `تم التوقيع بواسطة: ${nda.companySignatureInfo.signerName} (${nda.companySignatureInfo.signerTitle})`;
-          const signerReshaped = arabicReshaper.reshape(signerText);
-          const signerBidi = bidi.getDisplay(signerReshaped);
-          doc.fontSize(12).text(signerBidi, { align: 'right' });
-          
-          const ipText = `عنوان IP للتوقيع: ${nda.companySignatureInfo.signerIp}`;
-          const ipReshaped = arabicReshaper.reshape(ipText);
-          const ipBidi = bidi.getDisplay(ipReshaped);
-          doc.fontSize(11).text(ipBidi, { align: 'right' });
-        }
-        doc.moveDown(2);
-
-        // نص الاتفاقية
-        const agreementTitleReshaped = arabicReshaper.reshape('نص اتفاقية عدم الإفصاح:');
-        const agreementTitleBidi = bidi.getDisplay(agreementTitleReshaped);
-        doc.fontSize(14).text(agreementTitleBidi, { align: 'right', underline: true });
-        doc.moveDown();
-        
-        // المقدمة
-        const introTitleReshaped = arabicReshaper.reshape("المقدمة:");
-        const introTitleBidi = bidi.getDisplay(introTitleReshaped);
-        doc.fontSize(12).text(introTitleBidi, { align: 'right', bold: true });
-        
-        const introTextReshaped = arabicReshaper.reshape("هذه الاتفاقية (\"الاتفاقية\") محررة ومبرمة بتاريخ التوقيع الإلكتروني بين الطرف الأول (صاحب المشروع) والطرف الثاني (الشركة).");
-        const introTextBidi = bidi.getDisplay(introTextReshaped);
-        doc.fontSize(11).text(introTextBidi, { align: 'right' });
-        doc.moveDown();
-
-        // الغرض
-        const purposeTitleReshaped = arabicReshaper.reshape("الغرض:");
-        const purposeTitleBidi = bidi.getDisplay(purposeTitleReshaped);
-        doc.fontSize(12).text(purposeTitleBidi, { align: 'right', bold: true });
-        
-        const purposeTextReshaped = arabicReshaper.reshape("لغرض تقييم إمكانية التعاون في تنفيذ المشروع المذكور، من الضروري أن يقوم الطرف الأول بالكشف عن معلومات سرية وملكية فكرية للطرف الثاني.");
-        const purposeTextBidi = bidi.getDisplay(purposeTextReshaped);
-        doc.fontSize(11).text(purposeTextBidi, { align: 'right' });
-        doc.moveDown();
-
-        // المعلومات السرية
-        const confidentialTitleReshaped = arabicReshaper.reshape("المعلومات السرية:");
-        const confidentialTitleBidi = bidi.getDisplay(confidentialTitleReshaped);
-        doc.fontSize(12).text(confidentialTitleBidi, { align: 'right', bold: true });
-        
-        const confidentialTextReshaped = arabicReshaper.reshape("تشمل \"المعلومات السرية\" جميع المعلومات والبيانات المتعلقة بالمشروع بما في ذلك على سبيل المثال لا الحصر: المواصفات التقنية، الوثائق، الرسومات، الخطط، الاستراتيجيات، الأفكار، المنهجيات، التصاميم، الشفرة المصدرية، واجهات المستخدم، أسرار تجارية، وأي معلومات أخرى تتعلق بالمشروع.");
-        const confidentialTextBidi = bidi.getDisplay(confidentialTextReshaped);
-        doc.fontSize(11).text(confidentialTextBidi, { align: 'right' });
-        doc.moveDown();
-
-        // التزامات الطرف المستلم
-        const obligationsTitleReshaped = arabicReshaper.reshape("التزامات الطرف الثاني:");
-        const obligationsTitleBidi = bidi.getDisplay(obligationsTitleReshaped);
-        doc.fontSize(12).text(obligationsTitleBidi, { align: 'right', bold: true });
-        
-        const obligationsIntroReshaped = arabicReshaper.reshape("يوافق الطرف الثاني على:");
-        const obligationsIntroBidi = bidi.getDisplay(obligationsIntroReshaped);
-        doc.fontSize(11).text(obligationsIntroBidi, { align: 'right' });
-        
-        const obligations = [
-          "الحفاظ على سرية جميع المعلومات السرية وعدم الكشف عنها لأي طرف ثالث.",
-          "استخدام المعلومات السرية فقط لغرض تقييم إمكانية التعاون في تنفيذ المشروع.",
-          "عدم نسخ أو تصوير أو تخزين أي من المعلومات السرية إلا بقدر ما هو ضروري لتحقيق الغرض من هذه الاتفاقية.",
-          "اتخاذ جميع الإجراءات المعقولة للحفاظ على سرية المعلومات السرية بنفس مستوى العناية الذي يستخدمه لحماية معلوماته السرية الخاصة.",
-          "إبلاغ الطرف الأول فوراً في حالة علمه بأي استخدام أو كشف غير مصرح به للمعلومات السرية."
-        ];
-        
-        obligations.forEach((obligation, index) => {
-          const obligationText = `${index + 1}. ${obligation}`;
-          const obligationReshaped = arabicReshaper.reshape(obligationText);
-          const obligationBidi = bidi.getDisplay(obligationReshaped);
-          doc.fontSize(11).text(obligationBidi, { align: 'right' });
-        });
-        doc.moveDown();
-
-        // مدة الاتفاقية
-        const durationTitleReshaped = arabicReshaper.reshape("مدة الاتفاقية:");
-        const durationTitleBidi = bidi.getDisplay(durationTitleReshaped);
-        doc.fontSize(12).text(durationTitleBidi, { align: 'right', bold: true });
-        
-        const durationTextReshaped = arabicReshaper.reshape("تبقى هذه الاتفاقية سارية المفعول لمدة سنتين (2) من تاريخ توقيعها.");
-        const durationTextBidi = bidi.getDisplay(durationTextReshaped);
-        doc.fontSize(11).text(durationTextBidi, { align: 'right' });
-        doc.moveDown();
-
-        // القانون الحاكم
-        const lawTitleReshaped = arabicReshaper.reshape("القانون الحاكم:");
-        const lawTitleBidi = bidi.getDisplay(lawTitleReshaped);
-        doc.fontSize(12).text(lawTitleBidi, { align: 'right', bold: true });
-        
-        const lawTextReshaped = arabicReshaper.reshape("تخضع هذه الاتفاقية وتفسر وفقاً لقوانين المملكة العربية السعودية.");
-        const lawTextBidi = bidi.getDisplay(lawTextReshaped);
-        doc.fontSize(11).text(lawTextBidi, { align: 'right' });
-        doc.moveDown();
-
-        // توقيع إلكتروني
-        const signTitleReshaped = arabicReshaper.reshape("توقيع إلكتروني:");
-        const signTitleBidi = bidi.getDisplay(signTitleReshaped);
-        doc.fontSize(12).text(signTitleBidi, { align: 'right', bold: true });
-        
-        const signTextReshaped = arabicReshaper.reshape("يقر الطرفان بأن هذه الاتفاقية قد تم توقيعها إلكترونياً وأن هذا التوقيع الإلكتروني له نفس الأثر القانوني كالتوقيع اليدوي.");
-        const signTextBidi = bidi.getDisplay(signTextReshaped);
-        doc.fontSize(11).text(signTextBidi, { align: 'right' });
-        doc.moveDown(2);
-
-        // مكان للتوقيعات
-        const signaturesTitleReshaped = arabicReshaper.reshape("التوقيعات:");
-        const signaturesTitleBidi = bidi.getDisplay(signaturesTitleReshaped);
-        doc.fontSize(12).text(signaturesTitleBidi, { align: 'right', underline: true });
-        doc.moveDown();
-        
-        const firstPartySignReshaped = arabicReshaper.reshape("الطرف الأول (صاحب المشروع):");
-        const firstPartySignBidi = bidi.getDisplay(firstPartySignReshaped);
-        doc.fontSize(11).text(firstPartySignBidi, { align: 'right' });
-        doc.moveDown();
-        
-        const nameFieldReshaped = arabicReshaper.reshape("الاسم: ___________________");
-        const nameFieldBidi = bidi.getDisplay(nameFieldReshaped);
-        doc.fontSize(11).text(nameFieldBidi, { align: 'right' });
-        
-        const dateFieldReshaped = arabicReshaper.reshape("التاريخ: ___________________");
-        const dateFieldBidi = bidi.getDisplay(dateFieldReshaped);
-        doc.fontSize(11).text(dateFieldBidi, { align: 'right' });
-        doc.moveDown();
-        
-        const secondPartySignReshaped = arabicReshaper.reshape("الطرف الثاني (الشركة):");
-        const secondPartySignBidi = bidi.getDisplay(secondPartySignReshaped);
-        doc.fontSize(11).text(secondPartySignBidi, { align: 'right' });
-        doc.moveDown();
-        
-        const companyNameTextReshaped = arabicReshaper.reshape(`الاسم: ${nda.companySignatureInfo?.signerName || '___________________'}`);
-        const companyNameTextBidi = bidi.getDisplay(companyNameTextReshaped);
-        doc.fontSize(11).text(companyNameTextBidi, { align: 'right' });
-        
-        const dateTextReshaped = arabicReshaper.reshape(`التاريخ: ${nda.signedAt ? new Date(nda.signedAt).toLocaleDateString('ar-SA') : '___________________'}`);
-        const dateTextBidi = bidi.getDisplay(dateTextReshaped);
-        doc.fontSize(11).text(dateTextBidi, { align: 'right' });
-        
-        // إضافة الرقم التسلسلي والصفحات
-        const totalPages = doc.bufferedPageRange().count;
-        for (let i = 0; i < totalPages; i++) {
-          doc.switchToPage(i);
-          
-          const footerTextReshaped = arabicReshaper.reshape(
-            `منصة لينكتك - اتفاقية عدم إفصاح - رقم الاتفاقية: ${nda.id} - الصفحة ${i + 1} من ${totalPages}`
-          );
-          const footerTextBidi = bidi.getDisplay(footerTextReshaped);
-          
-          doc.fontSize(8).text(
-            footerTextBidi,
-            50,
-            doc.page.height - 50,
-            { align: 'center' }
-          );
-        }
-
-        // إنهاء الملف
-        doc.end();
+        // إرجاع النتيجة
+        resolve(pdfBuffer);
       } catch (error) {
         reject(error);
       }
@@ -2868,120 +2653,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .replace('{{SIGNATURE_INFO}}', signatureInfo)
         .replace('{{GENERATION_DATE}}', generationTime);
       
-      // استخدام PDFKit بدلاً من Puppeteer
-      console.log('استخدام PDFKit لإنشاء ملف PDF بدلاً من Puppeteer');
+      // استخدام Puppeteer بدلاً من PDFKit
+      console.log('استخدام Puppeteer لإنشاء ملف PDF');
       
-      // وظيفة مساعدة لإعادة تشكيل النص العربي 
-      // تقوم بتحويل النص العربي إلى النموذج المناسب لعرضه في ملف PDF
-      function processText(text: string): string {
-        // Simple text processing for English - no need for Arabic reshaper
-        return text;
-      }
-      
-      // إنشاء وثيقة PDF جديدة باللغة الإنجليزية
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50,
-        autoFirstPage: true,
-        bufferPages: true,
-        layout: 'portrait',
-        info: {
-          Title: `Non-Disclosure Agreement - NDA`,
-          Author: 'LinkTech Platform',
-          Subject: 'Non-Disclosure Agreement',
-        }
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
       
-      // استخدام الخط الافتراضي
-      doc.font('Helvetica');
+      const page = await browser.newPage();
       
-      // إنشاء stream للحصول على البايتات
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
+      // استخدام القالب الذي تم إعداده مسبقاً
+      await page.setContent(templateHtml, { waitUntil: 'networkidle0' });
       
-      // وعد يتم تنفيذه عند اكتمال المستند
-      const pdfPromise = new Promise<Buffer>((resolve, reject) => {
-        doc.on('end', () => {
-          const pdfBuffer = Buffer.concat(chunks);
-          resolve(pdfBuffer);
-        });
-        doc.on('error', reject);
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
       });
       
-      // إضافة عنوان المستند
-      doc.fontSize(22).text('Non-Disclosure Agreement (NDA)', { 
-        align: 'center'
-      });
-      doc.moveDown();
+      await browser.close();
       
-      // إضافة عنوان المشروع
-      doc.fontSize(16).text(`Project: ${project.title}`, { 
-        align: 'center'
-      });
-      doc.moveDown(2);
-      
-      // معلومات الأطراف
-      doc.fontSize(14).text('Agreement Parties:', { 
-        align: 'left', 
-        underline: true
-      });
-      doc.moveDown();
-      
-      doc.fontSize(12).text(`First Party (Project Owner): ${projectOwner}`, { align: 'left' });
-      doc.moveDown();
-      
-      doc.fontSize(12).text(`Second Party (Company): ${companyNameStr}`, { align: 'left' });
-      doc.moveDown(2);
-      
-      // محتوى الاتفاقية
-      doc.fontSize(14).text('Agreement Terms:', { align: 'left', underline: true });
-      doc.moveDown();
-      
-      doc.fontSize(11).text('1. The Second Party commits to maintaining the confidentiality of all information and data related to the aforementioned project, and not disclosing it to any third party without prior written consent from the First Party.', { align: 'left' });
-      doc.moveDown();
-      
-      doc.fontSize(11).text('2. Confidential information includes, but is not limited to: work plans, designs, drawings, software, ideas, concepts, and technical and commercial details.', { align: 'left' });
-      doc.moveDown();
-      
-      doc.fontSize(11).text('3. Confidentiality obligations shall continue for a period of two years from the date of signing this agreement.', { align: 'left' });
-      doc.moveDown(2);
-      
-      // معلومات التوقيع
-      doc.fontSize(14).text('Signature Status:', { align: 'left', underline: true });
-      doc.moveDown();
-      
-      if (nda.status === 'signed' && nda.signedAt) {
-        const signDateStr = new Date(nda.signedAt).toLocaleDateString('en-US');
-        doc.fontSize(12).text(`This agreement was signed on: ${signDateStr}`, { align: 'left' });
-        
-        const signerInfo = nda.companySignatureInfo as any || {};
-        if (signerInfo.signerName) {
-          const cleanSignerName = sanitizeTextForPDF(signerInfo.signerName);
-          doc.fontSize(12).text(`Signed by: ${cleanSignerName}`, { align: 'left' });
-        }
-        if (signerInfo.signerTitle) {
-          const cleanSignerTitle = sanitizeTextForPDF(signerInfo.signerTitle);
-          doc.fontSize(12).text(`Position: ${cleanSignerTitle}`, { align: 'left' });
-        }
-      } else {
-        const cleanStatus = sanitizeTextForPDF('Draft (Not Signed)');
-        doc.fontSize(12).text(`Agreement Status: ${cleanStatus}`, { align: 'left' });
-      }
-      
-      doc.moveDown(2);
-      
-      // تذييل الصفحة
-      const todayDate = new Date().toLocaleDateString('en-US');
-      doc.fontSize(10).text(`This document was created by LinkTech Platform - ${todayDate}`, { align: 'center' });
-      
-      // إنهاء المستند
-      doc.end();
-      
-      // انتظار اكتمال إنشاء المستند
-      const pdfBuffer = await pdfPromise;
+      // إعداد رؤوس الاستجابة للتحميل الصحيح
+      const filename = `NDA-${ndaId}-${Date.now()}.pdf`;
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Content-Length', pdfBuffer.length);
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
       
       // إرسال الملف مباشرة في الاستجابة
-      res.contentType('application/pdf');
       res.send(pdfBuffer);
       
     } catch (error) {
@@ -5617,7 +5318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(sitemapRoutes);
   
   // استخدام مسارات اختبار PDF العربي
-  app.use(arabicPdfTestRoutes);
+  // app.use(arabicPdfTestRoutes); // تم حذف الملف
   app.use(pdfmakeTestRoutes);
   
   // صفحة HTML تحتوي على زر تنزيل وعرض لملف PDF
@@ -5689,86 +5390,63 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('اختبار إنشاء PDF باللغة العربية - عرض مباشر');
       
-      // مساعدة لإعادة تشكيل و bidi مع تحسين لمعالجة ترتيب الكلمات
+      // إرجاع النص كما هو لأننا نستخدم Puppeteer الآن
       function toArabic(text: string): string {
-        try {
-          // 1) reshape: يربط الحروف مع بعض
-          const reshaped = arabicReshaper.reshape(text);
-          
-          // 2) معالجة خاصة للاتجاه من اليمين لليسار
-          // تقسيم النص إلى جمل/سطور (اختياري)
-          const lines = reshaped.split('\n');
-          const processedLines = lines.map(line => {
-            // تقسيم كل سطر إلى كلمات
-            const words = line.split(' ');
-            // عكس ترتيب الكلمات (حتى تظهر من اليمين إلى اليسار)
-            const reversedWords = words.reverse();
-            // إعادة دمج الكلمات المعكوسة
-            return reversedWords.join(' ');
-          });
-          
-          // إعادة دمج السطور
-          const processedText = processedLines.join('\n');
-          
-          // 3) استخدام bidi للحصول على النص المرئي النهائي
-          return bidi.getVisualString(processedText);
-        } catch (error) {
-          console.error('خطأ في معالجة النص العربي:', error);
-          return text; // إرجاع النص الأصلي في حالة الخطأ
-        }
+        return text;
       }
       
-      // إنشاء وثيقة PDF جديدة
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50,
-        info: {
-          Title: 'اختبار دعم اللغة العربية',
-          Author: 'لينكتك',
-          Subject: 'اختبار توليد ملفات PDF بالعربية',
-        }
+      // استخدام Puppeteer بدلاً من PDFKit
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
       
-      // تحميل الخط العربي
-      const fontPath = path.join(process.cwd(), 'attached_assets', 'Cairo-Regular.ttf');
-      doc.font(fontPath);
+      const page = await browser.newPage();
+      
+      const html = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
+      <head>
+        <meta charset="UTF-8">
+        <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
+          body {
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+            padding: 40px;
+            line-height: 1.8;
+            color: #333;
+          }
+          h1 { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 30px; }
+          h2 { font-size: 18px; font-weight: 700; margin-top: 20px; margin-bottom: 10px; }
+          p { font-size: 14px; margin-bottom: 10px; text-align: right; }
+        </style>
+      </head>
+      <body>
+        <h1>مرحبًا بكم في اختبار دعم اللغة العربية</h1>
+        <h2>هذا اختبار لعرض النصوص العربية في ملفات PDF</h2>
+        <p>محتوى فقرة تجريبية باللغة العربية. نختبر هنا قدرة المكتبة على عرض النصوص العربية بشكل صحيح مع دعم التشكيل والاتجاه من اليمين إلى اليسار.</p>
+        <p>تم إنشاء هذا الملف في ${new Date().toLocaleDateString('ar-SA')}.</p>
+      </body>
+      </html>
+      `;
+      
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+      });
+      
+      await browser.close();
       
       // إعداد رأس الاستجابة لعرض PDF مباشرة في المتصفح
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', 'inline; filename=arabic-test.pdf');
       
-      // توجيه مخرجات PDF مباشرة إلى الاستجابة
-      doc.pipe(res);
-      
-      // إضافة محتوى باللغة العربية للاختبار
-      doc.fontSize(24).text(toArabic('مرحبًا بكم في اختبار دعم اللغة العربية'), {
-        align: 'right'
-      });
-      
-      doc.moveDown();
-      doc.fontSize(16).text(toArabic('هذا اختبار لعرض النصوص العربية في ملفات PDF'), {
-        align: 'right'
-      });
-      
-      doc.moveDown();
-      doc.fontSize(14).text(toArabic('محتوى فقرة تجريبية باللغة العربية. نختبر هنا قدرة المكتبة على عرض النصوص العربية بشكل صحيح مع دعم التشكيل والاتجاه من اليمين إلى اليسار.'), {
-        align: 'right'
-      });
-      
-      doc.moveDown();
-      const currentDate = new Date();
-      const dateString = currentDate.toLocaleDateString('ar-SA');
-      doc.fontSize(12).text(toArabic(`تاريخ إنشاء المستند: ${dateString}`), {
-        align: 'right'
-      });
-      
-      doc.moveDown();
-      doc.fontSize(14).text(toArabic('أرقام للاختبار: ١٢٣٤٥٦٧٨٩٠'), {
-        align: 'right'
-      });
-      
-      // إنهاء المستند
-      doc.end();
+      // إرسال الملف مباشرة في الاستجابة
+      res.send(pdfBuffer);
       
     } catch (error) {
       console.error('خطأ في إنشاء PDF للاختبار (عرض):', error);
@@ -5779,165 +5457,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // نقطة نهاية لاختبار دعم اللغة العربية في ملفات PDF (تنزيل)
   app.get('/api/test-arabic-pdf', async (req: Request, res: Response) => {
     try {
-      console.log('اختبار إنشاء PDF باللغة العربية');
+      console.log('اختبار إنشاء PDF باللغة العربية باستخدام Puppeteer');
       
-      // مساعدة لإعادة تشكيل و bidi مع تحسين لمعالجة ترتيب الكلمات
-      function toArabic(text: string): string {
-        try {
-          // 1) reshape: يربط الحروف مع بعض
-          const reshaped = arabicReshaper.reshape(text);
-          
-          // 2) معالجة خاصة للاتجاه من اليمين لليسار
-          // تقسيم النص إلى جمل/سطور (اختياري)
-          const lines = reshaped.split('\n');
-          const processedLines = lines.map(line => {
-            // تقسيم كل سطر إلى كلمات
-            const words = line.split(' ');
-            // عكس ترتيب الكلمات (حتى تظهر من اليمين إلى اليسار)
-            const reversedWords = words.reverse();
-            // إعادة دمج الكلمات المعكوسة
-            return reversedWords.join(' ');
-          });
-          
-          // إعادة دمج السطور
-          const processedText = processedLines.join('\n');
-          
-          // 3) استخدام bidi للحصول على النص المرئي النهائي
-          return bidi.getVisualString(processedText);
-        } catch (error) {
-          console.error('خطأ في معالجة النص العربي:', error);
-          return text; // إرجاع النص الأصلي في حالة الخطأ
-        }
-      }
-      
-      // إضافة مسار الخط العربي المطلق
-      const arabicFontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
-      
-      // إنشاء وثيقة PDF جديدة مع دعم اللغة العربية
-      const doc = new PDFDocument({
-        size: 'A4',
-        margin: 50,
-        info: {
-          Title: 'وثيقة اختبار اللغة العربية',
-          Author: 'منصة لينكتك',
-          Subject: 'اختبار',
-        }
+      const browser = await puppeteer.launch({
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
       
-      // تسجيل الخط العربي
-      doc.registerFont('Cairo', arabicFontPath);
+      const page = await browser.newPage();
       
-      // استخدام الخط العربي
-      doc.font('Cairo');
-      
-      // إنشاء stream للحصول على البايتات
-      const chunks: Buffer[] = [];
-      doc.on('data', (chunk) => chunks.push(Buffer.from(chunk)));
-      
-      // الوعد باكتمال إنشاء PDF
-      const pdfPromise = new Promise<Buffer>((resolve, reject) => {
-        doc.on('end', () => {
-          const pdfData = Buffer.concat(chunks);
-          resolve(pdfData);
-        });
-        doc.on('error', reject);
-      });
-      
-      // إضافة عنوان المستند
-      doc.fontSize(24).text(toArabic('اختبار دعم اللغة العربية'), { 
-        align: 'center' 
-      });
-      doc.moveDown();
-      
-      // إضافة نصوص للاختبار
-      doc.fontSize(18).text(toArabic('هذا نص عربي للتجربة'), { 
-        align: 'right'
-      });
-      doc.moveDown();
-      
-      doc.fontSize(14).text(toArabic('١٢٣٤٥ - أرقام عربية للتجربة'), { 
-        align: 'right'
-      });
-      doc.moveDown();
-      
-      doc.fontSize(12).text(toArabic('هذه فقرة طويلة باللغة العربية لاختبار ظهور النصوص الطويلة وكيفية التعامل معها في مستندات PDF. يجب أن تظهر النصوص العربية من اليمين إلى اليسار بشكل صحيح مع حروف متصلة.'), { 
-        align: 'right'
-      });
-      doc.moveDown(2);
-      
-      // اختبار كلمات منفصلة
-      doc.fontSize(16).text(toArabic('كلمات - منفصلة - للاختبار'), { 
-        align: 'right'
-      });
-      doc.moveDown();
-      
-      // اختبار جملة مع أرقام وعلامات خاصة
-      doc.fontSize(14).text(toArabic('تاريخ الاختبار: ١٥-٠٥-٢٠٢٥'), { 
-        align: 'right'
-      });
-      doc.moveDown(2);
-      
-      // تذييل المستند
-      doc.fontSize(10).text(toArabic('تم إنشاء هذا المستند للاختبار فقط - منصة لينكتك ©'), { 
-        align: 'center'
-      });
-      
-      // إنهاء المستند
-      doc.end();
-      
-      // انتظار اكتمال إنشاء المستند
-      const pdfBuffer = await pdfPromise;
-      
-      // إنشاء ملف في المجلد العام ليكون متاحًا للتنزيل عبر الوصول المباشر
-      const publicPdfPath = path.join(process.cwd(), 'public', 'arabic-test.pdf');
-      
-      // التأكد من وجود مجلد public
-      const publicDir = path.join(process.cwd(), 'public');
-      if (!fs.existsSync(publicDir)) {
-        fs.mkdirSync(publicDir, { recursive: true });
-      }
-      
-      // كتابة الملف في المجلد العام
-      fs.writeFileSync(publicPdfPath, pdfBuffer);
-      
-      // تعديل صفحة HTML للإشارة إلى المسار الجديد
-      res.send(`<!DOCTYPE html>
-      <html lang="ar" dir="rtl">
+      const html = `
+      <!DOCTYPE html>
+      <html dir="rtl" lang="ar">
       <head>
         <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>PDF تم توليده بنجاح</title>
         <style>
+          @import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap');
           body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            text-align: center;
+            font-family: 'Cairo', sans-serif;
+            direction: rtl;
+            padding: 40px;
+            line-height: 1.8;
+            color: #333;
           }
-          h1 { color: #4CAF50; }
-          .download-btn {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 30px;
-            margin: 20px 0;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 18px;
-            text-decoration: none;
-          }
+          h1 { font-size: 24px; font-weight: 700; text-align: center; margin-bottom: 30px; }
+          h2 { font-size: 18px; font-weight: 700; margin-top: 20px; margin-bottom: 10px; }
+          p { font-size: 14px; margin-bottom: 10px; text-align: right; }
         </style>
       </head>
       <body>
-        <h1>تم إنشاء ملف PDF بنجاح!</h1>
-        <p>تم إنشاء ملف PDF بنجاح ويمكنك تنزيله من خلال الرابط أدناه</p>
-        <a href="/arabic-test.pdf" class="download-btn" download>تنزيل الملف</a>
-        <p>أو، يمكنك الوصول للملف مباشرة من:</p>
-        <a href="/arabic-test.pdf" target="_blank">/arabic-test.pdf</a>
+        <h1>اختبار دعم اللغة العربية</h1>
+        <h2>منصة لينكتك</h2>
+        <p>هذا اختبار لإنشاء ملف PDF باللغة العربية باستخدام Puppeteer.</p>
+        <p>النص العربي يجب أن يظهر بشكل صحيح من اليمين إلى اليسار.</p>
+        <p>تم إنشاء هذا الملف في ${new Date().toLocaleDateString('ar-SA')}.</p>
       </body>
-      </html>`);
+      </html>
+      `;
+      
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      
+      const pdfBuffer = await page.pdf({
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20mm', right: '15mm', bottom: '20mm', left: '15mm' }
+      });
+      
+      await browser.close();
+      
+      // إرسال الملف مباشرة في الاستجابة
+      res.contentType('application/pdf');
+      res.send(pdfBuffer);
       
     } catch (error) {
       console.error('خطأ في إنشاء PDF للاختبار:', error);
