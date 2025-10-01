@@ -696,6 +696,46 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     }
   };
 
+  // تحميل السجل التجاري
+  const handleDownloadDocument = (documentData: string, companyId: number) => {
+    try {
+      if (!documentData) {
+        toast({
+          title: "خطأ",
+          description: "لا يوجد سجل تجاري متاح للتحميل",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // استخراج نوع الملف من البيانات
+      const mimeType = documentData.split(';')[0].split(':')[1];
+      const extension = mimeType.includes('pdf') ? 'pdf' : 'png';
+      
+      // إنشاء رابط التحميل
+      const link = document.createElement('a');
+      link.href = documentData;
+      link.download = `السجل_التجاري_شركة_${companyId}.${extension}`;
+      
+      // إضافة الرابط إلى الصفحة وتشغيل التحميل
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "تم التحميل",
+        description: "تم تحميل السجل التجاري بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحميل السجل التجاري",
+        variant: "destructive",
+      });
+      console.error('خطأ في تحميل السجل التجاري:', error);
+    }
+  };
+
   // تحميل محادثة بين مستخدمين
   const loadConversation = async () => {
     if (!selectedUser1Id || !selectedUser2Id) {
@@ -1126,23 +1166,24 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>اسم الشركة</TableHead>
-                      <TableHead>الموقع</TableHead>
-                      <TableHead>التقييم</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead className="text-left">الإجراءات</TableHead>
+                      <TableHead className="text-center">اسم الشركة</TableHead>
+                      <TableHead className="text-center">الموقع</TableHead>
+                      <TableHead className="text-center">التقييم</TableHead>
+                      <TableHead className="text-center">الحالة</TableHead>
+                      <TableHead className="text-center">السجل التجاري</TableHead>
+                      <TableHead className="text-center">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {Array.isArray(companies) ? companies.map((company: any) => (
                       <TableRow key={company.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-center">
                           {/* جلب اسم الشركة من user أو عرض معرف المستخدم */}
                           {Array.isArray(users) ? users.find((u: any) => u.id === company.userId)?.name || `شركة #${company.id}` : `شركة #${company.id}`}
                         </TableCell>
-                        <TableCell>{company.location || "غير محدد"}</TableCell>
-                        <TableCell>{company.rating || "لا يوجد"}</TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">{company.location || "غير محدد"}</TableCell>
+                        <TableCell className="text-center">{company.rating || "لا يوجد"}</TableCell>
+                        <TableCell className="text-center">
                           {company.verified ? (
                             <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded-full">
                               موثقة
@@ -1153,8 +1194,23 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             </span>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2 rtl:space-x-reverse">
+                        <TableCell className="text-center">
+                          {company.registrationDocument ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadDocument(company.registrationDocument, company.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              تحميل
+                            </Button>
+                          ) : (
+                            <span className="text-gray-500 text-sm">غير متوفر</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          <div className="flex space-x-2 rtl:space-x-reverse justify-center">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1193,23 +1249,23 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>اسم المشروع</TableHead>
-                      <TableHead>رائد الأعمال</TableHead>
-                      <TableHead>التاريخ</TableHead>
-                      <TableHead>الحالة</TableHead>
-                      <TableHead>العروض</TableHead>
-                      <TableHead className="text-left">الإجراءات</TableHead>
+                      <TableHead className="text-center">اسم المشروع</TableHead>
+                      <TableHead className="text-center">رائد الأعمال</TableHead>
+                      <TableHead className="text-center">التاريخ</TableHead>
+                      <TableHead className="text-center">الحالة</TableHead>
+                      <TableHead className="text-center">العروض</TableHead>
+                      <TableHead className="text-center">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {Array.isArray(projects) ? projects.map((project: any) => (
                       <TableRow key={project.id}>
-                        <TableCell className="font-medium">{project.title}</TableCell>
-                        <TableCell>{project.name}</TableCell>
-                        <TableCell>
+                        <TableCell className="font-medium text-center">{project.title}</TableCell>
+                        <TableCell className="text-center">{project.name}</TableCell>
+                        <TableCell className="text-center">
                           {new Date(project.createdAt).toLocaleDateString("ar-SA")}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
                             project.status === "open" 
                               ? "bg-green-100 text-green-800" 
@@ -1218,7 +1274,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             {project.status === "open" ? "مفتوح" : "مغلق"}
                           </span>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="text-center">
                           <Button
                             variant="ghost"
                             className="text-primary hover:text-primary-dark"
@@ -1227,8 +1283,8 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             عرض العروض
                           </Button>
                         </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2 rtl:space-x-reverse">
+                        <TableCell className="text-center">
+                          <div className="flex space-x-2 rtl:space-x-reverse justify-center">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -1281,36 +1337,36 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>المشروع</TableHead>
-                        <TableHead>الشركة</TableHead>
-                        <TableHead>المبلغ المعروض</TableHead>
-                        <TableHead>المدة المتوقعة</TableHead>
-                        <TableHead>تاريخ العرض</TableHead>
-                        <TableHead>الحالة</TableHead>
-                        <TableHead>تفاصيل</TableHead>
+                        <TableHead className="text-center">المشروع</TableHead>
+                        <TableHead className="text-center">الشركة</TableHead>
+                        <TableHead className="text-center">المبلغ المعروض</TableHead>
+                        <TableHead className="text-center">المدة المتوقعة</TableHead>
+                        <TableHead className="text-center">تاريخ العرض</TableHead>
+                        <TableHead className="text-center">الحالة</TableHead>
+                        <TableHead className="text-center">تفاصيل</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {allOffers.map((offer: any) => (
                         <TableRow key={offer.id}>
-                          <TableCell className="font-medium">{offer.projectTitle}</TableCell>
-                          <TableCell>{offer.companyName || "غير معروف"}</TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
+                          <TableCell className="font-medium text-center">{offer.projectTitle}</TableCell>
+                          <TableCell className="text-center">{offer.companyName || "غير معروف"}</TableCell>
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center">
                               <DollarSign className="h-4 w-4 text-green-600 mr-1 rtl:ml-1 rtl:mr-0" /> 
                               {offer.amount} ريال
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <div className="flex items-center">
+                          <TableCell className="text-center">
+                            <div className="flex items-center justify-center">
                               <Clock className="h-4 w-4 text-blue-600 mr-1 rtl:ml-1 rtl:mr-0" /> 
                               {offer.timeline}
                             </div>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-center">
                             {new Date(offer.createdAt).toLocaleDateString("ar-SA")}
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-center">
                             <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
                               offer.status === "pending" 
                                 ? "bg-amber-100 text-amber-800" 
@@ -1333,7 +1389,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                                       : "غير معروف"}
                             </span>
                           </TableCell>
-                          <TableCell>
+                          <TableCell className="text-center">
                             <Button
                               variant="ghost"
                               size="sm"

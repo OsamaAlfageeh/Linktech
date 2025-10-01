@@ -60,6 +60,7 @@ export const companyProfiles = pgTable("company_profiles", {
   verificationDate: timestamp("verification_date"), // تاريخ التوثيق
   verifiedBy: integer("verified_by"), // معرف المسؤول الذي قام بالتوثيق
   verificationDocuments: jsonb("verification_documents"), // مستندات التحقق
+  registrationDocument: text("registration_document"), // السجل التجاري
   verificationNotes: text("verification_notes"), // ملاحظات المراجع عن التوثيق
   legalName: text("legal_name"), // الاسم القانوني للشركة
   commercialRegistration: text("commercial_registration"), // رقم السجل التجاري

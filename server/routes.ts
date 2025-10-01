@@ -3404,11 +3404,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         // إذا احتوت الرسالة على معلومات محظورة
-        return res.status(400).json({ 
-          message: errorMessage,
-          violations: contentCheck.violations,
-          error: true
-        });
+        return res.status(400).json(errorMessage);
       }
       
       // إضافة الرسالة إلى سجل المحادثة للفحص المستقبلي
@@ -4677,6 +4673,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Apply database migration (admin only)
+  app.post('/api/admin/apply-migration', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { sql } = req.body;
+      
+      if (!sql) {
+        return res.status(400).json({ message: 'SQL statement is required' });
+      }
+      
+      console.log('Executing migration SQL:', sql);
+      await db.execute(sql);
+      
+      res.json({ 
+        success: true, 
+        message: 'Migration applied successfully' 
+      });
+    } catch (error) {
+      console.error('Error applying migration:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to apply migration',
+        error: error.message 
+      });
+    }
+  });
+
+  // Admin endpoint to run terminal commands
+  app.post('/api/admin/run-command/:command', isAdmin, async (req: Request, res: Response) => {
+    try {
+      const { command } = req.params;
+      
+      if (!command) {
+        return res.status(400).json({ message: 'Command is required' });
+      }
+
+      // Decode the command from URL
+      const decodedCommand = decodeURIComponent(command);
+
+      // List of allowed commands for security
+      const allowedCommands = [
+        'npx drizzle-kit push',
+        'npx drizzle-kit generate',
+        'npx drizzle-kit migrate',
+        'npm run build',
+        'npm run dev',
+        'npm install',
+        'npm run lint',
+        'npm run test'
+      ];
+
+      // Check if command is allowed
+      if (!allowedCommands.includes(decodedCommand)) {
+        return res.status(400).json({ 
+          message: 'Command not allowed',
+          allowedCommands 
+        });
+      }
+
+      console.log('Executing command:', decodedCommand);
+      
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      const { stdout, stderr } = await execAsync(decodedCommand, {
+        cwd: process.cwd(),
+        timeout: 30000 // 30 seconds timeout
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Command executed successfully',
+        stdout,
+        stderr: stderr || null
+      });
+    } catch (error) {
+      console.error('Error executing command:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to execute command',
+        error: error.message,
+        stdout: error.stdout || null,
+        stderr: error.stderr || null
+      });
+    }
+  });
+
   // Set a site setting (admin only)
   app.post('/api/site-settings/:key', isAuthenticated, async (req: Request, res: Response) => {
     try {

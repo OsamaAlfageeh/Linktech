@@ -52,11 +52,13 @@ const Header = ({ auth }: HeaderProps) => {
           {/* Logo */}
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0 flex items-center">
-              <img 
-                src="/favicon.png" 
-                alt="لينكتك" 
-                className="h-12 w-auto mr-2" 
-              />
+              <div className="h-12 w-12 mr-2 bg-white rounded-lg p-1 flex items-center justify-center">
+                <img 
+                  src="/link.png" 
+                  alt="لينكتك" 
+                  className="h-10 w-10 object-contain" 
+                />
+              </div>
               <span className="font-heading font-bold text-2xl"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
             </Link>
           </div>

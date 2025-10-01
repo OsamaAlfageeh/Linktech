@@ -391,10 +391,10 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         !(msg.id > 1000000000000)
       ));
       
-      if (error?.violations?.includes('معلومات_اتصال_محظورة')) {
+      if (error?.message === 'الرسالة تحتوي على معلومات اتصال محظورة' || error?.message === 'تم رصد محاولة لتمرير معلومات اتصال عبر عدة رسائل') {
         toast({
           title: "محتوى غير مسموح",
-          description: "لا يمكن مشاركة معلومات الاتصال مثل أرقام الهواتف أو الإيميلات في الرسائل",
+          description: "الرسالة تحتوي على معلومات اتصال محظورة",
           variant: "destructive",
         });
       } else {
@@ -557,13 +557,6 @@ const Messages: React.FC<MessageProps> = ({ auth }) => {
         <title>الرسائل | لينكتك</title>
       </Helmet>
       
-      <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2 text-blue-800">
-        <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-        <div>
-          <p className="font-medium">نظام المحادثات المحسن</p>
-          <p className="text-sm">يتم تحديث الرسائل تلقائياً كل 3 ثوان لضمان أفضل أداء واستقرار.</p>
-        </div>
-      </div>
       
       <div className="flex-grow flex gap-4 overflow-hidden">
         {/* قائمة المحادثات */}

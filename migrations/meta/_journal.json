@@ -8,6 +8,13 @@
       "when": 1757330003709,
       "tag": "0000_friendly_the_captain",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1759322068642,
+      "tag": "0001_ordinary_wasp",
+      "breakpoints": true
     }
   ]
 }

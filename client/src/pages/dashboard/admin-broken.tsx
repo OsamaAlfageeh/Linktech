@@ -633,6 +633,46 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     }
   };
 
+  // تحميل السجل التجاري
+  const handleDownloadDocument = (documentData: string, companyId: number) => {
+    try {
+      if (!documentData) {
+        toast({
+          title: "خطأ",
+          description: "لا يوجد سجل تجاري متاح للتحميل",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // استخراج نوع الملف من البيانات
+      const mimeType = documentData.split(';')[0].split(':')[1];
+      const extension = mimeType.includes('pdf') ? 'pdf' : 'png';
+      
+      // إنشاء رابط التحميل
+      const link = document.createElement('a');
+      link.href = documentData;
+      link.download = `السجل_التجاري_شركة_${companyId}.${extension}`;
+      
+      // إضافة الرابط إلى الصفحة وتشغيل التحميل
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast({
+        title: "تم التحميل",
+        description: "تم تحميل السجل التجاري بنجاح",
+      });
+    } catch (error) {
+      toast({
+        title: "خطأ",
+        description: "حدث خطأ أثناء تحميل السجل التجاري",
+        variant: "destructive",
+      });
+      console.error('خطأ في تحميل السجل التجاري:', error);
+    }
+  };
+
   // تحميل محادثة بين مستخدمين
   const loadConversation = async () => {
     if (!selectedUser1Id || !selectedUser2Id) {
@@ -1068,6 +1108,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                       <TableHead>الموقع</TableHead>
                       <TableHead>التقييم</TableHead>
                       <TableHead>الحالة</TableHead>
+                      <TableHead>السجل التجاري</TableHead>
                       <TableHead className="text-left">الإجراءات</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -1089,6 +1130,21 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-amber-100 text-amber-800 rounded-full">
                               غير موثقة
                             </span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {company.registrationDocument ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleDownloadDocument(company.registrationDocument, company.id)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              تحميل
+                            </Button>
+                          ) : (
+                            <span className="text-gray-500 text-sm">غير متوفر</span>
                           )}
                         </TableCell>
                         <TableCell>

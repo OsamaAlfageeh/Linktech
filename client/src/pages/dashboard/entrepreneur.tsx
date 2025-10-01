@@ -225,8 +225,8 @@ const projectSchema = z.object({
     .min(1, "المدة المتوقعة مطلوبة")
     .max(100, "المدة المتوقعة طويلة جداً"),
   skills: z.string()
-    .min(1, "المهارات المطلوبة مطلوبة")
-    .refine((val) => checkForProhibitedContent(val).isValid, {
+    .optional()
+    .refine((val) => !val || checkForProhibitedContent(val).isValid, {
       message: "قائمة المهارات تحتوي على محتوى غير مسموح"
     }),
   requiresNda: z.boolean().optional().default(false),
@@ -305,7 +305,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
   // Create project mutation
   const createProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      const skills = data.skills.split(",").map((skill) => skill.trim());
+      const skills = data.skills ? data.skills.split(",").map((skill) => skill.trim()) : [];
       const projectData = {
         ...data,
         skills,
@@ -979,7 +979,7 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
         description: project.description,
         budget: project.budget,
         duration: project.duration,
-        skills: project.skills.join(", "), // Convert array to comma-separated string
+        skills: project.skills ? project.skills.join(", ") : "", // Convert array to comma-separated string
         requiresNda: project.requiresNda || false,
         status: project.status
       });
@@ -989,7 +989,7 @@ const EditProjectForm = ({ projectId, onClose, onSuccess }: EditProjectFormProps
   // Update project mutation
   const updateProjectMutation = useMutation({
     mutationFn: async (data: ProjectFormValues) => {
-      const skills = data.skills.split(",").map((skill) => skill.trim());
+      const skills = data.skills ? data.skills.split(",").map((skill) => skill.trim()) : [];
       const projectData = {
         ...data,
         skills,
