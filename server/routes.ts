@@ -12,6 +12,7 @@ import arabicPdfTestRoutes from "./arabicPdfTest";
 import pdfmakeTestRoutes from "./pdfmakeTest";
 import generateNdaRoutes from "./generateNDA";
 import sadiqRoutes from "./routes/sadiq";
+import blogMigrationRoutes from "./routes/blogMigration";
 // Contact routes are now integrated below
 import PDFDocument from "pdfkit";
 import { Readable } from "stream";
@@ -6563,6 +6564,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // استخدام مسارات صادق API
   app.use('/api/sadiq', sadiqRoutes);
+  
+  // استخدام مسارات إدارة المدونة
+  app.use('/api/admin', blogMigrationRoutes);
 
   // Notification API endpoints
   app.get('/api/notifications', isAuthenticated, async (req: Request, res: Response) => {

@@ -247,9 +247,9 @@ const CompanyDetails = () => {
 
       <div className="container mx-auto px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6">
-          <Link href="/companies" className="text-primary hover:text-primary-dark inline-flex items-center">
+          <Link href={isAdmin ? "/dashboard/admin" : "/"} className="text-primary hover:text-primary-dark inline-flex items-center">
             <ArrowLeft className="ml-1 h-4 w-4 rtl-flip" />
-            العودة إلى الشركات
+            {isAdmin ? "العودة إلى لوحة التحكم" : "العودة إلى الرئيسية"}
           </Link>
           
           {isAdmin && (

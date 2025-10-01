@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import BlogEditor from '@/components/cms/BlogEditor';
 import CategoryManager from '@/components/cms/CategoryManager';
+import BlogMigration from '@/components/admin/BlogMigration';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { useAuth } from '@/App';
 import { useQuery } from '@tanstack/react-query';
 import { Helmet } from 'react-helmet';
-import { Loader2, FileText, FolderTree, Settings } from 'lucide-react';
+import { Loader2, FileText, FolderTree, Settings, Database } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 import { useLocation } from 'wouter';
@@ -119,6 +120,13 @@ export default function BlogManagement() {
             >
               <Settings className="h-5 w-5 ml-2" />
               إعدادات SEO
+            </TabsTrigger>
+            <TabsTrigger
+              value="migration"
+              className="data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none px-4 py-2"
+            >
+              <Database className="h-5 w-5 ml-2" />
+              استيراد البيانات
             </TabsTrigger>
           </TabsList>
 
@@ -320,6 +328,10 @@ export default function BlogManagement() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="migration">
+            <BlogMigration />
           </TabsContent>
         </Tabs>
       </div>

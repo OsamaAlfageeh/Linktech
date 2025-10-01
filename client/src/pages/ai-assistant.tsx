@@ -902,7 +902,7 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                         
                         // استخدام fetch مع JWT token
                         const token = localStorage.getItem('auth_token');
-                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report?download=1`, {
+                        const response = await fetch(`/api/ai/analysis/${analysisResult.id}/report?download=1&format=pdf`, {
                           headers: {
                             'Authorization': `Bearer ${token}`,
                           },
@@ -920,7 +920,7 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                         const a = document.createElement('a');
                         a.style.display = 'none';
                         a.href = url;
-                        a.download = `project-analysis-${analysisResult.id}.txt`;
+                        a.download = `project-analysis-${analysisResult.id}.pdf`;
                         document.body.appendChild(a);
                         a.click();
                         
@@ -930,7 +930,7 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                         
                         toast({
                           title: "تم التحميل بنجاح",
-                          description: "تم تحميل التقرير المفصل",
+                          description: "تم تحميل التقرير المفصل بصيغة PDF",
                         });
                       } catch (error) {
                         console.error('خطأ في تحميل التقرير:', error);

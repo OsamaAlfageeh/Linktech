@@ -623,10 +623,12 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       
       console.log('إرسال طلب توثيق الشركة:', verificationData);
       
+      const token = localStorage.getItem('auth_token');
       const response = await fetch(`/api/companies/${companyId}/verify`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify(verificationData),
       });

@@ -57,7 +57,7 @@ const Header = ({ auth }: HeaderProps) => {
                 alt="لينكتك" 
                 className="h-12 w-auto mr-2" 
               />
-              <span className="text-primary font-heading font-bold text-2xl">لينك<span className="text-accent">تك</span></span>
+              <span className="font-heading font-bold text-2xl"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
             </Link>
           </div>
 
@@ -227,7 +227,7 @@ const Header = ({ auth }: HeaderProps) => {
               </SheetTrigger>
               <SheetContent side="right" className="sm:max-w-md max-h-screen overflow-y-auto">
                 <div className="mt-6 mb-6">
-                  <span className="text-primary font-heading font-bold text-2xl">لينك<span className="text-accent">تك</span></span>
+                  <span className="font-heading font-bold text-2xl"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
                 </div>
 
                 <div className="py-4">

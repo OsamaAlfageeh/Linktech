@@ -91,8 +91,8 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
                 />
                 {/* شعار مع تأثير تدرج لوني */}
                 <span className="font-heading font-extrabold text-2xl md:text-3xl">
-                  <span className="bg-clip-text text-transparent bg-gradient-to-l from-primary to-blue-700">لينك</span>
-                  <span className="bg-clip-text text-transparent bg-gradient-to-r from-accent to-purple-600">تك</span>
+                  <span className="text-[#2196F3]">لينك</span>
+                  <span className="text-[#FF9800]">تك</span>
                 </span>
               </Link>
             </div>
