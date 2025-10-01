@@ -4699,8 +4699,125 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Admin endpoint to run terminal commands
-  app.post('/api/admin/run-command/:command', isAdmin, async (req: Request, res: Response) => {
+  // Admin command runner page
+  app.get('/admin/commands', (req: Request, res: Response) => {
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Command Runner</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 40px; }
+          .command { margin: 10px 0; }
+          button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+          button:hover { background: #0056b3; }
+          .output { background: #f8f9fa; border: 1px solid #dee2e6; padding: 15px; margin: 10px 0; border-radius: 5px; white-space: pre-wrap; font-family: monospace; }
+          .error { background: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+          .success { background: #d4edda; border-color: #c3e6cb; color: #155724; }
+        </style>
+      </head>
+      <body>
+        <h1>Command Runner</h1>
+        <div class="command">
+          <button onclick="runCommand('npx drizzle-kit push')">npx drizzle-kit push</button>
+          <button onclick="runCommand('npx drizzle-kit generate')">npx drizzle-kit generate</button>
+          <button onclick="runCommand('npm run build')">npm run build</button>
+          <button onclick="runCommand('npm install')">npm install</button>
+        </div>
+        <div id="output"></div>
+        
+        <script>
+          async function runCommand(command) {
+            const output = document.getElementById('output');
+            output.innerHTML = 'Running command: ' + command + '...';
+            output.className = 'output';
+            
+            try {
+              const response = await fetch('/api/admin/run-command/' + encodeURIComponent(command));
+              
+              const result = await response.json();
+              
+              if (result.success) {
+                output.className = 'output success';
+                output.textContent = 'SUCCESS:\\n' + result.stdout;
+              } else {
+                output.className = 'output error';
+                output.textContent = 'ERROR:\\n' + result.error + '\\n\\nSTDOUT:\\n' + (result.stdout || '') + '\\n\\nSTDERR:\\n' + (result.stderr || '');
+              }
+            } catch (error) {
+              output.className = 'output error';
+              output.textContent = 'Network Error: ' + error.message;
+            }
+          }
+        </script>
+      </body>
+      </html>
+    `);
+  });
+
+  // Admin endpoint to run terminal commands (GET for browser testing, POST for API)
+  app.get('/api/admin/run-command/:command', async (req: Request, res: Response) => {
+    try {
+      const { command } = req.params;
+      
+      if (!command) {
+        return res.status(400).json({ message: 'Command is required' });
+      }
+
+      // Decode the command from URL
+      const decodedCommand = decodeURIComponent(command);
+
+      // List of allowed commands for security
+      const allowedCommands = [
+        'npx drizzle-kit push',
+        'npx drizzle-kit generate',
+        'npx drizzle-kit migrate',
+        'npm run build',
+        'npm run dev',
+        'npm install',
+        'npm run lint',
+        'npm run test'
+      ];
+
+      // Check if command is allowed
+      if (!allowedCommands.includes(decodedCommand)) {
+        return res.status(400).json({ 
+          message: 'Command not allowed',
+          allowedCommands 
+        });
+      }
+
+      console.log('Executing command:', decodedCommand);
+      
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      const { stdout, stderr } = await execAsync(decodedCommand, {
+        cwd: process.cwd(),
+        timeout: 30000 // 30 seconds timeout
+      });
+
+      res.json({ 
+        success: true, 
+        message: 'Command executed successfully',
+        stdout,
+        stderr: stderr || null
+      });
+    } catch (error) {
+      console.error('Error executing command:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Failed to execute command',
+        error: error.message,
+        stdout: error.stdout || null,
+        stderr: error.stderr || null
+      });
+    }
+  });
+
+  // Admin endpoint to run terminal commands (POST for API)
+  app.post('/api/admin/run-command/:command', async (req: Request, res: Response) => {
     try {
       const { command } = req.params;
       
