@@ -1,12 +1,35 @@
 import { Router, Request, Response } from 'express';
-import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs/promises';
+import { db } from '../db';
+import { blogPosts, blogCategories, blogComments, users } from '../../shared/schema';
+import { eq } from 'drizzle-orm';
 
 const router = Router();
 
+interface BlogExportData {
+  categories: any[];
+  posts: any[];
+  comments: any[];
+  authors: any[];
+  exportDate: string;
+  totalRecords: {
+    categories: number;
+    posts: number;
+    comments: number;
+    authors: number;
+  };
+}
+
+interface SeedStats {
+  categories: { created: number; skipped: number; errors: number };
+  authors: { created: number; skipped: number; errors: number };
+  posts: { created: number; skipped: number; errors: number };
+  comments: { created: number; skipped: number; errors: number };
+}
+
 /**
- * Admin route to run blog data seeding
+ * Admin route to run blog data seeding directly
  * POST /api/admin/seed-blog-data
  */
 router.post('/seed-blog-data', async (req: Request, res: Response) => {
@@ -35,8 +58,8 @@ router.post('/seed-blog-data', async (req: Request, res: Response) => {
 
     console.log('🚀 Starting blog data seeding via API...');
     
-    // Run the seeding script
-    const result = await runSeedingScript(exportFile);
+    // Run the seeding directly
+    const result = await seedBlogDataDirect(exportPath);
     
     res.json({
       success: true,
@@ -86,70 +109,196 @@ router.get('/export-files', async (req: Request, res: Response) => {
 });
 
 /**
- * Admin route to get seeding status/logs
- * GET /api/admin/seed-status
+ * Direct blog data seeding function
  */
-router.get('/seed-status', async (req: Request, res: Response) => {
+async function seedBlogDataDirect(exportFilePath: string): Promise<any> {
   try {
-    // Check if user is admin
-    if (req.user?.role !== 'admin') {
-      return res.status(403).json({ 
-        success: false, 
-        message: 'Admin access required' 
-      });
+    console.log('🚀 Starting direct blog data seeding...');
+    console.log(`📁 Import file: ${exportFilePath}`);
+    
+    // Read export file
+    const exportData: BlogExportData = JSON.parse(
+      await fs.readFile(exportFilePath, 'utf-8')
+    );
+    
+    console.log(`📊 Found ${exportData.totalRecords.categories} categories, ${exportData.totalRecords.posts} posts, ${exportData.totalRecords.comments} comments, ${exportData.totalRecords.authors} authors`);
+    
+    const stats: SeedStats = {
+      categories: { created: 0, skipped: 0, errors: 0 },
+      authors: { created: 0, skipped: 0, errors: 0 },
+      posts: { created: 0, skipped: 0, errors: 0 },
+      comments: { created: 0, skipped: 0, errors: 0 },
+    };
+    
+    // Import authors first
+    console.log('\n👥 Seeding authors...');
+    const authorIdMap = new Map<number, number>(); // oldId -> newId
+    
+    for (const author of exportData.authors) {
+      try {
+        // Check if author already exists by email
+        const existingAuthor = await db.select().from(users).where(eq(users.email, author.email)).limit(1);
+        
+        if (existingAuthor.length > 0) {
+          authorIdMap.set(author.id, existingAuthor[0].id);
+          stats.authors.skipped++;
+          console.log(`⏭️  Skipped existing author: ${author.name} (${author.email})`);
+        } else {
+          const newAuthor = await db.insert(users).values({
+            name: author.name,
+            email: author.email,
+            role: author.role,
+            // Set default values for required fields
+            password: 'migrated-user', // This should be updated by the user
+            emailVerified: false,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          }).returning();
+          
+          authorIdMap.set(author.id, newAuthor[0].id);
+          stats.authors.created++;
+          console.log(`✅ Created author: ${author.name} (${author.email})`);
+        }
+      } catch (error) {
+        stats.authors.errors++;
+        console.error(`❌ Error seeding author ${author.name}:`, error);
+      }
     }
-
-    // This could be enhanced to store logs in database or file
-    res.json({
-      success: true,
-      message: 'Seeding status endpoint - logs would be stored here in production'
-    });
-
+    
+    // Import categories
+    console.log('\n📁 Seeding categories...');
+    const categoryIdMap = new Map<number, number>(); // oldId -> newId
+    
+    for (const category of exportData.categories) {
+      try {
+        // Check if category already exists by slug
+        const existingCategory = await db.select().from(blogCategories).where(eq(blogCategories.slug, category.slug)).limit(1);
+        
+        if (existingCategory.length > 0) {
+          categoryIdMap.set(category.id, existingCategory[0].id);
+          stats.categories.skipped++;
+          console.log(`⏭️  Skipped existing category: ${category.name}`);
+        } else {
+          const newCategory = await db.insert(blogCategories).values({
+            name: category.name,
+            slug: category.slug,
+            description: category.description,
+            image: category.image,
+            parentId: category.parentId ? categoryIdMap.get(category.parentId) || null : null,
+            order: category.order,
+            createdAt: new Date(category.createdAt),
+            updatedAt: new Date(category.updatedAt),
+          }).returning();
+          
+          categoryIdMap.set(category.id, newCategory[0].id);
+          stats.categories.created++;
+          console.log(`✅ Created category: ${category.name}`);
+        }
+      } catch (error) {
+        stats.categories.errors++;
+        console.error(`❌ Error seeding category ${category.name}:`, error);
+      }
+    }
+    
+    // Import posts
+    console.log('\n📝 Seeding posts...');
+    const postIdMap = new Map<number, number>(); // oldId -> newId
+    
+    for (const post of exportData.posts) {
+      try {
+        // Check if post already exists by slug
+        const existingPost = await db.select().from(blogPosts).where(eq(blogPosts.slug, post.slug)).limit(1);
+        
+        if (existingPost.length > 0) {
+          postIdMap.set(post.id, existingPost[0].id);
+          stats.posts.skipped++;
+          console.log(`⏭️  Skipped existing post: ${post.title}`);
+        } else {
+          const newPost = await db.insert(blogPosts).values({
+            title: post.title,
+            slug: post.slug,
+            excerpt: post.excerpt,
+            content: post.content,
+            status: post.status,
+            featuredImage: post.featuredImage,
+            authorId: authorIdMap.get(post.authorId) || 1, // Fallback to admin user
+            categoryId: post.categoryId ? categoryIdMap.get(post.categoryId) || null : null,
+            tags: post.tags,
+            metaTitle: post.metaTitle,
+            metaDescription: post.metaDescription,
+            metaKeywords: post.metaKeywords,
+            published: post.published,
+            views: post.views,
+            publishedAt: post.publishedAt ? new Date(post.publishedAt) : null,
+            createdAt: new Date(post.createdAt),
+            updatedAt: new Date(post.updatedAt),
+          }).returning();
+          
+          postIdMap.set(post.id, newPost[0].id);
+          stats.posts.created++;
+          console.log(`✅ Created post: ${post.title}`);
+        }
+      } catch (error) {
+        stats.posts.errors++;
+        console.error(`❌ Error seeding post ${post.title}:`, error);
+      }
+    }
+    
+    // Import comments
+    console.log('\n💬 Seeding comments...');
+    
+    for (const comment of exportData.comments) {
+      try {
+        const newPostId = postIdMap.get(comment.postId);
+        if (!newPostId) {
+          stats.comments.errors++;
+          console.error(`❌ Post not found for comment: ${comment.id}`);
+          continue;
+        }
+        
+        // Handle missing user IDs by setting to null
+        const newUserId = comment.userId ? authorIdMap.get(comment.userId) || null : null;
+        
+        await db.insert(blogComments).values({
+          postId: newPostId,
+          userId: newUserId,
+          parentId: comment.parentId,
+          authorName: comment.authorName,
+          authorEmail: comment.authorEmail,
+          content: comment.content,
+          status: comment.status,
+          createdAt: new Date(comment.createdAt),
+          updatedAt: new Date(comment.updatedAt),
+        });
+        
+        stats.comments.created++;
+        console.log(`✅ Created comment by: ${comment.authorName || 'Anonymous'}`);
+      } catch (error) {
+        stats.comments.errors++;
+        console.error(`❌ Error seeding comment:`, error);
+      }
+    }
+    
+    // Print summary
+    console.log('\n🎉 Blog data seeding completed!');
+    console.log('📊 Seeding Summary:');
+    console.log(`   Categories: ${stats.categories.created} created, ${stats.categories.skipped} skipped, ${stats.categories.errors} errors`);
+    console.log(`   Authors: ${stats.authors.created} created, ${stats.authors.skipped} skipped, ${stats.authors.errors} errors`);
+    console.log(`   Posts: ${stats.posts.created} created, ${stats.posts.skipped} skipped, ${stats.posts.errors} errors`);
+    console.log(`   Comments: ${stats.comments.created} created, ${stats.comments.skipped} skipped, ${stats.comments.errors} errors`);
+    
+    return {
+      categories: stats.categories,
+      authors: stats.authors,
+      posts: stats.posts,
+      comments: stats.comments,
+      message: 'Seeding completed successfully'
+    };
+    
   } catch (error) {
-    console.error('❌ Error getting seed status:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to get seed status',
-      error: error instanceof Error ? error.message : 'Unknown error'
-    });
+    console.error('❌ Error in direct seeding:', error);
+    throw error;
   }
-});
-
-/**
- * Helper function to run the seeding script
- */
-function runSeedingScript(exportFile: string): Promise<any> {
-  return new Promise((resolve, reject) => {
-    const scriptPath = path.join(process.cwd(), 'scripts', 'seed-blog-data.ts');
-    const exportPath = path.join(process.cwd(), exportFile);
-    
-    const command = `npx tsx "${scriptPath}" "${exportPath}"`;
-    console.log(`Running: ${command}`);
-    
-    exec(command, {
-      cwd: process.cwd(),
-      maxBuffer: 1024 * 1024 * 10 // 10MB buffer
-    }, (error, stdout, stderr) => {
-      if (error) {
-        console.error('Seeding error:', error.message);
-        console.error('Stderr:', stderr);
-        reject(new Error(`Seeding script failed: ${error.message}\n${stderr}`));
-        return;
-      }
-
-      console.log('Seeding output:', stdout);
-      if (stderr) {
-        console.error('Seeding stderr:', stderr);
-      }
-
-      resolve({
-        exitCode: 0,
-        stdout: stdout.trim(),
-        stderr: stderr.trim(),
-        message: 'Seeding completed successfully'
-      });
-    });
-  });
 }
 
 /**
