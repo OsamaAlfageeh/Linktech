@@ -4274,11 +4274,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       </head>
       <body>
         <h1>Command Runner</h1>
+        
+        <h2>Database Commands</h2>
         <div class="command">
           <button onclick="runCommand('npx drizzle-kit push')">npx drizzle-kit push</button>
           <button onclick="runCommand('npx drizzle-kit generate')">npx drizzle-kit generate</button>
+          <button onclick="runCommand('npx drizzle-kit migrate')">npx drizzle-kit migrate</button>
+        </div>
+        
+        <h2>NPM Commands</h2>
+        <div class="command">
           <button onclick="runCommand('npm run build')">npm run build</button>
+          <button onclick="runCommand('npm run dev')">npm run dev</button>
           <button onclick="runCommand('npm install')">npm install</button>
+          <button onclick="runCommand('npm install puppeteer')">npm install puppeteer</button>
+          <button onclick="runCommand('npm run lint')">npm run lint</button>
+          <button onclick="runCommand('npm run test')">npm run test</button>
+        </div>
+        
+        <h2>System Dependencies (for Puppeteer)</h2>
+        <div class="command">
+          <button onclick="runCommand('sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2')">Install Basic Dependencies</button>
+          <button onclick="runCommand('sudo apt-get update && sudo apt-get install -y google-chrome-stable')">Install Google Chrome</button>
+          <button onclick="runCommand('sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2 libxss1 libgconf-2-4 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0 libcairo-gobject2 libgtk-3-0 libgdk-pixbuf2.0-0')">Install All Dependencies</button>
+        </div>
+        
+        <h2>Custom Command</h2>
+        <div class="command">
+          <input type="text" id="customCommand" placeholder="Enter custom command" style="width: 400px; padding: 8px; margin-right: 10px;">
+          <button onclick="runCustomCommand()">Run Custom Command</button>
         </div>
         <div id="output"></div>
         
@@ -4305,6 +4329,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
               output.textContent = 'Network Error: ' + error.message;
             }
           }
+          
+          function runCustomCommand() {
+            const customCommand = document.getElementById('customCommand').value;
+            if (customCommand.trim()) {
+              runCommand(customCommand);
+            } else {
+              alert('Please enter a command');
+            }
+          }
+          
+          // Allow Enter key to run custom command
+          document.getElementById('customCommand').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              runCustomCommand();
+            }
+          });
         </script>
       </body>
       </html>
@@ -4323,29 +4363,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Decode the command from URL
       const decodedCommand = decodeURIComponent(command);
 
-      // List of allowed commands for security
-      const allowedCommands = [
-        'npx drizzle-kit push',
-        'npx drizzle-kit generate',
-        'npx drizzle-kit migrate',
-        'npm run build',
-        'npm run dev',
-        'npm install',
-        'npm install puppeteer',
-        'npm run lint',
-        'npm run test',
-        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2',
-        'sudo apt-get update && sudo apt-get install -y google-chrome-stable',
-        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2 libxss1 libgconf-2-4 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0 libcairo-gobject2 libgtk-3-0 libgdk-pixbuf2.0-0'
-      ];
-
-      // Check if command is allowed
-      if (!allowedCommands.includes(decodedCommand)) {
-        return res.status(400).json({ 
-          message: 'Command not allowed',
-          allowedCommands 
-        });
-      }
+      // Allow all commands (no restrictions)
+      console.log('Executing command (no restrictions):', decodedCommand);
 
       console.log('Executing command:', decodedCommand);
       
@@ -4388,29 +4407,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Decode the command from URL
       const decodedCommand = decodeURIComponent(command);
 
-      // List of allowed commands for security
-      const allowedCommands = [
-        'npx drizzle-kit push',
-        'npx drizzle-kit generate',
-        'npx drizzle-kit migrate',
-        'npm run build',
-        'npm run dev',
-        'npm install',
-        'npm install puppeteer',
-        'npm run lint',
-        'npm run test',
-        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2',
-        'sudo apt-get update && sudo apt-get install -y google-chrome-stable',
-        'sudo apt-get update && sudo apt-get install -y libatk-bridge2.0-0 libdrm2 libxkbcommon0 libgtk-3-0 libgbm1 libasound2 libxss1 libgconf-2-4 libxrandr2 libasound2 libpangocairo-1.0-0 libatk1.0-0 libcairo-gobject2 libgtk-3-0 libgdk-pixbuf2.0-0'
-      ];
-
-      // Check if command is allowed
-      if (!allowedCommands.includes(decodedCommand)) {
-        return res.status(400).json({ 
-          message: 'Command not allowed',
-          allowedCommands 
-        });
-      }
+      // Allow all commands (no restrictions)
+      console.log('Executing command (no restrictions):', decodedCommand);
 
       console.log('Executing command:', decodedCommand);
       
