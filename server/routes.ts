@@ -5588,8 +5588,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // مساعد الذكاء الاصطناعي للمشاريع
   app.post('/api/ai/analyze-project', isAuthenticated, async (req: Request, res: Response) => {
+    console.log('AI Analysis Request received from user:', req.user?.id);
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    
     try {
+      // التحقق من وجود مفتاح API
+      if (!process.env.ANTHROPIC_API_KEY) {
+        console.error('ANTHROPIC_API_KEY is not set');
+        return res.status(500).json({ 
+          message: 'خدمة الذكاء الاصطناعي غير متاحة حالياً' 
+        });
+      }
+
+      console.log('Importing analyzeProject function...');
       const { analyzeProject } = await import('./aiProjectAssistant');
+      console.log('analyzeProject function imported successfully');
       
       const validationSchema = z.object({
         projectIdea: z.string().min(10, 'وصف المشروع يجب أن يكون على الأقل 10 أحرف'),
@@ -5602,12 +5615,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         specificRequirements: z.string().optional()
       });
 
+      console.log('Validating request data...');
       const validatedData = validationSchema.parse(req.body);
+      console.log('Data validation successful');
       
       // تحليل المشروع باستخدام AI
+      console.log('Starting AI analysis...');
       const analysisResult = await analyzeProject(validatedData);
+      console.log('AI analysis completed successfully');
       
       // حفظ التحليل في قاعدة البيانات
+      console.log('Saving analysis to database...');
       const sessionId = crypto.randomUUID();
       const analysis = await storage.createAiProjectAnalysis({
         userId: req.user.id,
@@ -5628,6 +5646,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         riskAssessment: JSON.stringify(analysisResult.riskAssessment),
         status: 'completed'
       });
+      console.log('Analysis saved to database with ID:', analysis.id);
 
       res.json({
         id: analysis.id,
@@ -5635,12 +5654,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('خطأ في تحليل المشروع:', error);
+      console.error('Error stack:', error.stack);
+      
       if (error instanceof z.ZodError) {
+        console.error('Validation error:', error.errors);
         return res.status(400).json({ 
           message: 'بيانات غير صحيحة', 
           errors: error.errors 
         });
       }
+      
+      // التحقق من نوع الخطأ لتقديم رسالة أفضل
+      if (error.message?.includes('API key')) {
+        return res.status(500).json({ 
+          message: 'خطأ في إعدادات الخدمة' 
+        });
+      }
+      
+      if (error.message?.includes('timeout') || error.message?.includes('network')) {
+        return res.status(502).json({ 
+          message: 'مشكلة في الاتصال بخدمة الذكاء الاصطناعي' 
+        });
+      }
+      
       res.status(500).json({ 
         message: error.message || 'حدث خطأ أثناء تحليل المشروع' 
       });

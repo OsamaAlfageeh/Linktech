@@ -8,6 +8,7 @@ import Anthropic from '@anthropic-ai/sdk';
 // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
+  timeout: 60000, // 60 seconds timeout
 });
 
 export interface ProjectAnalysisInput {
@@ -142,6 +143,14 @@ const TIMELINE_MULTIPLIERS = {
  * تحليل فكرة المشروع باستخدام الذكاء الاصطناعي
  */
 export async function analyzeProject(input: ProjectAnalysisInput): Promise<ProjectAnalysisResult> {
+  console.log('Starting AI analysis for project:', input.projectIdea.substring(0, 50) + '...');
+  
+  // التحقق من وجود مفتاح API
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.error('ANTHROPIC_API_KEY environment variable is not set');
+    throw new Error('AI service configuration error: API key missing');
+  }
+
   const prompt = `تحليل فكرة المشروع التقني:
 
 فكرة المشروع: ${input.projectIdea}
@@ -180,6 +189,7 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
 }`;
 
   try {
+    console.log('Sending request to Anthropic API...');
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
@@ -190,12 +200,15 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
         }
       ],
     });
+    console.log('Received response from Anthropic API');
 
     const content = response.content[0];
     if (content.type !== 'text') {
+      console.error('Unexpected response type from AI:', content.type);
       throw new Error('Unexpected response type from AI');
     }
     
+    console.log('Processing AI response...');
     // استخراج JSON من markdown إذا كان موجوداً
     let jsonText = content.text;
     const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
@@ -206,15 +219,20 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
       jsonText = jsonText.replace(/```[\s\S]*?```/g, '').trim();
     }
     
+    console.log('Parsing AI response JSON...');
     const aiAnalysis = JSON.parse(jsonText);
+    console.log('AI analysis parsed successfully');
     
     // تحديد القالب المناسب بناءً على تحليل AI
+    console.log('Determining project template...');
     const projectTemplate = determineProjectTemplate(aiAnalysis.projectType, input);
     
     // حساب التكلفة المتقدمة
+    console.log('Calculating advanced cost analysis...');
     const costAnalysis = calculateAdvancedCost(projectTemplate, input, aiAnalysis);
     
     // دمج تحليل AI مع حسابات التكلفة
+    console.log('Merging AI analysis with cost calculations...');
     const result: ProjectAnalysisResult = {
       ...aiAnalysis,
       estimatedCostRange: costAnalysis.costRange,
@@ -227,9 +245,34 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
       }
     };
 
+    console.log('AI analysis completed successfully');
     return result;
   } catch (error) {
     console.error('خطأ في تحليل المشروع:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    // تحسين رسائل الخطأ بناءً على نوع المشكلة
+    if (error.message?.includes('API key')) {
+      throw new Error('AI service configuration error: Invalid API key');
+    }
+    
+    if (error.message?.includes('timeout') || error.message?.includes('ECONNRESET') || error.message?.includes('ENOTFOUND')) {
+      throw new Error('Network error: Unable to connect to AI service');
+    }
+    
+    if (error.message?.includes('JSON')) {
+      console.error('JSON parsing error - AI response may be malformed');
+      throw new Error('AI service returned invalid response format');
+    }
+    
+    if (error.message?.includes('rate limit') || error.message?.includes('quota')) {
+      throw new Error('AI service rate limit exceeded');
+    }
+    
     throw new Error('فشل في تحليل المشروع. يرجى المحاولة مرة أخرى.');
   }
 }
