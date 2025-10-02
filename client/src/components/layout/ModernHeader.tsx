@@ -84,11 +84,11 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
             {/* الشعار */}
             <div className="flex items-center">
               <Link href="/" className="flex-shrink-0 flex items-center">
-                <div className="h-14 md:h-16 w-14 md:w-16 mr-2 bg-white rounded-lg p-1 flex items-center justify-center">
+                <div className="h-10 md:h-12 w-10 md:w-12 mr-1 bg-white rounded-lg p-1 flex items-center justify-center">
                   <img 
                     src="/link.png" 
                     alt="لينكتك" 
-                    className="h-12 md:h-14 w-12 md:w-14 object-contain" 
+                    className="h-8 md:h-10 w-8 md:w-10 object-contain" 
                   />
                 </div>
                 {/* شعار مع تأثير تدرج لوني */}

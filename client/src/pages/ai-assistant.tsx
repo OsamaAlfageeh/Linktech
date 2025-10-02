@@ -135,7 +135,22 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
       });
       
       if (!response.ok) {
-        throw new Error('Failed to analyze project');
+        let errorMessage = 'فشل في تحليل المشروع';
+        try {
+          const errorData = await response.json();
+          if (errorData.message) {
+            errorMessage = errorData.message;
+          }
+          if (errorData.errors && Array.isArray(errorData.errors)) {
+            // إذا كانت هناك أخطاء تحقق من صحة البيانات
+            const validationErrors = errorData.errors.map((err: any) => err.message || err).join(', ');
+            errorMessage = `بيانات غير صحيحة: ${validationErrors}`;
+          }
+        } catch (e) {
+          // إذا فشل في قراءة JSON، استخدم رسالة الخطأ الافتراضية
+          errorMessage = `خطأ ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
       return response.json();
@@ -149,9 +164,16 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
       });
     },
     onError: (error: any) => {
+      console.error('Analysis error:', error);
+      let errorMessage = "حدث خطأ أثناء تحليل المشروع";
+      
+      if (error.message) {
+        errorMessage = error.message;
+      }
+      
       toast({
         title: "خطأ في التحليل",
-        description: error.message || "حدث خطأ أثناء تحليل المشروع",
+        description: errorMessage,
         variant: "destructive"
       });
     }
@@ -185,6 +207,25 @@ const AiAssistantPage = ({ auth }: AiAssistantPageProps) => {
         variant: "destructive"
       });
       return;
+    }
+
+    // التحقق من الحقول المطلوبة
+    const requiredFields = [
+      { field: 'businessSize', name: 'حجم العمل' },
+      { field: 'budget', name: 'نطاق الميزانية' },
+      { field: 'timeline', name: 'الجدولة الزمنية' },
+      { field: 'securityRequirements', name: 'متطلبات الأمان' }
+    ];
+
+    for (const { field, name } of requiredFields) {
+      if (!formData[field as keyof typeof formData] || formData[field as keyof typeof formData] === '') {
+        toast({
+          title: `${name} مطلوب`,
+          description: `يرجى اختيار ${name}`,
+          variant: "destructive"
+        });
+        return;
+      }
     }
 
     const analysisData = {
@@ -576,7 +617,9 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <Label htmlFor="businessSize" className="text-lg font-semibold">حجم العمل</Label>
+                  <Label htmlFor="businessSize" className="text-lg font-semibold">
+                    حجم العمل <span className="text-red-500">*</span>
+                  </Label>
                   <Select onValueChange={(value) => handleInputChange('businessSize', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="اختر حجم عملك" />
@@ -626,7 +669,7 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                 <div>
                   <Label className="text-lg font-semibold flex items-center">
                     <DollarSign className="h-4 w-4 ml-2" />
-                    نطاق الميزانية
+                    نطاق الميزانية <span className="text-red-500">*</span>
                   </Label>
                   <Select onValueChange={(value) => handleInputChange('budget', value)}>
                     <SelectTrigger>
@@ -644,7 +687,7 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                 <div>
                   <Label className="text-lg font-semibold flex items-center">
                     <Clock className="h-4 w-4 ml-2" />
-                    الجدولة الزمنية
+                    الجدولة الزمنية <span className="text-red-500">*</span>
                   </Label>
                   <Select onValueChange={(value) => handleInputChange('timeline', value)}>
                     <SelectTrigger>
@@ -661,7 +704,7 @@ ${analysisResult.projectPhases.map((phase, index) => `${index + 1}. ${phase.name
                 <div>
                   <Label className="text-lg font-semibold flex items-center">
                     <Shield className="h-4 w-4 ml-2" />
-                    متطلبات الأمان
+                    متطلبات الأمان <span className="text-red-500">*</span>
                   </Label>
                   <Select onValueChange={(value) => handleInputChange('securityRequirements', value)}>
                     <SelectTrigger>
