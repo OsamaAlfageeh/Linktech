@@ -5926,7 +5926,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('PDF sent successfully');
         } catch (pdfError) {
           console.error('PDF generation error:', pdfError);
-          throw pdfError;
+          console.error('PDF Error details:', {
+            name: pdfError.name,
+            message: pdfError.message,
+            stack: pdfError.stack
+          });
+          
+          // Fallback to text report if PDF generation fails
+          console.log('PDF generation failed, falling back to text report...');
+          try {
+            const reportContent = generateProjectReport(analysisResult);
+            
+            console.log(`تم إنشاء التقرير النصي كبديل، الطول: ${reportContent.length} حرف`);
+
+            // إنشاء اسم ملف آمن بدون أحرف عربية
+            const safeFilename = `project-analysis-${analysisId}.txt`;
+            
+            // إعداد headers لإجبار التحميل
+            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+            res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
+            res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
+            
+            // إرسال المحتوى
+            res.end(reportContent, 'utf8');
+            console.log('Text report sent as fallback');
+          } catch (textError) {
+            console.error('Text report generation also failed:', textError);
+            throw new Error(`Both PDF and text report generation failed: ${pdfError.message}`);
+          }
         }
       }
     } catch (error) {

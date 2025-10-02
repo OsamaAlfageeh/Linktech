@@ -448,7 +448,16 @@ ${analysis.riskAssessment.mitigationStrategies.map(strategy => `• ${strategy}`
  * إنشاء تقرير PDF للمشروع - نسخة محسنة باستخدام Puppeteer
  */
 export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, projectIdea: string): Promise<Buffer> {
-  const puppeteer = (await import('puppeteer')).default;
+  console.log('Starting PDF generation with Puppeteer...');
+  
+  let puppeteer;
+  try {
+    puppeteer = (await import('puppeteer')).default;
+    console.log('Puppeteer imported successfully');
+  } catch (importError) {
+    console.error('Failed to import Puppeteer:', importError);
+    throw new Error('PDF generation service not available: Puppeteer import failed');
+  }
 
   // ===== إنشاء HTML بالعربي =====
   const generateHTML = (analysis: any, projectIdea: string): string => {
@@ -701,20 +710,41 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
   
   try {
     // إنشاء HTML
+    console.log('Generating HTML content...');
     const html = generateHTML(analysis, projectIdea);
+    console.log('HTML content generated, length:', html.length);
     
-    // فتح المتصفح
+    // فتح المتصفح مع إعدادات محسنة للإنتاج
+    console.log('Launching Puppeteer browser...');
     browser = await puppeteer.launch({
       headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+        '--disable-accelerated-2d-canvas',
+        '--no-first-run',
+        '--no-zygote',
+        '--single-process',
+        '--disable-gpu'
+      ],
+      timeout: 30000 // 30 seconds timeout
     });
+    console.log('Browser launched successfully');
     
     const page = await browser.newPage();
+    console.log('New page created');
     
-    // تحميل HTML
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // تحميل HTML مع timeout
+    console.log('Setting page content...');
+    await page.setContent(html, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
+    console.log('Page content set successfully');
     
     // إنشاء PDF
+    console.log('Generating PDF...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -723,17 +753,47 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
         right: '15mm',
         bottom: '20mm',
         left: '15mm'
-      }
+      },
+      timeout: 30000
     });
+    console.log('PDF generated, buffer size:', pdfBuffer.length);
     
     await browser.close();
+    console.log('Browser closed');
     
     console.log('✓ تم إنشاء PDF بنجاح باستخدام Puppeteer!');
     return pdfBuffer;
     
   } catch (error) {
-    if (browser) await browser.close();
     console.error('خطأ في إنشاء PDF:', error);
-    throw error;
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
+    
+    if (browser) {
+      try {
+        await browser.close();
+        console.log('Browser closed after error');
+      } catch (closeError) {
+        console.error('Error closing browser:', closeError);
+      }
+    }
+    
+    // تحسين رسائل الخطأ
+    if (error.message?.includes('timeout')) {
+      throw new Error('PDF generation timeout - server may be overloaded');
+    }
+    
+    if (error.message?.includes('Protocol error') || error.message?.includes('Target closed')) {
+      throw new Error('Browser process error - PDF generation failed');
+    }
+    
+    if (error.message?.includes('No usable sandbox')) {
+      throw new Error('Server configuration error - sandbox not available');
+    }
+    
+    throw new Error(`PDF generation failed: ${error.message}`);
   }
 }
