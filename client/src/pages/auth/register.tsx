@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Helmet } from "react-helmet";
 import { useForm } from "react-hook-form";
@@ -7,6 +7,7 @@ import { z } from "zod";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useOTPState } from "@/hooks/use-otp-state";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,9 +21,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Mail } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { FileUpload } from "@/components/ui/file-upload";
+import { OTPInput } from "@/components/ui/otp-input";
 
 // Define interface for the registration payload
 interface RegisterPayload {
@@ -80,6 +82,40 @@ const Register = ({ auth }: RegisterProps) => {
   const [serverError, setServerError] = useState("");
   const [registrationDocument, setRegistrationDocument] = useState<File | null>(null);
   const [documentError, setDocumentError] = useState<string | null>(null);
+  
+  // Use custom OTP state hook for persistent state management
+  const { otpSent, userEmail, setOtpSent, setUserEmail, clearOTPState } = useOTPState();
+  const [otpCode, setOtpCode] = useState("");
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes in seconds
+
+  // Countdown timer for OTP expiry
+  useEffect(() => {
+    if (otpSent && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearOTPState();
+            setOtpCode("");
+            toast({
+              title: "انتهت صلاحية رمز التحقق",
+              description: "يرجى المحاولة مرة أخرى",
+            });
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(timer);
+    }
+  }, [otpSent, timeLeft, clearOTPState, toast]);
+
+  // Reset timer when OTP is sent
+  useEffect(() => {
+    if (otpSent) {
+      setTimeLeft(600); // Reset to 10 minutes
+    }
+  }, [otpSent]);
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
@@ -128,17 +164,39 @@ const Register = ({ auth }: RegisterProps) => {
       return response.json();
     },
     onSuccess: (data) => {
-      // Don't log the user in automatically - redirect to login instead
+      console.log('Registration response:', data);
+      // Show OTP verification step
+      setOtpSent(true);
+      setUserEmail(data.email);
       toast({
-        title: "تم إنشاء الحساب بنجاح",
-        description: "يرجى تسجيل الدخول للمتابعة",
+        title: "تم إرسال رمز التحقق",
+        description: "يرجى التحقق من بريدك الإلكتروني وإدخال رمز التحقق",
       });
-
-      // Redirect to login page instead of dashboard
-      navigate("/auth/login");
     },
     onError: (error: any) => {
       setServerError(error.message || "حدث خطأ أثناء إنشاء الحساب، يرجى المحاولة مرة أخرى.");
+    },
+  });
+
+  const verifyOTPMutation = useMutation({
+    mutationFn: async ({ email, otp }: { email: string; otp: string }) => {
+      const response = await apiRequest("POST", "/api/auth/verify-otp", { email, otp });
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Clear OTP state
+      clearOTPState();
+      
+      toast({
+        title: "تم إنشاء الحساب بنجاح",
+        description: "مرحباً بك في منصة لينكتك",
+      });
+      // Log the user in automatically after successful verification
+      auth.login(data.user);
+      navigate("/dashboard");
+    },
+    onError: (error: any) => {
+      setServerError(error.message || "رمز التحقق غير صحيح، يرجى المحاولة مرة أخرى.");
     },
   });
 
@@ -172,6 +230,41 @@ const Register = ({ auth }: RegisterProps) => {
     }
   };
 
+  const handleOTPVerification = () => {
+    if (!otpCode.trim() || otpCode.length !== 6) {
+      setServerError("يرجى إدخال رمز التحقق المكون من 6 أرقام");
+      return;
+    }
+    verifyOTPMutation.mutate({ email: userEmail, otp: otpCode });
+  };
+
+
+  const resendOTPMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await apiRequest("POST", "/api/auth/resend-otp", { email });
+      return response.json();
+    },
+    onSuccess: () => {
+      // Reset timer and clear current OTP
+      setTimeLeft(600);
+      setOtpCode("");
+      setServerError("");
+      toast({
+        title: "تم إعادة إرسال رمز التحقق",
+        description: "يرجى التحقق من بريدك الإلكتروني",
+      });
+    },
+    onError: (error: any) => {
+      setServerError(error.message || "فشل في إعادة إرسال الرمز، يرجى المحاولة مرة أخرى");
+    },
+  });
+
+  const resendOTP = () => {
+    if (userEmail) {
+      resendOTPMutation.mutate(userEmail);
+    }
+  };
+
   const roleType = form.watch("role");
 
   return (
@@ -187,12 +280,22 @@ const Register = ({ auth }: RegisterProps) => {
             <Link href="/">
               <span className="inline-block font-heading font-bold text-3xl mb-4"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
             </Link>
-            <h2 className="text-2xl font-bold font-heading">إنشاء حساب جديد</h2>
+            <h2 className="text-2xl font-bold font-heading">
+              {otpSent ? "تأكيد البريد الإلكتروني" : "إنشاء حساب جديد"}
+            </h2>
             <p className="mt-2 text-sm text-neutral-600">
-              لديك حساب بالفعل؟{" "}
-              <Link href="/auth/login" className="text-primary hover:text-primary-dark font-medium">
-                تسجيل الدخول
-              </Link>
+              {otpSent ? (
+                <>
+                  تم إرسال رمز التحقق إلى <strong>{userEmail}</strong>
+                </>
+              ) : (
+                <>
+                  لديك حساب بالفعل؟{" "}
+                  <Link href="/auth/login" className="text-primary hover:text-primary-dark font-medium">
+                    تسجيل الدخول
+                  </Link>
+                </>
+              )}
             </p>
           </div>
 
@@ -204,239 +307,335 @@ const Register = ({ auth }: RegisterProps) => {
             </Alert>
           )}
 
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel className="text-lg font-medium">اختر نوع الحساب</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          className="grid grid-cols-1 md:grid-cols-2 gap-4"
-                        >
-                          <div className={`relative overflow-hidden rounded-lg border-2 transition-all ${field.value === 'entrepreneur' ? 'border-primary bg-primary/5 shadow-md' : 'border-neutral-200 hover:border-neutral-300'}`}>
-                            <label 
-                              htmlFor="entrepreneur" 
-                              className="flex flex-col items-center p-4 cursor-pointer h-full"
-                            >
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${field.value === 'entrepreneur' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600'}`}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                              </div>
-                              <span className="font-bold text-lg mb-1">صاحب مشروع</span>
-                              <span className="text-sm text-center text-neutral-600">أبحث عن شركة لتنفيذ مشروعي</span>
-                              <RadioGroupItem value="entrepreneur" id="entrepreneur" className="sr-only" />
-                            </label>
-                          </div>
-                          
-                          <div className={`relative overflow-hidden rounded-lg border-2 transition-all ${field.value === 'company' ? 'border-primary bg-primary/5 shadow-md' : 'border-neutral-200 hover:border-neutral-300'}`}>
-                            <label 
-                              htmlFor="company" 
-                              className="flex flex-col items-center p-4 cursor-pointer h-full"
-                            >
-                              <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${field.value === 'company' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600'}`}>
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                </svg>
-                              </div>
-                              <span className="font-bold text-lg mb-1">شركة برمجة</span>
-                              <span className="text-sm text-center text-neutral-600">أقدم خدمات برمجية للمشاريع</span>
-                              <RadioGroupItem value="company" id="company" className="sr-only" />
-                            </label>
-                          </div>
-                        </RadioGroup>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>
-                        {roleType === "entrepreneur" ? "الاسم الكامل" : "اسم الشركة"}
-                      </FormLabel>
-                      <FormControl>
-                        <Input placeholder={roleType === "entrepreneur" ? "أدخل اسمك الكامل" : "أدخل اسم الشركة"} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="username"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>اسم المستخدم</FormLabel>
-                      <FormControl>
-                        <Input placeholder="أدخل اسم المستخدم" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>البريد الإلكتروني</FormLabel>
-                      <FormControl>
-                        <Input type="email" placeholder="أدخل البريد الإلكتروني" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>كلمة المرور</FormLabel>
-                      <FormControl>
-                        <Input type="password" placeholder="أدخل كلمة المرور" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                {roleType === "company" && (
-                  <>
-                    <FormField
-                      control={form.control}
-                      name="companyDescription"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>وصف الشركة</FormLabel>
-                          <FormControl>
-                            <Textarea 
-                              placeholder="قدم وصفاً مختصراً عن شركتك وخدماتها" 
-                              {...field} 
-                              rows={4}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="companySkills"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>التخصصات والمهارات</FormLabel>
-                          <FormControl>
-                            <Input 
-                              placeholder="مثال: تطبيقات الويب، تطبيقات الجوال، الذكاء الاصطناعي (مفصولة بفواصل)" 
-                              {...field} 
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="companyWebsite"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>الموقع الإلكتروني</FormLabel>
-                            <FormControl>
-                              <Input placeholder="example.com" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="companyLocation"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>الموقع الجغرافي</FormLabel>
-                            <FormControl>
-                              <Input placeholder="مثال: الرياض، السعودية" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
+          {otpSent ? (
+            // OTP Verification Form
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Mail className="w-8 h-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold text-neutral-800">تأكيد البريد الإلكتروني</h3>
+                <p className="text-sm text-neutral-600 mt-2">
+                  أدخل رمز التحقق المكون من 6 أرقام الذي تم إرساله إلى بريدك الإلكتروني
+                </p>
+                {timeLeft > 0 && (
+                  <div className="mt-3">
+                    <div className="flex items-center justify-center gap-2 text-sm text-neutral-500">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span>ينتهي خلال: {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
                     </div>
-                    
-                    {/* حقل رفع السجل التجاري */}
-                    <div>
-                      <FormLabel className="block mb-2">السجل التجاري</FormLabel>
-                      <FileUpload
-                        value={registrationDocument}
-                        onChange={setRegistrationDocument}
-                        label="رفع ملف"
-                        helperText="قم برفع نسخة من السجل التجاري للشركة (مطلوب)"
-                        error={documentError || ""}
-                        accept={{
-                          "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
-                          "application/pdf": [".pdf"],
-                        }}
-                        maxSize={5 * 1024 * 1024} // 5MB
-                      />
-                    </div>
-                  </>
+                  </div>
                 )}
               </div>
 
-              <Button
-                type="submit"
-                className="w-full hover-button-scale transition-all duration-300 hover:shadow-lg"
-                disabled={registerMutation.isPending}
-              >
-                {registerMutation.isPending ? (
-                  <div className="flex items-center justify-center">
-                    <svg className="animate-spin ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    <span>جاري إنشاء الحساب...</span>
-                  </div>
-                ) : (
-                  <span className="flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="ml-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    إنشاء حساب
-                  </span>
-                )}
-              </Button>
-            </form>
-          </Form>
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-4 text-center">
+                    رمز التحقق
+                  </label>
+                  <OTPInput
+                    value={otpCode}
+                    onChange={setOtpCode}
+                    length={6}
+                    disabled={verifyOTPMutation.isPending}
+                    className="mb-4"
+                  />
+                  <p className="text-xs text-neutral-500 text-center mt-2">
+                    أدخل الرمز المكون من 6 أرقام
+                  </p>
+                </div>
 
-          <div className="mt-4 text-center text-sm text-neutral-500">
-            بإنشاء حساب، فإنك توافق على{" "}
-            <Link href="/terms" className="text-primary hover:text-primary-dark link-underline">
-              شروط الخدمة
-            </Link>{" "}
-            و{" "}
-            <Link href="/privacy" className="text-primary hover:text-primary-dark link-underline">
-              سياسة الخصوصية
-            </Link>
-          </div>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleOTPVerification}
+                    className="flex-1 hover-button-scale transition-all duration-300 hover:shadow-lg"
+                    disabled={verifyOTPMutation.isPending || otpCode.length !== 6}
+                  >
+                    {verifyOTPMutation.isPending ? (
+                      <div className="flex items-center justify-center">
+                        <svg className="animate-spin ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>جاري التحقق...</span>
+                      </div>
+                    ) : otpCode.length === 6 ? (
+                      <span className="flex items-center">
+                        <CheckCircle className="ml-1.5 h-5 w-5" />
+                        تأكيد الحساب
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        <span className="ml-1.5 h-5 w-5 flex items-center justify-center text-sm font-bold">
+                          {otpCode.length}/6
+                        </span>
+                        إدخال الرمز
+                      </span>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={resendOTP}
+                    className="px-4"
+                    disabled={verifyOTPMutation.isPending || resendOTPMutation.isPending}
+                  >
+                    {resendOTPMutation.isPending ? (
+                      <div className="flex items-center">
+                        <svg className="animate-spin ml-1 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span className="mr-1">جاري الإرسال...</span>
+                      </div>
+                    ) : (
+                      "إعادة الإرسال"
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Registration Form */}
+              <Form {...form}>
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                  <div className="space-y-4">
+                    <FormField
+                      control={form.control}
+                      name="role"
+                      render={({ field }) => (
+                        <FormItem className="space-y-3">
+                          <FormLabel className="text-lg font-medium">اختر نوع الحساب</FormLabel>
+                          <FormControl>
+                            <RadioGroup
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                            >
+                              <div className={`relative overflow-hidden rounded-lg border-2 transition-all ${field.value === 'entrepreneur' ? 'border-primary bg-primary/5 shadow-md' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                                <label 
+                                  htmlFor="entrepreneur" 
+                                  className="flex flex-col items-center p-4 cursor-pointer h-full"
+                                >
+                                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${field.value === 'entrepreneur' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                  </div>
+                                  <span className="font-bold text-lg mb-1">صاحب مشروع</span>
+                                  <span className="text-sm text-center text-neutral-600">أبحث عن شركة لتنفيذ مشروعي</span>
+                                  <RadioGroupItem value="entrepreneur" id="entrepreneur" className="sr-only" />
+                                </label>
+                              </div>
+                              
+                              <div className={`relative overflow-hidden rounded-lg border-2 transition-all ${field.value === 'company' ? 'border-primary bg-primary/5 shadow-md' : 'border-neutral-200 hover:border-neutral-300'}`}>
+                                <label 
+                                  htmlFor="company" 
+                                  className="flex flex-col items-center p-4 cursor-pointer h-full"
+                                >
+                                  <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${field.value === 'company' ? 'bg-primary text-white' : 'bg-neutral-100 text-neutral-600'}`}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                    </svg>
+                                  </div>
+                                  <span className="font-bold text-lg mb-1">شركة برمجة</span>
+                                  <span className="text-sm text-center text-neutral-600">أقدم خدمات برمجية للمشاريع</span>
+                                  <RadioGroupItem value="company" id="company" className="sr-only" />
+                                </label>
+                              </div>
+                            </RadioGroup>
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>
+                            {roleType === "entrepreneur" ? "الاسم الكامل" : "اسم الشركة"}
+                          </FormLabel>
+                          <FormControl>
+                            <Input placeholder={roleType === "entrepreneur" ? "أدخل اسمك الكامل" : "أدخل اسم الشركة"} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="username"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>اسم المستخدم</FormLabel>
+                          <FormControl>
+                            <Input placeholder="أدخل اسم المستخدم" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>البريد الإلكتروني</FormLabel>
+                          <FormControl>
+                            <Input type="email" placeholder="أدخل البريد الإلكتروني" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="password"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>كلمة المرور</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="أدخل كلمة المرور" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    {roleType === "company" && (
+                      <>
+                        <FormField
+                          control={form.control}
+                          name="companyDescription"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>وصف الشركة</FormLabel>
+                              <FormControl>
+                                <Textarea 
+                                  placeholder="قدم وصفاً مختصراً عن شركتك وخدماتها" 
+                                  {...field} 
+                                  rows={4}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <FormField
+                          control={form.control}
+                          name="companySkills"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>التخصصات والمهارات</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="مثال: تطبيقات الويب، تطبيقات الجوال، الذكاء الاصطناعي (مفصولة بفواصل)" 
+                                  {...field} 
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField
+                            control={form.control}
+                            name="companyWebsite"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>الموقع الإلكتروني</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="example.com" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+
+                          <FormField
+                            control={form.control}
+                            name="companyLocation"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>الموقع الجغرافي</FormLabel>
+                                <FormControl>
+                                  <Input placeholder="مثال: الرياض، السعودية" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        
+                        {/* حقل رفع السجل التجاري */}
+                        <div>
+                          <FormLabel className="block mb-2">السجل التجاري</FormLabel>
+                          <FileUpload
+                            value={registrationDocument}
+                            onChange={setRegistrationDocument}
+                            label="رفع ملف"
+                            helperText="قم برفع نسخة من السجل التجاري للشركة (مطلوب)"
+                            error={documentError || ""}
+                            accept={{
+                              "image/*": [".jpg", ".jpeg", ".png", ".gif", ".webp"],
+                              "application/pdf": [".pdf"],
+                            }}
+                            maxSize={5 * 1024 * 1024} // 5MB
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  <Button
+                    type="submit"
+                    className="w-full hover-button-scale transition-all duration-300 hover:shadow-lg"
+                    disabled={registerMutation.isPending}
+                  >
+                    {registerMutation.isPending ? (
+                      <div className="flex items-center justify-center">
+                        <svg className="animate-spin ml-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>جاري إنشاء الحساب...</span>
+                      </div>
+                    ) : (
+                      <span className="flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="ml-1.5 h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        إنشاء حساب
+                      </span>
+                    )}
+                  </Button>
+                </form>
+              </Form>
+
+              <div className="mt-4 text-center text-sm text-neutral-500">
+                بإنشاء حساب، فإنك توافق على{" "}
+                <Link href="/terms" className="text-primary hover:text-primary-dark link-underline">
+                  شروط الخدمة
+                </Link>{" "}
+                و{" "}
+                <Link href="/privacy" className="text-primary hover:text-primary-dark link-underline">
+                  سياسة الخصوصية
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </>

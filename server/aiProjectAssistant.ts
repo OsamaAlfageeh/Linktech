@@ -8,7 +8,6 @@ import Anthropic from '@anthropic-ai/sdk';
 // the newest Anthropic model is "claude-sonnet-4-20250514" which was released May 14, 2025. Use this by default unless user has already selected claude-3-7-sonnet-20250219
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
-  timeout: 60000, // 60 seconds timeout
 });
 
 export interface ProjectAnalysisInput {
@@ -143,14 +142,6 @@ const TIMELINE_MULTIPLIERS = {
  * تحليل فكرة المشروع باستخدام الذكاء الاصطناعي
  */
 export async function analyzeProject(input: ProjectAnalysisInput): Promise<ProjectAnalysisResult> {
-  console.log('Starting AI analysis for project:', input.projectIdea.substring(0, 50) + '...');
-  
-  // التحقق من وجود مفتاح API
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('ANTHROPIC_API_KEY environment variable is not set');
-    throw new Error('AI service configuration error: API key missing');
-  }
-
   const prompt = `تحليل فكرة المشروع التقني:
 
 فكرة المشروع: ${input.projectIdea}
@@ -189,7 +180,6 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
 }`;
 
   try {
-    console.log('Sending request to Anthropic API...');
     const response = await anthropic.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4000,
@@ -200,15 +190,12 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
         }
       ],
     });
-    console.log('Received response from Anthropic API');
 
     const content = response.content[0];
     if (content.type !== 'text') {
-      console.error('Unexpected response type from AI:', content.type);
       throw new Error('Unexpected response type from AI');
     }
     
-    console.log('Processing AI response...');
     // استخراج JSON من markdown إذا كان موجوداً
     let jsonText = content.text;
     const jsonMatch = jsonText.match(/```json\s*([\s\S]*?)\s*```/);
@@ -219,20 +206,15 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
       jsonText = jsonText.replace(/```[\s\S]*?```/g, '').trim();
     }
     
-    console.log('Parsing AI response JSON...');
     const aiAnalysis = JSON.parse(jsonText);
-    console.log('AI analysis parsed successfully');
     
     // تحديد القالب المناسب بناءً على تحليل AI
-    console.log('Determining project template...');
     const projectTemplate = determineProjectTemplate(aiAnalysis.projectType, input);
     
     // حساب التكلفة المتقدمة
-    console.log('Calculating advanced cost analysis...');
     const costAnalysis = calculateAdvancedCost(projectTemplate, input, aiAnalysis);
     
     // دمج تحليل AI مع حسابات التكلفة
-    console.log('Merging AI analysis with cost calculations...');
     const result: ProjectAnalysisResult = {
       ...aiAnalysis,
       estimatedCostRange: costAnalysis.costRange,
@@ -245,34 +227,9 @@ export async function analyzeProject(input: ProjectAnalysisInput): Promise<Proje
       }
     };
 
-    console.log('AI analysis completed successfully');
     return result;
   } catch (error) {
     console.error('خطأ في تحليل المشروع:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-    
-    // تحسين رسائل الخطأ بناءً على نوع المشكلة
-    if (error.message?.includes('API key')) {
-      throw new Error('AI service configuration error: Invalid API key');
-    }
-    
-    if (error.message?.includes('timeout') || error.message?.includes('ECONNRESET') || error.message?.includes('ENOTFOUND')) {
-      throw new Error('Network error: Unable to connect to AI service');
-    }
-    
-    if (error.message?.includes('JSON')) {
-      console.error('JSON parsing error - AI response may be malformed');
-      throw new Error('AI service returned invalid response format');
-    }
-    
-    if (error.message?.includes('rate limit') || error.message?.includes('quota')) {
-      throw new Error('AI service rate limit exceeded');
-    }
-    
     throw new Error('فشل في تحليل المشروع. يرجى المحاولة مرة أخرى.');
   }
 }
@@ -448,16 +405,7 @@ ${analysis.riskAssessment.mitigationStrategies.map(strategy => `• ${strategy}`
  * إنشاء تقرير PDF للمشروع - نسخة محسنة باستخدام Puppeteer
  */
 export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, projectIdea: string): Promise<Buffer> {
-  console.log('Starting PDF generation with Puppeteer...');
-  
-  let puppeteer;
-  try {
-    puppeteer = (await import('puppeteer')).default;
-    console.log('Puppeteer imported successfully');
-  } catch (importError) {
-    console.error('Failed to import Puppeteer:', importError);
-    throw new Error('PDF generation service not available: Puppeteer import failed');
-  }
+  const puppeteer = (await import('puppeteer')).default;
 
   // ===== إنشاء HTML بالعربي =====
   const generateHTML = (analysis: any, projectIdea: string): string => {
@@ -710,41 +658,31 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
   
   try {
     // إنشاء HTML
-    console.log('Generating HTML content...');
     const html = generateHTML(analysis, projectIdea);
-    console.log('HTML content generated, length:', html.length);
     
-    // فتح المتصفح مع إعدادات محسنة للإنتاج
-    console.log('Launching Puppeteer browser...');
+    // فتح المتصفح
     browser = await puppeteer.launch({
       headless: true,
+      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-accelerated-2d-canvas',
         '--no-first-run',
-        '--no-zygote',
-        '--single-process',
-        '--disable-gpu'
-      ],
-      timeout: 30000 // 30 seconds timeout
+        '--disable-gpu',
+        '--disable-web-security',
+        '--disable-features=VizDisplayCompositor',
+        '--memory-pressure-off'
+      ]
     });
-    console.log('Browser launched successfully');
     
     const page = await browser.newPage();
-    console.log('New page created');
     
-    // تحميل HTML مع timeout
-    console.log('Setting page content...');
-    await page.setContent(html, { 
-      waitUntil: 'networkidle0',
-      timeout: 30000
-    });
-    console.log('Page content set successfully');
+    // تحميل HTML
+    await page.setContent(html, { waitUntil: 'networkidle0' });
     
     // إنشاء PDF
-    console.log('Generating PDF...');
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -753,47 +691,17 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
         right: '15mm',
         bottom: '20mm',
         left: '15mm'
-      },
-      timeout: 30000
+      }
     });
-    console.log('PDF generated, buffer size:', pdfBuffer.length);
     
     await browser.close();
-    console.log('Browser closed');
     
     console.log('✓ تم إنشاء PDF بنجاح باستخدام Puppeteer!');
     return pdfBuffer;
     
   } catch (error) {
+    if (browser) await browser.close();
     console.error('خطأ في إنشاء PDF:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack
-    });
-    
-    if (browser) {
-      try {
-        await browser.close();
-        console.log('Browser closed after error');
-      } catch (closeError) {
-        console.error('Error closing browser:', closeError);
-      }
-    }
-    
-    // تحسين رسائل الخطأ
-    if (error.message?.includes('timeout')) {
-      throw new Error('PDF generation timeout - server may be overloaded');
-    }
-    
-    if (error.message?.includes('Protocol error') || error.message?.includes('Target closed')) {
-      throw new Error('Browser process error - PDF generation failed');
-    }
-    
-    if (error.message?.includes('No usable sandbox')) {
-      throw new Error('Server configuration error - sandbox not available');
-    }
-    
-    throw new Error(`PDF generation failed: ${error.message}`);
+    throw error;
   }
 }

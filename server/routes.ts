@@ -487,6 +487,50 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: 'Email already exists' });
       }
       
+      // Send OTP verification email instead of creating user immediately
+      const { sendOTPVerificationEmail } = await import('./otpService');
+      const otpResult = await sendOTPVerificationEmail(userData.email, {
+        ...userData,
+        companyProfile: req.body.companyProfile
+      });
+      
+      if (!otpResult.success) {
+        return res.status(500).json({ message: otpResult.error || 'Failed to send verification email' });
+      }
+      
+      console.log('OTP sent successfully to:', userData.email);
+      return res.status(200).json({ 
+        message: 'Verification code sent to your email',
+        email: userData.email
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      }
+      console.error('Registration error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // OTP verification endpoint
+  app.post('/api/auth/verify-otp', async (req: Request, res: Response) => {
+    try {
+      const { email, otp } = req.body;
+      
+      if (!email || !otp) {
+        return res.status(400).json({ message: 'Email and OTP code are required' });
+      }
+      
+      const { verifyOTPCode } = await import('./otpService');
+      const verificationResult = verifyOTPCode(email, otp);
+      
+      if (!verificationResult.valid) {
+        return res.status(400).json({ message: verificationResult.error || 'Invalid OTP code' });
+      }
+      
+      // Now create the user account
+      const userData = verificationResult.userData;
+      
       // تشفير كلمة المرور قبل التخزين
       const hashedPassword = await bcrypt.hash(userData.password, 10);
       const securedUserData = { ...userData, password: hashedPassword };
@@ -494,9 +538,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await storage.createUser(securedUserData);
       
       // If user is a company, create a company profile
-      if (userData.role === 'company' && req.body.companyProfile) {
+      if (userData.role === 'company' && userData.companyProfile) {
         const profileData = insertCompanyProfileSchema.parse({
-          ...req.body.companyProfile,
+          ...userData.companyProfile,
           userId: user.id
         });
         await storage.createCompanyProfile(profileData);
@@ -541,13 +585,47 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { password, ...userWithoutPassword } = user;
       return res.status(201).json({ 
         user: userWithoutPassword,
-        token 
+        token,
+        message: 'Account created successfully'
       });
     } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: 'Validation error', errors: error.errors });
+      console.error('OTP verification error:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
+  // Resend OTP endpoint
+  app.post('/api/auth/resend-otp', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ message: 'Email is required' });
       }
-      console.error('Registration error:', error);
+      
+      // Check if there's an existing OTP for this email
+      const { getOTPStatus } = await import('./otpService');
+      const otpStatus = getOTPStatus(email);
+      
+      if (!otpStatus.exists) {
+        return res.status(400).json({ message: 'No pending OTP found for this email' });
+      }
+      
+      // Resend OTP using the proper resend function
+      const { resendOTPVerificationEmail } = await import('./otpService');
+      const otpResult = await resendOTPVerificationEmail(email);
+      
+      if (!otpResult.success) {
+        return res.status(500).json({ message: otpResult.error || 'Failed to resend verification email' });
+      }
+      
+      console.log('OTP resent successfully to:', email);
+      return res.status(200).json({ 
+        message: 'Verification code resent to your email',
+        email: email
+      });
+    } catch (error) {
+      console.error('Resend OTP error:', error);
       res.status(500).json({ message: 'Internal server error' });
     }
   });
@@ -2279,6 +2357,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // استخدام Puppeteer بدلاً من PDFKit
         const browser = await puppeteer.launch({
           headless: true,
+          executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -2287,7 +2366,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             '--no-first-run',
             '--no-zygote',
             '--single-process',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-web-security',
+            '--disable-features=VizDisplayCompositor',
+            '--memory-pressure-off',
+            '--max_old_space_size=4096'
           ]
         });
         
@@ -5588,21 +5671,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // مساعد الذكاء الاصطناعي للمشاريع
   app.post('/api/ai/analyze-project', isAuthenticated, async (req: Request, res: Response) => {
-    console.log('AI Analysis Request received from user:', req.user?.id);
-    console.log('Request body:', JSON.stringify(req.body, null, 2));
-    
     try {
-      // التحقق من وجود مفتاح API
-      if (!process.env.ANTHROPIC_API_KEY) {
-        console.error('ANTHROPIC_API_KEY is not set');
-        return res.status(500).json({ 
-          message: 'خدمة الذكاء الاصطناعي غير متاحة حالياً' 
-        });
-      }
-
-      console.log('Importing analyzeProject function...');
       const { analyzeProject } = await import('./aiProjectAssistant');
-      console.log('analyzeProject function imported successfully');
       
       const validationSchema = z.object({
         projectIdea: z.string().min(10, 'وصف المشروع يجب أن يكون على الأقل 10 أحرف'),
@@ -5615,17 +5685,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         specificRequirements: z.string().optional()
       });
 
-      console.log('Validating request data...');
       const validatedData = validationSchema.parse(req.body);
-      console.log('Data validation successful');
       
       // تحليل المشروع باستخدام AI
-      console.log('Starting AI analysis...');
       const analysisResult = await analyzeProject(validatedData);
-      console.log('AI analysis completed successfully');
       
       // حفظ التحليل في قاعدة البيانات
-      console.log('Saving analysis to database...');
       const sessionId = crypto.randomUUID();
       const analysis = await storage.createAiProjectAnalysis({
         userId: req.user.id,
@@ -5646,7 +5711,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         riskAssessment: JSON.stringify(analysisResult.riskAssessment),
         status: 'completed'
       });
-      console.log('Analysis saved to database with ID:', analysis.id);
 
       res.json({
         id: analysis.id,
@@ -5654,29 +5718,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     } catch (error) {
       console.error('خطأ في تحليل المشروع:', error);
-      console.error('Error stack:', error.stack);
-      
       if (error instanceof z.ZodError) {
-        console.error('Validation error:', error.errors);
         return res.status(400).json({ 
           message: 'بيانات غير صحيحة', 
           errors: error.errors 
         });
       }
-      
-      // التحقق من نوع الخطأ لتقديم رسالة أفضل
-      if (error.message?.includes('API key')) {
-        return res.status(500).json({ 
-          message: 'خطأ في إعدادات الخدمة' 
-        });
-      }
-      
-      if (error.message?.includes('timeout') || error.message?.includes('network')) {
-        return res.status(502).json({ 
-          message: 'مشكلة في الاتصال بخدمة الذكاء الاصطناعي' 
-        });
-      }
-      
       res.status(500).json({ 
         message: error.message || 'حدث خطأ أثناء تحليل المشروع' 
       });
@@ -5926,37 +5973,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('PDF sent successfully');
         } catch (pdfError) {
           console.error('PDF generation error:', pdfError);
-          console.error('PDF Error details:', {
-            name: pdfError.name,
-            message: pdfError.message,
-            stack: pdfError.stack
-          });
-          
-          // Fallback to text report if PDF generation fails
-          console.log('PDF generation failed, falling back to text report...');
-          try {
-            const reportContent = generateProjectReport(analysisResult);
-            
-            console.log(`تم إنشاء التقرير النصي كبديل، الطول: ${reportContent.length} حرف`);
-
-            // إنشاء اسم ملف آمن بدون أحرف عربية
-            const safeFilename = `project-analysis-${analysisId}.txt`;
-            
-            // إعداد headers لإجبار التحميل
-            res.setHeader('Content-Type', 'text/plain; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
-            res.setHeader('Content-Length', Buffer.byteLength(reportContent, 'utf8'));
-            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            res.setHeader('Pragma', 'no-cache');
-            res.setHeader('Expires', '0');
-            
-            // إرسال المحتوى
-            res.end(reportContent, 'utf8');
-            console.log('Text report sent as fallback');
-          } catch (textError) {
-            console.error('Text report generation also failed:', textError);
-            throw new Error(`Both PDF and text report generation failed: ${pdfError.message}`);
-          }
+          throw pdfError;
         }
       }
     } catch (error) {

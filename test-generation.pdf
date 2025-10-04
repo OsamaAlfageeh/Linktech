@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <title>لينكتك | منصة ربط الشركات التقنية مع أصحاب المشاريع</title>
+    <meta name="description" content="منصة لينكتك تربط بين شركات تطوير البرمجيات وأصحاب المشاريع التقنية">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="shortcut icon" href="/favicon.png" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://linktech.app/" />
+    <meta property="og:title" content="لينكتك | منصة ربط الشركات التقنية مع أصحاب المشاريع" />
+    <meta property="og:description" content="منصة لينكتك تربط بين شركات تطوير البرمجيات وأصحاب المشاريع التقنية" />
+    <meta property="og:image" content="https://linktech.app/favicon.png" />
+    <meta property="og:site_name" content="لينكتك" />
+    <meta property="og:locale" content="ar_SA" />
+    
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:url" content="https://linktech.app/" />
+    <meta name="twitter:title" content="لينكتك | منصة ربط الشركات التقنية مع أصحاب المشاريع" />
+    <meta name="twitter:description" content="منصة لينكتك تربط بين شركات تطوير البرمجيات وأصحاب المشاريع التقنية" />
+    <meta name="twitter:image" content="https://linktech.app/favicon.png" />
+    
+    <!-- Additional Meta Tags -->
+    <meta name="keywords" content="تطوير برمجيات، مشاريع تقنية، شركات تقنية، لينكتك، منصة تقنية" />
+    <meta name="author" content="لينكتك" />
+    <meta name="robots" content="index, follow" />
+    <meta name="language" content="Arabic" />
+    <meta name="revisit-after" content="7 days" />
+    <script type="module" crossorigin src="/assets/index-3SllB1_M.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Czok0I2i.css">
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- This is a replit script which adds a banner on the top of the page when opened in development mode outside the replit environment -->
+    <script type="text/javascript" src="https://replit.com/public/js/replit-dev-banner.js"></script>
+  </body>
+</html>
