@@ -660,7 +660,9 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
     // إنشاء HTML
     const html = generateHTML(analysis, projectIdea);
     
-    // فتح المتصفح
+    // فتح المتصفح مع إعدادات محسنة للخوادم
+    console.log('Launching Puppeteer with executable path:', process.env.PUPPETEER_EXECUTABLE_PATH);
+    
     browser = await puppeteer.launch({
       headless: true,
       executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
@@ -673,16 +675,63 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
         '--disable-gpu',
         '--disable-web-security',
         '--disable-features=VizDisplayCompositor',
-        '--memory-pressure-off'
-      ]
+        '--memory-pressure-off',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-extensions',
+        '--disable-plugins',
+        '--disable-default-apps',
+        '--disable-sync',
+        '--disable-translate',
+        '--hide-scrollbars',
+        '--mute-audio',
+        '--no-default-browser-check',
+        '--no-pings',
+        '--no-zygote',
+        '--single-process',
+        '--disable-background-networking',
+        '--disable-client-side-phishing-detection',
+        '--disable-component-extensions-with-background-pages',
+        '--disable-ipc-flooding-protection',
+        '--disable-hang-monitor',
+        '--disable-prompt-on-repost',
+        '--disable-domain-reliability',
+        '--disable-features=TranslateUI',
+        '--disable-ipc-flooding-protection',
+        '--disable-background-timer-throttling',
+        '--disable-backgrounding-occluded-windows',
+        '--disable-renderer-backgrounding',
+        '--disable-features=TranslateUI,BlinkGenPropertyTrees',
+        '--disable-background-networking',
+        '--disable-sync',
+        '--metrics-recording-only',
+        '--no-first-run',
+        '--safebrowsing-disable-auto-update',
+        '--enable-automation',
+        '--password-store=basic',
+        '--use-mock-keychain',
+        '--disable-blink-features=AutomationControlled'
+      ],
+      timeout: 60000, // 60 seconds timeout
+      protocolTimeout: 60000
     });
     
     const page = await browser.newPage();
     
-    // تحميل HTML
-    await page.setContent(html, { waitUntil: 'networkidle0' });
+    // إعدادات إضافية للصفحة
+    await page.setViewport({ width: 1200, height: 800 });
+    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
     
-    // إنشاء PDF
+    console.log('Setting page content...');
+    // تحميل HTML مع timeout أطول
+    await page.setContent(html, { 
+      waitUntil: 'networkidle0',
+      timeout: 30000
+    });
+    
+    console.log('Generating PDF...');
+    // إنشاء PDF مع إعدادات محسنة
     const pdfBuffer = await page.pdf({
       format: 'A4',
       printBackground: true,
@@ -691,17 +740,37 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
         right: '15mm',
         bottom: '20mm',
         left: '15mm'
-      }
+      },
+      timeout: 30000
     });
     
+    console.log('Closing browser...');
     await browser.close();
     
     console.log('✓ تم إنشاء PDF بنجاح باستخدام Puppeteer!');
     return pdfBuffer;
     
   } catch (error) {
-    if (browser) await browser.close();
     console.error('خطأ في إنشاء PDF:', error);
-    throw error;
+    
+    // إغلاق المتصفح بشكل آمن
+    if (browser) {
+      try {
+        await browser.close();
+      } catch (closeError) {
+        console.error('خطأ في إغلاق المتصفح:', closeError);
+      }
+    }
+    
+    // إرجاع خطأ مفصل
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+    
+    console.error('PDF Generation Error Details:');
+    console.error('Message:', errorMessage);
+    console.error('Stack:', errorStack);
+    
+    // إرجاع خطأ محسن
+    throw new Error(`PDF generation failed: ${errorMessage}. Check server logs for details.`);
   }
 }
