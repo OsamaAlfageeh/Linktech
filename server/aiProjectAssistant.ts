@@ -417,24 +417,36 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
       format: 'a4'
     });
 
-    // تحميل الخط العربي
-    const fontPath = path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf');
+    // تحميل الخط العربي - محاولة عدة مصادر
     let fontLoaded = false;
+    const fontPaths = [
+      path.join(process.cwd(), 'assets', 'fonts', 'Cairo-Regular.ttf'),
+      path.join(process.cwd(), 'server', 'fonts', 'Cairo-Regular.ttf'),
+      path.join(process.cwd(), 'public', 'fonts', 'Cairo-Regular.ttf')
+    ];
     
-    try {
-      if (fs.existsSync(fontPath)) {
-        const fontData = fs.readFileSync(fontPath);
-        const arabicFont = fontData.toString('base64');
-        
-        doc.addFileToVFS('Cairo-Regular.ttf', arabicFont);
-        doc.addFont('Cairo-Regular.ttf', 'Cairo', 'normal');
-        doc.setFont('Cairo', 'normal');
-        fontLoaded = true;
-        
-        console.log('✓ تم تحميل الخط العربي بنجاح');
+    for (const fontPath of fontPaths) {
+      try {
+        if (fs.existsSync(fontPath)) {
+          console.log(`محاولة تحميل الخط من: ${fontPath}`);
+          const fontData = fs.readFileSync(fontPath);
+          const arabicFont = fontData.toString('base64');
+          
+          doc.addFileToVFS('Cairo-Regular.ttf', arabicFont);
+          doc.addFont('Cairo-Regular.ttf', 'Cairo', 'normal');
+          doc.setFont('Cairo', 'normal');
+          fontLoaded = true;
+          
+          console.log('✓ تم تحميل الخط العربي بنجاح');
+          break;
+        }
+      } catch (fontError) {
+        console.warn(`تحذير: فشل في تحميل الخط من ${fontPath}:`, fontError);
       }
-    } catch (fontError) {
-      console.warn('تحذير: لم يتم العثور على الخط العربي');
+    }
+    
+    if (!fontLoaded) {
+      console.warn('تحذير: لم يتم العثور على أي خط عربي، سيتم استخدام الخط الافتراضي');
     }
     
     // متغيرات التخطيط
@@ -455,7 +467,7 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
       creator: 'Linktech Platform'
     });
 
-    // دالة لإضافة نص مع دعم RTL
+    // دالة لإضافة نص مع دعم RTL محسن
     const addText = (text: string, fontSize: number = 12, isBold: boolean = false, color: string = '#000000') => {
       if (currentY > pageHeight - margin) {
         doc.addPage();
@@ -477,9 +489,30 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
       
       doc.setTextColor(color);
       
-      // تقسيم النص إلى أسطر إذا كان طويلاً - بدون تطبيع!
+      // تطبيع النص العربي
+      const normalizedText = text.normalize('NFC');
+      
+      // تقسيم النص يدوياً للعربية بدلاً من splitTextToSize
       const maxWidth = pageWidth - (margin * 2);
-      const lines = doc.splitTextToSize(text, maxWidth);
+      const words = normalizedText.split(' ');
+      let currentLine = '';
+      const lines: string[] = [];
+      
+      for (const word of words) {
+        const testLine = currentLine + (currentLine ? ' ' : '') + word;
+        const textWidth = doc.getTextWidth(testLine);
+        
+        if (textWidth > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testLine;
+        }
+      }
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
       
       lines.forEach((line: string) => {
         if (currentY > pageHeight - margin) {
@@ -490,14 +523,21 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
           }
           doc.setR2L(true);
         }
-        // استخدام محاذاة اليمين للنص العربي مع خيارات RTL
-        doc.text(line, pageWidth - margin, currentY, { 
-          align: 'right',
-          isInputRtl: true,
-          isOutputRtl: true,
-          isInputVisual: false,
-          isOutputVisual: false
-        });
+        
+        // استخدام محاذاة اليمين للنص العربي مع خيارات RTL محسنة
+        try {
+          doc.text(line, pageWidth - margin, currentY, { 
+            align: 'right',
+            isInputRtl: true,
+            isOutputRtl: true,
+            isInputVisual: false,
+            isOutputVisual: false
+          });
+        } catch (textError) {
+          console.warn('تحذير: فشل في إضافة النص، محاولة بدون خيارات RTL:', textError);
+          // Fallback: إضافة النص بدون خيارات RTL
+          doc.text(line, pageWidth - margin, currentY, { align: 'right' });
+        }
         currentY += lineHeight;
       });
       
@@ -645,7 +685,15 @@ export async function generateProjectReportPDF(analysis: ProjectAnalysisResult, 
     
     // Fallback: استخدام HTML-to-PDF مع دعم أفضل للعربية
     console.log('محاولة إنشاء PDF باستخدام الطريقة البديلة...');
-    return await generateProjectReportPDFFallback(analysis, projectIdea);
+    try {
+      return await generateProjectReportPDFFallback(analysis, projectIdea);
+    } catch (fallbackError) {
+      console.error('فشل في الطريقة البديلة أيضاً:', fallbackError);
+      
+      // Fallback نهائي: إنشاء PDF بسيط بدون خطوط عربية
+      console.log('محاولة إنشاء PDF بسيط...');
+      return await generateSimplePDF(analysis, projectIdea);
+    }
   }
 }
 
@@ -686,6 +734,83 @@ async function generateProjectReportPDFFallback(analysis: ProjectAnalysisResult,
     
   } catch (error) {
     console.error('خطأ في الطريقة البديلة:', error);
+    throw new Error(`فشل في إنشاء التقرير PDF: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
+  }
+}
+
+/**
+ * إنشاء PDF بسيط بدون خطوط عربية (Fallback نهائي)
+ */
+async function generateSimplePDF(analysis: ProjectAnalysisResult, projectIdea: string): Promise<Buffer> {
+  const { jsPDF } = await import('jspdf');
+  
+  try {
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
+
+    const pageWidth = 210;
+    const pageHeight = 297;
+    const margin = 20;
+    let currentY = margin;
+
+    // إضافة النص باللغة الإنجليزية لتجنب مشاكل الخطوط
+    const addSimpleText = (text: string, fontSize: number = 12, isBold: boolean = false) => {
+      if (currentY > pageHeight - margin) {
+        doc.addPage();
+        currentY = margin;
+      }
+      
+      doc.setFontSize(fontSize);
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+      
+      const lines = doc.splitTextToSize(text, pageWidth - (margin * 2));
+      lines.forEach((line: string) => {
+        if (currentY > pageHeight - margin) {
+          doc.addPage();
+          currentY = margin;
+        }
+        doc.text(line, margin, currentY);
+        currentY += 6;
+      });
+      currentY += 3;
+    };
+
+    // إضافة المحتوى
+    addSimpleText('Technical Project Analysis Report', 18, true);
+    addSimpleText(`Project Idea: ${projectIdea}`, 14, true);
+    addSimpleText(`Project Type: ${analysis.projectType}`, 12);
+    addSimpleText(`Technical Complexity: ${analysis.technicalComplexity}`, 12);
+    
+    if (analysis.estimatedCostRange) {
+      addSimpleText(`Estimated Cost: ${analysis.estimatedCostRange.min} - ${analysis.estimatedCostRange.max} ${analysis.estimatedCostRange.currency}`, 12);
+    }
+    
+    if (analysis.recommendedTechnologies?.length > 0) {
+      addSimpleText('Recommended Technologies:', 12, true);
+      analysis.recommendedTechnologies.forEach(tech => {
+        addSimpleText(`• ${tech}`, 10);
+      });
+    }
+    
+    if (analysis.projectPhases?.length > 0) {
+      addSimpleText('Project Phases:', 12, true);
+      analysis.projectPhases.forEach((phase, index) => {
+        addSimpleText(`${index + 1}. ${phase.name}`, 10);
+        addSimpleText(`   Description: ${phase.description}`, 10);
+        addSimpleText(`   Duration: ${phase.duration} weeks`, 10);
+        addSimpleText(`   Cost: ${phase.cost} SAR`, 10);
+      });
+    }
+
+    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
+    console.log('✓ تم إنشاء PDF بسيط بنجاح!');
+    return pdfBuffer;
+    
+  } catch (error) {
+    console.error('خطأ في إنشاء PDF البسيط:', error);
     throw new Error(`فشل في إنشاء التقرير PDF: ${error instanceof Error ? error.message : 'خطأ غير معروف'}`);
   }
 }

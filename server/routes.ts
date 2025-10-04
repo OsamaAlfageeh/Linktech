@@ -2544,14 +2544,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const accessToken = await sadiqAuth.getAccessToken();
           
           // Use the external API to download the document
-          const downloadUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/v2/DownloadBase64/${nda.sadiqDocumentId}`;
+          const downloadUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/DownloadBase64/${nda.sadiqDocumentId}`;
           
           console.log(`⬇️ تنزيل الوثيقة من: ${downloadUrl}`);
           
           const response = await fetch(downloadUrl, {
             method: 'GET',
             headers: {
-              'accept': 'application/json'
+              'accept': 'application/json',
+              'Authorization': `Bearer ${accessToken}`
             }
           });
 
@@ -2569,18 +2570,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
             console.log('🔍 هل يحتوي على data؟', !!result.data);
             console.log('🔍 هل data مصفوفة؟', Array.isArray(result.data));
             if (result.data) {
-              console.log('🔍 طول مصفوفة data:', result.data.length);
-              if (result.data.length > 0) {
-                console.log('🔍 العنصر الأول:', JSON.stringify(result.data[0], null, 2));
-                console.log('🔍 هل يحتوي على file؟', !!result.data[0].file);
-                console.log('🔍 طول ملف base64:', result.data[0].file ? result.data[0].file.length : 'غير موجود');
-              }
+              console.log('🔍 نوع data:', typeof result.data);
+              console.log('🔍 مفاتيح data:', Object.keys(result.data));
+              console.log('🔍 هل يحتوي على file؟', !!result.data.file);
+              console.log('🔍 طول ملف base64:', result.data.file ? result.data.file.length : 'غير موجود');
             }
             
             // Check if the response contains the file data
-            // Sadiq returns data as an array with the first element containing the file
-            if (result.data && Array.isArray(result.data) && result.data.length > 0 && result.data[0].file) {
-              const fileData = result.data[0];
+            // Sadiq returns data as an object with file property
+            if (result.data && !Array.isArray(result.data) && result.data.file) {
+              const fileData = result.data;
               // Convert base64 to buffer
               const pdfBuffer = Buffer.from(fileData.file, 'base64');
               
@@ -2604,11 +2603,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               console.log('هيكل الاستجابة:', Object.keys(result));
               if (result.data) {
                 console.log('مفاتيح البيانات:', Object.keys(result.data));
-                if (Array.isArray(result.data)) {
-                  console.log('طول المصفوفة:', result.data.length);
-                  if (result.data.length > 0) {
-                    console.log('مفاتيح العنصر الأول:', Object.keys(result.data[0]));
-                  }
+                console.log('نوع البيانات:', typeof result.data);
+                console.log('هل data مصفوفة؟', Array.isArray(result.data));
+                if (!Array.isArray(result.data)) {
+                  console.log('هل يحتوي على file؟', !!result.data.file);
+                  console.log('طول ملف base64:', result.data.file ? result.data.file.length : 'غير موجود');
                 }
               }
               return res.status(404).json({ 
@@ -2794,12 +2793,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Get access token from Sadiq
       const { sadiqAuth } = await import('./sadiqAuthService');
-      const accessToken = await sadiqAuth.getAccessToken();
+      let accessToken;
+      
+      try {
+        accessToken = await sadiqAuth.getAccessToken();
+        console.log('✅ تم الحصول على رمز الوصول من صادق');
+      } catch (authError) {
+        console.error('❌ فشل في الحصول على رمز الوصول من صادق:', authError);
+        return res.status(500).json({ 
+          message: 'فشل في الحصول على رمز الوصول من صادق',
+          error: 'Authentication failed with Sadiq API',
+          details: authError instanceof Error ? authError.message : 'Unknown authentication error'
+        });
+      }
       
       // Use the external API to download the document
-      const downloadUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/v2/DownloadBase64/${nda.sadiqDocumentId}`;
+      const downloadUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/DownloadBase64/${nda.sadiqDocumentId}`;
       
       console.log(`⬇️ تنزيل الوثيقة من: ${downloadUrl}`);
+      console.log(`🔑 استخدام رمز الوصول: ${accessToken.substring(0, 20)}...`);
       
       const response = await fetch(downloadUrl, {
         method: 'GET',
@@ -2811,19 +2823,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`❌ فشل تنزيل الوثيقة: ${response.status} - ${errorText}`);
+        console.error(`❌ فشل تنزيل الوثيقة من صادق: ${response.status} - ${errorText}`);
+        
+        // Provide more helpful error message
+        if (response.status === 401) {
+          return res.status(401).json({ 
+            message: 'فشل في المصادقة مع صادق - رمز الوصول غير صالح أو منتهي الصلاحية',
+            error: 'Unauthorized - Invalid or expired access token',
+            details: 'يرجى التحقق من إعدادات المصادقة مع صادق'
+          });
+        }
+        
         return res.status(response.status).json({ 
-          message: `فشل في تنزيل الوثيقة: ${response.status}`,
-          error: errorText.substring(0, 200)
+          message: `فشل في تنزيل الوثيقة من صادق: ${response.status}`,
+          error: errorText.substring(0, 200),
+          details: 'تحقق من صحة معرف الوثيقة وحالة الاتفاقية'
         });
       }
 
       const result = await response.json();
       
+      console.log('🔍 نوع البيانات:', typeof result);
+      console.log('🔍 هل يحتوي على data؟', !!result.data);
+      console.log('🔍 هل data مصفوفة؟', Array.isArray(result.data));
+      console.log('🔍 طول مصفوفة data:', Array.isArray(result.data) ? result.data.length : 'غير متاح');
+      
       // Check if the response contains the file data
-      if (!result.data || !result.data.file) {
-        console.error('❌ لا توجد بيانات ملف في الاستجابة:', result);
-        return res.status(400).json({ message: 'لا توجد بيانات ملف في الاستجابة' });
+      console.log('🔍 فحص البيانات:');
+      console.log('🔍 result.data موجود؟', !!result.data);
+      console.log('🔍 result.data.file موجود؟', !!(result.data && result.data.file));
+      console.log('🔍 طول result.data.file:', result.data?.file?.length || 0);
+      
+      // More robust check
+      if (!result || !result.data || typeof result.data.file !== 'string' || result.data.file.length === 0) {
+        console.error('❌ لا توجد بيانات ملف صالحة في استجابة صادق');
+        console.error('هيكل الاستجابة:', Object.keys(result));
+        if (result.data) {
+          console.error('مفاتيح البيانات:', Object.keys(result.data));
+        }
+        return res.status(400).json({ message: 'لا توجد بيانات ملف صالحة في استجابة صادق' });
       }
 
       // Convert base64 to buffer
@@ -5921,7 +5959,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const format = req.query.format as string || 'pdf'; // pdf or txt
       
-      const { generateProjectReport, generateProjectReportPDF } = await import('./aiProjectAssistant');
+      const { generateProjectReport } = await import('./aiProjectAssistant');
+      const { generateArabicPDF } = await import('./pdfGenerator.tsx');
       const analysisResult = JSON.parse(analysis.analysisResult);
 
       if (format === 'txt') {
@@ -5949,7 +5988,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('Analysis data:', JSON.stringify(analysisResult, null, 2));
         console.log('Project idea:', analysis.projectIdea);
         
+        // Use jsPDF as primary method since it has proven Arabic font support
+        console.log('🚀 Starting PDF generation with jsPDF (proven Arabic support)...');
+        
         try {
+          const { generateProjectReportPDF } = await import('./aiProjectAssistant');
           const pdfBuffer = await generateProjectReportPDF(analysisResult, analysis.projectIdea);
           
           console.log(`تم إنشاء التقرير PDF بنجاح، الحجم: ${pdfBuffer.length} بايت`);
@@ -5972,8 +6015,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
           res.end(pdfBuffer);
           console.log('PDF sent successfully');
         } catch (pdfError) {
-          console.error('PDF generation error:', pdfError);
-          throw pdfError;
+          console.error('❌ خطأ في إنشاء PDF:', pdfError);
+          console.error('PDF Error details:', {
+            message: pdfError instanceof Error ? pdfError.message : 'Unknown error',
+            stack: pdfError instanceof Error ? pdfError.stack : undefined,
+            name: pdfError instanceof Error ? pdfError.name : undefined
+          });
+          
+          res.status(500).json({ 
+            message: 'فشل في إنشاء التقرير PDF',
+            error: pdfError instanceof Error ? pdfError.message : 'خطأ غير معروف'
+          });
+          return;
         }
       }
     } catch (error) {
@@ -6312,6 +6365,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // استخدام مسارات إدارة المدونة
   app.use('/api/admin', blogMigrationRoutes);
+  
+  // PDF Routes for Arabic PDF Generation
+  const pdfRoutes = await import('./routes/pdf.routes.ts');
+  app.use('/api/pdf', pdfRoutes.default);
 
   // Notification API endpoints
   app.get('/api/notifications', isAuthenticated, async (req: Request, res: Response) => {
