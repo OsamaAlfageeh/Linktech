@@ -5973,16 +5973,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           console.log('PDF sent successfully');
         } catch (pdfError) {
           console.error('PDF generation error:', pdfError);
-          
-          // إرجاع خطأ مفصل للتصحيح
-          const errorMessage = pdfError instanceof Error ? pdfError.message : 'Unknown PDF generation error';
-          console.error('PDF Error Details:', {
-            message: errorMessage,
-            stack: pdfError instanceof Error ? pdfError.stack : 'No stack trace',
-            analysisId: analysisId,
-            userId: user.id
-          });
-          
           throw pdfError;
         }
       }
