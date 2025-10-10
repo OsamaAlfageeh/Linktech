@@ -65,6 +65,7 @@ type CompanyProfile = {
   phone?: string;
   birthDate?: string;
   address?: string;
+  commercialRegistry?: string;
 };
 
 type User = {
@@ -99,6 +100,7 @@ const personalInfoSchema = z.object({
   phone: z.string().min(10, "رقم الجوال مطلوب (10 أرقام على الأقل)"),
   birthDate: z.string().min(1, "تاريخ الميلاد مطلوب"),
   address: z.string().min(10, "العنوان الوطني مطلوب (10 أحرف على الأقل)"),
+  commercialRegistry: z.string().min(10, "رقم السجل التجاري مطلوب (10 أرقام على الأقل)"),
 });
 
 type ProfileFormValues = z.infer<typeof profileSchema>;
@@ -161,6 +163,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
       phone: "",
       birthDate: "",
       address: "",
+      commercialRegistry: "",
     },
   });
   
@@ -390,7 +393,7 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
   const isPersonalInfoComplete = useMemo(() => {
     if (!profile) return false;
     
-    const requiredFields = ['fullName', 'nationalId', 'phone', 'birthDate', 'address'];
+    const requiredFields = ['fullName', 'nationalId', 'phone', 'birthDate', 'address', 'commercialRegistry'];
     const isComplete = requiredFields.every(field => {
       const value = profile[field as keyof typeof profile];
       return value && typeof value === 'string' && value.trim() !== "";
@@ -987,6 +990,23 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                             </FormItem>
                           )}
                         />
+                        
+                        <FormField
+                          control={personalInfoForm.control}
+                          name="commercialRegistry"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>رقم السجل التجاري *</FormLabel>
+                              <FormControl>
+                                <Input 
+                                  placeholder="مثال: 1010123456"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
                       </div>
                       
                       <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
@@ -1060,6 +1080,15 @@ const CompanyDashboard = ({ auth }: CompanyDashboardProps) => {
                       <h3 className="text-sm font-medium text-neutral-500 mb-1">العنوان الوطني</h3>
                       {profile.address ? (
                         <p className="text-neutral-700">{profile.address}</p>
+                      ) : (
+                        <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
+                      )}
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-sm font-medium text-neutral-500 mb-1">رقم السجل التجاري</h3>
+                      {profile.commercialRegistry ? (
+                        <p className="text-neutral-700">{profile.commercialRegistry}</p>
                       ) : (
                         <p className="text-red-500">غير مكتمل - مطلوب لتوقيع NDA</p>
                       )}

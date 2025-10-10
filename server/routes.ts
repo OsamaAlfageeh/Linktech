@@ -2342,6 +2342,276 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
     }
   });
+
+  // NEW SIMPLIFIED NDA FLOW: Direct company signing without entrepreneur involvement
+  app.post('/api/projects/:projectId/nda/create-and-sign', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const user = req.user as any;
+      const projectId = parseInt(req.params.projectId);
+      const { companyRep } = req.body;
+      
+      // Validate company representative data
+      if (!companyRep?.name || !companyRep?.email || !companyRep?.phone) {
+        return res.status(400).json({ 
+          message: 'بيانات ممثل الشركة مطلوبة (الاسم، البريد الإلكتروني، رقم الهاتف)' 
+        });
+      }
+      
+      // Check if user is a company
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'فقط الشركات يمكنها توقيع اتفاقيات عدم الإفصاح' });
+      }
+      
+      // Get project details
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // Get company profile
+      const companyProfile = await storage.getCompanyProfileByUserId(user.id);
+      if (!companyProfile) {
+        return res.status(404).json({ message: 'ملف تعريف الشركة غير موجود' });
+      }
+
+      // Validate commercial registry with Wathq API
+      if (!companyProfile.commercialRegistry) {
+        return res.status(400).json({ 
+          message: 'رقم السجل التجاري مطلوب لتوقيع اتفاقيات عدم الإفصاح' 
+        });
+      }
+
+      console.log(`🔍 التحقق من السجل التجاري: ${companyProfile.commercialRegistry}`);
+      
+      try {
+        // Import Wathq service
+        const { wathqService } = await import('./wathqService');
+        
+        // Verify commercial registry
+        const wathqVerification = await wathqService.verifyCommercialRegistry(companyProfile.commercialRegistry);
+        
+        if (!wathqVerification.success) {
+          console.error('❌ فشل في التحقق من السجل التجاري:', wathqVerification.error);
+          return res.status(400).json({
+            message: 'فشل في التحقق من السجل التجاري',
+            error: wathqVerification.error,
+            details: wathqVerification.message
+          });
+        }
+
+        // Verify company name matches
+        const companyNameVerification = await wathqService.verifyCompanyName(
+          companyProfile.commercialRegistry, 
+          companyProfile.legalName || companyRep.name
+        );
+
+        if (!companyNameVerification.success) {
+          console.error('❌ فشل في التحقق من اسم الشركة:', companyNameVerification.error);
+          return res.status(400).json({
+            message: 'فشل في التحقق من اسم الشركة',
+            error: companyNameVerification.error
+          });
+        }
+
+        if (!companyNameVerification.isMatch) {
+          console.warn('⚠️ اسم الشركة لا يتطابق مع السجل التجاري');
+          return res.status(400).json({
+            message: 'اسم الشركة لا يتطابق مع السجل التجاري',
+            registeredName: companyNameVerification.registeredName,
+            details: 'يرجى التأكد من صحة اسم الشركة أو تحديث السجل التجاري'
+          });
+        }
+
+        console.log('✅ تم التحقق من السجل التجاري واسم الشركة بنجاح');
+
+      } catch (wathqError) {
+        console.error('❌ خطأ في التحقق من وثيق:', wathqError);
+        
+        // في حالة فشل التحقق، يمكن السماح بإنشاء NDA مع تحذير
+        console.warn('⚠️ تم تخطي التحقق من وثيق - سيتم إنشاء NDA مع تحذير');
+        
+        // يمكن إزالة هذا التعليق إذا كنت تريد منع إنشاء NDA عند فشل التحقق
+        // return res.status(500).json({
+        //   message: 'فشل في التحقق من السجل التجاري',
+        //   error: wathqError instanceof Error ? wathqError.message : 'خطأ غير معروف'
+        // });
+      }
+
+      // Get project owner for notifications
+      const projectOwner = await storage.getUser(project.userId);
+      if (!projectOwner) {
+        return res.status(404).json({ message: 'صاحب المشروع غير موجود' });
+      }
+
+      console.log(`✅ إنشاء اتفاقية عدم إفصاح مبسطة للمشروع ${projectId}`);
+
+      // Create NDA with simplified data structure
+      const ndaData = {
+        projectId,
+        status: 'ready_for_sadiq', // Skip entrepreneur step
+        companySignatureInfo: {
+          companyId: companyProfile.id,
+          companyName: companyProfile.legalName || companyRep.name,
+          signerName: companyRep.name,
+          signerEmail: companyRep.email,
+          signerPhone: companyRep.phone,
+          signerIp: req.ip,
+          timestamp: new Date().toISOString()
+        },
+        // No entrepreneur info needed - they're bound by default
+        entrepreneurInfo: {
+          name: projectOwner.name,
+          email: projectOwner.email,
+          phone: projectOwner.phone || '',
+          timestamp: new Date().toISOString(),
+          consentByDefault: true // Mark that entrepreneur consented by posting project
+        },
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      };
+      
+      // Create NDA in database
+      const nda = await storage.createNdaAgreement(ndaData);
+
+      try {
+        // Import Sadiq authentication service
+        const { sadiqAuth } = await import('./sadiqAuthService');
+        
+        // Get access token
+        const accessToken = await sadiqAuth.getAccessToken();
+        console.log('✅ تم الحصول على رمز الوصول من صادق');
+
+        // Prepare project and company data for PDF generation
+        const projectData = {
+          id: project.id,
+          title: project.title,
+          description: project.description || 'مشروع تطوير برمجيات'
+        };
+
+        const companyData = {
+          name: companyProfile.legalName || companyRep.name,
+          location: companyProfile.location || 'المملكة العربية السعودية'
+        };
+
+        // Generate PDF with generic terms (no actual names)
+        console.log('📄 إنشاء ملف PDF لاتفاقية عدم الإفصاح...');
+        const pdfBuffer = await generateProjectNdaPdf(projectData, companyData, {
+          entrepreneur: 'صاحب المشروع', // Generic term
+          companyRep: 'الشركة الموقعة أدناه' // Generic term
+        });
+        const base64Pdf = pdfBuffer.toString('base64');
+
+        // Upload PDF to Sadiq
+        const fileName = `NDA-${project.title.replace(/\s+/g, '-')}-${Date.now()}.pdf`;
+        console.log('⬆️ رفع ملف PDF إلى صادق...');
+        const uploadResult = await sadiqAuth.uploadDocument(base64Pdf, fileName);
+        const documentId = uploadResult.id;
+        const referenceNumber = uploadResult.referenceNumber;
+
+        // Prepare signatory list (company only)
+        const signatoryList = [
+          {
+            fullName: companyRep.name,
+            email: companyRep.email,
+            phoneNumber: companyRep.phone,
+            nationalId: '',
+            gender: 'NONE'
+          }
+        ];
+
+        // Send signing invitation to company only
+        console.log('📧 إرسال دعوة التوقيع للشركة...');
+        const invitationResult = await sadiqAuth.sendSigningInvitations(documentId, signatoryList, project.title);
+        const envelopeId = invitationResult.envelopeId;
+
+        // Update NDA with Sadiq information
+        await storage.updateNdaAgreement(nda.id, {
+          sadiqEnvelopeId: envelopeId,
+          sadiqDocumentId: documentId,
+          sadiqReferenceNumber: referenceNumber,
+          envelopeStatus: 'invitation_sent',
+          status: 'invitation_sent'
+        });
+
+        // Send notifications
+        await storage.createNotification({
+          userId: projectOwner.id,
+          type: 'nda_created',
+          title: 'تم إنشاء اتفاقية عدم الإفصاح',
+          message: `تم إنشاء اتفاقية عدم الإفصاح لمشروع "${project.title}" من قبل ${companyRep.name}`,
+          data: { ndaId: nda.id, projectId }
+        });
+
+        await storage.createNotification({
+          userId: user.id,
+          type: 'nda_invitation_sent',
+          title: 'تم إرسال دعوة التوقيع',
+          message: `تم إرسال دعوة التوقيع الإلكتروني لاتفاقية عدم الإفصاح لمشروع "${project.title}"`,
+          data: { ndaId: nda.id, projectId }
+        });
+
+        console.log(`✅ تم إنشاء اتفاقية عدم الإفصاح وإرسال دعوة التوقيع - ID: ${nda.id}`);
+
+        res.json({
+          id: nda.id,
+          status: 'invitation_sent',
+          message: 'تم إنشاء اتفاقية عدم الإفصاح وإرسال دعوة التوقيع الإلكتروني',
+          sadiqEnvelopeId: envelopeId,
+          sadiqDocumentId: documentId
+        });
+
+      } catch (sadiqError) {
+        console.error('❌ خطأ في التكامل مع صادق:', sadiqError);
+        
+        // Update NDA status to indicate Sadiq error
+        await storage.updateNdaAgreement(nda.id, {
+          status: 'sadiq_error',
+          envelopeStatus: 'error'
+        });
+
+        res.status(500).json({ 
+          message: 'فشل في التكامل مع صادق',
+          error: sadiqError instanceof Error ? sadiqError.message : 'خطأ غير معروف'
+        });
+        return;
+      }
+    } catch (error) {
+      console.error('❌ خطأ في إنشاء اتفاقية عدم الإفصاح المبسطة:', error);
+      res.status(500).json({ message: 'حدث خطأ في النظام' });
+    }
+  });
+
+  // Test endpoint for Wathq API
+  app.post('/api/test/wathq', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const { crNumber } = req.body;
+      
+      if (!crNumber) {
+        return res.status(400).json({ 
+          message: 'رقم السجل التجاري مطلوب' 
+        });
+      }
+
+      console.log(`🧪 اختبار وثيق API للرقم: ${crNumber}`);
+      
+      // Import Wathq service
+      const { wathqService } = await import('./wathqService');
+      
+      // Test commercial registry verification
+      const result = await wathqService.verifyCommercialRegistry(crNumber);
+      
+      console.log('📋 نتيجة اختبار وثيق:', JSON.stringify(result, null, 2));
+      
+      res.json(result);
+      
+    } catch (error) {
+      console.error('❌ خطأ في اختبار وثيق:', error);
+      res.status(500).json({ 
+        success: false,
+        error: 'خطأ في الخادم',
+        message: error instanceof Error ? error.message : 'خطأ غير معروف'
+      });
+    }
+  });
   
   // وظيفة إنشاء ملف PDF لاتفاقية عدم الإفصاح
   async function generateNdaPdf(nda: any, project: any, company: any): Promise<Buffer> {

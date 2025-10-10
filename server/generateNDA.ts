@@ -161,9 +161,24 @@ export async function generateProjectNdaPdf(
     });
     y -= 30;
     
-    // First Party - Project Owner (sanitized name)
-    const entrepreneurName = (partialNames?.entrepreneur || '[Project Owner Name]').replace(/[\u0600-\u06FF]/g, '[Arabic Text]');
-    page.drawText(`First Party (Project Owner): ${entrepreneurName}`, {
+    // First Party - Project Owner (generic term for privacy)
+    page.drawText('First Party (Project Owner): صاحب المشروع', {
+      x: margin,
+      y: y,
+      size: 12,
+      font: font,
+    });
+    page.drawText('Status: موافق على شروط الاتفاقية (بموجب نشر المشروع)', {
+      x: margin,
+      y: y - 15,
+      size: 11,
+      font: font,
+      color: rgb(0.2, 0.6, 0.2),
+    });
+    y -= 50;
+    
+    // Second Party - Company Representative (generic term for privacy)
+    page.drawText('Second Party (Company): الشركة الموقعة أدناه', {
       x: margin,
       y: y,
       size: 12,
@@ -175,20 +190,15 @@ export async function generateProjectNdaPdf(
       size: 11,
       font: font,
     });
-    y -= 50;
-    
-    // Second Party - Company Representative (sanitized names)
-    const companyRepName = (partialNames?.companyRep || '[Company Representative Name]').replace(/[\u0600-\u06FF]/g, '[Arabic Text]');
-    const sanitizedCompanyName = (company.name || 'Company').replace(/[\u0600-\u06FF]/g, '[Arabic Text]');
-    page.drawText(`Second Party (${sanitizedCompanyName}): ${companyRepName}`, {
+    page.drawText('Company Name: _______________________', {
       x: margin,
-      y: y,
-      size: 12,
+      y: y - 30,
+      size: 11,
       font: font,
     });
-    page.drawText('Signature: _______________________', {
+    page.drawText('Date: _______________________', {
       x: margin,
-      y: y - 15,
+      y: y - 45,
       size: 11,
       font: font,
     });

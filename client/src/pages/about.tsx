@@ -152,7 +152,7 @@ const AboutPage = () => {
             </p>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div>
+              {/* <div>
                 <div className="rounded-full h-24 w-24 mx-auto mb-4 overflow-hidden">
                   <LazyImage
                     src={`https://ui-avatars.com/api/?name=أحمد+الغامدي&background=eefffc&color=0e8a65&size=96`}
@@ -202,7 +202,7 @@ const AboutPage = () => {
                 </div>
                 <h3 className="font-bold">نورة القحطاني</h3>
                 <p className="text-neutral-600 text-sm">مديرة تسويق</p>
-              </div>
+              </div> */}
             </div>
           </div>
           

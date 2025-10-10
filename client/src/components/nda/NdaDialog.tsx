@@ -81,10 +81,10 @@ export function NdaDialog({
     }
   }, [isOpen, auth?.user]);
 
-  // Initiate NDA request with company info only
+  // Create NDA and go directly to Sadiq signing
   const createNdaMutation = useMutation({
     mutationFn: async (data: ContactFormData) => {
-      const response = await apiRequest("POST", `/api/projects/${projectId}/nda/initiate`, {
+      const response = await apiRequest("POST", `/api/projects/${projectId}/nda/create-and-sign`, {
         companyRep: data.companyRep
       });
       return await response.json();
@@ -94,8 +94,8 @@ export function NdaDialog({
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/nda`] });
       
       toast({
-        title: "تم إرسال طلب اتفاقية عدم الإفصاح",
-        description: "تم إرسال إشعار لرائد الأعمال لإكمال بياناته. ستكتمل العملية عند موافقته.",
+        title: "تم إنشاء اتفاقية عدم الإفصاح",
+        description: "سيتم توجيهك إلى منصة صادق للتوقيع الإلكتروني.",
       });
 
       onOpenChange(false);

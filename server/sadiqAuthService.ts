@@ -289,7 +289,7 @@ class SadiqAuthService {
           destinationPhoneNumber: this.formatPhoneNumber(signatory.phoneNumber) || "",
           nationalId: signatory.nationalId || "",
           signeOrder: index,
-          ConsentOnly: true, // Set to true so users only need to consent, not sign
+          ConsentOnly: false, // Company needs to actually sign, not just consent
           signatories: [
             {
               signatureHigh: 80,
@@ -307,8 +307,8 @@ class SadiqAuthService {
           RedirectUrl: "",
           AllowUserToAddDestination: false
         })),
-        invitationMessage: `نرجو منك توقيع اتفاقية عدم الإفصاح المرفقة للمشروع: ${projectTitle}`,
-        invitationSubject: `اتفاقية عدم الإفصاح - مشروع ${projectTitle}`
+        invitationMessage: `نرجو منكم توقيع اتفاقية عدم الإفصاح المرفقة للمشروع: ${projectTitle}. يرجى مراجعة الشروط والتوقيع إلكترونياً.`,
+        invitationSubject: `توقيع اتفاقية عدم الإفصاح - مشروع ${projectTitle}`
       };
       
       console.log(`🔄 إرسال دعوات باستخدام endpoint: ${endpoint}`);
