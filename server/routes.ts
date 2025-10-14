@@ -10,7 +10,7 @@ import { exec } from "child_process";
 import sitemapRoutes from "./routes/sitemap";
 // import arabicPdfTestRoutes from "./arabicPdfTest"; // تم حذف الملف
 import pdfmakeTestRoutes from "./pdfmakeTest";
-import generateNdaRoutes from "./generateNDA";
+import generateNdaRoutes, { generateProjectNdaPdf } from "./generateNDA";
 import sadiqRoutes from "./routes/sadiq";
 import blogMigrationRoutes from "./routes/blogMigration";
 // Contact routes are now integrated below
@@ -2374,67 +2374,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: 'ملف تعريف الشركة غير موجود' });
       }
 
-      // Validate commercial registry with Wathq API
-      if (!companyProfile.commercialRegistry) {
-        return res.status(400).json({ 
-          message: 'رقم السجل التجاري مطلوب لتوقيع اتفاقيات عدم الإفصاح' 
+      // Check if company is verified
+      if (!companyProfile.verified) {
+        return res.status(403).json({ 
+          message: 'يجب توثيق الشركة من قبل الإدارة قبل توقيع اتفاقيات عدم الإفصاح. يرجى التواصل مع الإدارة لإكمال عملية التوثيق.' 
         });
-      }
-
-      console.log(`🔍 التحقق من السجل التجاري: ${companyProfile.commercialRegistry}`);
-      
-      try {
-        // Import Wathq service
-        const { wathqService } = await import('./wathqService');
-        
-        // Verify commercial registry
-        const wathqVerification = await wathqService.verifyCommercialRegistry(companyProfile.commercialRegistry);
-        
-        if (!wathqVerification.success) {
-          console.error('❌ فشل في التحقق من السجل التجاري:', wathqVerification.error);
-          return res.status(400).json({
-            message: 'فشل في التحقق من السجل التجاري',
-            error: wathqVerification.error,
-            details: wathqVerification.message
-          });
-        }
-
-        // Verify company name matches
-        const companyNameVerification = await wathqService.verifyCompanyName(
-          companyProfile.commercialRegistry, 
-          companyProfile.legalName || companyRep.name
-        );
-
-        if (!companyNameVerification.success) {
-          console.error('❌ فشل في التحقق من اسم الشركة:', companyNameVerification.error);
-          return res.status(400).json({
-            message: 'فشل في التحقق من اسم الشركة',
-            error: companyNameVerification.error
-          });
-        }
-
-        if (!companyNameVerification.isMatch) {
-          console.warn('⚠️ اسم الشركة لا يتطابق مع السجل التجاري');
-          return res.status(400).json({
-            message: 'اسم الشركة لا يتطابق مع السجل التجاري',
-            registeredName: companyNameVerification.registeredName,
-            details: 'يرجى التأكد من صحة اسم الشركة أو تحديث السجل التجاري'
-          });
-        }
-
-        console.log('✅ تم التحقق من السجل التجاري واسم الشركة بنجاح');
-
-      } catch (wathqError) {
-        console.error('❌ خطأ في التحقق من وثيق:', wathqError);
-        
-        // في حالة فشل التحقق، يمكن السماح بإنشاء NDA مع تحذير
-        console.warn('⚠️ تم تخطي التحقق من وثيق - سيتم إنشاء NDA مع تحذير');
-        
-        // يمكن إزالة هذا التعليق إذا كنت تريد منع إنشاء NDA عند فشل التحقق
-        // return res.status(500).json({
-        //   message: 'فشل في التحقق من السجل التجاري',
-        //   error: wathqError instanceof Error ? wathqError.message : 'خطأ غير معروف'
-        // });
       }
 
       // Get project owner for notifications
@@ -2451,6 +2395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         status: 'ready_for_sadiq', // Skip entrepreneur step
         companySignatureInfo: {
           companyId: companyProfile.id,
+          companyUserId: user.id, // Add the user ID for frontend matching
           companyName: companyProfile.legalName || companyRep.name,
           signerName: companyRep.name,
           signerEmail: companyRep.email,
@@ -2537,16 +2482,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
           userId: projectOwner.id,
           type: 'nda_created',
           title: 'تم إنشاء اتفاقية عدم الإفصاح',
-          message: `تم إنشاء اتفاقية عدم الإفصاح لمشروع "${project.title}" من قبل ${companyRep.name}`,
-          data: { ndaId: nda.id, projectId }
+          content: `تم إنشاء اتفاقية عدم الإفصاح لمشروع "${project.title}" من قبل ${companyRep.name}`,
+          metadata: { ndaId: nda.id, projectId }
         });
 
         await storage.createNotification({
           userId: user.id,
           type: 'nda_invitation_sent',
           title: 'تم إرسال دعوة التوقيع',
-          message: `تم إرسال دعوة التوقيع الإلكتروني لاتفاقية عدم الإفصاح لمشروع "${project.title}"`,
-          data: { ndaId: nda.id, projectId }
+          content: `تم إرسال دعوة التوقيع الإلكتروني لاتفاقية عدم الإفصاح لمشروع "${project.title}"`,
+          metadata: { ndaId: nda.id, projectId }
         });
 
         console.log(`✅ تم إنشاء اتفاقية عدم الإفصاح وإرسال دعوة التوقيع - ID: ${nda.id}`);
@@ -2577,39 +2522,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('❌ خطأ في إنشاء اتفاقية عدم الإفصاح المبسطة:', error);
       res.status(500).json({ message: 'حدث خطأ في النظام' });
-    }
-  });
-
-  // Test endpoint for Wathq API
-  app.post('/api/test/wathq', isAuthenticated, async (req: Request, res: Response) => {
-    try {
-      const { crNumber } = req.body;
-      
-      if (!crNumber) {
-        return res.status(400).json({ 
-          message: 'رقم السجل التجاري مطلوب' 
-        });
-      }
-
-      console.log(`🧪 اختبار وثيق API للرقم: ${crNumber}`);
-      
-      // Import Wathq service
-      const { wathqService } = await import('./wathqService');
-      
-      // Test commercial registry verification
-      const result = await wathqService.verifyCommercialRegistry(crNumber);
-      
-      console.log('📋 نتيجة اختبار وثيق:', JSON.stringify(result, null, 2));
-      
-      res.json(result);
-      
-    } catch (error) {
-      console.error('❌ خطأ في اختبار وثيق:', error);
-      res.status(500).json({ 
-        success: false,
-        error: 'خطأ في الخادم',
-        message: error instanceof Error ? error.message : 'خطأ غير معروف'
-      });
     }
   });
   
@@ -2924,12 +2836,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'غير مصرح بالوصول إلى اتفاقيات عدم الإفصاح لهذا المشروع' });
       }
       
-      // الحصول على اتفاقية عدم الإفصاح الخاصة بالمشروع
-      const ndaAgreement = await storage.getNdaAgreementByProjectId(projectId);
-      
-      // إذا وجدت اتفاقية، نرسلها كمصفوفة تحتوي على عنصر واحد
-      // إذا لم توجد، نرسل مصفوفة فارغة
-      const ndaAgreements = ndaAgreement ? [ndaAgreement] : [];
+      // الحصول على جميع اتفاقيات عدم الإفصاح للمشروع
+      const ndaAgreements = await storage.getNdaAgreementsByProjectId(projectId);
       res.json(ndaAgreements);
     } catch (error) {
       console.error('خطأ في استرجاع اتفاقيات عدم الإفصاح للمشروع:', error);

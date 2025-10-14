@@ -92,10 +92,11 @@ export function NdaDialog({
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['/api/projects'] });
       queryClient.invalidateQueries({ queryKey: [`/api/projects/${projectId}/nda`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/nda/${data.id}`] });
       
       toast({
         title: "تم إنشاء اتفاقية عدم الإفصاح",
-        description: "سيتم توجيهك إلى منصة صادق للتوقيع الإلكتروني.",
+        description: "تم إرسال دعوة التوقيع الإلكتروني إلى بريدك. يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق.",
       });
 
       onOpenChange(false);

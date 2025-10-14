@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Lock, Info, CheckCircle, Clock, AlertCircle, Users } from "lucide-react";
+import { Shield, Lock, Info, CheckCircle, Clock, AlertCircle, Users, ExternalLink } from "lucide-react";
 import { NdaDialog } from "./NdaDialog";
 
 // تعريف نوع البيانات الخاص باتفاقية عدم الإفصاح
@@ -59,12 +59,13 @@ const getStatusInfo = (status: string) => {
         badgeClass: 'bg-green-100 text-green-800'
       };
     case 'invitations_sent':
+    case 'invitation_sent':
       return {
         icon: Clock,
         color: 'text-blue-600',
         bgColor: 'bg-blue-50',
         borderColor: 'border-blue-200',
-        label: 'في انتظار التوقيع',
+        label: 'تم إرسال الدعوة - تحقق من بريدك الإلكتروني',
         badgeVariant: 'outline' as const,
         badgeClass: 'border-blue-300 text-blue-700'
       };
@@ -134,13 +135,37 @@ export function NdaSection({
   const {
     data: projectNdas,
     isLoading: isLoadingProjectNdas,
+    refetch: refetchProjectNdas,
   } = useQuery<NdaAgreement[]>({
     queryKey: [`/api/projects/${projectId}/nda`],
     enabled: !!projectId && (userRole === 'admin' || currentUserId === userId || userRole === 'company'), // المسؤولون أو صاحب المشروع أو الشركات
+    staleTime: 0, // Always refetch to get latest status
+  });
+
+  // جلب ملف تعريف الشركة للتحقق من حالة التوثيق
+  const {
+    data: companyProfile,
+    isLoading: isLoadingCompanyProfile,
+  } = useQuery({
+    queryKey: [`/api/companies/user/${currentUserId}`],
+    enabled: !!currentUserId && userRole === 'company',
+    staleTime: 0,
   });
 
   // التحقق مما إذا كان المستخدم شركة ويمكنه توقيع اتفاقية عدم الإفصاح
   const canSignNda = userRole === 'company' && currentUserId !== userId;
+  
+  // التحقق من حالة توثيق الشركة
+  const isCompanyVerified = companyProfile?.verified === true;
+  
+  // Debug logging
+  console.log('NDA Section Debug:', {
+    currentUserId,
+    userRole,
+    companyProfile,
+    isCompanyVerified,
+    canSignNda
+  });
 
   // التحقق مما إذا كان المستخدم الحالي هو صاحب المشروع
   const isProjectOwner = currentUserId === userId;
@@ -153,8 +178,11 @@ export function NdaSection({
     nda.companySignatureInfo?.companyUserId === currentUserId
   );
   
-  // For companies: check if they already signed
-  const hasCompanySignedNda = !!companyNda;
+  // For companies: check if they already created an NDA (regardless of status)
+  const hasCompanyCreatedNda = !!companyNda;
+  
+  // For companies: check if they already signed or have invitation sent
+  const hasCompanySignedNda = !!companyNda && (companyNda.status === 'signed' || companyNda.status === 'invitation_sent' || companyNda.status === 'invitations_sent');
   
   // For specific NDA: check if it exists
   const hasSignedNda = !!ndaData;
@@ -227,13 +255,91 @@ export function NdaSection({
     );
   }
 
+  // Show verification required message for unverified companies
+  if (canSignNda && !isLoadingCompanyProfile && companyProfile && !isCompanyVerified) {
+    return (
+      <div className="mb-8">
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-6">
+          <div className="flex items-start">
+            <AlertCircle className="h-6 w-6 text-amber-600 mt-1 ml-3 flex-shrink-0" />
+            <div className="w-full">
+              <h3 className="font-bold text-amber-800 text-lg mb-3">
+                🔒 توثيق الشركة مطلوب
+              </h3>
+              <p className="text-amber-700 mb-4 text-base">
+                يجب توثيق شركتك من قبل الإدارة قبل أن تتمكن من توقيع اتفاقيات عدم الإفصاح والمشاركة في المشاريع.
+              </p>
+              
+              <div className="bg-white rounded-lg p-4 border border-amber-200 mb-4">
+                <h4 className="font-semibold text-neutral-800 mb-3">خطوات التوثيق:</h4>
+                <ol className="space-y-2 text-sm text-neutral-700 list-decimal list-inside">
+                  <li>تأكد من اكتمال جميع البيانات المطلوبة في ملف تعريف الشركة</li>
+                  <li>رفع المستندات المطلوبة (السجل التجاري، الترخيص، إلخ)</li>
+                  <li>انتظار مراجعة الإدارة وتوثيق الشركة</li>
+                  <li>ستتلقى إشعاراً عند اكتمال التوثيق</li>
+                </ol>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button 
+                  onClick={() => window.location.href = '/dashboard/company'}
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-semibold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all"
+                  size="lg"
+                >
+                  <Shield className="ml-2 h-5 w-5" />
+                  إكمال ملف تعريف الشركة
+                </Button>
+                
+                <Button 
+                  variant="outline"
+                  onClick={() => window.location.href = '/contact'}
+                  className="border-amber-300 text-amber-700 hover:bg-amber-50"
+                >
+                  <Info className="ml-2 h-4 w-4" />
+                  التواصل مع الإدارة
+                </Button>
+              </div>
+              
+              <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-blue-800 text-sm">
+                  <strong>ملاحظة:</strong> عملية التوثيق قد تستغرق من 1-3 أيام عمل. 
+                  يمكنك متابعة حالة التوثيق من لوحة التحكم.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // إذا كان المستخدم صاحب المشروع، نعرض قائمة بالشركات التي وقعت اتفاقية عدم الإفصاح
   if (isProjectOwner || isAdmin) {
     return (
       <div className="mb-8 bg-white p-5 rounded-lg border border-neutral-200">
-        <div className="flex items-center mb-4">
-          <Shield className="h-5 w-5 text-primary ml-2" />
-          <h2 className="text-xl font-semibold">اتفاقيات عدم الإفصاح</h2>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Shield className="h-5 w-5 text-primary ml-2" />
+            <h2 className="text-xl font-semibold">اتفاقيات عدم الإفصاح</h2>
+          </div>
+          {projectNdas && projectNdas.length > 0 && projectNdas.some(nda => nda.sadiqEnvelopeId) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Open the first NDA with Sadiq envelope ID
+                const ndaWithSadiq = projectNdas.find(nda => nda.sadiqEnvelopeId);
+                if (ndaWithSadiq) {
+                  const sadiqUrl = `https://launchtech-sandbox.sadq.sa/sign/DocumentInfo/${ndaWithSadiq.sadiqEnvelopeId}`;
+                  window.open(sadiqUrl, '_blank');
+                }
+              }}
+              className="text-sm"
+            >
+              <ExternalLink className="h-4 w-4 ml-1" />
+              عرض في صادق
+            </Button>
+          )}
         </div>
         
         {isLoadingProjectNdas ? (
@@ -306,9 +412,23 @@ export function NdaSection({
                     
                     {nda.sadiqReferenceNumber && (
                       <div className="mt-3 pt-3 border-t border-neutral-200">
-                        <div className="text-xs text-neutral-500">
+                        <div className="text-xs text-neutral-500 mb-2">
                           رقم المرجع في صادق: {nda.sadiqReferenceNumber}
                         </div>
+                        {nda.sadiqEnvelopeId && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              const sadiqUrl = `https://launchtech-sandbox.sadq.sa/sign/DocumentInfo/${nda.sadiqEnvelopeId}`;
+                              window.open(sadiqUrl, '_blank');
+                            }}
+                            className="text-xs"
+                          >
+                            <ExternalLink className="h-3 w-3 ml-1" />
+                            عرض حالة الاتفاقية في صادق
+                          </Button>
+                        )}
                       </div>
                     )}
                   </div>
@@ -330,8 +450,8 @@ export function NdaSection({
 
   // إذا كان المستخدم شركة ويمكنه توقيع اتفاقية عدم الإفصاح
   if (canSignNda) {
-    // Check if this company has already signed an NDA for this project
-    const currentCompanyNda = companyNda || (ndaId && hasSignedNda ? ndaData : null);
+    // Check if this company has already created an NDA for this project
+    const currentCompanyNda = companyNda;
     
     return (
       <div className="mb-8">
@@ -341,22 +461,22 @@ export function NdaSection({
             <div className="w-full">
               <h3 className="font-semibold text-amber-800 text-lg mb-2">هذا المشروع يتطلب اتفاقية عدم إفصاح</h3>
               
-              {currentCompanyNda ? (
+              {companyNda ? (
                 <div>
                   {/* Company has signed - show status */}
                   <div className="mb-4">
-                    {currentCompanyNda.status === 'signed' ? (
+                    {companyNda.status === 'signed' ? (
                       <div className="flex items-center mb-2">
                         <CheckCircle className="h-5 w-5 text-green-600 ml-2" />
                         <p className="text-green-700 font-medium">
                           تم توقيع الاتفاقية بنجاح! يمكنك الآن الاطلاع على تفاصيل المشروع وتقديم عرضك.
                         </p>
                       </div>
-                    ) : currentCompanyNda.status === 'invitations_sent' ? (
+                    ) : (companyNda.status === 'invitations_sent' || companyNda.status === 'invitation_sent') ? (
                       <div className="flex items-center mb-2">
                         <Clock className="h-5 w-5 text-blue-600 ml-2" />
                         <p className="text-blue-700 font-medium">
-                          تم إكمال بياناتك بنجاح. ننتظر رائد الأعمال لإكمال بياناته ثم سيتم إرسال دعوة الموافقة على الاتفاقية.
+                          تم إرسال دعوة التوقيع الإلكتروني إلى بريدك الإلكتروني. يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق.
                         </p>
                       </div>
                     ) : (
@@ -376,7 +496,7 @@ export function NdaSection({
                         <span className="font-medium text-neutral-800">حالة الاتفاقية:</span>
                         <div className="mt-1">
                           {(() => {
-                            const statusInfo = getStatusInfo(currentCompanyNda.status);
+                            const statusInfo = getStatusInfo(companyNda.status);
                             const StatusIcon = statusInfo.icon;
                             return (
                               <div className="flex items-center">
@@ -390,11 +510,11 @@ export function NdaSection({
                         </div>
                       </div>
                       
-                      {currentCompanyNda.signedAt && (
+                      {companyNda.signedAt && (
                         <div>
                           <span className="font-medium text-neutral-800">تاريخ التوقيع:</span>
                           <p className="text-neutral-600 mt-1">
-                            {new Date(currentCompanyNda.signedAt).toLocaleDateString('ar-SA', {
+                            {new Date(companyNda.signedAt).toLocaleDateString('ar-SA', {
                               year: 'numeric',
                               month: 'long',
                               day: 'numeric'
@@ -406,21 +526,21 @@ export function NdaSection({
                       <div>
                         <span className="font-medium text-neutral-800">تاريخ الإنشاء:</span>
                         <p className="text-neutral-600 mt-1">
-                          {new Date(currentCompanyNda.createdAt).toLocaleDateString('ar-SA')}
+                          {new Date(companyNda.createdAt).toLocaleDateString('ar-SA')}
                         </p>
                       </div>
                       
-                      {currentCompanyNda.sadiqReferenceNumber && (
+                      {companyNda.sadiqReferenceNumber && (
                         <div>
                           <span className="font-medium text-neutral-800">رقم المرجع:</span>
                           <p className="text-neutral-600 mt-1 text-xs font-mono">
-                            {currentCompanyNda.sadiqReferenceNumber}
+                            {companyNda.sadiqReferenceNumber}
                           </p>
                         </div>
                       )}
                     </div>
                     
-                    {currentCompanyNda.status === 'invitations_sent' && (
+                    {(companyNda.status === 'invitations_sent' || companyNda.status === 'invitation_sent') && (
                       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-start">
                           <Info className="h-5 w-5 text-blue-600 mt-0.5 ml-2 flex-shrink-0" />
@@ -428,8 +548,9 @@ export function NdaSection({
                             <p className="font-medium mb-1">الحالة الحالية:</p>
                             <ul className="list-disc list-inside space-y-1 text-blue-700">
                               <li>✅ تم إكمال بياناتك بنجاح</li>
-                              <li>⏳ ننتظر رائد الأعمال لإكمال بياناته</li>
-                              <li>📧 سيتم إرسال دعوة الموافقة على الاتفاقية عبر صادق بعد إكمال جميع البيانات</li>
+                              <li>📧 تم إرسال دعوة التوقيع إلى بريدك الإلكتروني</li>
+                              <li>🔐 يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق</li>
+                              <li>⏰ بعد التوقيع، ستتمكن من الاطلاع على تفاصيل المشروع الكاملة</li>
                             </ul>
                           </div>
                         </div>
@@ -439,7 +560,7 @@ export function NdaSection({
                 </div>
               ) : (
                 <div>
-                  {/* Company hasn't signed - show sign option */}
+                  {/* Company hasn't created NDA yet - show sign option */}
                   <p className="text-amber-700 mb-3">
                     يجب عليك توقيع اتفاقية عدم إفصاح قبل أن تتمكن من الاطلاع على كافة تفاصيل المشروع وتقديم عرضك.
                   </p>
@@ -464,8 +585,8 @@ export function NdaSection({
           </div>
         </div>
         
-        {/* مربع حوار توقيع اتفاقية عدم الإفصاح - only show if not signed */}
-        {!currentCompanyNda && (
+        {/* مربع حوار توقيع اتفاقية عدم الإفصاح - only show if not created */}
+        {!hasCompanyCreatedNda && (
           <NdaDialog 
             projectId={projectId}
             projectTitle={projectTitle}

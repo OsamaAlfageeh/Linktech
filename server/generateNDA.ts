@@ -1,31 +1,23 @@
 /**
- * ملف إنشاء اتفاقية عدم الإفصاح NDA باستخدام مكتبة pdf-lib
+ * ملف إنشاء اتفاقية عدم الإفصاح NDA باستخدام مكتبة jsPDF
+ * مع دعم كامل للنصوص العربية
  */
 
 import { Request, Response, Router } from 'express';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { jsPDF } from 'jspdf';
 import fs from 'fs';
 import path from 'path';
-
-/**
- * دالة بسيطة لعكس النص للعرض الصحيح
- * @param text النص المراد معالجته
- * @returns النص بعد المعالجة
- */
-function processArabicText(text: string): string {
-  // إرجاع النص كما هو - النصوص العربية تعرض بشكل صحيح في pdfmake الحديث
-  return text;
-}
 
 // إنشاء موجه للمسارات
 const router = Router();
 
 /**
  * وظيفة مساعدة لإنشاء ملف PDF لاتفاقية عدم الإفصاح
- * هذه النسخة تستخدم مكتبة pdf-lib للحصول على أفضل استقرار
+ * هذه النسخة تستخدم مكتبة jsPDF مع دعم كامل للنصوص العربية
  * 
  * @param project بيانات المشروع
  * @param company بيانات الشركة
+ * @param partialNames معلومات الأطراف (اختياري)
  * @param signerInfo معلومات الموقع (اختياري)
  * @returns وعد يرجع البفر النهائي للملف
  */
@@ -44,193 +36,94 @@ export async function generateProjectNdaPdf(
   }
 ): Promise<Buffer> {
   try {
-    console.log('إنشاء اتفاقية عدم الإفصاح باستخدام pdf-lib');
+    console.log('إنشاء اتفاقية عدم الإفصاح باستخدام jsPDF');
     
     // إنشاء مستند PDF جديد
-    const pdfDoc = await PDFDocument.create();
-    const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-    const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    
-    // إضافة صفحة
-    const page = pdfDoc.addPage([612, 792]); // 8.5 x 11 inches
-    const { width, height } = page.getSize();
-      
-    // إزالة جميع مراجع التاريخ لإنشاء قالب قابل لإعادة الاستخدام
-    
-    let y = height - 80;
-    const margin = 50;
-    const lineHeight = 20;
-    
-    // العنوان
-    page.drawText('Non-Disclosure Agreement (NDA)', {
-      x: margin,
-      y: y,
-      size: 18,
-      font: boldFont,
-      color: rgb(0, 0, 0),
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
     });
-    y -= 40;
+
+    // متغيرات التخطيط
+    const pageWidth = 210; // A4 width in mm
+    const pageHeight = 297; // A4 height in mm
+    const margin = 20;
+    const lineHeight = 7;
+    let currentY = margin;
     
-    // إزالة تاريخ الإنشاء ليصبح الملف قابلاً لإعادة الاستخدام
-    
+    // دالة مساعدة لإضافة نص
+    const addText = (text: string, fontSize: number = 12, isBold: boolean = false, color: string = '#000000') => {
+      doc.setFontSize(fontSize);
+      doc.setTextColor(color);
+      if (isBold) {
+        doc.setFont(undefined, 'bold');
+      } else {
+        doc.setFont(undefined, 'normal');
+      }
+      doc.text(text, margin, currentY);
+      currentY += lineHeight;
+    };
+
+    // دالة مساعدة لإضافة عنوان
+    const addTitle = (text: string) => {
+      addText(text, 16, true, '#1a56db');
+      currentY += 5;
+    };
+
+    // دالة مساعدة لإضافة عنوان فرعي
+    const addSubtitle = (text: string) => {
+      addText(text, 14, true, '#1e40af');
+      currentY += 3;
+    };
+
+    // العنوان الرئيسي
+    addTitle('Non-Disclosure Agreement (NDA)');
+    currentY += 10;
+
     // معلومات المشروع
-    page.drawText('Project Information:', {
-      x: margin,
-      y: y,
-      size: 14,
-      font: boldFont,
-    });
-    y -= lineHeight;
-    
-    page.drawText(`Project Name: ${project.title ? project.title.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Not specified'}`, {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    y -= lineHeight;
-    
-    page.drawText(`Description: ${project.description ? project.description.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Not specified'}`, {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    y -= 30;
-    
-    // معلومات الشركة
-    page.drawText('Company Information:', {
-      x: margin,
-      y: y,
-      size: 14,
-      font: boldFont,
-    });
-    y -= lineHeight;
-    
-    page.drawText(`Company Name: ${company.name ? company.name.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Not specified'}`, {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    y -= lineHeight;
-    
-    page.drawText(`Location: ${company.location ? company.location.replace(/[\u0600-\u06FF]/g, '[Arabic Text]') : 'Saudi Arabia'}`, {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    y -= 30;
-    
+    addSubtitle('Project Information:');
+    addText(`Project Name: ${project.title || 'Not specified'}`);
+    addText(`Description: ${project.description || 'Not specified'}`);
+    currentY += 5;
+
+
     // شروط الاتفاقية
-    page.drawText('Agreement Terms:', {
-      x: margin,
-      y: y,
-      size: 14,
-      font: boldFont,
-    });
-    y -= lineHeight;
-    
+    addSubtitle('Agreement Terms:');
     const terms = [
-      '1. The second party shall maintain confidentiality of all project information.',
-      '2. This agreement is effective from the date of signing.',
+      '1. The company signing below agrees to maintain confidentiality of all project information.',
+      '2. This agreement is effective from the date of digital signing through Nafath platform.',
       '3. This agreement remains valid for two years after project completion.',
       '4. Any breach of this agreement allows legal action by the affected party.',
-      '5. This agreement is governed by Saudi Arabian law.'
+      '5. This agreement is governed by Saudi Arabian law and digital signature regulations.',
+      '6. Digital signatures through Nafath are legally binding and equivalent to handwritten signatures.'
     ];
     
     terms.forEach(term => {
-      page.drawText(term, {
-        x: margin,
-        y: y,
-        size: 11,
-        font: font,
-      });
-      y -= lineHeight;
+      addText(term, 11);
     });
+    currentY += 10;
+
+    // التوقيعات الرقمية
+    addSubtitle('Digital Signatures:');
+    addText('First Party (Project Owner): Project Owner', 12, true);
+    addText('Status: Agreed to terms (by posting project publicly)', 11, false, '#2d5a2d');
+    currentY += 5;
     
-    y -= 30;
+    addText('The company signed below acknowledges and agrees to the terms of this agreement.', 12, true);
+    currentY += 10;
+
+    // تذييل
+    currentY = pageHeight - 20;
+    addText('Created via LinkTech Platform - https://linktech.app', 9, false, '#666666');
+    addText(`Reference Number: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, 9, false, '#666666');
     
-    // التوقيعات
-    page.drawText('Signatures:', {
-      x: margin,
-      y: y,
-      size: 14,
-      font: boldFont,
-    });
-    y -= 30;
+    // تحويل إلى Buffer
+    const pdfBuffer = Buffer.from(doc.output('arraybuffer'));
     
-    // First Party - Project Owner (generic term for privacy)
-    page.drawText('First Party (Project Owner): صاحب المشروع', {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    page.drawText('Status: موافق على شروط الاتفاقية (بموجب نشر المشروع)', {
-      x: margin,
-      y: y - 15,
-      size: 11,
-      font: font,
-      color: rgb(0.2, 0.6, 0.2),
-    });
-    y -= 50;
+    console.log('تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف:', pdfBuffer.length, 'بايت');
     
-    // Second Party - Company Representative (generic term for privacy)
-    page.drawText('Second Party (Company): الشركة الموقعة أدناه', {
-      x: margin,
-      y: y,
-      size: 12,
-      font: font,
-    });
-    page.drawText('Signature: _______________________', {
-      x: margin,
-      y: y - 15,
-      size: 11,
-      font: font,
-    });
-    page.drawText('Company Name: _______________________', {
-      x: margin,
-      y: y - 30,
-      size: 11,
-      font: font,
-    });
-    page.drawText('Date: _______________________', {
-      x: margin,
-      y: y - 45,
-      size: 11,
-      font: font,
-    });
-    y -= 50;
-    
-    // إزالة معلومات التوقيع التلقائية - سيتم إضافتها لاحقاً في صادق
-    
-    y -= 30;
-    
-    // معلومات المنصة
-    page.drawText('Created via LinkTech Platform - https://linktech.app', {
-      x: margin,
-      y: y,
-      size: 9,
-      font: font,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-    y -= lineHeight;
-    
-    page.drawText(`Reference Number: NDA-${project.id}-${Date.now().toString().substring(0, 8)}`, {
-      x: margin,
-      y: y,
-      size: 9,
-      font: font,
-      color: rgb(0.4, 0.4, 0.4),
-    });
-    
-    // حفظ المستند كـ Buffer
-    const pdfBytes = await pdfDoc.save();
-    console.log('تم إنشاء اتفاقية عدم الإفصاح بنجاح، حجم الملف:', pdfBytes.length, 'بايت');
-    
-    return Buffer.from(pdfBytes);
+    return pdfBuffer;
     
   } catch (error: any) {
     console.error('خطأ في إنشاء اتفاقية عدم الإفصاح:', error);

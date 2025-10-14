@@ -43,7 +43,6 @@ import PremiumClients from "@/pages/premium-clients";
 import AiAssistant from "@/pages/ai-assistant";
 import CompaniesLanding from "@/pages/companies-landing";
 import TestSadiq from "@/pages/test-sadiq";
-import TestWathq from "@/pages/test-wathq";
 import NdaCompletePage from "@/pages/nda-complete";
 import Settings from "@/pages/settings";
 import PaymentSuccessPage from "@/pages/payment/success";
@@ -343,9 +342,6 @@ function App() {
           
           {/* صفحة اختبار تكامل صادق */}
           <Route path="/test-sadiq" component={TestSadiq} />
-          
-          {/* صفحة اختبار تكامل وثيق */}
-          <Route path="/test-wathq" component={TestWathq} />
           
           {/* Fallback to 404 */}
           <Route component={NotFound} />

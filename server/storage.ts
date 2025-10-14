@@ -111,6 +111,7 @@ export interface IStorage {
   // NDA Agreement operations
   getNdaAgreement(id: number): Promise<NdaAgreement | undefined>;
   getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined>;
+  getNdaAgreementsByProjectId(projectId: number): Promise<NdaAgreement[]>;
   getNdaByProjectAndCompany(projectId: number, companyUserId: number): Promise<NdaAgreement | undefined>;
   createNdaAgreement(agreement: InsertNdaAgreement): Promise<NdaAgreement>;
   updateNdaAgreement(id: number, updates: Partial<NdaAgreement>): Promise<NdaAgreement | undefined>;
@@ -874,6 +875,12 @@ export class MemStorage implements IStorage {
   
   async getNdaAgreementByProjectId(projectId: number): Promise<NdaAgreement | undefined> {
     return Array.from(this.ndaAgreements.values()).find(
+      (agreement) => agreement.projectId === projectId
+    );
+  }
+
+  async getNdaAgreementsByProjectId(projectId: number): Promise<NdaAgreement[]> {
+    return Array.from(this.ndaAgreements.values()).filter(
       (agreement) => agreement.projectId === projectId
     );
   }
@@ -2649,6 +2656,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.ndaAgreements.projectId, projectId))
       .limit(1);
     return ndas[0];
+  }
+
+  async getNdaAgreementsByProjectId(projectId: number): Promise<NdaAgreement[]> {
+    const ndas = await db.select().from(schema.ndaAgreements)
+      .where(eq(schema.ndaAgreements.projectId, projectId));
+    return ndas;
   }
 
   async getNdaByProjectAndCompany(projectId: number, companyUserId: number): Promise<NdaAgreement | undefined> {
