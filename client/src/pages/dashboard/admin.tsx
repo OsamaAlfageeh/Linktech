@@ -1457,120 +1457,125 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     <TableBody>
                       {ndaAgreements.map((nda: any) => {
                         // Log NDA status for debugging
-                        if (typeof window !== 'undefined') {
-                          console.log('NDA Status:', {
+                        if (typeof window !== "undefined") {
+                          console.log("NDA Status:", {
                             id: nda.id,
                             status: nda.status,
                             sadiqReference: nda.sadiqReferenceNumber,
                             signedAt: nda.signedAt,
                             expiresAt: nda.expiresAt,
-                            rawData: nda // Log the entire NDA object for debugging
+                            rawData: nda, // Log the entire NDA object for debugging
                           });
                         }
-                        
+
                         return (
                           <TableRow key={nda.id}>
-                          <TableCell className="font-medium">#{nda.id}</TableCell>
-                          <TableCell>{nda.projectTitle || "غير محدد"}</TableCell>
-                          <TableCell className="w-32">
-                            <div className="flex flex-col gap-0.5">
-                              <span className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
-                                nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed"
-                                  ? "bg-green-100 text-green-800" 
-                                  : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : nda.status?.toLowerCase() === "cancelled" || nda.status?.toLowerCase() === "expired"
-                                      ? "bg-red-100 text-red-800"
-                                      : "bg-amber-100 text-amber-800"
-                              }`}>
-                                {nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed" ? (
-                                  <>
-                                    <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
-                                    <span>مكتمل</span>
-                                  </>
-                                ) : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent" ? (
-                                  <>
-                                    <Clock className="h-2.5 w-2.5 ml-0.5" />
-                                    <span>{nda.status?.toLowerCase() === "invitations_sent" ? "تم الدعوة" : "قيد الانتظار"}</span>
-                                  </>
-                                ) : nda.status?.toLowerCase() === "cancelled" ? (
-                                  <>
-                                    <XCircle className="h-2.5 w-2.5 ml-0.5" />
-                                    <span>ملغي</span>
-                                  </>
-                                ) : nda.status?.toLowerCase() === "expired" ? (
-                                  <>
-                                    <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
-                                    <span>منتهي</span>
-                                  </>
+                            <TableCell className="font-medium">#{nda.id}</TableCell>
+                            <TableCell>{nda.projectTitle || "غير محدد"}</TableCell>
+                            <TableCell className="w-32">
+                              <div className="flex flex-col gap-0.5">
+                                <span
+                                  className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
+                                    nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed"
+                                      ? "bg-green-100 text-green-800"
+                                      : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent"
+                                        ? "bg-blue-100 text-blue-800"
+                                        : nda.status?.toLowerCase() === "cancelled" || nda.status?.toLowerCase() === "expired"
+                                          ? "bg-red-100 text-red-800"
+                                          : "bg-amber-100 text-amber-800"
+                                  }`}
+                                >
+                                  {nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed" ? (
+                                    <>
+                                      <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>مكتمل</span>
+                                    </>
+                                  ) : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent" ? (
+                                    <>
+                                      <Clock className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>{nda.status?.toLowerCase() === "invitations_sent" ? "تم الدعوة" : "قيد الانتظار"}</span>
+                                    </>
+                                  ) : nda.status?.toLowerCase() === "cancelled" ? (
+                                    <>
+                                      <XCircle className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>ملغي</span>
+                                    </>
+                                  ) : nda.status?.toLowerCase() === "expired" ? (
+                                    <>
+                                      <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>منتهي</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>غير معروف</span>
+                                    </>
+                                  )}
+                                </span>
+
+                                {nda.signedAt ? (
+                                  <div className="text-[10px] text-gray-500 text-center">
+                                    {new Date(nda.signedAt).toLocaleDateString("ar-SA")}
+                                  </div>
                                 ) : (
-                                  <>
-                                    <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
-                                    <span>غير معروف</span>
-                                  </>
+                                  nda.expiresAt && (
+                                    <div className="text-[10px] text-amber-600 text-center">
+                                      ينتهي: {new Date(nda.expiresAt).toLocaleDateString("ar-SA").substring(0, 5)}..
+                                    </div>
+                                  )
                                 )}
-                              </span>
-                              
-                              {nda.signedAt ? (
-                                <div className="text-[10px] text-gray-500 text-center">
-                                  {new Date(nda.signedAt).toLocaleDateString('ar-SA')}
-                                </div>
-                              ) : nda.expiresAt && (
-                                <div className="text-[10px] text-amber-600 text-center">
-                                  ينتهي: {new Date(nda.expiresAt).toLocaleDateString('ar-SA').substring(0, 5)}..
-                                </div>
-                              )}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {nda.createdAt ? new Date(nda.createdAt).toLocaleDateString("ar-SA") : "غير محدد"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex space-x-2 rtl:space-x-reverse">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => navigate(`/projects/${nda.projectId}`)}
-                                title="عرض تفاصيل المشروع"
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                              {nda.sadiqDocumentId && (
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {nda.createdAt ? new Date(nda.createdAt).toLocaleDateString("ar-SA") : "غير محدد"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2 rtl:space-x-reverse">
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  onClick={() => {
-                                    const token = localStorage.getItem('auth_token');
-                                    const link = document.createElement('a');
-                                    link.href = `/api/nda/${nda.id}/download-pdf?token=${token}`;
-                                    link.download = `NDA-${nda.id}.pdf`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
-                                  }}
-                                  title="تحميل ملف PDF"
+                                  onClick={() => navigate(`/projects/${nda.projectId}`)}
+                                  title="عرض تفاصيل المشروع"
                                 >
-                                  <Download className="h-4 w-4" />
+                                  <Eye className="h-4 w-4" />
                                 </Button>
-                              )}
-                            </div>
+                                {nda.sadiqDocumentId && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => {
+                                      const token = localStorage.getItem("auth_token");
+                                      const link = document.createElement("a");
+                                      link.href = `/api/nda/${nda.id}/download-pdf?token=${token}`;
+                                      link.download = `NDA-${nda.id}.pdf`;
+                                      document.body.appendChild(link);
+                                      link.click();
+                                      document.body.removeChild(link);
+                                    }}
+                                    title="تحميل ملف PDF"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <Table>
+                      <TableBody>
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-10">
+                            <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                            <p className="text-muted-foreground">لا توجد اتفاقيات عدم إفصاح حتى الآن</p>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <Table>
-                    <TableBody>
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-10">
-                          <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                          <p className="text-muted-foreground">لا توجد اتفاقيات عدم إفصاح حتى الآن</p>
-                        </TableCell>
-                      </TableRow>
-                    </TableBody>
-                  </Table>
-                )}
+                      </TableBody>
+                    </Table>
+                  )}
               </CardContent>
             </Card>
           </TabsContent>
