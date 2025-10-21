@@ -842,4 +842,116 @@ router.get('/download-document/:documentId', async (req: Request, res: Response)
   }
 });
 
+// Get NDA status with privacy for signers
+router.get('/nda-status/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { referenceNumber } = req.params;
+    const { accessToken } = req.query;
+
+    if (!accessToken) {
+      return res.status(400).json({
+        error: 'Access token required',
+        message: 'رمز الوصول مطلوب للتحقق من حالة NDA'
+      });
+    }
+
+    console.log(`التحقق من حالة NDA برقم المرجع: ${referenceNumber}`);
+
+    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
+
+    const response = await fetch(statusUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      console.error('خطأ في التحقق من حالة NDA:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('تفاصيل الخطأ:', errorText);
+      return res.status(response.status).json({ 
+        error: 'Status check failed',
+        details: errorText,
+        message: 'فشل في التحقق من حالة NDA'
+      });
+    }
+
+    const statusResult = await response.json();
+    console.log('حالة NDA الحالية:', JSON.stringify(statusResult, null, 2));
+
+    // Process the response
+    const envelopeData = statusResult.data || {};
+    const allSignatories = envelopeData.signatories || [];
+    
+    // Skip the first signer (admin) and hide names of other signers
+    const processedSigners = allSignatories.map((signer: any, index: number) => ({
+      id: signer.id,
+      status: signer.status,
+      // Only show first letter of name and last name for non-first signers
+      fullName: index === 0 ? signer.fullName : 
+               `${signer.fullName?.charAt(0)}${'*'.repeat(Math.max(0, (signer.fullName?.length || 2) - 2))}${signer.fullName?.slice(-1) || ''}`,
+      fullNameAr: index === 0 ? signer.fullNameAr : 
+                 `${signer.fullNameAr?.charAt(0)}${'*'.repeat(Math.max(0, (signer.fullNameAr?.length || 2) - 2))}${signer.fullNameAr?.slice(-1) || ''}`,
+      // Hide sensitive information
+      nationalId: '',
+      email: signer.email ? `${signer.email.split('@')[0].substring(0, 2)}***@${signer.email.split('@')[1]}` : '',
+      phoneNumber: signer.phoneNumber ? `${signer.phoneNumber.substring(0, 2)}******${signer.phoneNumber.slice(-2)}` : '',
+      gender: '',
+      nationality: '',
+      signOrder: signer.signOrder
+    }));
+
+    // Calculate status statistics (skipping first signer)
+    const relevantSigners = allSignatories.slice(1);
+    const signedCount = relevantSigners.filter((s: any) => s.status === 'SIGNED').length;
+    const pendingCount = relevantSigners.filter((s: any) => s.status === 'PENDING').length;
+    const totalRelevantSigners = relevantSigners.length;
+
+    // Prepare response
+    const responseData = {
+      success: true,
+      envelopeId: envelopeData.id,
+      status: envelopeData.status || 'Unknown',
+      createDate: envelopeData.createDate,
+      referenceNumber: referenceNumber,
+      
+      // Signing statistics (excluding first signer)
+      signingStats: {
+        signed: signedCount,
+        pending: pendingCount,
+        total: totalRelevantSigners,
+        completionPercentage: totalRelevantSigners > 0 ? 
+          Math.round((signedCount / totalRelevantSigners) * 100) : 0
+      },
+      
+      // Document information
+      document: envelopeData.documents?.[0] ? {
+        id: envelopeData.documents[0].id,
+        fileName: envelopeData.documents[0].fileName,
+        isSigned: envelopeData.documents[0].isSigned,
+        uploadDate: envelopeData.documents[0].uploadDate
+      } : null,
+      
+      // Processed signers information (with privacy)
+      signers: processedSigners,
+      
+      // Additional metadata
+      lastUpdated: new Date().toISOString()
+    };
+
+    res.json(responseData);
+
+  } catch (error: any) {
+    console.error('خطأ في التحقق من حالة NDA:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error',
+      message: 'حدث خطأ أثناء التحقق من حالة NDA',
+      details: error.message
+    });
+  }
+});
+
 export default router;

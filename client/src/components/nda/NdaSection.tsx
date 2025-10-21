@@ -1,10 +1,12 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Lock, Info, CheckCircle, Clock, AlertCircle, Users, ExternalLink } from "lucide-react";
+import { Shield, Lock, Info, CheckCircle, Clock, AlertCircle, Users, ExternalLink, RefreshCw } from "lucide-react";
 import { NdaDialog } from "./NdaDialog";
+import { useAuth } from "@/App";
+import { useToast } from "@/hooks/use-toast";
 
 // تعريف نوع البيانات الخاص باتفاقية عدم الإفصاح
 interface NdaAgreement {
@@ -156,15 +158,65 @@ export function NdaSection({
   const canSignNda = userRole === 'company' && currentUserId !== userId;
   
   // التحقق من حالة توثيق الشركة
-  const isCompanyVerified = companyProfile?.verified === true;
+  const isCompanyVerified = (companyProfile as any)?.verified === true;
   
+  // Fetch Sadiq NDA status if we have a reference number
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { 
+    data: sadiqStatus, 
+    refetch: refetchSadiqStatus,
+    isRefetching: isRefetchingSadiqStatus 
+  } = useQuery<{data: any}>({
+    queryKey: ['sadiqNdaStatus', ndaData?.sadiqReferenceNumber],
+    queryFn: async () => {
+      if (!ndaData?.sadiqReferenceNumber) return null;
+      
+      try {
+        const response = await fetch(`/api/sadiq/nda-status/${ndaData.sadiqReferenceNumber}`, {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error('فشل في جلب حالة الاتفاقية من صادق');
+        }
+        
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching Sadiq NDA status:', error);
+        toast({
+          title: 'خطأ',
+          description: 'فشل في جلب حالة التوقيع من منصة صادق',
+          variant: 'destructive'
+        });
+        return null;
+      }
+    },
+    enabled: !!ndaData?.sadiqReferenceNumber,
+    refetchOnWindowFocus: false
+  });
+
+  // Auto-refresh Sadiq status every 30 seconds
+  useEffect(() => {
+    if (ndaData?.sadiqReferenceNumber) {
+      const interval = setInterval(() => {
+        refetchSadiqStatus();
+      }, 30000);
+      
+      return () => clearInterval(interval);
+    }
+  }, [ndaData?.sadiqReferenceNumber, refetchSadiqStatus]);
+
   // Debug logging
   console.log('NDA Section Debug:', {
     currentUserId,
     userRole,
     companyProfile,
     isCompanyVerified,
-    canSignNda
+    canSignNda,
+    sadiqStatus
   });
 
   // التحقق مما إذا كان المستخدم الحالي هو صاحب المشروع
@@ -182,7 +234,7 @@ export function NdaSection({
   const hasCompanyCreatedNda = !!companyNda;
   
   // For companies: check if they already signed or have invitation sent
-  const hasCompanySignedNda = !!companyNda && (companyNda.status === 'signed' || companyNda.status === 'invitation_sent' || companyNda.status === 'invitations_sent');
+  const hasCompanySignedNda = !!companyNda && (companyNda.status === 'signed' || companyNda.status === 'invitations_sent');
   
   // For specific NDA: check if it exists
   const hasSignedNda = !!ndaData;
@@ -409,25 +461,76 @@ export function NdaSection({
                         </p>
                       </div>
                     </div>
-                    
-                    {nda.sadiqReferenceNumber && (
+                                        {nda.sadiqReferenceNumber && (
                       <div className="mt-3 pt-3 border-t border-neutral-200">
-                        <div className="text-xs text-neutral-500 mb-2">
-                          رقم المرجع في صادق: {nda.sadiqReferenceNumber}
-                        </div>
-                        {nda.sadiqEnvelopeId && (
-                          <Button
-                            variant="outline"
-                            size="sm"
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="text-xs text-neutral-500">
+                            رقم المرجع في صادق: {nda.sadiqReferenceNumber}
+                          </div>
+                            <Button
+                            variant="ghost"
+                            size="default"
                             onClick={() => {
-                              const sadiqUrl = `https://launchtech-sandbox.sadq.sa/sign/DocumentInfo/${nda.sadiqEnvelopeId}`;
-                              window.open(sadiqUrl, '_blank');
+                              refetchSadiqStatus();
+                              toast({
+                                title: 'جاري التحديث',
+                                description: 'جاري تحديث حالة التوقيع...'
+                              });
                             }}
-                            className="text-xs"
+                            className="h-8 px-2 text-xs"
                           >
-                            <ExternalLink className="h-3 w-3 ml-1" />
-                            عرض حالة الاتفاقية في صادق
+                            <RefreshCw className={`h-3 w-3 ml-1 ${isRefetchingSadiqStatus ? 'animate-spin' : ''}`} />
+                            تحديث
                           </Button>
+                        </div>
+                        
+                        {/* Sadiq Status */}
+                        {sadiqStatus?.data && (
+                          <div className="mb-3 p-2 bg-blue-50 rounded border border-blue-100">
+                            <div className="flex items-center text-sm text-blue-800 mb-1">
+                              <Shield className="h-3.5 w-3.5 ml-1" />
+                              <span>حالة التوقيع:</span>
+                              <span className="font-medium mr-1">
+                                {sadiqStatus.data.status === 'In-progress' ? 'قيد التنفيذ' : 
+                                 sadiqStatus.data.status === 'completed' ? 'مكتمل' : 
+                                 sadiqStatus.data.status}
+                              </span>
+                            </div>
+                            
+                            {sadiqStatus.data.signingStats && (
+                              <div className="text-xs text-blue-700">
+                                <div className="flex items-center justify-between mb-1">
+                                  <span>نسبة الإكمال:</span>
+                                  <span className="font-medium">
+                                    {sadiqStatus.data.signingStats.completionPercentage}%
+                                  </span>
+                                </div>
+                                <div className="w-full bg-blue-100 rounded-full h-1.5">
+                                  <div 
+                                    className="bg-blue-600 h-1.5 rounded-full" 
+                                    style={{ width: `${sadiqStatus.data.signingStats.completionPercentage}%` }}
+                                  />
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        
+                        {nda.sadiqEnvelopeId && (
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const sadiqUrl = `https://launchtech-sandbox.sadq.sa/sign/DocumentInfo/${nda.sadiqEnvelopeId}`;
+                                window.open(sadiqUrl, '_blank');
+                              }}
+                              className="text-xs flex-1"
+                            >
+                              <ExternalLink className="h-3 w-3 ml-1" />
+                              فتح في صادق
+                            </Button>
+                          </div>
                         )}
                       </div>
                     )}
@@ -472,7 +575,7 @@ export function NdaSection({
                           تم توقيع الاتفاقية بنجاح! يمكنك الآن الاطلاع على تفاصيل المشروع وتقديم عرضك.
                         </p>
                       </div>
-                    ) : (companyNda.status === 'invitations_sent' || companyNda.status === 'invitation_sent') ? (
+                    ) : companyNda.status === 'invitations_sent' ? (
                       <div className="flex items-center mb-2">
                         <Clock className="h-5 w-5 text-blue-600 ml-2" />
                         <p className="text-blue-700 font-medium">
@@ -540,7 +643,7 @@ export function NdaSection({
                       )}
                     </div>
                     
-                    {(companyNda.status === 'invitations_sent' || companyNda.status === 'invitation_sent') && (
+                    {companyNda.status === 'invitations_sent' && (
                       <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <div className="flex items-start">
                           <Info className="h-5 w-5 text-blue-600 mt-0.5 ml-2 flex-shrink-0" />

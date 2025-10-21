@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
-  DollarSign, Clock, Award, MessageSquare, FileText, X, Shield, Download } from "lucide-react";
+  DollarSign, Clock, Award, MessageSquare, FileText, X, Shield, Download, AlertCircle } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -1459,12 +1459,55 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                         <TableRow key={nda.id}>
                           <TableCell className="font-medium">#{nda.id}</TableCell>
                           <TableCell>{nda.projectTitle || "غير محدد"}</TableCell>
-                          <TableCell>
-                            <span className={`inline-flex items-center px-2 py-1 text-xs font-medium rounded-full ${
-                              nda.status === "signed" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
-                            }`}>
-                              {nda.status === "signed" ? "موقعة" : "غير موقعة"}
-                            </span>
+                          <TableCell className="w-32">
+                            <div className="flex flex-col gap-0.5">
+                              <span className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
+                                nda.status === "signed" 
+                                  ? "bg-green-100 text-green-800" 
+                                  : nda.status === "pending" || nda.status === "invitations_sent"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : nda.status === "cancelled" || nda.status === "expired"
+                                      ? "bg-red-100 text-red-800"
+                                      : "bg-amber-100 text-amber-800"
+                              }`}>
+                                {nda.status === "signed" ? (
+                                  <>
+                                    <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
+                                    <span>مكتمل</span>
+                                  </>
+                                ) : nda.status === "pending" || nda.status === "invitations_sent" ? (
+                                  <>
+                                    <Clock className="h-2.5 w-2.5 ml-0.5" />
+                                    <span>{nda.status === "invitations_sent" ? "تم الدعوة" : "قيد الانتظار"}</span>
+                                  </>
+                                ) : nda.status === "cancelled" ? (
+                                  <>
+                                    <XCircle className="h-2.5 w-2.5 ml-0.5" />
+                                    <span>ملغي</span>
+                                  </>
+                                ) : nda.status === "expired" ? (
+                                  <>
+                                    <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
+                                    <span>منتهي</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
+                                    <span>غير معروف</span>
+                                  </>
+                                )}
+                              </span>
+                              
+                              {nda.signedAt ? (
+                                <div className="text-[10px] text-gray-500 text-center">
+                                  {new Date(nda.signedAt).toLocaleDateString('ar-SA')}
+                                </div>
+                              ) : nda.expiresAt && (
+                                <div className="text-[10px] text-amber-600 text-center">
+                                  ينتهي: {new Date(nda.expiresAt).toLocaleDateString('ar-SA').substring(0, 5)}..
+                                </div>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {nda.createdAt ? new Date(nda.createdAt).toLocaleDateString("ar-SA") : "غير محدد"}
