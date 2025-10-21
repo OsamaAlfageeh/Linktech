@@ -1462,7 +1462,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                           <TableCell className="w-32">
                             <div className="flex flex-col gap-0.5">
                               <span className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
-                                nda.status === "signed" 
+                                nda.status === "signed" || nda.status === "completed"
                                   ? "bg-green-100 text-green-800" 
                                   : nda.status === "pending" || nda.status === "invitations_sent"
                                     ? "bg-blue-100 text-blue-800"
@@ -1470,7 +1470,7 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                                       ? "bg-red-100 text-red-800"
                                       : "bg-amber-100 text-amber-800"
                               }`}>
-                                {nda.status === "signed" ? (
+                                {nda.status === "signed" || nda.status === "completed" ? (
                                   <>
                                     <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
                                     <span>مكتمل</span>

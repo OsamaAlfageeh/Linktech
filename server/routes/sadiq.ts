@@ -909,11 +909,14 @@ router.get('/nda-status/:referenceNumber', authenticateToken, async (req: Reques
     const pendingCount = relevantSigners.filter((s: any) => s.status === 'PENDING').length;
     const totalRelevantSigners = relevantSigners.length;
 
+    // Normalize status (Sadiq returns 'Completed' when fully signed)
+    const normalizedStatus = envelopeData.status === 'Completed' ? 'signed' : envelopeData.status?.toLowerCase() || 'unknown';
+
     // Prepare response
     const responseData = {
       success: true,
       envelopeId: envelopeData.id,
-      status: envelopeData.status || 'Unknown',
+      status: normalizedStatus,
       createDate: envelopeData.createDate,
       referenceNumber: referenceNumber,
       
