@@ -1476,31 +1476,50 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                               <div className="flex flex-col gap-0.5">
                                 <span
                                   className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
-                                    nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed"
+                                    nda.status?.toLowerCase() === "signed" || 
+                                    nda.envelopeStatus?.toLowerCase() === "completed" ||
+                                    nda.envelopeStatus === "Completed"
                                       ? "bg-green-100 text-green-800"
-                                      : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent"
-                                        ? "bg-blue-100 text-blue-800"
-                                        : nda.status?.toLowerCase() === "cancelled" || nda.status?.toLowerCase() === "expired"
-                                          ? "bg-red-100 text-red-800"
-                                          : "bg-amber-100 text-amber-800"
+                                      : nda.status?.toLowerCase() === "awaiting_entrepreneur" || 
+                                        nda.status?.toLowerCase() === "ready_for_sadiq" ||
+                                        nda.status?.toLowerCase() === "invitation_sent" ||
+                                        nda.envelopeStatus?.toLowerCase() === "invitation_sent" ||
+                                        nda.envelopeStatus?.toLowerCase() === "in_progress"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : nda.status?.toLowerCase() === "expired" ||
+                                        nda.envelopeStatus?.toLowerCase() === "expired" ||
+                                        nda.envelopeStatus === "Voided"
+                                        ? "bg-red-100 text-red-800"
+                                        : "bg-amber-100 text-amber-800"
                                   }`}
                                 >
-                                  {nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed" ? (
+                                  {nda.status?.toLowerCase() === "signed" || 
+                                    nda.envelopeStatus?.toLowerCase() === "completed" ||
+                                    nda.envelopeStatus === "Completed" ? (
                                     <>
                                       <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
                                       <span>مكتمل</span>
                                     </>
-                                  ) : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent" ? (
+                                  ) : nda.status?.toLowerCase() === "awaiting_entrepreneur" ? (
                                     <>
                                       <Clock className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>{nda.status?.toLowerCase() === "invitations_sent" ? "تم الدعوة" : "قيد الانتظار"}</span>
+                                      <span>في انتظار رائد الأعمال</span>
                                     </>
-                                  ) : nda.status?.toLowerCase() === "cancelled" ? (
+                                  ) : nda.status?.toLowerCase() === "ready_for_sadiq" ? (
                                     <>
-                                      <XCircle className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>ملغي</span>
+                                      <Clock className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>جاهز لصديق</span>
                                     </>
-                                  ) : nda.status?.toLowerCase() === "expired" ? (
+                                  ) : nda.status?.toLowerCase() === "invitation_sent" ||
+                                        nda.envelopeStatus?.toLowerCase() === "invitation_sent" ||
+                                        nda.envelopeStatus?.toLowerCase() === "in_progress" ? (
+                                    <>
+                                      <Clock className="h-2.5 w-2.5 ml-0.5" />
+                                      <span>تم الدعوة</span>
+                                    </>
+                                  ) : nda.status?.toLowerCase() === "expired" ||
+                                        nda.envelopeStatus?.toLowerCase() === "expired" ||
+                                        nda.envelopeStatus === "Voided" ? (
                                     <>
                                       <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
                                       <span>منتهي</span>
