@@ -1455,37 +1455,50 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {ndaAgreements.map((nda: any) => (
-                        <TableRow key={nda.id}>
+                      {ndaAgreements.map((nda: any) => {
+                        // Log NDA status for debugging
+                        if (typeof window !== 'undefined') {
+                          console.log('NDA Status:', {
+                            id: nda.id,
+                            status: nda.status,
+                            sadiqReference: nda.sadiqReferenceNumber,
+                            signedAt: nda.signedAt,
+                            expiresAt: nda.expiresAt,
+                            rawData: nda // Log the entire NDA object for debugging
+                          });
+                        }
+                        
+                        return (
+                          <TableRow key={nda.id}>
                           <TableCell className="font-medium">#{nda.id}</TableCell>
                           <TableCell>{nda.projectTitle || "غير محدد"}</TableCell>
                           <TableCell className="w-32">
                             <div className="flex flex-col gap-0.5">
                               <span className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
-                                nda.status === "signed" || nda.status === "completed"
+                                nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed"
                                   ? "bg-green-100 text-green-800" 
-                                  : nda.status === "pending" || nda.status === "invitations_sent"
+                                  : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent"
                                     ? "bg-blue-100 text-blue-800"
-                                    : nda.status === "cancelled" || nda.status === "expired"
+                                    : nda.status?.toLowerCase() === "cancelled" || nda.status?.toLowerCase() === "expired"
                                       ? "bg-red-100 text-red-800"
                                       : "bg-amber-100 text-amber-800"
                               }`}>
-                                {nda.status === "signed" || nda.status === "completed" ? (
+                                {nda.status?.toLowerCase() === "signed" || nda.status?.toLowerCase() === "completed" ? (
                                   <>
                                     <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
                                     <span>مكتمل</span>
                                   </>
-                                ) : nda.status === "pending" || nda.status === "invitations_sent" ? (
+                                ) : nda.status?.toLowerCase() === "pending" || nda.status?.toLowerCase() === "invitations_sent" ? (
                                   <>
                                     <Clock className="h-2.5 w-2.5 ml-0.5" />
-                                    <span>{nda.status === "invitations_sent" ? "تم الدعوة" : "قيد الانتظار"}</span>
+                                    <span>{nda.status?.toLowerCase() === "invitations_sent" ? "تم الدعوة" : "قيد الانتظار"}</span>
                                   </>
-                                ) : nda.status === "cancelled" ? (
+                                ) : nda.status?.toLowerCase() === "cancelled" ? (
                                   <>
                                     <XCircle className="h-2.5 w-2.5 ml-0.5" />
                                     <span>ملغي</span>
                                   </>
-                                ) : nda.status === "expired" ? (
+                                ) : nda.status?.toLowerCase() === "expired" ? (
                                   <>
                                     <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
                                     <span>منتهي</span>
@@ -1547,10 +1560,16 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </TableBody>
                   </Table>
                 ) : (
-                  <div className="text-center py-10">
-                    <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">لا توجد اتفاقيات عدم إفصاح حتى الآن</p>
-                  </div>
+                  <Table>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center py-10">
+                          <Shield className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                          <p className="text-muted-foreground">لا توجد اتفاقيات عدم إفصاح حتى الآن</p>
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
                 )}
               </CardContent>
             </Card>
