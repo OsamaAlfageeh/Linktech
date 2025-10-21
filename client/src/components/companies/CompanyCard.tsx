@@ -130,15 +130,15 @@ const CompanyCard = ({ company }: CompanyProps) => {
           )}
         </div>
       </div>
-      <div className="bg-neutral-50 px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-t border-neutral-200 flex justify-between items-center">
+        <div className="bg-neutral-50 px-3 sm:px-4 md:px-6 py-2 sm:py-3 border-t border-neutral-200 flex justify-between items-center">
         <Link 
-          href={`/companies/${company.id}`} 
+          href={`/companies/${company?.id ?? ''}`} 
           className="text-primary hover:text-primary-dark text-sm sm:text-base font-medium link-underline relative overflow-hidden after:absolute after:bottom-0 after:right-0 after:h-[2px] after:w-full after:origin-bottom-right after:scale-x-0 after:bg-primary-dark after:transition-transform after:duration-300 hover:after:origin-bottom-left hover:after:scale-x-100"
         >
           عرض الملف
         </Link>
         <Link 
-          href={`/messages?userId=${company.userId}`} 
+          href={`/messages?userId=${company?.userId ?? ''}`} 
           className="text-neutral-600 hover:text-primary p-1.5 sm:p-2 rounded-full transition-all duration-200 hover:bg-neutral-200 hover:shadow-sm"
         >
           <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 rtl-flip transition-transform duration-200 hover:scale-110" />

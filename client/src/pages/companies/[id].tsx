@@ -428,8 +428,16 @@ const CompanyDetails = () => {
                     onClick={() => {
                       // التحقق من تسجيل الدخول باستخدام حالة المصادقة الحالية
                       if (auth?.isAuthenticated && auth?.user) {
-                        // المستخدم مسجل الدخول، الانتقال إلى صفحة الدردشة
-                        navigate(`/messages?userId=${company.userId}`);
+                        // المستخدم مسجل الدخول، الانتقال إلى صفحة الدردشة (تأكد من وجود userId)
+                        if (company?.userId) {
+                          navigate(`/messages?userId=${company.userId}`);
+                        } else {
+                          toast({
+                            title: "مشكلة في البيانات",
+                            description: "لم نتمكن من تحديد معرف المستخدم لهذه الشركة. الرجاء المحاولة لاحقًا.",
+                            variant: "destructive",
+                          });
+                        }
                       } else {
                         // المستخدم غير مسجل، توجيهه إلى صفحة تسجيل الدخول
                         toast({

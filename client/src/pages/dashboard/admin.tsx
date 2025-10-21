@@ -405,9 +405,9 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
       closed: Array.isArray(projects) ? projects.filter((p: any) => p.status === "closed").length : 0,
     },
     companies: {
-      total: Array.isArray(companies) ? companies.length : 0,
-      verified: Array.isArray(companies) ? companies.filter((c: any) => c.verified).length : 0,
-      unverified: Array.isArray(companies) ? companies.filter((c: any) => !c.verified).length : 0,
+      total: Array.isArray(companies) ? companies.filter(c => c && c.id).length : 0,
+      verified: Array.isArray(companies) ? companies.filter((c: any) => c && c.id && c.verified).length : 0,
+      unverified: Array.isArray(companies) ? companies.filter((c: any) => c && c.id && !c.verified).length : 0,
     },
     contact: contactStats || {
       totalMessages: 0,
@@ -1071,9 +1071,9 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {Array.isArray(companies) ? companies.slice(0, 5).map((company: any) => (
+                      {Array.isArray(companies) ? companies.filter(company => company && company.id).slice(0, 5).map((company: any) => (
                         <TableRow key={company.id}>
-                          <TableCell className="font-medium">{company.name}</TableCell>
+                          <TableCell className="font-medium">{company.name || `شركة #${company.id}`}</TableCell>
                           <TableCell>{company.rating || "لا يوجد"}</TableCell>
                           <TableCell>
                             {company.verified ? (
@@ -1190,11 +1190,11 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Array.isArray(companies) ? companies.map((company: any) => (
+                    {Array.isArray(companies) ? companies.filter(company => company && company.id).map((company: any) => (
                       <TableRow key={company.id}>
                         <TableCell className="font-medium text-center">
                           {/* جلب اسم الشركة من user أو عرض معرف المستخدم */}
-                          {Array.isArray(users) ? users.find((u: any) => u.id === company.userId)?.name || `شركة #${company.id}` : `شركة #${company.id}`}
+                          {Array.isArray(users) && company?.userId ? users.find((u: any) => u.id === company.userId)?.name || `شركة #${company?.id ?? ''}` : `شركة #${company?.id ?? ''}`}
                         </TableCell>
                         <TableCell className="text-center">{company.location || "غير محدد"}</TableCell>
                         <TableCell className="text-center">{company.rating || "لا يوجد"}</TableCell>

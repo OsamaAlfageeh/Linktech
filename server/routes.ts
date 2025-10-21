@@ -2885,6 +2885,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Check if company has signed NDA for a project
+  app.get('/api/projects/:projectId/company-nda-status', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const projectId = parseInt(req.params.projectId);
+      const user = req.user as any;
+      
+      // Only allow companies to check their own NDA status
+      if (user.role !== 'company') {
+        return res.status(403).json({ message: 'غير مصرح بالوصول - هذا النهاية مخصصة للشركات فقط' });
+      }
+      
+      const project = await storage.getProject(projectId);
+      if (!project) {
+        return res.status(404).json({ message: 'المشروع غير موجود' });
+      }
+      
+      // Check if project requires NDA
+      if (!project.requiresNda) {
+        return res.json({ hasSigned: true, status: 'not_required' });
+      }
+      
+      // Get NDAs for this project
+      const ndas = await storage.getNdaAgreementsByProjectId(projectId);
+      
+      // Find NDA for this company
+      const companyNda = ndas.find(nda => nda.companySignatureInfo?.companyUserId === user.id);
+      
+      if (!companyNda) {
+        return res.json({ hasSigned: false, status: 'not_created' });
+      }
+      
+      // Check Sadiq status if available
+      let effectiveStatus = companyNda.status;
+      if (companyNda.sadiqReferenceNumber) {
+        try {
+          const { sadiqAuth } = await import('./sadiqAuthService');
+          const sadiqEnvelopeData = await sadiqAuth.getEnvelopeStatus(companyNda.sadiqReferenceNumber);
+          
+          if (sadiqEnvelopeData) {
+            const envelopeStatus = sadiqEnvelopeData.status;
+            if (envelopeStatus === 'Completed') {
+              effectiveStatus = 'signed';
+            } else if (envelopeStatus === 'In-progress') {
+              effectiveStatus = 'invitations_sent';
+            }
+          }
+        } catch (error) {
+          console.error('Error checking Sadiq status for company NDA:', error);
+          // Fall back to database status
+        }
+      }
+      
+      const hasSigned = effectiveStatus === 'signed' || effectiveStatus === 'invitations_sent';
+      
+      return res.json({ 
+        hasSigned, 
+        status: effectiveStatus,
+        ndaId: companyNda.id 
+      });
+      
+    } catch (error) {
+      console.error('خطأ في التحقق من حالة اتفاقية عدم الإفصاح للشركة:', error);
+      res.status(500).json({ message: 'خطأ في الخادم الداخلي' });
+    }
+  });
+
   // Check NDA status and update from Sadiq
   app.get('/api/nda/:id/status', isAuthenticated, async (req: Request, res: Response) => {
     try {

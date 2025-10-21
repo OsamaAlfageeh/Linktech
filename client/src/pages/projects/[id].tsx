@@ -97,8 +97,18 @@ const ProjectDetails = () => {
     staleTime: 0,
   });
 
-  const hasAcceptedOfferByMe = !!(projectOffers && Array.isArray(projectOffers) &&
-    projectOffers.some((offer: any) => offer.status === 'accepted'));
+  // Check if current company has signed NDA for this project
+  const { data: companyNdaStatus } = useQuery<{ hasSigned: boolean; status: string }>({
+    queryKey: [`/api/projects/${projectId}/company-nda-status`],
+    enabled: !!projectId && auth.isAuthenticated && auth.user?.role === "company" && auth.user?.id !== project?.userId,
+  });
+
+  const hasCompanySignedNda = companyNdaStatus?.hasSigned && (companyNdaStatus.status === 'signed' || companyNdaStatus.status === 'invitations_sent');
+
+  // Whether the current authenticated company has an accepted/assigned offer for this project
+  const hasAcceptedOfferByMe = auth.isAuthenticated && auth.user?.role === "company"
+    ? (projectOffers?.some(o => o.companyId === auth.user?.id && (o.status === 'accepted' || o.status === 'assigned')) ?? false)
+    : false;
   
   // Check for invalid project ID
   useEffect(() => {
@@ -280,15 +290,17 @@ const ProjectDetails = () => {
               
               {/* NDA Section */}
               {auth.isAuthenticated && (
-                <NdaSection
-                  projectId={project.id}
-                  projectTitle={project.title}
-                  requiresNda={project.requiresNda}
-                  ndaId={project.ndaId}
-                  userId={project.userId}
-                  currentUserId={auth.user?.id}
-                  userRole={auth.user?.role}
-                />
+                <div data-nda-section>
+                  <NdaSection
+                    projectId={project.id}
+                    projectTitle={project.title}
+                    requiresNda={project.requiresNda}
+                    ndaId={project.ndaId}
+                    userId={project.userId}
+                    currentUserId={auth.user?.id}
+                    userRole={auth.user?.role}
+                  />
+                </div>
               )}
               
               {/* Project Attachments */}
@@ -440,11 +452,44 @@ const ProjectDetails = () => {
                   {/* For companies: Show the form to submit a new offer */}
                   {auth.isAuthenticated && auth.user?.role === "company" && auth.user?.id !== project.userId && (
                     <div className="mb-8">
-                      <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-semibold">قدم عرضك على هذا المشروع</h3>
-                      </div>
-                      
-                      <CreateOfferForm projectId={project.id} />
+                      {project.requiresNda && !hasCompanySignedNda ? (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+                          <div className="flex items-start">
+                            <AlertCircle className="h-6 w-6 text-amber-600 mt-1 ml-3 flex-shrink-0" />
+                            <div className="w-full">
+                              <h3 className="font-semibold text-amber-800 text-lg mb-2">
+                                يجب توقيع اتفاقية عدم الإفصاح أولاً
+                              </h3>
+                              <p className="text-amber-700 mb-4">
+                                هذا المشروع يتطلب توقيع اتفاقية عدم الإفصاح قبل تقديم العروض. 
+                                يرجى مراجعة قسم اتفاقية عدم الإفصاح أعلاه وإكمال الإجراءات المطلوبة.
+                              </p>
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                <Button 
+                                  onClick={() => {
+                                    // Scroll to NDA section
+                                    const ndaSection = document.querySelector('[data-nda-section]');
+                                    if (ndaSection) {
+                                      ndaSection.scrollIntoView({ behavior: 'smooth' });
+                                    }
+                                  }}
+                                  className="bg-amber-600 hover:bg-amber-700 text-white"
+                                >
+                                  انتقل إلى اتفاقية عدم الإفصاح
+                                </Button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xl font-semibold">قدم عرضك على هذا المشروع</h3>
+                          </div>
+                          
+                          <CreateOfferForm projectId={project.id} />
+                        </div>
+                      )}
                     </div>
                   )}
                   
