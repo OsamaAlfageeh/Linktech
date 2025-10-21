@@ -6471,8 +6471,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(403).json({ message: 'الوصول غير مصرح - يجب أن تكون مسؤولاً' });
       }
       
+      const { refresh } = req.query;
+      const shouldRefreshFromSadiq = refresh === 'true';
+      
       // استعلام محسن بعدد أقل من الاتصالات
-      console.log('جلب اتفاقيات عدم الإفصاح للمسؤول...');
+      console.log('جلب اتفاقيات عدم الإفصاح للمسؤول...', shouldRefreshFromSadiq ? '(مع تحديث من صادق)' : '');
       
       // جلب البيانات الأساسية فقط
       const ndaAgreements = await storage.getNdaAgreements();
@@ -6482,8 +6485,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json([]);
       }
       
-      // إرجاع بيانات مبسطة بدون استعلامات إضافية
-      const simplifiedAgreements = ndaAgreements.map((nda) => {
+      let processedAgreements = ndaAgreements;
+      
+      // If refresh is requested, update status from Sadiq for each NDA
+      if (shouldRefreshFromSadiq) {
+        console.log('🔄 بدء تحديث الحالات من صادق...');
+        const { sadiqAuth } = await import('./sadiqAuthService');
+        
+        processedAgreements = await Promise.all(
+          ndaAgreements.map(async (nda) => {
+            try {
+              // Only check Sadiq status if NDA has a reference number
+              if (nda.sadiqReferenceNumber) {
+                const sadiqEnvelopeData = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
+                
+                if (sadiqEnvelopeData) {
+                  // Parse Sadiq response
+                  const signatories = sadiqEnvelopeData.signatories || [];
+                  const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
+                  const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
+                  
+                  const envelopeStatus = sadiqEnvelopeData.status || 'Unknown';
+                  const isCompleted = envelopeStatus === 'Completed' || (pendingCount === 0 && signedCount > 0);
+                  const isSigned = isCompleted && envelopeStatus !== 'Voided';
+                  
+                  // Update status in database
+                  const updatedStatus = isSigned ? 'signed' : (signedCount > 0 ? 'invitation_sent' : nda.status);
+                  
+                  await storage.updateNdaAgreement(nda.id, {
+                    envelopeStatus: envelopeStatus,
+                    ...(isSigned && !nda.signedAt && { status: 'signed', signedAt: new Date() })
+                  });
+                  
+                  // Return updated NDA data
+                  return {
+                    ...nda,
+                    status: updatedStatus,
+                    envelopeStatus: envelopeStatus
+                  };
+                }
+              }
+              
+              // Return original data if no Sadiq update
+              return nda;
+            } catch (error) {
+              console.error(`خطأ في تحديث حالة NDA ${nda.id}:`, error);
+              return nda; // Return original data on error
+            }
+          })
+        );
+        
+        console.log('✅ تم تحديث الحالات من صادق');
+      }
+      
+      // إرجاع بيانات مبسطة
+      const simplifiedAgreements = processedAgreements.map((nda) => {
         // استخراج معلومات الشركة من JSON
         let companyInfo = null;
         if (nda.companySignatureInfo && typeof nda.companySignatureInfo === 'object') {

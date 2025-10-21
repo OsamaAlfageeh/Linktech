@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Link, useLocation } from "wouter";
 import { Loader2, Users, Briefcase, Building2, CheckCircle2, XCircle, Eye, Pencil, Trash2, Settings, Upload, Image, 
-  DollarSign, Clock, Award, MessageSquare, FileText, X, Shield, Download, AlertCircle } from "lucide-react";
+  DollarSign, Clock, Award, MessageSquare, FileText, X, Shield, Download, AlertCircle, RefreshCw } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -142,7 +142,8 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     content: string;
   }>>([]);
 
-  // ملاحظة: تم نقل التحقق من صلاحية المستخدم إلى فوق
+  // متغير للتحكم في تحديث NDA من صادق
+  const [refreshNdaFromSadiq, setRefreshNdaFromSadiq] = useState(false);
 
   // استعلام لجلب جميع المستخدمين
   const {
@@ -301,10 +302,14 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     error: ndaError,
     refetch: refetchNdaAgreements,
   } = useQuery({
-    queryKey: ["/api/admin/nda-agreements"],
+    queryKey: ["/api/admin/nda-agreements", refreshNdaFromSadiq],
     queryFn: async () => {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/admin/nda-agreements', {
+      const url = refreshNdaFromSadiq 
+        ? '/api/admin/nda-agreements?refresh=true' 
+        : '/api/admin/nda-agreements';
+      
+      const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -319,12 +324,22 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
     },
     enabled: isAdminAuthenticated,
     retry: 2,
-    staleTime: 60000, // Consider data fresh for 60 seconds
+    staleTime: refreshNdaFromSadiq ? 0 : 60000, // No cache when refreshing from Sadiq
     refetchOnWindowFocus: false,
-    refetchOnMount: "always", // Always refetch on mount
-    // Force cache invalidation for fresh data
+    refetchOnMount: "always",
     gcTime: 0
   });
+  
+  // دالة مخصصة لتحديث NDAs مع خيار التحديث من صادق
+  const refetchNdaAgreementsWithRefresh = async (fromSadiq: boolean = false) => {
+    if (fromSadiq) {
+      setRefreshNdaFromSadiq(true);
+      // Reset after a short delay to allow the query to run
+      setTimeout(() => setRefreshNdaFromSadiq(false), 100);
+    } else {
+      await refetchNdaAgreements();
+    }
+  };
   
   // استخراج رابط صور الهيدر والجانب عند تحميل البيانات
   useEffect(() => {
@@ -1421,14 +1436,25 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                   <Shield className="h-5 w-5" />
                   إدارة اتفاقيات عدم الإفصاح
                 </CardTitle>
-                <Button 
-                  size="sm" 
-                  onClick={() => refetchNdaAgreements()}
-                  disabled={ndaLoading}
-                >
-                  {ndaLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                  تحديث
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={() => refetchNdaAgreementsWithRefresh(true)}
+                    disabled={ndaLoading}
+                  >
+                    {ndaLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+                    تحديث من صادق
+                  </Button>
+                  <Button 
+                    size="sm" 
+                    onClick={() => refetchNdaAgreementsWithRefresh()}
+                    disabled={ndaLoading}
+                  >
+                    {ndaLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                    تحديث
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {ndaLoading ? (
