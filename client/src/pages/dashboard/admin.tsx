@@ -1444,7 +1444,20 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </Button>
                   </div>
                 ) : ndaAgreements && Array.isArray(ndaAgreements) && ndaAgreements.length > 0 ? (
-                  <Table>
+                  <>
+                    {/* Debug logging */}
+                    {(() => {
+                      if (typeof window !== "undefined") {
+                        console.log(`📊 Total NDAs fetched: ${ndaAgreements.length}`);
+                        const uniqueIds = new Set(ndaAgreements.map(nda => nda.id));
+                        console.log(`🔍 Unique NDA IDs: ${uniqueIds.size}`);
+                        if (uniqueIds.size !== ndaAgreements.length) {
+                          console.warn(`⚠️  Found ${ndaAgreements.length - uniqueIds.size} duplicate NDA entries`);
+                        }
+                      }
+                      return null;
+                    })()}
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>معرف الاتفاقية</TableHead>
@@ -1456,16 +1469,9 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                     </TableHeader>
                     <TableBody>
                       {ndaAgreements.map((nda: any) => {
-                        // Log NDA status for debugging
+                        // Log NDA status for debugging (only once per unique NDA)
                         if (typeof window !== "undefined") {
-                          console.log("NDA Status:", {
-                            id: nda.id,
-                            status: nda.status,
-                            sadiqReference: nda.sadiqReferenceNumber,
-                            signedAt: nda.signedAt,
-                            expiresAt: nda.expiresAt,
-                            rawData: nda, // Log the entire NDA object for debugging
-                          });
+                          console.log(`NDA #${nda.id} - Status: ${nda.status} - Envelope: ${nda.envelopeStatus}`);
                         }
 
                         return (
@@ -1583,7 +1589,8 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                       })}
                       </TableBody>
                     </Table>
-                  ) : (
+                  </>
+                ) : (
                     <Table>
                       <TableBody>
                         <TableRow>
