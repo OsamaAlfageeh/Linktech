@@ -3,7 +3,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Lock, Info, CheckCircle, Clock, AlertCircle, Users, ExternalLink, RefreshCw } from "lucide-react";
+import { Shield, Lock, Info, CheckCircle, Clock, AlertCircle, Users, ExternalLink, RefreshCw, Loader2 } from "lucide-react";
 import { NdaDialog } from "./NdaDialog";
 import { useAuth } from "@/App";
 import { useToast } from "@/hooks/use-toast";
@@ -104,6 +104,19 @@ const getStatusInfo = (status: string) => {
   }
 };
 
+// Helper function to get effective status (prioritizing Sadiq over database)
+const getEffectiveStatus = (nda: NdaAgreement, sadiqStatus?: any) => {
+  if (sadiqStatus?.data) {
+    const envelopeStatus = sadiqStatus.data.status;
+    if (envelopeStatus === 'Completed') {
+      return 'signed';
+    } else if (envelopeStatus === 'In-progress') {
+      return 'invitations_sent';
+    }
+  }
+  return nda.status;
+};
+
 export function NdaSection({
   projectId,
   projectTitle,
@@ -114,6 +127,8 @@ export function NdaSection({
   userRole,
 }: NdaSectionProps) {
   const [isNdaDialogOpen, setIsNdaDialogOpen] = useState(false);
+  const [sadiqStatuses, setSadiqStatuses] = useState<Record<string, any>>({});
+  const [isLoadingSadiqStatuses, setIsLoadingSadiqStatuses] = useState(false);
   
   // إذا كان هناك معرف اتفاقية، نقوم بجلب تفاصيلها
   const {
@@ -143,6 +158,47 @@ export function NdaSection({
     enabled: !!projectId && (userRole === 'admin' || currentUserId === userId || userRole === 'company'), // المسؤولون أو صاحب المشروع أو الشركات
     staleTime: 0, // Always refetch to get latest status
   });
+
+  // Fetch Sadiq statuses for all NDAs when project NDAs are loaded
+  useEffect(() => {
+    const fetchSadiqStatuses = async () => {
+      if (!projectNdas || projectNdas.length === 0) return;
+      
+      setIsLoadingSadiqStatuses(true);
+      const statuses: Record<string, any> = {};
+      
+      try {
+        // Fetch Sadiq status for each NDA that has a reference number
+        const sadiqPromises = projectNdas
+          .filter(nda => nda.sadiqReferenceNumber)
+          .map(async (nda) => {
+            try {
+              const response = await fetch(`/api/sadiq/nda-status/${nda.sadiqReferenceNumber}`, {
+                headers: {
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }
+              });
+              
+              if (response.ok) {
+                const data = await response.json();
+                statuses[nda.id] = data;
+              }
+            } catch (error) {
+              console.error(`Error fetching Sadiq status for NDA ${nda.id}:`, error);
+            }
+          });
+        
+        await Promise.all(sadiqPromises);
+        setSadiqStatuses(statuses);
+      } catch (error) {
+        console.error('Error fetching Sadiq statuses:', error);
+      } finally {
+        setIsLoadingSadiqStatuses(false);
+      }
+    };
+
+    fetchSadiqStatuses();
+  }, [projectNdas]);
 
   // جلب ملف تعريف الشركة للتحقق من حالة التوثيق
   const {
@@ -234,7 +290,10 @@ export function NdaSection({
   const hasCompanyCreatedNda = !!companyNda;
   
   // For companies: check if they already signed or have invitation sent
-  const hasCompanySignedNda = !!companyNda && (companyNda.status === 'signed' || companyNda.status === 'invitations_sent');
+  const hasCompanySignedNda = !!companyNda && (() => {
+    const effectiveStatus = getEffectiveStatus(companyNda, sadiqStatuses[companyNda.id]);
+    return effectiveStatus === 'signed' || effectiveStatus === 'invitations_sent';
+  })();
   
   // For specific NDA: check if it exists
   const hasSignedNda = !!ndaData;
@@ -394,8 +453,11 @@ export function NdaSection({
           )}
         </div>
         
-        {isLoadingProjectNdas ? (
-          <div className="text-neutral-600 text-sm">جاري تحميل اتفاقيات عدم الإفصاح...</div>
+        {isLoadingProjectNdas || isLoadingSadiqStatuses ? (
+          <div className="text-neutral-600 text-sm flex items-center">
+            <Loader2 className="h-4 w-4 animate-spin ml-2" />
+            جاري تحميل حالة اتفاقيات عدم الإفصاح من صادق...
+          </div>
         ) : projectNdas && projectNdas.length > 0 ? (
           <div>
             <p className="text-neutral-700 mb-4 flex items-center">
@@ -404,7 +466,8 @@ export function NdaSection({
             </p>
             <div className="mt-3 space-y-3">
               {projectNdas?.map((nda: NdaAgreement) => {
-                const statusInfo = getStatusInfo(nda.status);
+                const effectiveStatus = getEffectiveStatus(nda, sadiqStatuses[nda.id]);
+                const statusInfo = getStatusInfo(effectiveStatus);
                 const StatusIcon = statusInfo.icon;
                 
                 return (
@@ -434,7 +497,7 @@ export function NdaSection({
                         </div>
                       )}
                       
-                      {nda.status === 'signed' && nda.signedAt && (
+                      {effectiveStatus === 'signed' && nda.signedAt && (
                         <div>
                           <span className="font-medium text-neutral-800">تاريخ التوقيع:</span>
                           <p className="text-neutral-600">
@@ -447,7 +510,7 @@ export function NdaSection({
                         </div>
                       )}
                       
-                      {nda.status === 'invitations_sent' && (
+                      {effectiveStatus === 'invitations_sent' && (
                         <div>
                           <span className="font-medium text-neutral-800">الحالة:</span>
                           <p className="text-blue-600">تم إرسال دعوات التوقيع عبر صادق</p>
@@ -568,28 +631,31 @@ export function NdaSection({
                 <div>
                   {/* Company has signed - show status */}
                   <div className="mb-4">
-                    {companyNda.status === 'signed' ? (
-                      <div className="flex items-center mb-2">
-                        <CheckCircle className="h-5 w-5 text-green-600 ml-2" />
-                        <p className="text-green-700 font-medium">
-                          تم توقيع الاتفاقية بنجاح! يمكنك الآن الاطلاع على تفاصيل المشروع وتقديم عرضك.
-                        </p>
-                      </div>
-                    ) : companyNda.status === 'invitations_sent' ? (
-                      <div className="flex items-center mb-2">
-                        <Clock className="h-5 w-5 text-blue-600 ml-2" />
-                        <p className="text-blue-700 font-medium">
-                          تم إرسال دعوة التوقيع الإلكتروني إلى بريدك الإلكتروني. يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="flex items-center mb-2">
-                        <AlertCircle className="h-5 w-5 text-amber-600 ml-2" />
-                        <p className="text-amber-700 font-medium">
-                          الاتفاقية قيد المعالجة...
-                        </p>
-                      </div>
-                    )}
+                    {(() => {
+                      const effectiveStatus = getEffectiveStatus(companyNda, sadiqStatuses[companyNda.id]);
+                      return effectiveStatus === 'signed' ? (
+                        <div className="flex items-center mb-2">
+                          <CheckCircle className="h-5 w-5 text-green-600 ml-2" />
+                          <p className="text-green-700 font-medium">
+                            تم توقيع الاتفاقية بنجاح! يمكنك الآن الاطلاع على تفاصيل المشروع وتقديم عرضك.
+                          </p>
+                        </div>
+                      ) : effectiveStatus === 'invitations_sent' ? (
+                        <div className="flex items-center mb-2">
+                          <Clock className="h-5 w-5 text-blue-600 ml-2" />
+                          <p className="text-blue-700 font-medium">
+                            تم إرسال دعوة التوقيع الإلكتروني إلى بريدك الإلكتروني. يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="flex items-center mb-2">
+                          <AlertCircle className="h-5 w-5 text-amber-600 ml-2" />
+                          <p className="text-amber-700 font-medium">
+                            الاتفاقية قيد المعالجة...
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </div>
                   
                   {/* Status details */}
@@ -599,7 +665,8 @@ export function NdaSection({
                         <span className="font-medium text-neutral-800">حالة الاتفاقية:</span>
                         <div className="mt-1">
                           {(() => {
-                            const statusInfo = getStatusInfo(companyNda.status);
+                            const effectiveStatus = getEffectiveStatus(companyNda, sadiqStatuses[companyNda.id]);
+                            const statusInfo = getStatusInfo(effectiveStatus);
                             const StatusIcon = statusInfo.icon;
                             return (
                               <div className="flex items-center">
@@ -613,18 +680,21 @@ export function NdaSection({
                         </div>
                       </div>
                       
-                      {companyNda.signedAt && (
-                        <div>
-                          <span className="font-medium text-neutral-800">تاريخ التوقيع:</span>
-                          <p className="text-neutral-600 mt-1">
-                            {new Date(companyNda.signedAt).toLocaleDateString('ar-SA', {
-                              year: 'numeric',
-                              month: 'long',
-                              day: 'numeric'
-                            })}
-                          </p>
-                        </div>
-                      )}
+                      {(() => {
+                        const effectiveStatus = getEffectiveStatus(companyNda, sadiqStatuses[companyNda.id]);
+                        return effectiveStatus === 'signed' && companyNda.signedAt && (
+                          <div>
+                            <span className="font-medium text-neutral-800">تاريخ التوقيع:</span>
+                            <p className="text-neutral-600 mt-1">
+                              {new Date(companyNda.signedAt).toLocaleDateString('ar-SA', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          </div>
+                        );
+                      })()}
                       
                       <div>
                         <span className="font-medium text-neutral-800">تاريخ الإنشاء:</span>
@@ -643,22 +713,25 @@ export function NdaSection({
                       )}
                     </div>
                     
-                    {companyNda.status === 'invitations_sent' && (
-                      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-start">
-                          <Info className="h-5 w-5 text-blue-600 mt-0.5 ml-2 flex-shrink-0" />
-                          <div className="text-sm text-blue-800">
-                            <p className="font-medium mb-1">الحالة الحالية:</p>
-                            <ul className="list-disc list-inside space-y-1 text-blue-700">
-                              <li>✅ تم إكمال بياناتك بنجاح</li>
-                              <li>📧 تم إرسال دعوة التوقيع إلى بريدك الإلكتروني</li>
-                              <li>🔐 يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق</li>
-                              <li>⏰ بعد التوقيع، ستتمكن من الاطلاع على تفاصيل المشروع الكاملة</li>
-                            </ul>
+                    {(() => {
+                      const effectiveStatus = getEffectiveStatus(companyNda, sadiqStatuses[companyNda.id]);
+                      return effectiveStatus === 'invitations_sent' && (
+                        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                          <div className="flex items-start">
+                            <Info className="h-5 w-5 text-blue-600 mt-0.5 ml-2 flex-shrink-0" />
+                            <div className="text-sm text-blue-800">
+                              <p className="font-medium mb-1">الحالة الحالية:</p>
+                              <ul className="list-disc list-inside space-y-1 text-blue-700">
+                                <li>✅ تم إكمال بياناتك بنجاح</li>
+                                <li>📧 تم إرسال دعوة التوقيع إلى بريدك الإلكتروني</li>
+                                <li>🔐 يرجى التحقق من بريدك وتوقيع الاتفاقية عبر منصة صادق</li>
+                                <li>⏰ بعد التوقيع، ستتمكن من الاطلاع على تفاصيل المشروع الكاملة</li>
+                              </ul>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
                   </div>
                 </div>
               ) : (
