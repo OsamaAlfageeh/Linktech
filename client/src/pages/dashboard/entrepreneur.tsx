@@ -678,13 +678,21 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                                 onCheckedChange={field.onChange}
                               />
                             </FormControl>
-                            <div className="space-y-1 leading-none">
+                            <div className="space-y-1 leading-none flex-1">
                               <FormLabel className="text-sm font-medium">
                                 طلب اتفاقية عدم إفصاح
                               </FormLabel>
                               <FormDescription className="text-xs">
                                 سيُطلب من الشركات توقيع اتفاقية عدم إفصاح قبل الاطلاع على تفاصيل المشروع الكاملة
                               </FormDescription>
+                              <div className="flex items-center gap-2 mt-2">
+                                <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
+                                  مجاني حالياً
+                                </span>
+                                <span className="text-xs text-neutral-400 line-through">
+                                  9.99 ريال سعودي
+                                </span>
+                              </div>
                             </div>
                           </FormItem>
                         )}
