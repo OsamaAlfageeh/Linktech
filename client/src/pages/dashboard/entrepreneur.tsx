@@ -687,7 +687,7 @@ const EntrepreneurDashboard = ({ auth }: EntrepreneurDashboardProps) => {
                               </FormDescription>
                               <div className="flex items-center gap-2 mt-2">
                                 <span className="text-xs text-green-600 font-medium bg-green-50 px-2 py-1 rounded-full">
-                                  مجاني حالياً
+                                  مجاني 
                                 </span>
                                 <span className="text-xs text-neutral-400 line-through">
                                   9.99 ريال سعودي
