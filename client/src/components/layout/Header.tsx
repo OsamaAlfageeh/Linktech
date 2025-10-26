@@ -59,7 +59,7 @@ const Header = ({ auth }: HeaderProps) => {
                   className="h-10 w-10 object-contain" 
                 />
               </div>
-              <span className="font-heading font-bold text-2xl"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
+              <span className="font-heading font-bold text-2xl"><span className="text-[#f2671f]">لينك</span><span className="text-[#103978]">تك</span></span>
             </Link>
           </div>
 
@@ -229,7 +229,7 @@ const Header = ({ auth }: HeaderProps) => {
               </SheetTrigger>
               <SheetContent side="right" className="sm:max-w-md max-h-screen overflow-y-auto">
                 <div className="mt-6 mb-6">
-                  <span className="font-heading font-bold text-2xl"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
+                  <span className="font-heading font-bold text-2xl"><span className="text-[#f2671f]">لينك</span><span className="text-[#103978]">تك</span></span>
                 </div>
 
                 <div className="py-4">

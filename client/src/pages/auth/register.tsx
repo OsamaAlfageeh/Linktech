@@ -278,7 +278,7 @@ const Register = ({ auth }: RegisterProps) => {
         <div className="w-full max-w-md md:max-w-lg space-y-8 bg-white p-8 rounded-xl shadow-sm">
           <div className="text-center">
             <Link href="/">
-              <span className="inline-block font-heading font-bold text-3xl mb-4"><span className="text-[#2196F3]">لينك</span><span className="text-[#FF9800]">تك</span></span>
+              <span className="inline-block font-heading font-bold text-3xl mb-4"><span className="text-[#f2671f]">لينك</span><span className="text-[#103978]">تك</span></span>
             </Link>
             <h2 className="text-2xl font-bold font-heading">
               {otpSent ? "تأكيد البريد الإلكتروني" : "إنشاء حساب جديد"}

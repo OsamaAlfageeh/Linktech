@@ -93,8 +93,8 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
                 </div>
                 {/* شعار مع تأثير تدرج لوني */}
                 <span className="font-heading font-extrabold text-2xl md:text-3xl">
-                  <span className="text-[#2196F3]">لينك</span>
-                  <span className="text-[#FF9800]">تك</span>
+                  <span className="text-[#f2671f]">لينك</span>
+                  <span className="text-[#103978]">تك</span>
                 </span>
               </Link>
             </div>
