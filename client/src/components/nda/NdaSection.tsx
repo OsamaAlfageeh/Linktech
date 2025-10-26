@@ -106,7 +106,7 @@ const getStatusInfo = (status: string) => {
 
 // Helper function to get effective status (prioritizing Sadiq over database)
 const getEffectiveStatus = (nda: NdaAgreement, sadiqStatus?: any) => {
-  if (sadiqStatus?.data) {
+  if (sadiqStatus?.errorCode === 0 && sadiqStatus?.data) {
     const envelopeStatus = sadiqStatus.data.status;
     if (envelopeStatus === 'Completed') {
       return 'signed';
@@ -173,7 +173,7 @@ export function NdaSection({
           .filter(nda => nda.sadiqReferenceNumber)
           .map(async (nda) => {
             try {
-              const response = await fetch(`/api/sadiq/nda-status/${nda.sadiqReferenceNumber}`, {
+              const response = await fetch(`/api/sadiq/envelope-status/${nda.sadiqReferenceNumber}`, {
                 headers: {
                   'Authorization': `Bearer ${localStorage.getItem('token')}`
                 }
@@ -229,7 +229,7 @@ export function NdaSection({
       if (!ndaData?.sadiqReferenceNumber) return null;
       
       try {
-        const response = await fetch(`/api/sadiq/nda-status/${ndaData.sadiqReferenceNumber}`, {
+        const response = await fetch(`/api/sadiq/envelope-status/${ndaData.sadiqReferenceNumber}`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }

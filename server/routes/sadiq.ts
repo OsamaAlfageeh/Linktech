@@ -642,16 +642,12 @@ router.post('/send-invitations', authenticateToken, async (req: Request, res: Re
 router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { referenceNumber } = req.params;
-    const { accessToken } = req.query;
-
-    if (!accessToken) {
-      return res.status(400).json({
-        error: 'Access token required',
-        message: 'رمز الوصول مطلوب لتتبع حالة المظروف'
-      });
-    }
 
     console.log(`فحص حالة المظروف برقم المرجع: ${referenceNumber}`);
+
+    // Get SADQ access token server-side
+    const { sadiqAuth } = await import('../sadiqAuthService');
+    const accessToken = await sadiqAuth.getAccessToken();
 
     const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
 
@@ -677,75 +673,8 @@ router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: R
     const statusResult = await response.json();
     console.log('حالة المظروف الحالية:', JSON.stringify(statusResult, null, 2));
 
-    // معالجة الاستجابة من صادق وتحسينها
-    const envelopeData = statusResult.data;
-    const allSignatories = envelopeData?.signatories || [];
-    const documents = envelopeData?.documents || [];
-    
-    // Get Sadiq account email from environment
-    const sadiqEmail = process.env.SADIQ_EMAIL;
-    
-    // Mark signatories and identify the system account
-    const signatories = allSignatories.map((signer: any) => ({
-      ...signer,
-      // Mark if this is the system account (Sadiq account used for API access)
-      isSystemAccount: signer.email === sadiqEmail
-    }));
-    
-    // حساب إحصائيات التوقيع (excluding system account)
-    const realSignatories = signatories.filter((s: any) => !s.isSystemAccount);
-    const signedCount = realSignatories.filter((s: any) => s.status === 'SIGNED').length;
-    const pendingCount = realSignatories.filter((s: any) => s.status === 'PENDING').length;
-    const totalSignatories = realSignatories.length;
-    
-    // تحديد الحالة العامة
-    const isComplete = envelopeData?.status === 'completed' || envelopeData?.status === 'Completed';
-    const isInProgress = envelopeData?.status === 'In-progress';
-    const isPending = pendingCount > 0;
-    
-    const processedStatus = {
-      referenceNumber,
-      envelopeId: envelopeData?.id,
-      status: envelopeData?.status || 'Unknown',
-      createDate: envelopeData?.createDate,
-      lastUpdated: new Date().toISOString(),
-      
-      // إحصائيات التوقيع (excluding system account)
-      signedCount,
-      pendingCount,
-      totalSignatories,
-      completionPercentage: totalSignatories > 0 ? Math.round((signedCount / totalSignatories) * 100) : 0,
-      
-      // معلومات الموقعين (including isSystemAccount flag)
-      signatories: signatories.map((signer: any) => ({
-        id: signer.id,
-        name: signer.fullName,
-        nameAr: signer.fullNameAr,
-        email: signer.email,
-        status: signer.status,
-        signOrder: signer.signOrder,
-        phoneNumber: signer.phoneNumber,
-        isSystemAccount: signer.isSystemAccount // Add the flag to identify system account
-      })),
-      
-      // معلومات الوثائق
-      documents: documents.map((doc: any) => ({
-        id: doc.id,
-        fileName: doc.fileName,
-        uploadDate: doc.uploadDate,
-        sizeInKB: doc.sizeInKB,
-        isSigned: doc.isSigned
-      })),
-      
-      // حالات منطقية
-      isComplete,
-      isInProgress,
-      isPending,
-      
-      rawResponse: statusResult
-    };
-
-    res.json(processedStatus);
+    // Return the raw SADQ response for client-side processing
+    res.json(statusResult);
 
   } catch (error: any) {
     console.error('خطأ في تتبع حالة المظروف:', error);
@@ -846,16 +775,12 @@ router.get('/download-document/:documentId', async (req: Request, res: Response)
 router.get('/nda-status/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
   try {
     const { referenceNumber } = req.params;
-    const { accessToken } = req.query;
-
-    if (!accessToken) {
-      return res.status(400).json({
-        error: 'Access token required',
-        message: 'رمز الوصول مطلوب للتحقق من حالة NDA'
-      });
-    }
 
     console.log(`التحقق من حالة NDA برقم المرجع: ${referenceNumber}`);
+
+    // Get SADQ access token server-side
+    const { sadiqAuth } = await import('../sadiqAuthService');
+    const accessToken = await sadiqAuth.getAccessToken();
 
     const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
 
