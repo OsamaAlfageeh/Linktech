@@ -304,39 +304,56 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
   } = useQuery({
     queryKey: ["/api/admin/nda-agreements", refreshNdaFromSadiq],
     queryFn: async () => {
+      console.log('Fetching NDAs with refresh flag:', refreshNdaFromSadiq);
       const token = localStorage.getItem('auth_token');
       const url = refreshNdaFromSadiq 
         ? '/api/admin/nda-agreements?refresh=true' 
         : '/api/admin/nda-agreements';
       
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      try {
+        console.log('Making request to:', url);
+        const response = await fetch(url, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!response.ok) {
+          console.error('Failed to fetch NDAs:', response.status);
+          throw new Error(`Failed to fetch NDAs: ${response.status}`);
         }
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Failed to fetch NDAs: ${response.status}`);
+        
+        const data = await response.json();
+        console.log('Received NDA data:', data);
+        return data;
+      } catch (error) {
+        console.error('Error fetching NDAs:', error);
+        throw error;
       }
-      
-      return response.json();
     },
     enabled: isAdminAuthenticated,
     retry: 2,
     staleTime: refreshNdaFromSadiq ? 0 : 60000, // No cache when refreshing from Sadiq
     refetchOnWindowFocus: false,
-    refetchOnMount: "always",
+    refetchOnMount: true,
+    refetchInterval: refreshNdaFromSadiq ? 1000 : false, // Poll every second while refreshing
     gcTime: 0
   });
   
   // دالة مخصصة لتحديث NDAs مع خيار التحديث من صادق
   const refetchNdaAgreementsWithRefresh = async (fromSadiq: boolean = false) => {
     if (fromSadiq) {
+      console.log('Refreshing NDAs from SADIQ...');
       setRefreshNdaFromSadiq(true);
-      // Reset after a short delay to allow the query to run
-      setTimeout(() => setRefreshNdaFromSadiq(false), 100);
+      await refetchNdaAgreements();
+      // Reset after a longer delay to ensure the query completes
+      setTimeout(() => {
+        console.log('Resetting refresh flag...');
+        setRefreshNdaFromSadiq(false);
+      }, 2000);
     } else {
+      console.log('Refreshing NDAs without SADIQ...');
       await refetchNdaAgreements();
     }
   };
@@ -1505,77 +1522,17 @@ export default function AdminDashboard({ auth }: AdminDashboardProps) {
                             <TableCell className="font-medium">#{nda.id}</TableCell>
                             <TableCell>{nda.projectTitle || "غير محدد"}</TableCell>
                             <TableCell className="w-32">
-                              <div className="flex flex-col gap-0.5">
-                                <span
-                                  className={`inline-flex items-center justify-center px-1.5 py-0.5 text-[11px] font-medium rounded whitespace-nowrap ${
-                                    nda.status?.toLowerCase() === "signed" || 
-                                    nda.envelopeStatus?.toLowerCase() === "completed" ||
-                                    nda.envelopeStatus === "Completed"
-                                      ? "bg-green-100 text-green-800"
-                                      : nda.status?.toLowerCase() === "awaiting_entrepreneur" || 
-                                        nda.status?.toLowerCase() === "ready_for_sadiq" ||
-                                        nda.status?.toLowerCase() === "invitation_sent" ||
-                                        nda.envelopeStatus?.toLowerCase() === "invitation_sent" ||
-                                        nda.envelopeStatus?.toLowerCase() === "in_progress"
-                                      ? "bg-blue-100 text-blue-800"
-                                      : nda.status?.toLowerCase() === "expired" ||
-                                        nda.envelopeStatus?.toLowerCase() === "expired" ||
-                                        nda.envelopeStatus === "Voided"
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-amber-100 text-amber-800"
-                                  }`}
-                                >
-                                  {nda.status?.toLowerCase() === "signed" || 
-                                    nda.envelopeStatus?.toLowerCase() === "completed" ||
-                                    nda.envelopeStatus === "Completed" ? (
-                                    <>
-                                      <CheckCircle2 className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>مكتمل</span>
-                                    </>
-                                  ) : nda.status?.toLowerCase() === "awaiting_entrepreneur" ? (
-                                    <>
-                                      <Clock className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>في انتظار رائد الأعمال</span>
-                                    </>
-                                  ) : nda.status?.toLowerCase() === "ready_for_sadiq" ? (
-                                    <>
-                                      <Clock className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>جاهز لصديق</span>
-                                    </>
-                                  ) : nda.status?.toLowerCase() === "invitation_sent" ||
-                                        nda.envelopeStatus?.toLowerCase() === "invitation_sent" ||
-                                        nda.envelopeStatus?.toLowerCase() === "in_progress" ? (
-                                    <>
-                                      <Clock className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>تم الدعوة</span>
-                                    </>
-                                  ) : nda.status?.toLowerCase() === "expired" ||
-                                        nda.envelopeStatus?.toLowerCase() === "expired" ||
-                                        nda.envelopeStatus === "Voided" ? (
-                                    <>
-                                      <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>منتهي</span>
-                                    </>
-                                  ) : (
-                                    <>
-                                      <AlertCircle className="h-2.5 w-2.5 ml-0.5" />
-                                      <span>غير معروف</span>
-                                    </>
-                                  )}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full"
+                                onClick={() => navigate(`/projects/${nda.projectId}`)}
+                              >
+                                <span className="flex items-center justify-center gap-1">
+                                  <Clock className="h-4 w-4" />
+                                  تحقق من الحالة
                                 </span>
-
-                                {nda.signedAt ? (
-                                  <div className="text-[10px] text-gray-500 text-center">
-                                    {new Date(nda.signedAt).toLocaleDateString("ar-SA")}
-                                  </div>
-                                ) : (
-                                  nda.expiresAt && (
-                                    <div className="text-[10px] text-amber-600 text-center">
-                                      ينتهي: {new Date(nda.expiresAt).toLocaleDateString("ar-SA").substring(0, 5)}..
-                                    </div>
-                                  )
-                                )}
-                              </div>
+                              </Button>
                             </TableCell>
                             <TableCell>
                               {nda.createdAt ? new Date(nda.createdAt).toLocaleDateString("ar-SA") : "غير محدد"}
