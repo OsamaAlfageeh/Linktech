@@ -166,16 +166,11 @@ export default function TestSadiq() {
       }
 
       const result = await response.json();
-      setUploadedDocumentId(result.documentId);
-
-      // حفظ رقم المرجع لمتابعة الحالة
-      if (result.referenceNumber) {
-        setReferenceNumber(result.referenceNumber);
-      }
+      setUploadedDocumentId(result.envelopeId);
 
       toast({
         title: "تم إنشاء المظروف",
-        description: `تم إنشاء مظروف صادق وحصلنا على معرف الوثيقة: ${result.documentId.substring(0, 8)}...${result.referenceNumber ? `\nرقم المرجع: ${result.referenceNumber}` : ''}`
+        description: `تم إنشاء مظروف صادق وحصلنا على معرف المظروف: ${result.envelopeId.substring(0, 8)}...`
       });
 
     } catch (error) {
@@ -309,10 +304,10 @@ export default function TestSadiq() {
   };
 
   const checkEnvelopeStatus = async () => {
-    if (!referenceNumber.trim()) {
+    if (!uploadedDocumentId) {
       toast({
         title: "خطأ",
-        description: "لا يوجد رقم مرجع للمظروف. يجب إنشاء مظروف أولاً",
+        description: "لا يوجد معرف مظروف. يجب إنشاء مظروف أولاً",
         variant: "destructive"
       });
       return;
@@ -331,7 +326,7 @@ export default function TestSadiq() {
     try {
       const token = localStorage.getItem('auth_token');
       
-      const response = await fetch(`/api/sadiq/envelope-status/${referenceNumber}?accessToken=${accessToken}`, {
+      const response = await fetch(`/api/sadiq/envelope-status/by-id/${uploadedDocumentId}?accessToken=${accessToken}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -329,14 +329,19 @@ router.post('/upload-document', async (req: Request, res: Response) => {
       });
     }
 
-    console.log('رفع وثيقة مخصصة إلى صادق...');
+    console.log('رفع وثيقة مخصصة إلى صادق باستخدام bulk-initiate-envelope...');
     
-    const uploadUrl = 'https://sandbox-api.sadq-sa.com/IntegrationService/Document/Upload';
+    const uploadUrl = 'https://sandbox-api.sadq-sa.com/IntegrationService/Document/Bulk/Initiate-envelope-Base64';
     
     const uploadPayload = {
-      name: documentName || `document-${Date.now()}.pdf`,
-      content: documentBase64,
-      contentType: 'application/pdf'
+      webhookId: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      files: [
+        {
+          file: documentBase64,
+          fileName: documentName || `document-${Date.now()}.pdf`,
+          password: ""
+        }
+      ]
     };
 
     const uploadResponse = await fetch(uploadUrl, {
@@ -503,28 +508,36 @@ router.post('/bulk-initiate-envelope', authenticateToken, async (req: Request, r
     const result = await response.json();
     console.log('تم إنشاء المظروف بنجاح:', result);
     
-    // Extract document ID from the response
+    // Extract all necessary IDs from the response
     const documentId = result.data?.bulkFileResponse?.[0]?.documentId;
+    const envelopeId = result.data?.envelopeId;
     
-    if (!documentId) {
-      console.error('No document ID found in response:', result);
+    if (!documentId || !envelopeId) {
+      console.error('Missing required IDs in response:', result);
       return res.status(500).json({
-        error: 'No document ID received',
-        message: 'لم يتم الحصول على معرف الوثيقة من صادق'
+        error: 'Missing required IDs',
+        message: 'لم يتم الحصول على معرفات المطلوبة من صادق',
+        details: {
+          documentId: documentId ? 'Found' : 'Missing',
+          envelopeId: envelopeId ? 'Found' : 'Missing'
+        }
       });
     }
 
-    console.log(`✅ تم الحصول على معرف الوثيقة من المظروف: ${documentId}`);
-
-    const referenceNumber = result.data?.bulkFileResponse?.[0]?.referenceNumber || payload.referenceNumber;
+    console.log(`✅ تم إنشاء المظروف بنجاح:
+    - معرف المظروف: ${envelopeId}
+    - معرف الوثيقة: ${documentId}`);
     
     res.json({
       success: true,
       documentId,
-      envelopeId: result.data?.envelopeId,
-      referenceNumber: referenceNumber,
-      statusCheckUrl: referenceNumber ? `/api/sadiq/envelope-status/${referenceNumber}` : null,
-      fullResponse: result
+      envelopeId,
+      statusCheckUrl: `/api/sadiq/envelope-status/by-id/${envelopeId}`,
+      status: {
+        message: 'Document uploaded successfully',
+        code: result.errorCode,
+        details: result.message
+      }
     });
 
   } catch (error: any) {
@@ -638,18 +651,43 @@ router.post('/send-invitations', authenticateToken, async (req: Request, res: Re
   }
 });
 
-// تتبع حالة المظروف باستخدام رقم المرجع
-router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
+// Redirect old reference number endpoint to envelope ID endpoint for backward compatibility
+router.get('/envelope-status/:legacyId', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { referenceNumber } = req.params;
+    const { legacyId } = req.params;
+    console.log(`تحويل الطلب القديم إلى معرف المظروف: ${legacyId}`);
+    res.redirect(307, `/api/sadiq/envelope-status/by-id/${legacyId}`);
+  } catch (error: any) {
+    console.error('خطأ في تحويل الطلب:', error);
+    res.status(500).json({
+      error: 'Redirect failed',
+      message: 'فشل في تحويل الطلب',
+      details: error.message
+    });
+  }
+});
 
-    console.log(`فحص حالة المظروف برقم المرجع: ${referenceNumber}`);
+  } catch (error: any) {
+    console.error('خطأ في تتبع حالة المظروف:', error);
+    res.status(500).json({
+      error: 'Status check failed',
+      message: 'فشل في تتبع حالة المظروف',
+      details: error.message
+    });
+  }
+});
+
+// Check envelope status by envelope ID
+router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { envelopeId } = req.params;
+    console.log(`فحص حالة المظروف بالمعرف: ${envelopeId}`);
 
     // Get SADQ access token server-side
     const { sadiqAuth } = await import('../sadiqAuthService');
     const accessToken = await sadiqAuth.getAccessToken();
 
-    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
+    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/document/envelope-status/${envelopeId}`;
 
     const response = await fetch(statusUrl, {
       method: 'GET',
@@ -673,8 +711,63 @@ router.get('/envelope-status/:referenceNumber', authenticateToken, async (req: R
     const statusResult = await response.json();
     console.log('حالة المظروف الحالية:', JSON.stringify(statusResult, null, 2));
 
-    // Return the raw SADQ response for client-side processing
-    res.json(statusResult);
+    // معالجة الاستجابة من صادق وتحسينها
+    const envelopeData = statusResult.data;
+    const signatories = envelopeData?.signatories || [];
+    const documents = envelopeData?.documents || [];
+    
+    // حساب إحصائيات التوقيع
+    const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
+    const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
+    const totalSignatories = signatories.length;
+    
+    // تحديد الحالة العامة
+    const isComplete = envelopeData?.status === 'Completed' || signedCount === totalSignatories;
+    const isVoided = envelopeData?.status === 'Voided';
+    const isInProgress = envelopeData?.status === 'In-progress' || pendingCount > 0;
+    
+    const processedStatus = {
+      envelopeId,
+      status: envelopeData?.status || 'Unknown',
+      createDate: envelopeData?.createDate,
+      lastUpdated: new Date().toISOString(),
+      
+      // إحصائيات التوقيع
+      signedCount,
+      pendingCount,
+      totalSignatories,
+      completionPercentage: totalSignatories > 0 ? Math.round((signedCount / totalSignatories) * 100) : 0,
+      
+      // معلومات الموقعين
+      signatories: signatories.map((signer: any) => ({
+        id: signer.id,
+        name: signer.fullName,
+        nameAr: signer.fullNameAr,
+        email: signer.email,
+        status: signer.status,
+        signOrder: signer.signOrder,
+        phoneNumber: signer.phoneNumber
+      })),
+      
+      // معلومات الوثائق
+      documents: documents.map((doc: any) => ({
+        id: doc.id,
+        fileName: doc.fileName,
+        uploadDate: doc.uploadDate,
+        sizeInKB: doc.sizeInKB,
+        isSigned: doc.isSigned
+      })),
+      
+      // حالات منطقية
+      isComplete,
+      isVoided,
+      isInProgress,
+      
+      // البيانات الأصلية
+      rawResponse: statusResult
+    };
+
+    res.json(processedStatus);
 
   } catch (error: any) {
     console.error('خطأ في تتبع حالة المظروف:', error);
