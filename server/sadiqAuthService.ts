@@ -68,6 +68,11 @@ class SadiqAuthService {
       const email = process.env.SADIQ_EMAIL;
       const password = process.env.SADIQ_PASSWORD;
 
+      console.log('🔍 DEBUG: SADIQ_EMAIL exists:', !!email);
+      console.log('🔍 DEBUG: SADIQ_PASSWORD exists:', !!password);
+      console.log('🔍 DEBUG: SADIQ_EMAIL value:', email ? `${email.substring(0, 3)}***` : 'undefined');
+      console.log('🔍 DEBUG: SADIQ_PASSWORD value:', password ? `${password.substring(0, 3)}***` : 'undefined');
+
       if (!email || !password) {
         throw new Error('Sadiq email or password not configured in environment variables');
       }
@@ -111,7 +116,7 @@ class SadiqAuthService {
         
         if (tokenData.error) {
           console.error(`❌ خطأ في المصادقة:`, tokenData.error);
-          throw new Error(`Sadiq API error: ${tokenData.error} - ${tokenData.error_description}`);
+          throw new Error(`Sadiq API error: ${tokenData.error} - ${tokenData.errorMessage || 'Unknown error'}`);
         }
 
         if (!tokenData.access_token) {
