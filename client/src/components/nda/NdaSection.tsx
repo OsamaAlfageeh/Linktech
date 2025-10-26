@@ -182,13 +182,34 @@ export function NdaSection({
       setIsLoadingSadiqStatuses(true);
       const statuses: Record<string, any> = {};
       
-      console.log(`🔍 Fetching SADQ status for ${projectNdas.filter(n => n.sadiqReferenceNumber).length} NDAs`);
+      // Filter out NDAs that are already signed - no need to fetch from API
+      const ndasToFetch = projectNdas.filter(nda => {
+        // Skip if no reference number
+        if (!nda.sadiqReferenceNumber) return false;
+        
+        // Skip if already marked as signed in DB - use cached status
+        if (nda.status === 'signed') {
+          console.log(`✅ NDA ${nda.id} already signed - using cached status`);
+          statuses[nda.id] = {
+            status: 'Completed',
+            isCompleted: true,
+            isInProgress: false,
+            isVoided: false,
+            fromCache: true,
+            signatories: [],
+            documents: []
+          };
+          return false; // Don't fetch from API
+        }
+        
+        return true; // Fetch from API for non-final statuses
+      });
+      
+      console.log(`🔍 Fetching SADQ status for ${ndasToFetch.length} NDAs (${projectNdas.length - ndasToFetch.length} already completed)`);
       
       try {
-        // Fetch Sadiq status for each NDA that has a reference number
-        const sadiqPromises = projectNdas
-          .filter(nda => nda.sadiqReferenceNumber)
-          .map(async (nda) => {
+        // Fetch Sadiq status only for NDAs that need updating
+        const sadiqPromises = ndasToFetch.map(async (nda) => {
             try {
               console.log(`📡 Fetching status for NDA ${nda.id}, reference: ${nda.sadiqReferenceNumber}`);
               const response = await fetch(`/api/sadiq/envelope-status/reference-number/${nda.sadiqReferenceNumber}`, {
@@ -200,6 +221,9 @@ export function NdaSection({
               if (response.ok) {
                 const data = await response.json();
                 console.log(`✅ Status fetched for NDA ${nda.id}:`, data.status);
+                if (data.fromCache) {
+                  console.log(`💾 Status from cache (DB)`);
+                }
                 console.log(`📋 FULL SADQ API RESPONSE for NDA ${nda.id}:`, JSON.stringify(data, null, 2));
                 statuses[nda.id] = data;
               } else {
@@ -251,9 +275,23 @@ export function NdaSection({
     refetch: refetchSadiqStatus,
     isRefetching: isRefetchingSadiqStatus 
   } = useQuery<{data: any}>({
-    queryKey: ['sadiqNdaStatus', ndaData?.sadiqReferenceNumber],
+    queryKey: ['sadiqNdaStatus', ndaData?.sadiqReferenceNumber, ndaData?.status],
     queryFn: async () => {
       if (!ndaData?.sadiqReferenceNumber) return null;
+      
+      // If NDA is already marked as "signed" in DB, don't call API - return cached status
+      if (ndaData.status === 'signed') {
+        console.log(`✅ NDA ${ndaData.id} already signed in DB - using cached status`);
+        return {
+          status: 'Completed',
+          isCompleted: true,
+          isInProgress: false,
+          isVoided: false,
+          fromCache: true,
+          signatories: [],
+          documents: []
+        };
+      }
       
       // Check if auth token exists
       const authToken = localStorage.getItem('auth_token');
@@ -281,6 +319,9 @@ export function NdaSection({
         
         const responseData = await response.json();
         console.log(`✅ Single NDA status fetched successfully`);
+        if (responseData.fromCache) {
+          console.log(`💾 Status from cache (DB)`);
+        }
         console.log(`📋 FULL SADQ API RESPONSE (Single NDA):`, JSON.stringify(responseData, null, 2));
         
         return responseData;

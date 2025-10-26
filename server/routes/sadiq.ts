@@ -776,6 +776,40 @@ router.get('/envelope-status/reference-number/:referenceNumber', authenticateTok
     const { referenceNumber } = req.params;
     console.log(`فحص حالة المظروف بالرقم المرجعي: ${referenceNumber}`);
 
+    // Find the NDA in database by reference number
+    let nda;
+    try {
+      const agreements = await storage.getNdaAgreements();
+      nda = agreements.find(a => a.sadiqReferenceNumber === referenceNumber);
+    } catch (storageError) {
+      console.error('Error fetching NDAs from storage:', storageError);
+      // Continue without cache if storage fails
+      nda = null;
+    }
+
+    // If NDA is already marked as "signed" in DB, return cached response without calling API
+    if (nda && nda.status === 'signed') {
+      console.log(`✅ NDA ${nda.id} already marked as signed in DB - returning cached status`);
+      
+      return res.json({
+        id: nda.sadiqEnvelopeId || '',
+        status: 'Completed',
+        referenceNumber: nda.sadiqReferenceNumber,
+        createDate: nda.createdAt,
+        signatories: [],
+        documents: [],
+        // Computed fields
+        isCompleted: true,
+        isInProgress: false,
+        isVoided: false,
+        signatoryCount: 0,
+        signedCount: 0,
+        pendingCount: 0,
+        documentCount: 0,
+        fromCache: true // Flag to indicate this is from DB cache
+      });
+    }
+
     // Get SADQ access token server-side
     const { sadiqAuth } = await import('../sadiqAuthService');
     const accessToken = await sadiqAuth.getAccessToken();
@@ -817,19 +851,53 @@ router.get('/envelope-status/reference-number/:referenceNumber', authenticateTok
       pendingCount: statusResult.signatories?.filter((s: any) => s.status === 'PENDING').length || 0,
       // Add document summary
       documentCount: statusResult.documents?.length || 0,
+      fromCache: false // This is fresh from SADQ API
     };
 
     console.log(`✅ حالة المظروف (${referenceNumber}):`, processedStatus.status);
     console.log(`📊 ملخص التوقيعات: ${processedStatus.signedCount}/${processedStatus.signatoryCount} تم التوقيع`);
 
+    // If status is Completed, update the database to mark as "signed"
+    if (statusResult.status === 'Completed' && nda && nda.status !== 'signed') {
+      console.log(`🔄 Updating NDA ${nda.id} status to "signed" in database`);
+      await storage.updateNdaAgreementStatus(nda.id, 'signed');
+      
+      // Also update signedAt timestamp if not already set
+      if (!nda.signedAt) {
+        await storage.updateNdaAgreement(nda.id, {
+          signedAt: new Date(),
+          envelopeStatus: 'Completed'
+        });
+      }
+      
+      console.log(`✅ NDA ${nda.id} status updated to "signed" in database`);
+    }
+
+    // If status is Voided, update database to mark as "cancelled"
+    if (statusResult.status === 'Voided' && nda && nda.status !== 'cancelled') {
+      console.log(`🔄 Updating NDA ${nda.id} status to "cancelled" in database`);
+      await storage.updateNdaAgreementStatus(nda.id, 'cancelled');
+      await storage.updateNdaAgreement(nda.id, {
+        envelopeStatus: 'Voided'
+      });
+      console.log(`✅ NDA ${nda.id} status updated to "cancelled" in database`);
+    }
+
     res.json(processedStatus);
 
   } catch (error: any) {
-    console.error('خطأ في تتبع حالة المظروف:', error);
+    console.error('❌ خطأ في تتبع حالة المظروف:', error);
+    console.error('❌ Error stack:', error.stack);
+    console.error('❌ Error details:', {
+      message: error.message,
+      name: error.name,
+      referenceNumber: req.params.referenceNumber
+    });
     res.status(500).json({
       error: 'Status check failed',
       message: 'فشل في تتبع حالة المظروف',
-      details: error.message
+      details: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

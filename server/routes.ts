@@ -6558,38 +6558,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('🔄 بدء تحديث الحالات من صادق...');
         const { sadiqAuth } = await import('./sadiqAuthService');
         
-        processedAgreements = await Promise.all(
-          ndaAgreements.map(async (nda) => {
+        // Filter NDAs that need updating (skip already signed ones)
+        const ndasToUpdate = ndaAgreements.filter(nda => {
+          if (!nda.sadiqReferenceNumber) return false;
+          // Skip if already signed - no need to check again
+          if (nda.status === 'signed') {
+            console.log(`✅ NDA ${nda.id} already signed - skipping API call`);
+            return false;
+          }
+          return true;
+        });
+        
+        console.log(`📡 Fetching status for ${ndasToUpdate.length} NDAs (${ndaAgreements.length - ndasToUpdate.length} already completed)`);
+        
+        const updatedNdas = await Promise.all(
+          ndasToUpdate.map(async (nda) => {
             try {
-              // Only check Sadiq status if NDA has a reference number
-              if (nda.sadiqReferenceNumber) {
-                const sadiqEnvelopeData = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
+              console.log(`📡 Checking SADQ status for NDA ${nda.id}, reference: ${nda.sadiqReferenceNumber}`);
+              const sadiqEnvelopeData = await sadiqAuth.getEnvelopeStatus(nda.sadiqReferenceNumber);
+              
+              if (sadiqEnvelopeData) {
+                // Parse Sadiq response
+                const envelopeStatus = sadiqEnvelopeData.status || 'Unknown';
+                const signatories = sadiqEnvelopeData.signatories || [];
+                const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
+                const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
                 
-                if (sadiqEnvelopeData) {
-                  // Parse Sadiq response
-                  const signatories = sadiqEnvelopeData.signatories || [];
-                  const signedCount = signatories.filter((s: any) => s.status === 'SIGNED').length;
-                  const pendingCount = signatories.filter((s: any) => s.status === 'PENDING').length;
-                  
-                  const envelopeStatus = sadiqEnvelopeData.status || 'Unknown';
-                  const isCompleted = envelopeStatus === 'Completed' || (pendingCount === 0 && signedCount > 0);
-                  const isSigned = isCompleted && envelopeStatus !== 'Voided';
-                  
-                  // Update status in database
-                  const updatedStatus = isSigned ? 'signed' : (signedCount > 0 ? 'invitation_sent' : nda.status);
-                  
-                  await storage.updateNdaAgreement(nda.id, {
-                    envelopeStatus: envelopeStatus,
-                    ...(isSigned && !nda.signedAt && { status: 'signed', signedAt: new Date() })
-                  });
-                  
-                  // Return updated NDA data
-                  return {
-                    ...nda,
-                    status: updatedStatus,
-                    envelopeStatus: envelopeStatus
-                  };
+                console.log(`📊 NDA ${nda.id} - Status: ${envelopeStatus}, Signed: ${signedCount}, Pending: ${pendingCount}`);
+                
+                let updatedStatus = nda.status;
+                const updateData: any = { envelopeStatus };
+                
+                // Update status based on Sadiq response
+                if (envelopeStatus === 'Completed') {
+                  updatedStatus = 'signed';
+                  if (!nda.signedAt) {
+                    updateData.signedAt = new Date();
+                  }
+                  console.log(`✅ NDA ${nda.id} completed - updating status to "signed"`);
+                } else if (envelopeStatus === 'Voided') {
+                  updatedStatus = 'cancelled';
+                  console.log(`❌ NDA ${nda.id} voided - updating status to "cancelled"`);
+                } else if (envelopeStatus === 'In-progress' && signedCount > 0) {
+                  updatedStatus = 'invitations_sent';
                 }
+                
+                // Update status in database if changed
+                if (updatedStatus !== nda.status) {
+                  await storage.updateNdaAgreementStatus(nda.id, updatedStatus);
+                }
+                
+                // Update other fields
+                if (Object.keys(updateData).length > 0) {
+                  await storage.updateNdaAgreement(nda.id, updateData);
+                }
+                
+                // Return updated NDA data
+                return {
+                  ...nda,
+                  status: updatedStatus,
+                  envelopeStatus: envelopeStatus,
+                  signedAt: updateData.signedAt || nda.signedAt
+                };
               }
               
               // Return original data if no Sadiq update
@@ -6600,6 +6630,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           })
         );
+        
+        // Merge updated NDAs with original ones that were skipped
+        processedAgreements = ndaAgreements.map(nda => {
+          const updated = updatedNdas.find(u => u.id === nda.id);
+          return updated || nda;
+        });
         
         console.log('✅ تم تحديث الحالات من صادق');
       }
