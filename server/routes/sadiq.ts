@@ -3,18 +3,22 @@ import { generateProjectNdaPdf } from '../generateNDA';
 import jwt from 'jsonwebtoken';
 import { storage } from '../storage';
 
+// Use same JWT secret as main routes
+const JWT_SECRET = process.env.JWT_SECRET || 'linktech-jwt-secret-2024';
+
 // JWT middleware للمصادقة (نسخة محدثة متطابقة مع النظام الرئيسي)
 const authenticateToken = async (req: any, res: Response, next: any) => {
   try {
-    console.log('JWT Middleware: POST /api/sadiq/generate-nda');
+    const endpoint = `${req.method} ${req.path}`;
+    console.log(`JWT Middleware: ${endpoint}`);
     const authHeader = req.headers['authorization'];
     console.log('Authorization header:', authHeader ? authHeader.substring(0, 50) + '...' : 'undefined');
     
     const token = authHeader && authHeader.split(' ')[1];
-    console.log('Extracted token:', token ? 'Present' : 'Missing');
+    console.log('Extracted token:', token ? `Present (${token.substring(0, 20)}...)` : 'Missing');
 
     if (!token) {
-      console.log('No token found');
+      console.log('❌ No token found - returning 401');
       return res.status(401).json({ 
         error: 'Access token required',
         message: 'رمز الوصول مطلوب' 
@@ -22,29 +26,31 @@ const authenticateToken = async (req: any, res: Response, next: any) => {
     }
 
     try {
-      const decoded: any = jwt.verify(token, 'linktech-jwt-secret-2024');
-      console.log('Token verification result: Valid');
+      const decoded: any = jwt.verify(token, JWT_SECRET);
+      console.log('✅ Token verification result: Valid');
       console.log('Decoded token userId:', decoded.userId);
       
       const user = await storage.getUser(decoded.userId);
       console.log('User lookup result:', user ? `Found user ${user.username}` : 'User not found');
       
       if (!user) {
+        console.log('❌ User not found - returning 401');
         return res.status(401).json({ 
           error: 'User not found',
           message: 'المستخدم غير موجود' 
         });
       }
 
-      console.log(`Set req.user to: ${user.username} (${user.role})`);
+      console.log(`✅ Set req.user to: ${user.username} (${user.role})`);
       req.user = user;
       next();
-    } catch (jwtError) {
-      console.log('Token verification result: Invalid');
-      console.error('JWT verification error:', jwtError);
+    } catch (jwtError: any) {
+      console.log('❌ Token verification result: Invalid');
+      console.error('JWT verification error:', jwtError.message);
       return res.status(403).json({ 
-        error: 'Invalid token',
-        message: 'رمز وصول غير صالح' 
+        error: 'Invalid or expired token',
+        message: 'رمز وصول غير صالح أو منتهي الصلاحية',
+        details: jwtError.message
       });
     }
   } catch (error) {
@@ -651,30 +657,14 @@ router.post('/send-invitations', authenticateToken, async (req: Request, res: Re
   }
 });
 
-// Redirect old reference number endpoint to envelope ID endpoint for backward compatibility
-router.get('/envelope-status/:legacyId', authenticateToken, async (req: Request, res: Response) => {
-  try {
-    const { legacyId } = req.params;
-    console.log(`تحويل الطلب القديم إلى معرف المظروف: ${legacyId}`);
-    res.redirect(307, `/api/sadiq/envelope-status/by-id/${legacyId}`);
-  } catch (error: any) {
-    console.error('خطأ في تحويل الطلب:', error);
-    res.status(500).json({
-      error: 'Redirect failed',
-      message: 'فشل في تحويل الطلب',
-      details: error.message
-    });
-  }
-});
-
-  } catch (error: any) {
-    console.error('خطأ في تتبع حالة المظروف:', error);
-    res.status(500).json({
-      error: 'Status check failed',
-      message: 'فشل في تتبع حالة المظروف',
-      details: error.message
-    });
-  }
+// Reject legacy reference-number based status checks - use envelope-id instead
+router.get('/envelope-status/:legacyId', authenticateToken, (req: Request, res: Response) => {
+  const { legacyId } = req.params;
+  console.log(`Received legacy status lookup for: ${legacyId} - rejecting (use envelope-id)`);
+  return res.status(400).json({
+    error: 'use_envelope_id',
+    message: 'Legacy reference-number based status lookup is deprecated. Please use /api/sadiq/envelope-status/by-id/:envelopeId with the SADQ envelopeId.'
+  });
 });
 
 // Check envelope status by envelope ID
