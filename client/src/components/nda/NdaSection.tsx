@@ -167,7 +167,7 @@ export function NdaSection({
     staleTime: 0, // Always refetch to get latest status
   });
 
-  // Fetch Sadiq statuses for all NDAs when project NDAs are loaded (use envelopeId only)
+  // Fetch Sadiq statuses for all NDAs when project NDAs are loaded (use referenceNumber only)
   useEffect(() => {
     const fetchSadiqStatuses = async () => {
       if (!projectNdas || projectNdas.length === 0) return;
@@ -182,16 +182,16 @@ export function NdaSection({
       setIsLoadingSadiqStatuses(true);
       const statuses: Record<string, any> = {};
       
-      console.log(`🔍 Fetching SADQ status for ${projectNdas.filter(n => n.sadiqEnvelopeId).length} NDAs`);
+      console.log(`🔍 Fetching SADQ status for ${projectNdas.filter(n => n.sadiqReferenceNumber).length} NDAs`);
       
       try {
-        // Fetch Sadiq status for each NDA that has an envelope id
+        // Fetch Sadiq status for each NDA that has a reference number
         const sadiqPromises = projectNdas
-          .filter(nda => nda.sadiqEnvelopeId)
+          .filter(nda => nda.sadiqReferenceNumber)
           .map(async (nda) => {
             try {
-              console.log(`📡 Fetching status for NDA ${nda.id}, envelope: ${nda.sadiqEnvelopeId}`);
-              const response = await fetch(`/api/sadiq/envelope-status/by-id/${nda.sadiqEnvelopeId}`, {
+              console.log(`📡 Fetching status for NDA ${nda.id}, reference: ${nda.sadiqReferenceNumber}`);
+              const response = await fetch(`/api/sadiq/envelope-status/reference-number/${nda.sadiqReferenceNumber}`, {
                 headers: {
                   'Authorization': `Bearer ${authToken}`
                 }
@@ -251,9 +251,9 @@ export function NdaSection({
     refetch: refetchSadiqStatus,
     isRefetching: isRefetchingSadiqStatus 
   } = useQuery<{data: any}>({
-    queryKey: ['sadiqNdaStatus', ndaData?.sadiqEnvelopeId],
+    queryKey: ['sadiqNdaStatus', ndaData?.sadiqReferenceNumber],
     queryFn: async () => {
-      if (!ndaData?.sadiqEnvelopeId) return null;
+      if (!ndaData?.sadiqReferenceNumber) return null;
       
       // Check if auth token exists
       const authToken = localStorage.getItem('auth_token');
@@ -268,8 +268,8 @@ export function NdaSection({
       }
       
       try {
-        console.log(`📡 Fetching single NDA status, envelope: ${ndaData.sadiqEnvelopeId}`);
-        const response = await fetch(`/api/sadiq/envelope-status/by-id/${ndaData.sadiqEnvelopeId}`, {
+        console.log(`📡 Fetching single NDA status, reference: ${ndaData.sadiqReferenceNumber}`);
+        const response = await fetch(`/api/sadiq/envelope-status/reference-number/${ndaData.sadiqReferenceNumber}`, {
           headers: {
             'Authorization': `Bearer ${authToken}`
           }
@@ -294,7 +294,7 @@ export function NdaSection({
         return null;
       }
     },
-    enabled: !!ndaData?.sadiqEnvelopeId,
+    enabled: !!ndaData?.sadiqReferenceNumber,
     refetchOnWindowFocus: false
   });
 

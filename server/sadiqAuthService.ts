@@ -360,12 +360,12 @@ class SadiqAuthService {
   }
 
   /**
-   * Check envelope status by envelope ID
+   * Check envelope status by reference number
    */
-  async getEnvelopeStatus(envelopeId: string): Promise<any> {
-    console.log(`🔍 التحقق من حالة المغلف بالمعرف: ${envelopeId}`);
+  async getEnvelopeStatus(referenceNumber: string): Promise<any> {
+    console.log(`🔍 التحقق من حالة المغلف بالرقم المرجعي: ${referenceNumber}`);
     
-    const response = await this.makeAuthenticatedRequest(`/IntegrationService/document/envelope-status/${envelopeId}`, {
+    const response = await this.makeAuthenticatedRequest(`/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`, {
       method: 'GET'
     });
 

@@ -660,24 +660,21 @@ router.post('/send-invitations', authenticateToken, async (req: Request, res: Re
 // Reject legacy reference-number based status checks - use envelope-id instead
 router.get('/envelope-status/:legacyId', authenticateToken, (req: Request, res: Response) => {
   const { legacyId } = req.params;
-  console.log(`Received legacy status lookup for: ${legacyId} - rejecting (use envelope-id)`);
-  return res.status(400).json({
-    error: 'use_envelope_id',
-    message: 'Legacy reference-number based status lookup is deprecated. Please use /api/sadiq/envelope-status/by-id/:envelopeId with the SADQ envelopeId.'
-  });
+  console.log(`Received legacy status lookup for: ${legacyId} - redirecting to reference-number endpoint`);
+  res.redirect(307, `/api/sadiq/envelope-status/by-reference/${legacyId}`);
 });
 
-// Check envelope status by envelope ID
-router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: Request, res: Response) => {
+// Check envelope status by reference number (NEW PRIMARY METHOD)
+router.get('/envelope-status/by-reference/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
   try {
-    const { envelopeId } = req.params;
-    console.log(`فحص حالة المظروف بالمعرف: ${envelopeId}`);
+    const { referenceNumber } = req.params;
+    console.log(`فحص حالة المظروف بالرقم المرجعي: ${referenceNumber}`);
 
     // Get SADQ access token server-side
     const { sadiqAuth } = await import('../sadiqAuthService');
     const accessToken = await sadiqAuth.getAccessToken();
 
-    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/document/envelope-status/${envelopeId}`;
+    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
 
     const response = await fetch(statusUrl, {
       method: 'GET',
@@ -699,7 +696,7 @@ router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: 
     }
 
     const statusResult = await response.json();
-    console.log('حالة المظروف الحالية:', JSON.stringify(statusResult, null, 2));
+    console.log('📋 FULL SADQ API RESPONSE:', JSON.stringify(statusResult, null, 2));
 
     // معالجة الاستجابة من صادق وتحسينها
     const envelopeData = statusResult.data;
@@ -717,7 +714,8 @@ router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: 
     const isInProgress = envelopeData?.status === 'In-progress' || pendingCount > 0;
     
     const processedStatus = {
-      envelopeId,
+      referenceNumber,
+      envelopeId: envelopeData?.id,
       status: envelopeData?.status || 'Unknown',
       createDate: envelopeData?.createDate,
       lastUpdated: new Date().toISOString(),
@@ -736,7 +734,10 @@ router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: 
         email: signer.email,
         status: signer.status,
         signOrder: signer.signOrder,
-        phoneNumber: signer.phoneNumber
+        phoneNumber: signer.phoneNumber,
+        nationalId: signer.nationalId,
+        gender: signer.gender,
+        nationality: signer.nationlity
       })),
       
       // معلومات الوثائق
@@ -767,6 +768,85 @@ router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: 
       details: error.message
     });
   }
+});
+
+// Check envelope status by reference number (ALIAS ROUTE - same as by-reference)
+router.get('/envelope-status/reference-number/:referenceNumber', authenticateToken, async (req: Request, res: Response) => {
+  try {
+    const { referenceNumber } = req.params;
+    console.log(`فحص حالة المظروف بالرقم المرجعي: ${referenceNumber}`);
+
+    // Get SADQ access token server-side
+    const { sadiqAuth } = await import('../sadiqAuthService');
+    const accessToken = await sadiqAuth.getAccessToken();
+
+    const statusUrl = `https://sandbox-api.sadq-sa.com/IntegrationService/Document/envelope-status/referenceNumber/${referenceNumber}`;
+
+    const response = await fetch(statusUrl, {
+      method: 'GET',
+      headers: {
+        'accept': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
+
+    if (!response.ok) {
+      console.error('خطأ في تتبع حالة المظروف:', response.status, response.statusText);
+      const errorText = await response.text();
+      console.error('تفاصيل خطأ تتبع الحالة:', errorText);
+      return res.status(response.status).json({ 
+        error: 'Status check failed',
+        details: errorText,
+        message: 'فشل في تتبع حالة المظروف'
+      });
+    }
+
+    const statusResult = await response.json();
+    console.log('📋 FULL SADQ API RESPONSE:', JSON.stringify(statusResult, null, 2));
+
+    // Process the response to add helpful computed fields
+    const processedStatus = {
+      ...statusResult,
+      // Add computed fields for easier use
+      isCompleted: statusResult.status === 'Completed',
+      isInProgress: statusResult.status === 'In-progress',
+      isVoided: statusResult.status === 'Voided',
+      // Add signatory summary
+      signatoryCount: statusResult.signatories?.length || 0,
+      signedCount: statusResult.signatories?.filter((s: any) => s.status === 'SIGNED').length || 0,
+      pendingCount: statusResult.signatories?.filter((s: any) => s.status === 'PENDING').length || 0,
+      // Add document summary
+      documentCount: statusResult.documents?.length || 0,
+    };
+
+    console.log(`✅ حالة المظروف (${referenceNumber}):`, processedStatus.status);
+    console.log(`📊 ملخص التوقيعات: ${processedStatus.signedCount}/${processedStatus.signatoryCount} تم التوقيع`);
+
+    res.json(processedStatus);
+
+  } catch (error: any) {
+    console.error('خطأ في تتبع حالة المظروف:', error);
+    res.status(500).json({
+      error: 'Status check failed',
+      message: 'فشل في تتبع حالة المظروف',
+      details: error.message
+    });
+  }
+});
+
+// Check envelope status by envelope ID (DEPRECATED - returns 410 Gone)
+router.get('/envelope-status/by-id/:envelopeId', authenticateToken, async (req: Request, res: Response) => {
+  const { envelopeId } = req.params;
+  console.log(`⚠️ Deprecated endpoint called: /envelope-status/by-id/${envelopeId}`);
+  console.log(`Please use /envelope-status/reference-number/:referenceNumber instead`);
+  
+  return res.status(410).json({
+    error: 'Endpoint deprecated',
+    message: 'This endpoint is deprecated. Please use /api/sadiq/envelope-status/reference-number/:referenceNumber instead',
+    deprecatedEndpoint: '/envelope-status/by-id/:envelopeId',
+    newEndpoint: '/envelope-status/reference-number/:referenceNumber',
+    envelopeId
+  });
 });
 
 // إنشاء webhook لتلقي تحديثات حالة المظروف من صادق
