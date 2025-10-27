@@ -129,7 +129,7 @@ const Projects = ({ auth: authProp }: ProjectsProps = {}) => {
   return (
     <>
       <SEO 
-        title={auth.isEntrepreneur ? "مشاريعي | لينكتك" : "المشاريع | لينكتك"}
+  title={"المشاريع | لينكتك"}
         description={auth.isEntrepreneur 
           ? "إدارة ومتابعة مشاريعك الخاصة وحالة العروض المقدمة عليها في منصة لينكتك."
           : "استعرض أحدث المشاريع التقنية المتاحة للتنفيذ من قبل شركات البرمجة والمطورين المحترفين في المملكة العربية السعودية. فرص متنوعة للشركات من مختلف التخصصات التقنية."
@@ -154,7 +154,7 @@ const Projects = ({ auth: authProp }: ProjectsProps = {}) => {
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold font-heading mb-1 sm:mb-2">
-            {auth.isEntrepreneur ? 'مشاريعي' : 'المشاريع'}
+            المشاريع
           </h1>
           <p className="text-neutral-600 text-sm sm:text-base">
             {auth.isEntrepreneur 

@@ -125,7 +125,7 @@ const ModernHeader = ({ auth }: ModernHeaderProps) => {
                     <div className="absolute top-full right-0 w-56 py-2 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 border border-gray-100">
                       <Link href="/projects" className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary/5 hover:text-primary">
                         <Layers className="inline-block ml-2 h-4 w-4" />
-                        مشاريعي
+                        المشاريع
                       </Link>
                       {auth.isEntrepreneur && (
                         <Link href="/dashboard/entrepreneur?action=create-project" className="block px-4 py-2 text-sm text-gray-700 hover:bg-primary/5 hover:text-primary">
